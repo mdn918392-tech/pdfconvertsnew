@@ -1,12 +1,26 @@
+import type { Metadata, Viewport } from "next";
 import StructuredData from "./StructuredData";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Merge PDF Files - Fast & Free PDF Combiner",
-  description: "Merge multiple PDF files into a single high-quality PDF instantly. 100% free online PDF merger tool.",
-  keywords: "merge PDF, combine PDF, PDF merger, PDF joiner, online PDF tools, free PDF merger",
+  description:
+    "Merge multiple PDF files into a single high-quality PDF instantly. 100% free online PDF merger tool.",
+  keywords:
+    "merge PDF, combine PDF, PDF merger, PDF joiner, online PDF tools, free PDF merger",
 };
 
-export default function MergePDFLayout({ children }: { children: React.ReactNode }) {
+// ✅ Viewport must be exported separately
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+};
+
+export default function MergePDFLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <>
       <StructuredData />

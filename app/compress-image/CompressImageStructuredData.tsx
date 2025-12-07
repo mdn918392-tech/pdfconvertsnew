@@ -10,7 +10,8 @@ export default function CompressImageStructuredData() {
       "@context": "https://schema.org",
       "@type": "HowTo",
       "name": "How to compress an image quickly",
-      "description": "A step-by-step guide to compress image files online instantly and efficiently without losing quality.",
+      "description":
+        "A step-by-step guide to compress image files online instantly and efficiently without losing quality.",
       "keywords": [
         "compress image",
         "reduce image size",
@@ -21,6 +22,7 @@ export default function CompressImageStructuredData() {
       ],
       "url": window.location.href
     });
+
     document.head.appendChild(script);
 
     return () => {
