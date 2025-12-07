@@ -1,0 +1,86 @@
+import { Tool } from "../types/index";
+
+
+
+export const tools: Tool[] = [
+  {
+    id: "jpg-to-pdf",
+    name: "JPG to PDF",
+    description: "Convert JPG images to PDF documents",
+    icon: "FileImage",
+    path: "/jpg-to-pdf",
+    category: "convert",
+  },
+  {
+    id: "pdf-to-jpg",
+    name: "PDF to JPG",
+    description: "Convert PDF pages to JPG images",
+    icon: "FileOutput",
+    path: "/pdf-to-jpg",
+    category: "convert",
+  },
+  {
+    id: "png-to-jpg",
+    name: "PNG to JPG",
+    description: "Convert PNG images to JPG format",
+    icon: "Image",
+    path: "/png-to-jpg",
+    category: "convert",
+  },
+  {
+    id: "merge-pdf",
+    name: "Merge PDF",
+    description: "Combine multiple PDF files into one",
+    icon: "Combine",
+    path: "/merge-pdf",
+    category: "pdf",
+  },
+  {
+    id: "split-pdf",
+    name: "Split PDF",
+    description: "Split PDF into separate pages",
+    icon: "Scissors",
+    path: "/split-pdf",
+    category: "pdf",
+  },
+  {
+    id: "compress-pdf",
+    name: "Compress PDF",
+    description: "Reduce PDF file size",
+    icon: "Minimize2",
+    path: "/compress-pdf",
+    category: "pdf",
+  },
+  {
+    id: "compress-image",
+    name: "Compress Image",
+    description: "Reduce JPG/PNG file size",
+    icon: "ImageDown",
+    path: "/compress-image",
+    category: "image",
+  },
+  {
+    id: "extract-pages",
+    name: "Extract Pages",
+    description: "Extract specific pages from PDF",
+    icon: "FileStack",
+    path: "/extract-pages",
+    category: "pdf",
+  },
+  {
+    id: "remove-pages",
+    name: "Remove Pages",
+    description: "Delete specific pages from PDF",
+    icon: "Trash2",
+    path: "/remove-pages",
+    category: "pdf",
+  },
+  {
+    id: "rotate-pdf",
+    name: "Rotate PDF",
+    description: "Rotate PDF pages",
+    icon: "RotateCw",
+    path: "/rotate-pdf",
+    category: "pdf",
+  },
+];
