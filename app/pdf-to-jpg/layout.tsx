@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import StructuredData from "./StructuredData";
+import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
+import SitelinkSearchSchema from "./SitelinkSearchSchema";
+import BreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
   title: "PDF to JPG Converter - Fast & Free",
@@ -9,7 +12,7 @@ export const metadata: Metadata = {
     "PDF to JPG, PDF converter, extract images, pdf to image, free PDF tool, convert PDF",
 };
 
-// ✅ viewport must be exported separately (NOT inside metadata)
+// ✅ viewport must be exported separately
 export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
@@ -23,7 +26,10 @@ export default function PDFToJPGLayout({
 }) {
   return (
     <>
-      <StructuredData />
+      <HowToSchema />
+      <FAQSchema />
+       <BreadcrumbSchema />
+      <SitelinkSearchSchema/>
       <main>{children}</main>
     </>
   );
