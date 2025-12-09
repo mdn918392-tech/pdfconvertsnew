@@ -9,6 +9,71 @@ import ProgressBar from "@/app/components/ProgressBar";
 import { mergePdfs } from "../../utils/pdfUtils";
 import { downloadFile } from '../../utils/imageUtils';
 
+// Smart filename generator for merged PDFs
+const generateMergedPdfFilename = (files: File[]): string => {
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+  
+  if (files.length === 2) {
+    // For 2 files: "file1_and_file2_merged"
+    const firstFile = files[0].name.replace(/\.pdf$/i, '');
+    const secondFile = files[1].name.replace(/\.pdf$/i, '');
+    return `${firstFile}_and_${secondFile}_merged_${dateStr}.pdf`;
+  } else if (files.length === 3) {
+    // For 3 files: "file1_file2_file3_merged"
+    const fileNames = files.map(file => 
+      file.name.replace(/\.pdf$/i, '').substring(0, 15)
+    ).join('_');
+    return `${fileNames}_merged_${dateStr}.pdf`;
+  } else if (files.length > 3) {
+    // For many files: "file1_to_fileX_merged_Xfiles"
+    const firstFile = files[0].name.replace(/\.pdf$/i, '').substring(0, 20);
+    const lastFile = files[files.length - 1].name.replace(/\.pdf$/i, '').substring(0, 20);
+    return `${firstFile}_to_${lastFile}_merged_${files.length}files_${dateStr}.pdf`;
+  } else {
+    // Fallback
+    return `merged_document_${dateStr}_${timeStr}.pdf`;
+  }
+};
+
+// Alternative: Create more descriptive names
+const generateDescriptiveFilename = (files: File[]): string => {
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  
+  // Get meaningful name from first file
+  const firstFileName = files[0].name.replace(/\.pdf$/i, '');
+  
+  // Clean filename (remove special characters, limit length)
+  const cleanName = firstFileName
+    .replace(/[^a-zA-Z0-9\s-_]/g, '')
+    .substring(0, 30)
+    .trim();
+  
+  if (files.length === 1) {
+    return `${cleanName}_${dateStr}.pdf`;
+  } else if (files.length === 2) {
+    const secondName = files[1].name
+      .replace(/\.pdf$/i, '')
+      .replace(/[^a-zA-Z0-9\s-_]/g, '')
+      .substring(0, 15)
+      .trim();
+    return `${cleanName}_and_${secondName}_${dateStr}.pdf`;
+  } else {
+    return `${cleanName}_and_${files.length - 1}_more_files_merged_${dateStr}.pdf`;
+  }
+};
+
+// Main filename generator (choose one or combine)
+const getMergedFilename = (files: File[]): string => {
+  // Option 1: Use descriptive generator
+  return generateDescriptiveFilename(files);
+  
+  // Option 2: Use original generator
+  // return generateMergedPdfFilename(files);
+};
+
 export default function MergePdf() {
   const [files, setFiles] = useState<File[]>([]);
   const [converting, setConverting] = useState(false);
@@ -57,8 +122,9 @@ export default function MergePdf() {
 
   const handleDownload = () => {
     if (pdfBlob) {
-      // NOTE: downloadFile is assumed to be a utility function
-      downloadFile(pdfBlob, "merged.pdf"); 
+      // Generate smart filename based on uploaded files
+      const filename = getMergedFilename(files);
+      downloadFile(pdfBlob, filename); 
     }
   };
 
@@ -213,6 +279,15 @@ export default function MergePdf() {
                       {files.length} files • {(totalSize / 1024 / 1024).toFixed(2)} MB total
                     </span>
                   </div>
+                  {/* Show preview of generated filename */}
+                  <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-indigo-600 dark:text-indigo-400 font-medium">
+                      Will save as: 
+                    </span>{" "}
+                    <span className="truncate max-w-xs inline-block align-middle">
+                      {getMergedFilename(files)}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -335,7 +410,7 @@ export default function MergePdf() {
                         <AnimatePresence>
                           {expandedFile === index && (
                             <motion.div
-                              key="file-details" // <--- Added key here
+                              key="file-details"
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}
                               exit={{ opacity: 0, height: 0 }}
@@ -363,12 +438,12 @@ export default function MergePdf() {
                   ))}
                 </div>
 
-                {/* Status Messages and Actions (Error was here) */}
+                {/* Status Messages and Actions */}
                 <AnimatePresence mode="wait">
-                  {/* Warning: Need more files (key="warning") */}
+                  {/* Warning: Need more files */}
                   {files.length < 2 && (
                     <motion.div
-                      key="warning" // <--- ADDED KEY
+                      key="warning"
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
@@ -390,10 +465,10 @@ export default function MergePdf() {
                     </motion.div>
                   )}
 
-                  {/* Progress Bar (key="progress") */}
+                  {/* Progress Bar */}
                   {converting && (
                     <motion.div
-                      key="progress" // <--- ADDED KEY
+                      key="progress"
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
@@ -411,10 +486,10 @@ export default function MergePdf() {
 
                   {/* Action Buttons (Merge vs. Download) */}
                   <div className="space-y-4">
-                    {/* Merge Button (key="merge-button") */}
+                    {/* Merge Button */}
                     {!pdfBlob && !converting && files.length >= 2 && (
                       <motion.div
-                        key="merge-button" // <--- ADDED KEY
+                        key="merge-button"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
@@ -432,10 +507,10 @@ export default function MergePdf() {
                       </motion.div>
                     )}
 
-                    {/* Download/Success State (key="download-state") */}
+                    {/* Download/Success State */}
                     {pdfBlob && (
                       <motion.div
-                        key="download-state" // <--- ADDED KEY
+                        key="download-state"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
@@ -457,7 +532,9 @@ export default function MergePdf() {
                                 All {files.length} files have been combined
                               </p>
                               <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                                Ready to download your merged document
+                                Ready to download: <span className="font-mono text-indigo-600 dark:text-indigo-400">
+                                  {getMergedFilename(files)}
+                                </span>
                               </p>
                             </div>
                             <div className="flex items-center justify-center">

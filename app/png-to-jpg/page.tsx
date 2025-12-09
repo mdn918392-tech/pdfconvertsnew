@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, ArrowLeft, XCircle, CheckCircle, Image, Sparkles, Zap, Shield, Palette, Upload, Layers, Eye } from 'lucide-react';
+import { Download, ArrowLeft, XCircle, CheckCircle, Image, Sparkles, Zap, Shield, Palette, Upload, Layers, Eye, Clock, Check, X } from 'lucide-react';
 import FileUploader from '../components/FileUploader';
 import ProgressBar from '../components/ProgressBar';
 import { convertPngToJpg, downloadFile } from '../../utils/imageUtils';
@@ -16,6 +16,14 @@ interface ConvertedFile {
     blob: Blob;
     name: string;
     originalFile: File;
+    timestamp: number;
+}
+
+interface DownloadNotification {
+    id: string;
+    fileName: string;
+    fileCount: number;
+    timestamp: Date;
 }
 
 // --- Image Preview Component ---
@@ -166,6 +174,50 @@ const ImagePreview = ({ file, onRemove, status, isDownloadable = false, filename
     );
 };
 
+// --- Download Notification Component ---
+const DownloadNotification = ({ id, fileName, fileCount, timestamp, onClose }: DownloadNotification & { onClose: () => void }) => {
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 50 }}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-xl shadow-lg mb-2"
+        >
+            <div className="flex items-start gap-3">
+                <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-sm mb-1">
+                        {fileCount > 1 ? `${fileCount} Files Downloaded! 🎉` : 'File Downloaded Successfully! 🎉'}
+                    </h4>
+                    {fileCount === 1 && (
+                        <p className="text-xs opacity-90 truncate mb-1">
+                            {fileName}
+                        </p>
+                    )}
+                    <p className="text-xs opacity-80 mb-2">
+                        {fileCount > 1 
+                            ? `${fileCount} PNG files converted to JPG` 
+                            : 'PNG successfully converted to JPG'}
+                    </p>
+                    <div className="flex items-center gap-1 text-xs opacity-80">
+                        <Clock className="w-3 h-3" />
+                        {timestamp.toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        })}
+                    </div>
+                </div>
+                <button
+                    onClick={onClose}
+                    className="p-1 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+            </div>
+        </motion.div>
+    );
+};
+
 // --- Main Component ---
 export default function PngToJpg() {
     const [files, setFiles] = useState<File[]>([]);
@@ -173,6 +225,24 @@ export default function PngToJpg() {
     const [progress, setProgress] = useState(0);
     const [jpgBlobs, setJpgBlobs] = useState<ConvertedFile[]>([]);
     const [showFeatures, setShowFeatures] = useState(true);
+    const [downloadNotifications, setDownloadNotifications] = useState<DownloadNotification[]>([]);
+    const notificationsRef = useRef<HTMLDivElement>(null);
+
+    // Generate unique filename
+    const generateUniqueFileName = (baseName: string, index: number) => {
+        const timestamp = new Date().getTime();
+        const randomId = Math.random().toString(36).substring(2, 9);
+        const cleanBaseName = baseName.replace(/\.png$/i, '').replace(/\.[^/.]+$/, "");
+        const sequence = (index + 1).toString().padStart(3, '0');
+        return `${cleanBaseName}_converted_${sequence}_${timestamp}_${randomId}.jpg`;
+    };
+
+    // Auto-scroll notifications
+    useEffect(() => {
+        if (notificationsRef.current && downloadNotifications.length > 0) {
+            notificationsRef.current.scrollTop = notificationsRef.current.scrollHeight;
+        }
+    }, [downloadNotifications]);
 
     const handleConvert = async () => {
         if (files.length === 0) return;
@@ -185,13 +255,14 @@ export default function PngToJpg() {
         try {
             const blobs: ConvertedFile[] = [];
             for (let i = 0; i < files.length; i++) {
-                const newFilename = files[i].name.replace(/\.png$/i, '.jpg');
+                const uniqueFilename = generateUniqueFileName(files[i].name, i);
                 const blob = await convertPngToJpg(files[i]);
                 
                 blobs.push({
                     blob: blob,
-                    name: newFilename,
-                    originalFile: files[i]
+                    name: uniqueFilename,
+                    originalFile: files[i],
+                    timestamp: Date.now()
                 });
                 
                 // Animate progress smoothly
@@ -214,6 +285,42 @@ export default function PngToJpg() {
         jpgBlobs.forEach(item => {
             downloadFile(item.blob, item.name);
         });
+
+        // Add download notification
+        const notification: DownloadNotification = {
+            id: Math.random().toString(36).substring(7),
+            fileName: jpgBlobs.length === 1 ? jpgBlobs[0].name : 'Multiple files',
+            fileCount: jpgBlobs.length,
+            timestamp: new Date()
+        };
+        setDownloadNotifications(prev => [...prev, notification]);
+        
+        // Auto-remove notification after 5 seconds
+        setTimeout(() => {
+            setDownloadNotifications(prev => 
+                prev.filter(n => n.id !== notification.id)
+            );
+        }, 5000);
+    };
+
+    const handleSingleDownload = (blob: Blob, filename: string, index: number) => {
+        downloadFile(blob, filename);
+
+        // Add download notification
+        const notification: DownloadNotification = {
+            id: Math.random().toString(36).substring(7),
+            fileName: filename,
+            fileCount: 1,
+            timestamp: new Date()
+        };
+        setDownloadNotifications(prev => [...prev, notification]);
+        
+        // Auto-remove notification after 5 seconds
+        setTimeout(() => {
+            setDownloadNotifications(prev => 
+                prev.filter(n => n.id !== notification.id)
+            );
+        }, 5000);
     };
 
     const handleRemoveFile = (indexToRemove: number) => {
@@ -240,316 +347,338 @@ export default function PngToJpg() {
     const isReadyToConvert = hasFiles && !hasResults && !converting;
     const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
+    // Calculate total size of converted files
+    const convertedTotalSize = jpgBlobs.reduce((acc, item) => acc + item.blob.size, 0);
+    const sizeReduction = totalSize > 0 ? ((totalSize - convertedTotalSize) / totalSize * 100).toFixed(1) : '0';
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-8 md:py-12">
-            <div className="container mx-auto px-4 max-w-7xl">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
+        <>
+            {/* Download Success Notifications */}
+            <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
+                <div 
+                    ref={notificationsRef}
+                    className="space-y-2 max-h-64 overflow-y-auto pr-2"
                 >
-                    {/* --- Header Section --- */}
-                    <div className="mb-8 md:mb-12">
-                        <a
-                            href="/"
-                            className="inline-flex items-center gap-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium group mb-6"
-                        >
-                            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                            <span className="hidden sm:inline">Back to Tools</span>
-                        </a>
-
-                        <div className="text-center mb-8">
-                            <motion.div 
-                                initial={{ scale: 0.5 }}
-                                animate={{ scale: 1 }}
-                                className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-500 to-pink-600 rounded-3xl mb-6 shadow-2xl"
-                            >
-                                <Image className="w-10 h-10 text-white" />
-                            </motion.div>
-                            
-                            <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 bg-gradient-to-r from-orange-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-                                PNG to JPG Converter
-                            </h1>
-                            
-                            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                                Convert your PNG images to high-quality JPG format with superior compression
-                                <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1">
-                                    Preserve quality while reducing file size
-                                </span>
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* --- Features Grid --- */}
                     <AnimatePresence>
-                        {showFeatures && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-6"
-                            >
-                                <div className="bg-gradient-to-br from-orange-50 to-pink-50 dark:from-orange-950/30 dark:to-pink-950/30 p-6 rounded-2xl border-2 border-orange-200 dark:border-orange-800/50">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2 bg-gradient-to-r from-orange-500 to-pink-600 rounded-xl">
-                                            <Zap className="w-6 h-6 text-white" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Fast Conversion</h3>
-                                    </div>
-                                    <p className="text-gray-600 dark:text-gray-400">
-                                        Convert multiple PNG files to JPG format in seconds with our optimized engine
-                                    </p>
-                                </div>
-                                
-                                <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 p-6 rounded-2xl border-2 border-blue-200 dark:border-blue-800/50">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-                                            <Palette className="w-6 h-6 text-white" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Quality Preserved</h3>
-                                    </div>
-                                    <p className="text-gray-600 dark:text-gray-400">
-                                        Maintain image quality while significantly reducing file size with intelligent compression
-                                    </p>
-                                </div>
-                                
-                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-6 rounded-2xl border-2 border-green-200 dark:border-green-800/50">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl">
-                                            <Shield className="w-6 h-6 text-white" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Secure Processing</h3>
-                                    </div>
-                                    <p className="text-gray-600 dark:text-gray-400">
-                                        All conversions happen locally in your browser. Your images never leave your device
-                                    </p>
-                                </div>
-                            </motion.div>
-                        )}
+                        {downloadNotifications.map((notification) => (
+                            <DownloadNotification
+                                key={notification.id}
+                                {...notification}
+                                onClose={() => setDownloadNotifications(prev => 
+                                    prev.filter(n => n.id !== notification.id)
+                                )}
+                            />
+                        ))}
                     </AnimatePresence>
+                </div>
+            </div>
 
-                    {/* --- Main Converter Card --- */}
-                    <div className="bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-2xl p-6 md:p-8 mb-8">
-                        {/* Upload Section */}
-                        <div className="mb-8">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-xl">
-                                    <Upload className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-6 sm:py-8 md:py-12">
+                <div className="container mx-auto px-3 sm:px-4 max-w-7xl">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        {/* --- Header Section --- */}
+                        <div className="mb-6 sm:mb-8 md:mb-12">
+                            <a
+                                href="/"
+                                className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium group mb-3 sm:mb-6"
+                            >
+                                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                                <span className="text-sm">Back to Tools</span>
+                            </a>
+
+                            <div className="text-center mb-4 sm:mb-6 md:mb-8">
+                                <motion.div 
+                                    initial={{ scale: 0.5 }}
+                                    animate={{ scale: 1 }}
+                                    className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-gradient-to-br from-orange-500 to-pink-600 rounded-2xl sm:rounded-3xl mb-3 sm:mb-6 shadow-2xl"
+                                >
+                                    <Image className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white" />
+                                </motion.div>
+                                
+                                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-orange-600 via-pink-600 to-orange-600 bg-clip-text text-transparent px-2">
+                                    PNG to JPG Converter
+                                </h1>
+                                
+                                <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
+                                    Convert your PNG images to high-quality JPG format with superior compression
+                                    <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
+                                        Preserve quality while reducing file size
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* --- Features Grid --- */}
+                        <AnimatePresence>
+                            {showFeatures && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="mb-6 sm:mb-8 md:mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
+                                >
+                                    {[
+                                        {
+                                            icon: Zap,
+                                            title: "Fast Conversion",
+                                            desc: "Convert multiple PNG files to JPG format in seconds with our optimized engine",
+                                            gradient: "from-orange-500 to-pink-600",
+                                            bg: "from-orange-50 to-pink-50",
+                                            border: "border-orange-200"
+                                        },
+                                        {
+                                            icon: Palette,
+                                            title: "Quality Preserved",
+                                            desc: "Maintain image quality while significantly reducing file size with intelligent compression",
+                                            gradient: "from-blue-500 to-purple-600",
+                                            bg: "from-blue-50 to-purple-50",
+                                            border: "border-blue-200"
+                                        },
+                                        {
+                                            icon: Shield,
+                                            title: "Secure Processing",
+                                            desc: "All conversions happen locally in your browser. Your images never leave your device",
+                                            gradient: "from-green-500 to-emerald-600",
+                                            bg: "from-green-50 to-emerald-50",
+                                            border: "border-green-200"
+                                        }
+                                    ].map((feature, index) => (
+                                        <div 
+                                            key={index}
+                                            className={`bg-gradient-to-br ${feature.bg} dark:from-gray-800 dark:to-gray-900 p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl md:rounded-2xl border-2 ${feature.border} dark:border-gray-700`}
+                                        >
+                                            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+                                                <div className={`p-1.5 sm:p-2 bg-gradient-to-r ${feature.gradient} rounded-lg sm:rounded-xl`}>
+                                                    <feature.icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
+                                                </div>
+                                                <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white">
+                                                    {feature.title}
+                                                </h3>
+                                            </div>
+                                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                                {feature.desc}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* --- Main Converter Card --- */}
+                        <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+                            {/* Upload Section */}
+                            <div className="mb-4 sm:mb-6 md:mb-8">
+                                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
+                                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-xl">
+                                        <Upload className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                                            Upload PNG Images
+                                        </h2>
+                                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                                            Select PNG files to convert to JPG format
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                        Upload PNG Images
-                                    </h2>
-                                    <p className="text-gray-500 dark:text-gray-400">
-                                        Select PNG files to convert to JPG format
-                                    </p>
-                                </div>
+
+                                {!hasFiles ? (
+                                    <FileUploader
+                                        accept="image/png"
+                                        multiple={true}
+                                        onFilesSelected={handleFilesSelected}
+                                    />
+                                ) : (
+                                    <div className="text-center mb-3">
+                                        <div className="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-full">
+                                            <div className="flex items-center gap-1 sm:gap-2">
+                                                <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400" />
+                                                <span className="font-medium text-orange-700 dark:text-orange-300">
+                                                    {files.length} PNG files selected
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                                                <span>• {(totalSize / 1024 / 1024).toFixed(2)} MB total</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {!hasFiles ? (
-                                <FileUploader
-                                    accept="image/png"
-                                    multiple={true}
-                                    onFilesSelected={handleFilesSelected}
-                                />
-                            ) : (
-                                <div className="text-center mb-4">
-                                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-full">
-                                        <Layers className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                                        <span className="font-medium text-orange-700 dark:text-orange-300">
-                                            {files.length} PNG files selected • {(totalSize / 1024 / 1024).toFixed(2)} MB total
-                                        </span>
+                            {/* --- File Previews and Conversion Area --- */}
+                            {hasFiles && (
+                                <div className="space-y-4 sm:space-y-6 md:space-y-8">
+                                    {/* --- Input PNG Previews --- */}
+                                    <div className="space-y-3 sm:space-y-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                            <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                <Image className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+                                                Uploaded PNG Images
+                                            </h3>
+                                            <button
+                                                onClick={handleReset}
+                                                className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors"
+                                            >
+                                                Clear All
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700">
+                                            {files.map((file, index) => (
+                                                <ImagePreview 
+                                                    key={index} 
+                                                    file={file} 
+                                                    filename={file.name}
+                                                    onRemove={() => handleRemoveFile(index)}
+                                                    status="Ready to Convert"
+                                                    index={index}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* --- Progress and Action Buttons --- */}
+                                    <div className="space-y-4 sm:space-y-6">
+                                        {converting && (
+                                            <div className="space-y-3 sm:space-y-4">
+                                                <ProgressBar 
+                                                    progress={progress} 
+                                                    label={`Converting ${files.length} files...`} 
+                                                />
+                                                <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
+                                                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
+                                                    <span className="text-xs sm:text-sm font-medium">
+                                                        Processing your images...
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {isReadyToConvert && (
+                                            <motion.button
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={handleConvert}
+                                                className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                                            >
+                                                <Image className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                                Convert {files.length} PNG to JPG
+                                                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                                            </motion.button>
+                                        )}
                                     </div>
                                 </div>
                             )}
                         </div>
-
-                        {/* --- File Previews and Conversion Area --- */}
-                        {hasFiles && (
-                            <div className="space-y-8">
-                                {/* --- Input PNG Previews --- */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                                            <Image className="w-5 h-5 text-orange-500" />
-                                            Uploaded PNG Images
-                                        </h3>
-                                        <button
-                                            onClick={handleReset}
-                                            className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors"
-                                        >
-                                            Clear All
-                                        </button>
+                        
+                        {/* --- Results and Download Area --- */}
+                        {hasResults && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-green-200 dark:border-green-800/50 p-3 sm:p-4 md:p-6 lg:p-8 shadow-lg sm:shadow-xl md:shadow-2xl mb-6 md:mb-8"
+                            >
+                                {/* Success Header */}
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
+                                    <div className="flex items-center justify-center sm:justify-start">
+                                        <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg sm:rounded-xl shadow-lg">
+                                            <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
+                                        </div>
                                     </div>
+                                    <div className="flex-1 text-center sm:text-left">
+                                        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
+                                            Conversion Complete! 🎉
+                                        </h2>
+                                        <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
+                                            Successfully converted {files.length} PNG files to JPG format
+                                        </p>
+                                        <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
+                                            {sizeReduction}% average size reduction • All files are ready for download
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center justify-center mt-2 sm:mt-0">
+                                        <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
+                                            {jpgBlobs.length} Files
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* --- Output JPG Previews --- */}
+                                <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
+                                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                                        Converted JPG Images
+                                    </h3>
                                     
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-h-[500px] overflow-y-auto p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-2xl border-2 border-gray-200 dark:border-gray-700">
-                                        {files.map((file, index) => (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-green-100 dark:border-green-800/30">
+                                        {jpgBlobs.map((item, index) => (
                                             <ImagePreview 
                                                 key={index} 
-                                                file={file} 
-                                                filename={file.name}
-                                                onRemove={() => handleRemoveFile(index)}
-                                                status="Ready to Convert"
+                                                file={item.blob} 
+                                                filename={item.name}
+                                                status="Converted ✓"
+                                                isDownloadable={true}
                                                 index={index}
                                             />
                                         ))}
                                     </div>
                                 </div>
 
-                                {/* --- Progress and Action Buttons --- */}
-                                <div className="space-y-6">
-                                    {converting && (
-                                        <div className="space-y-4">
-                                            <ProgressBar 
-                                                progress={progress} 
-                                                label={`Converting ${files.length} files...`} 
-                                            />
-                                            <div className="flex items-center justify-center gap-2 text-orange-600 dark:text-orange-400">
-                                                <Sparkles className="w-4 h-4 animate-pulse" />
-                                                <span className="text-sm font-medium">
-                                                    Processing your images...
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {isReadyToConvert && (
-                                        <motion.button
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={handleConvert}
-                                            className="w-full py-4 px-6 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all text-lg flex items-center justify-center gap-3"
-                                        >
-                                            <Image className="w-6 h-6" />
-                                            Convert {files.length} PNG to JPG
-                                            <Zap className="w-5 h-5" />
-                                        </motion.button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    
-                    {/* --- Results and Download Area --- */}
-                    {hasResults && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-3xl border-2 border-green-200 dark:border-green-800/50 p-6 md:p-8 shadow-2xl mb-8"
-                        >
-                            {/* Success Header */}
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
-                                <div className="flex items-center justify-center sm:justify-start">
-                                    <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg">
-                                        <CheckCircle className="w-8 h-8 text-white" />
-                                    </div>
-                                </div>
-                                <div className="flex-1 text-center sm:text-left">
-                                    <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-2">
-                                        Conversion Complete! 🎉
-                                    </h2>
-                                    <p className="text-green-700 dark:text-green-300 font-medium">
-                                        Successfully converted {files.length} PNG files to JPG format
-                                    </p>
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                                        All images are ready for download
-                                    </p>
-                                </div>
-                                <div className="flex items-center justify-center">
-                                    <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl">
-                                        {jpgBlobs.length} Files
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* --- Output JPG Previews --- */}
-                            <div className="space-y-4 mb-8">
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                                    <Download className="w-5 h-5 text-green-500" />
-                                    Converted JPG Images
-                                </h3>
-                                
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-h-[500px] overflow-y-auto p-4 bg-white/50 dark:bg-gray-900/50 rounded-2xl border-2 border-green-100 dark:border-green-800/30">
-                                    {jpgBlobs.map((item, index) => (
-                                        <ImagePreview 
-                                            key={index} 
-                                            file={item.blob} 
-                                            filename={item.name}
-                                            status="Converted ✓"
-                                            isDownloadable={true}
-                                            index={index}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* --- Download All Button --- */}
-                            <div className="space-y-6">
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={handleDownload}
-                                    className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-extrabold rounded-2xl shadow-xl hover:shadow-2xl transition-all text-lg flex items-center justify-center gap-3"
-                                >
-                                    <Download className="w-6 h-6" />
-                                    Download All {jpgBlobs.length} JPG Files
-                                    <Sparkles className="w-5 h-5" />
-                                </motion.button>
-                                
-                                <div className="text-center">
-                                    <button
-                                        onClick={handleReset}
-                                        className="inline-flex items-center gap-2 px-6 py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-xl transition-colors"
+                                {/* --- Download All Button --- */}
+                                <div className="space-y-4 sm:space-y-6">
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={handleDownload}
+                                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                                     >
-                                        <Image className="w-4 h-4" />
-                                        Convert More Images
-                                    </button>
+                                        <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                        Download All {jpgBlobs.length} JPG Files
+                                        <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                                    </motion.button>
+                                    
+                                    <div className="text-center">
+                                        <button
+                                            onClick={handleReset}
+                                            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
+                                        >
+                                            <Image className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
+                                            Convert More Images
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    )}
+                            </motion.div>
+                        )}
 
-                    {/* --- Stats Footer --- */}
-                    <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                            <div>
-                                <div className="text-2xl md:text-3xl font-black text-orange-600 dark:text-orange-400 mb-2">
-                                    {files.length}
-                                </div>
-                                <div className="text-gray-600 dark:text-gray-400 font-medium">
-                                    Files Uploaded
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-2xl md:text-3xl font-black text-blue-600 dark:text-blue-400 mb-2">
-                                    {(totalSize / 1024 / 1024).toFixed(1)} MB
-                                </div>
-                                <div className="text-gray-600 dark:text-gray-400 font-medium">
-                                    Total Size
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-2xl md:text-3xl font-black text-green-600 dark:text-green-400 mb-2">
-                                    {jpgBlobs.length}
-                                </div>
-                                <div className="text-gray-600 dark:text-gray-400 font-medium">
-                                    Files Converted
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-2xl md:text-3xl font-black text-purple-600 dark:text-purple-400 mb-2">
-                                    100%
-                                </div>
-                                <div className="text-gray-600 dark:text-gray-400 font-medium">
-                                    Quality Preserved
-                                </div>
+                        {/* --- Stats Footer --- */}
+                        <div className="mt-4 sm:mt-8 md:mt-12 pt-3 sm:pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-800">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 text-center">
+                                {[
+                                    { value: files.length, label: 'Files Uploaded', color: 'text-orange-600' },
+                                    { value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`, label: 'Total Size', color: 'text-blue-600' },
+                                    { value: jpgBlobs.length, label: 'Files Converted', color: 'text-green-600' },
+                                    { value: `${sizeReduction}%`, label: 'Size Reduction', color: 'text-purple-600' }
+                                ].map((stat, index) => (
+                                    <div key={index}>
+                                        <div className={`text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-black ${stat.color} dark:${stat.color.replace('600', '400')} mb-0.5 sm:mb-1 md:mb-2`}>
+                                            {stat.value}
+                                        </div>
+                                        <div className="text-xs sm:text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                            {stat.label}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    </div>
-                </motion.div>
+                    </motion.div>
+                </div>
             </div>
-        </div>
+        </>
     );
 }

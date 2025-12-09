@@ -27,7 +27,9 @@ import {
   Minimize2,
   ZoomIn,
   ZoomOut,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight as ChevronRightIcon
 } from "lucide-react";
 import FileUploader from "@/app/components/FileUploader";
 import ProgressBar from "@/app/components/ProgressBar";
@@ -464,6 +466,26 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
   );
 };
 
+// --- Smart filename generator for split PDF pages ---
+const generateSplitPdfFilename = (originalFilename: string, pageNumber: number, totalPages: number): string => {
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+  
+  // Clean original filename
+  const cleanName = originalFilename
+    .replace(/\.pdf$/i, '')
+    .replace(/[^a-zA-Z0-9\s-_]/g, '')
+    .substring(0, 30)
+    .trim();
+  
+  if (totalPages === 1) {
+    return `${cleanName}_${dateStr}.pdf`;
+  } else {
+    return `${cleanName}_page${pageNumber}_of_${totalPages}_${dateStr}.pdf`;
+  }
+};
+
 export default function PdfPageSplitter() {
     const [files, setFiles] = useState<File[]>([]);
     const [converting, setConverting] = useState(false);
@@ -481,6 +503,19 @@ export default function PdfPageSplitter() {
       pageNumber: 1,
       fileName: ''
     });
+
+    // NEW: Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [downloadingAll, setDownloadingAll] = useState(false);
+    const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
+    const [downloadProgress, setDownloadProgress] = useState(0);
+
+    // Calculate pagination
+    const totalPages = Math.ceil(pageData.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, pageData.length);
+    const currentPageData = pageData.slice(startIndex, endIndex);
 
     // FIX 6: Convert ArrayBuffer to base64 for storage
     const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
@@ -525,7 +560,7 @@ export default function PdfPageSplitter() {
                 { length: pages },
                 (_, i) => ({
                     pageNumber: i + 1,
-                    fileName: `${file.name.replace(".pdf", "")}_page-${i + 1}.pdf`,
+                    fileName: generateSplitPdfFilename(file.name, i + 1, pages),
                 })
             );
 
@@ -537,6 +572,7 @@ export default function PdfPageSplitter() {
             setTimeout(() => {
                 setConverted(true);
                 setConverting(false);
+                setCurrentPage(1); // Reset to first page
             }, 300);
 
         } catch (error) {
@@ -581,14 +617,19 @@ export default function PdfPageSplitter() {
 
             downloadFile(blob, fileName);
 
+            // Show success message
+            setDownloadSuccess(`✓ Page ${pageIndex + 1} downloaded successfully!`);
+            setTimeout(() => setDownloadSuccess(null), 3000);
+
             if (statusElement) {
-                statusElement.innerText = "✓ Downloaded successfully!";
+                statusElement.innerText = "✓ Downloaded!";
                 statusElement.className = "text-xs text-green-600 dark:text-green-400 mt-1 font-medium";
             }
 
         } catch (error) {
             console.error(`Error downloading page ${pageIndex + 1}:`, error);
-            alert(`Failed to download page ${pageIndex + 1}`);
+            setDownloadSuccess(`✗ Failed to download page ${pageIndex + 1}`);
+            setTimeout(() => setDownloadSuccess(null), 3000);
             
             if (statusElement) {
                 statusElement.innerText = "✗ Download failed";
@@ -604,18 +645,15 @@ export default function PdfPageSplitter() {
         }
     };
 
-    // Download all pages
+    // Download all pages with pagination (10 pages at a time)
     const handleDownloadAll = async () => {
         if (!pdfData) {
             alert("PDF not loaded.");
             return;
         }
 
-        const statusElements = document.querySelectorAll('[id^="status-all-"]');
-        statusElements.forEach(el => {
-            (el as HTMLElement).innerText = "Processing all pages...";
-            el.className = "text-sm text-yellow-600 dark:text-yellow-400 font-medium animate-pulse";
-        });
+        setDownloadingAll(true);
+        setDownloadProgress(0);
 
         try {
             // Convert base64 back to ArrayBuffer
@@ -626,9 +664,73 @@ export default function PdfPageSplitter() {
             }
             
             const pdfDoc = await PDFDocument.load(bytes);
-            const pages = pdfDoc.getPageCount();
+            const totalPages = pdfDoc.getPageCount();
 
-            for (let i = 0; i < pages; i++) {
+            // Process in chunks of 10 pages to avoid memory issues
+            const chunkSize = 10;
+            const totalChunks = Math.ceil(totalPages / chunkSize);
+            
+            for (let chunk = 0; chunk < totalChunks; chunk++) {
+                const startPage = chunk * chunkSize;
+                const endPage = Math.min(startPage + chunkSize, totalPages);
+                
+                for (let i = startPage; i < endPage; i++) {
+                    const pageInfo = pageData[i];
+                    const fileName = pageInfo ? pageInfo.fileName : `page-${i + 1}.pdf`;
+
+                    const newPdf = await PDFDocument.create();
+                    const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
+                    newPdf.addPage(copiedPage);
+
+                    const pdfBytes = await newPdf.save();
+                    const blob = new Blob([new Uint8Array(pdfBytes)], {
+                        type: "application/pdf",
+                    });
+
+                    downloadFile(blob, fileName);
+                    
+                    // Update progress
+                    const progress = Math.round(((i + 1) / totalPages) * 100);
+                    setDownloadProgress(progress);
+                }
+                
+                // Small delay between chunks
+                if (chunk < totalChunks - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+
+            // Success message
+            setDownloadSuccess(`✓ Successfully downloaded all ${totalPages} pages!`);
+            setTimeout(() => setDownloadSuccess(null), 5000);
+
+        } catch (error) {
+            console.error("Error downloading all pages:", error);
+            setDownloadSuccess("✗ Failed to download some pages. Please try again.");
+            setTimeout(() => setDownloadSuccess(null), 3000);
+        } finally {
+            setDownloadingAll(false);
+            setDownloadProgress(0);
+        }
+    };
+
+    // Download current page (10 pages)
+    const handleDownloadCurrentPage = async () => {
+        if (!pdfData) return;
+
+        setDownloadingAll(true);
+        setDownloadProgress(0);
+
+        try {
+            const binaryString = atob(pdfData.base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            const pdfDoc = await PDFDocument.load(bytes);
+            
+            for (let i = startIndex; i < endIndex; i++) {
                 const pageInfo = pageData[i];
                 const fileName = pageInfo ? pageInfo.fileName : `page-${i + 1}.pdf`;
 
@@ -642,21 +744,24 @@ export default function PdfPageSplitter() {
                 });
 
                 downloadFile(blob, fileName);
+                
+                const progress = Math.round(((i - startIndex + 1) / (endIndex - startIndex)) * 100);
+                setDownloadProgress(progress);
+                
+                // Small delay to prevent browser freezing
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
 
-            statusElements.forEach(el => {
-                (el as HTMLElement).innerText = "✓ All pages downloaded!";
-                el.className = "text-sm text-green-600 dark:text-green-400 font-medium";
-            });
+            setDownloadSuccess(`✓ Successfully downloaded ${endIndex - startIndex} pages!`);
+            setTimeout(() => setDownloadSuccess(null), 3000);
 
         } catch (error) {
-            console.error("Error downloading all pages:", error);
-            alert("Failed to download all pages");
-            
-            statusElements.forEach(el => {
-                (el as HTMLElement).innerText = "✗ Download failed";
-                el.className = "text-sm text-red-600 dark:text-red-400 font-medium";
-            });
+            console.error("Error downloading current page:", error);
+            setDownloadSuccess("✗ Failed to download pages. Please try again.");
+            setTimeout(() => setDownloadSuccess(null), 3000);
+        } finally {
+            setDownloadingAll(false);
+            setDownloadProgress(0);
         }
     };
 
@@ -666,6 +771,8 @@ export default function PdfPageSplitter() {
         setPageData([]);
         setPdfData(null);
         setShowUploadInfo(false);
+        setCurrentPage(1);
+        setDownloadSuccess(null);
     };
 
     const handleReset = () => {
@@ -675,6 +782,8 @@ export default function PdfPageSplitter() {
         setPdfData(null);
         setProgress(0);
         setShowUploadInfo(true);
+        setCurrentPage(1);
+        setDownloadSuccess(null);
     };
 
     const handlePageZoom = (pageNumber: number, fileName: string) => {
@@ -685,6 +794,26 @@ export default function PdfPageSplitter() {
         });
     };
 
+    // Pagination controls
+    const goToPage = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
+    };
+
+    const nextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const prevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
+    // Items per page options
+    const itemsPerPageOptions = [10, 20, 30, 50];
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-8 md:py-12">
             <div className="container mx-auto px-4 max-w-6xl">
@@ -693,6 +822,33 @@ export default function PdfPageSplitter() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
+                    {/* Success Message Overlay */}
+                    <AnimatePresence>
+                        {downloadSuccess && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -50 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -50 }}
+                                className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
+                            >
+                                <div className={`p-4 rounded-xl shadow-2xl backdrop-blur-sm ${
+                                    downloadSuccess.startsWith("✓") 
+                                        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" 
+                                        : "bg-gradient-to-r from-red-500 to-orange-600 text-white"
+                                }`}>
+                                    <div className="flex items-center justify-center gap-3">
+                                        {downloadSuccess.startsWith("✓") ? (
+                                            <CheckCircle className="w-5 h-5" />
+                                        ) : (
+                                            <X className="w-5 h-5" />
+                                        )}
+                                        <span className="font-medium">{downloadSuccess}</span>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     {/* Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                         <a
@@ -928,12 +1084,117 @@ export default function PdfPageSplitter() {
                                                 </div>
                                             </div>
 
+                                            {/* Pagination Controls */}
+                                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border-2 border-blue-200 dark:border-blue-800/30">
+                                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">
+                                                            Showing {startIndex + 1}-{endIndex} of {pageData.length} pages
+                                                        </h4>
+                                                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                                            Navigate through pages using pagination
+                                                        </p>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-3">
+                                                        <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                                            Items per page:
+                                                        </label>
+                                                        <select
+                                                            value={itemsPerPage}
+                                                            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                                            className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"
+                                                        >
+                                                            {itemsPerPageOptions.map(option => (
+                                                                <option key={option} value={option}>
+                                                                    {option}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                {/* Pagination Buttons */}
+                                                <div className="flex flex-wrap items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={prevPage}
+                                                        disabled={currentPage === 1}
+                                                        className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                    >
+                                                        <ChevronLeft className="w-4 h-4" />
+                                                    </button>
+                                                    
+                                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                        let pageNum;
+                                                        if (totalPages <= 5) {
+                                                            pageNum = i + 1;
+                                                        } else if (currentPage <= 3) {
+                                                            pageNum = i + 1;
+                                                        } else if (currentPage >= totalPages - 2) {
+                                                            pageNum = totalPages - 4 + i;
+                                                        } else {
+                                                            pageNum = currentPage - 2 + i;
+                                                        }
+                                                        
+                                                        return (
+                                                            <button
+                                                                key={pageNum}
+                                                                onClick={() => goToPage(pageNum)}
+                                                                className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                                                                    currentPage === pageNum
+                                                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                                                        : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                                }`}
+                                                            >
+                                                                {pageNum}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                    
+                                                    <button
+                                                        onClick={nextPage}
+                                                        disabled={currentPage === totalPages}
+                                                        className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                    >
+                                                        <ChevronRightIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Download All Progress */}
+                                            {downloadingAll && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.9 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30"
+                                                >
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-blue-700 dark:text-blue-300">
+                                                            Downloading {downloadProgress}% complete
+                                                        </span>
+                                                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                                                            {Math.round(downloadProgress / 100 * pageData.length)} of {pageData.length} pages
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${downloadProgress}%` }}
+                                                            className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                                        Please wait while all pages are being downloaded...
+                                                    </p>
+                                                </motion.div>
+                                            )}
+
                                             {/* Page Grid */}
                                             <div>
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
                                                     <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
                                                         <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
-                                                        Individual Pages
+                                                        Individual Pages (Page {currentPage} of {totalPages})
                                                     </h3>
                                                     <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
                                                         Tap to preview • Click to download
@@ -941,86 +1202,127 @@ export default function PdfPageSplitter() {
                                                 </div>
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                                    {pageData.map((page, index) => (
-                                                        <motion.div
-                                                            key={page.pageNumber}
-                                                            initial={{ opacity: 0, scale: 0.9 }}
-                                                            animate={{ opacity: 1, scale: 1 }}
-                                                            transition={{ delay: index * 0.1 }}
-                                                            whileHover={{ y: -4 }}
-                                                            className="group"
-                                                        >
-                                                            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl sm:rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-4 sm:p-5 shadow-lg hover:shadow-2xl transition-all duration-300">
-                                                                <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4">
-                                                                    <PdfPageRenderer 
-                                                                        pageNumber={page.pageNumber}
-                                                                        pdfData={pdfData}
-                                                                        fileName={page.fileName}
-                                                                        onZoomClick={() => handlePageZoom(page.pageNumber, page.fileName)}
-                                                                    />
-                                                                    
-                                                                    <div className="w-full">
-                                                                        <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg mb-1">
-                                                                            Page {page.pageNumber}
-                                                                        </h4>
-                                                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2 sm:mb-3">
-                                                                            {page.fileName}
-                                                                        </p>
+                                                    {currentPageData.map((page, index) => {
+                                                        const actualIndex = startIndex + index;
+                                                        return (
+                                                            <motion.div
+                                                                key={page.pageNumber}
+                                                                initial={{ opacity: 0, scale: 0.9 }}
+                                                                animate={{ opacity: 1, scale: 1 }}
+                                                                transition={{ delay: index * 0.05 }}
+                                                                whileHover={{ y: -4 }}
+                                                                className="group"
+                                                            >
+                                                                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl sm:rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-4 sm:p-5 shadow-lg hover:shadow-2xl transition-all duration-300">
+                                                                    <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4">
+                                                                        <PdfPageRenderer 
+                                                                            pageNumber={page.pageNumber}
+                                                                            pdfData={pdfData}
+                                                                            fileName={page.fileName}
+                                                                            onZoomClick={() => handlePageZoom(page.pageNumber, page.fileName)}
+                                                                        />
                                                                         
-                                                                        <div className="space-y-2 sm:space-y-3">
-                                                                            <span
-                                                                                id={`status-${index}`}
-                                                                                className="text-xs text-blue-600 dark:text-blue-400 font-medium"
-                                                                            >
-                                                                                Ready to download
-                                                                            </span>
+                                                                        <div className="w-full">
+                                                                            <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg mb-1">
+                                                                                Page {page.pageNumber}
+                                                                            </h4>
+                                                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2 sm:mb-3">
+                                                                                {page.fileName}
+                                                                            </p>
                                                                             
-                                                                            <motion.button
-                                                                                whileHover={{ scale: 1.05 }}
-                                                                                whileTap={{ scale: 0.95 }}
-                                                                                onClick={() => handleDownloadPage(index, page.fileName)}
-                                                                                className="w-full py-2 sm:py-2.5 px-3 sm:px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
-                                                                            >
-                                                                                <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                                                                                Download Page
-                                                                            </motion.button>
+                                                                            <div className="space-y-2 sm:space-y-3">
+                                                                                <span
+                                                                                    id={`status-${actualIndex}`}
+                                                                                    className="text-xs text-blue-600 dark:text-blue-400 font-medium"
+                                                                                >
+                                                                                    Ready to download
+                                                                                </span>
+                                                                                
+                                                                                <motion.button
+                                                                                    whileHover={{ scale: 1.05 }}
+                                                                                    whileTap={{ scale: 0.95 }}
+                                                                                    onClick={() => handleDownloadPage(actualIndex, page.fileName)}
+                                                                                    className="w-full py-2 sm:py-2.5 px-3 sm:px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
+                                                                                >
+                                                                                    <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                                                    Download Page
+                                                                                </motion.button>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        </motion.div>
-                                                    ))}
+                                                            </motion.div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
 
-                                            {/* Download All Button */}
+                                            {/* Download All Buttons Section */}
                                             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-4 sm:p-8 border-2 border-indigo-200 dark:border-indigo-800/50">
                                                 <div className="text-center mb-4 sm:mb-6">
                                                     <h4 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
-                                                        Download All Pages
+                                                        Batch Download Options
                                                     </h4>
-                                                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                                                        Get all {pageData.length} pages in one go
+                                                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4">
+                                                        Choose how you want to download pages
                                                     </p>
-                                                    <p id="status-all-1" className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2">
+                                                    
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                                                        <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-blue-200 dark:border-blue-700">
+                                                            <h5 className="font-bold text-gray-900 dark:text-white mb-2">
+                                                                Download Current Page
+                                                            </h5>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                                                Download {endIndex - startIndex} pages from current view
+                                                            </p>
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.02 }}
+                                                                whileTap={{ scale: 0.98 }}
+                                                                onClick={handleDownloadCurrentPage}
+                                                                disabled={downloadingAll}
+                                                                className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                            >
+                                                                {downloadingAll ? (
+                                                                    <>
+                                                                        <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+                                                                        Downloading...
+                                                                    </>
+                                                                ) : (
+                                                                    `Download ${endIndex - startIndex} Pages`
+                                                                )}
+                                                            </motion.button>
+                                                        </div>
+                                                        
+                                                        <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-purple-200 dark:border-purple-700">
+                                                            <h5 className="font-bold text-gray-900 dark:text-white mb-2">
+                                                                Download All Pages
+                                                            </h5>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                                                Download all {pageData.length} pages in one go
+                                                            </p>
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.02 }}
+                                                                whileTap={{ scale: 0.98 }}
+                                                                onClick={handleDownloadAll}
+                                                                disabled={downloadingAll}
+                                                                className="w-full py-2.5 px-4 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                            >
+                                                                {downloadingAll ? (
+                                                                    <>
+                                                                        <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+                                                                        Downloading...
+                                                                    </>
+                                                                ) : (
+                                                                    `Download All ${pageData.length} Pages`
+                                                                )}
+                                                            </motion.button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <p id="status-all-1" className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2">
                                                         Ready for batch download
                                                     </p>
                                                 </div>
-                                                
-                                                <motion.button
-                                                    whileHover={{ scale: 1.02 }}
-                                                    whileTap={{ scale: 0.98 }}
-                                                    onClick={handleDownloadAll}
-                                                    className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold rounded-xl sm:rounded-2xl shadow-xl hover:shadow-2xl transition-all text-base sm:text-lg flex items-center justify-center gap-2 sm:gap-3"
-                                                >
-                                                    <Download className="w-5 h-5 sm:w-6 sm:h-6" />
-                                                    <span>Download ALL {pageData.length} Pages</span>
-                                                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                                                </motion.button>
-                                                
-                                                <p className="text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-3 sm:mt-4">
-                                                    Each page will be downloaded as a separate PDF file
-                                                </p>
                                             </div>
 
                                             {/* Convert Another */}

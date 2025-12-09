@@ -1,11 +1,51 @@
 "use client"; 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, ArrowLeft, Image, Zap, Shield, Minimize2 as Compress, TrendingDown, Sparkles, CheckCircle, Settings, Eye, Maximize2 } from 'lucide-react';
+import { 
+  Download, 
+  ArrowLeft, 
+  Image, 
+  Zap, 
+  Shield, 
+  Minimize2 as Compress, 
+  TrendingDown, 
+  Sparkles, 
+  CheckCircle, 
+  Settings, 
+  Eye, 
+  Maximize2, 
+  X,
+  FileText // Added FileText import
+} from 'lucide-react';
 import FileUploader from '../components/FileUploader';
 import ProgressBar from '../components/ProgressBar';
 // Assuming the path to imageUtils is correct
 import { compressImage, downloadFile } from '../../utils/imageUtils';
+
+// --- Smart filename generator ---
+const generateCompressedFilename = (originalName: string, quality: number, index?: number): string => {
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+  
+  // Clean original filename
+  const cleanName = originalName
+    .replace(/\.[^.]+$/, '') // Remove extension
+    .replace(/[^a-zA-Z0-9\s-_]/g, '')
+    .substring(0, 30)
+    .trim();
+  
+  // Get file extension
+  const extension = originalName.split('.').pop()?.toLowerCase() || 'jpg';
+  
+  if (index !== undefined) {
+    // Single file with index
+    return `${cleanName}_compressed_${quality}quality_${dateStr}.${extension}`;
+  } else {
+    // Default for multiple files
+    return `${cleanName}_compressed_${quality}quality_${dateStr}.${extension}`;
+  }
+};
 
 // --- Interface for ImagePreview Component Props ---
 interface ImagePreviewProps {
@@ -13,21 +53,28 @@ interface ImagePreviewProps {
     compressedBlob: Blob | null;
     index: number;
     quality: number;
-    onPreview: (url: string, index: number) => void;
+    onPreview: (url: string, index: number, isCompressed: boolean) => void;
 }
 
 // Image Preview Component
-// Corrected to use the explicit ImagePreviewProps type
 const ImagePreview = ({ originalFile, compressedBlob, index, quality, onPreview }: ImagePreviewProps) => {
     const [isHovered, setIsHovered] = useState(false);
     const originalUrl = useMemo(() => URL.createObjectURL(originalFile), [originalFile]);
     const compressedUrl = useMemo(() => compressedBlob ? URL.createObjectURL(compressedBlob) : null, [compressedBlob]);
     
-    // Note: The original code used originalFile.size without checking for compressedBlob, 
-    // which is fine for originalFile. We assume originalFile is always present.
     const originalSize = (originalFile.size / 1024).toFixed(1);
     const compressedSize = compressedBlob ? (compressedBlob.size / 1024).toFixed(1) : null;
     const savings = compressedBlob ? (((originalFile.size - compressedBlob.size) / originalFile.size) * 100).toFixed(1) : null;
+
+    // Cleanup URLs on unmount
+    useEffect(() => {
+        return () => {
+            URL.revokeObjectURL(originalUrl);
+            if (compressedUrl) {
+                URL.revokeObjectURL(compressedUrl);
+            }
+        };
+    }, [originalUrl, compressedUrl]);
 
     return (
         <motion.div
@@ -55,12 +102,16 @@ const ImagePreview = ({ originalFile, compressedBlob, index, quality, onPreview 
                     className="relative w-full h-32 mb-3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer"
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
-                    onClick={() => onPreview(compressedUrl || originalUrl, index + 1)}
+                    onClick={() => onPreview(compressedUrl || originalUrl, index + 1, !!compressedBlob)}
                 >
                     <img 
                         src={compressedUrl || originalUrl} 
                         alt={`Image ${index + 1}`} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        onError={(e) => {
+                            console.error("Failed to load image preview");
+                            e.currentTarget.style.display = 'none';
+                        }}
                     />
                     
                     {/* Hover Overlay */}
@@ -75,6 +126,13 @@ const ImagePreview = ({ originalFile, compressedBlob, index, quality, onPreview 
                     
                     {/* Shine Effect */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                    
+                    {/* Compressed Indicator */}
+                    {compressedBlob && (
+                        <div className="absolute bottom-2 left-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs px-2 py-0.5 rounded-full">
+                            ✓ Compressed
+                        </div>
+                    )}
                 </div>
 
                 {/* Image Info */}
@@ -84,7 +142,7 @@ const ImagePreview = ({ originalFile, compressedBlob, index, quality, onPreview 
                     </p>
                     
                     <div className="flex justify-between items-center px-1">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className={`text-xs ${compressedBlob ? 'text-gray-500 line-through' : 'text-gray-500 dark:text-gray-400'}`}>
                             {originalSize} KB
                         </div>
                         
@@ -108,7 +166,6 @@ const ImagePreview = ({ originalFile, compressedBlob, index, quality, onPreview 
 };
 
 export default function CompressImage() {
-    // Explicitly typing useState calls for better type safety
     const [files, setFiles] = useState<File[]>([]);
     const [quality, setQuality] = useState(80);
     const [converting, setConverting] = useState(false);
@@ -117,7 +174,14 @@ export default function CompressImage() {
     const [compressionStats, setCompressionStats] = useState<{ original: number; compressed: number } | null>(null);
     const [showUploadInfo, setShowUploadInfo] = useState(true);
     const [expandedView, setExpandedView] = useState(false);
-    const [previewModal, setPreviewModal] = useState<{ url: string | null, index: number | null }>({ url: null, index: null });
+    const [previewModal, setPreviewModal] = useState<{ 
+        url: string | null, 
+        index: number | null,
+        isCompressed: boolean 
+    }>({ url: null, index: null, isCompressed: false });
+    const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
+    const [downloading, setDownloading] = useState(false);
+    const [compressionComplete, setCompressionComplete] = useState(false);
 
     const handleConvert = async () => {
         if (files.length === 0) return;
@@ -127,6 +191,8 @@ export default function CompressImage() {
         setCompressedBlobs([]);
         setCompressionStats(null);
         setShowUploadInfo(false);
+        setDownloadSuccess(null);
+        setCompressionComplete(false);
 
         try {
             const blobs: Blob[] = [];
@@ -135,7 +201,6 @@ export default function CompressImage() {
 
             for (let i = 0; i < files.length; i++) {
                 setProgress(20 + (i / files.length) * 60);
-                // The compressImage utility function is assumed to be correctly imported and typed
                 const blob = await compressImage(files[i], quality / 100);
                 blobs.push(blob);
                 totalOriginal += files[i].size;
@@ -149,23 +214,66 @@ export default function CompressImage() {
             setProgress(100);
             setCompressedBlobs(blobs);
             setCompressionStats({ original: totalOriginal, compressed: totalCompressed });
+            setCompressionComplete(true);
+            
+            // Show compression success message
+            const savingsPercent = ((1 - totalCompressed / totalOriginal) * 100).toFixed(1);
+            setDownloadSuccess(`✓ Successfully compressed ${files.length} images! (Saved ${savingsPercent}%)`);
+            setTimeout(() => setDownloadSuccess(null), 5000);
         } catch (error) {
             console.error('Compression error:', error);
-            alert('Failed to compress images. Please try again.');
+            setDownloadSuccess("✗ Failed to compress images. Please try again.");
+            setTimeout(() => setDownloadSuccess(null), 3000);
         } finally {
             setConverting(false);
         }
     };
 
-    const handleDownload = () => {
-        compressedBlobs.forEach((blob, index) => {
-            const filename = files[index].name.replace(/\.[^.]+$/, '-compressed$&');
-            // The downloadFile utility function is assumed to be correctly imported and typed
-            downloadFile(blob, filename);
-        });
+    const handleDownload = async () => {
+        if (compressedBlobs.length === 0) return;
+
+        setDownloading(true);
+        try {
+            for (let i = 0; i < compressedBlobs.length; i++) {
+                const filename = generateCompressedFilename(files[i].name, quality, i);
+                downloadFile(compressedBlobs[i], filename);
+                
+                // Small delay between downloads
+                if (i < compressedBlobs.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            
+            // Show download success message
+            setDownloadSuccess(`✓ Downloaded ${compressedBlobs.length} images successfully!`);
+            setTimeout(() => setDownloadSuccess(null), 5000);
+        } catch (error) {
+            console.error('Download error:', error);
+            setDownloadSuccess("✗ Failed to download some images");
+            setTimeout(() => setDownloadSuccess(null), 3000);
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    const handleDownloadSingle = async (index: number) => {
+        if (!compressedBlobs[index]) return;
+
+        try {
+            const filename = generateCompressedFilename(files[index].name, quality, index);
+            downloadFile(compressedBlobs[index], filename);
+            
+            setDownloadSuccess(`✓ Downloaded: ${filename}`);
+            setTimeout(() => setDownloadSuccess(null), 3000);
+        } catch (error) {
+            console.error('Single download error:', error);
+            setDownloadSuccess("✗ Failed to download image");
+            setTimeout(() => setDownloadSuccess(null), 3000);
+        }
     };
 
     const formatFileSize = (bytes: number) => {
+        if (bytes < 1024) return bytes + ' B';
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     };
@@ -184,12 +292,57 @@ export default function CompressImage() {
         { value: 95, label: 'Max', color: 'from-blue-500 to-purple-600', desc: 'Best quality' },
     ];
 
-    const handlePreviewClick = (url: string, index: number) => {
-        setPreviewModal({ url, index });
+    const handlePreviewClick = (url: string, index: number, isCompressed: boolean) => {
+        setPreviewModal({ url, index, isCompressed });
+    };
+
+    const handleFileSelect = (selectedFiles: File[]) => {
+        setFiles(selectedFiles);
+        setCompressedBlobs([]);
+        setCompressionStats(null);
+        setDownloadSuccess(null);
+        setCompressionComplete(false);
+        setShowUploadInfo(false);
+    };
+
+    const handleReset = () => {
+        setFiles([]);
+        setCompressedBlobs([]);
+        setCompressionStats(null);
+        setDownloadSuccess(null);
+        setCompressionComplete(false);
+        setShowUploadInfo(true);
     };
 
     return (
         <>
+            {/* Success Message Overlay */}
+            <AnimatePresence>
+                {downloadSuccess && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -50 }}
+                        className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
+                    >
+                        <div className={`p-4 rounded-xl shadow-2xl backdrop-blur-sm ${
+                            downloadSuccess.startsWith("✓") 
+                                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" 
+                                : "bg-gradient-to-r from-red-500 to-orange-600 text-white"
+                        }`}>
+                            <div className="flex items-center justify-center gap-3">
+                                {downloadSuccess.startsWith("✓") ? (
+                                    <CheckCircle className="w-5 h-5" />
+                                ) : (
+                                    <X className="w-5 h-5" />
+                                )}
+                                <span className="font-medium text-sm">{downloadSuccess}</span>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Preview Modal */}
             <AnimatePresence>
                 {previewModal.url && (
@@ -198,7 +351,7 @@ export default function CompressImage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-                        onClick={() => setPreviewModal({ url: null, index: null })}
+                        onClick={() => setPreviewModal({ url: null, index: null, isCompressed: false })}
                     >
                         <motion.div
                             initial={{ scale: 0.9 }}
@@ -212,16 +365,20 @@ export default function CompressImage() {
                                     src={previewModal.url} 
                                     alt={`Image ${previewModal.index}`}
                                     className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+                                    onError={(e) => {
+                                        console.error("Failed to load preview image");
+                                        e.currentTarget.style.display = 'none';
+                                    }}
                                 />
                             </div>
                             <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-orange-600 to-pink-600 text-white px-4 py-2 rounded-full shadow-lg text-sm">
-                                Image {previewModal.index}
+                                Image {previewModal.index} • {previewModal.isCompressed ? 'Compressed' : 'Original'}
                             </div>
                             <button
-                                onClick={() => setPreviewModal({ url: null, index: null })}
+                                onClick={() => setPreviewModal({ url: null, index: null, isCompressed: false })}
                                 className="absolute -top-3 -right-3 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
                             >
-                                <Image className="w-5 h-5" />
+                                <X className="w-5 h-5" />
                             </button>
                         </motion.div>
                     </motion.div>
@@ -235,7 +392,7 @@ export default function CompressImage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                     >
-                        {/* Header Section - Mobile Optimized */}
+                        {/* Header Section */}
                         <div className="mb-6 md:mb-12">
                             <a
                                 href="/"
@@ -261,13 +418,13 @@ export default function CompressImage() {
                                 <p className="text-sm md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
                                     Reduce JPG/PNG file size while maintaining visual quality
                                     <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-sm md:text-base">
-                                        Adjustable quality settings for perfect balance
+                                        Smart filename generation • Success feedback
                                     </span>
                                 </p>
                             </div>
                         </div>
 
-                        {/* Features Grid - Responsive */}
+                        {/* Features Grid */}
                         <AnimatePresence>
                             {showUploadInfo && (
                                 <motion.div
@@ -293,10 +450,10 @@ export default function CompressImage() {
                                             <div className="p-1.5 md:p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl">
                                                 <Settings className="w-4 h-4 md:w-6 md:h-6 text-white" />
                                             </div>
-                                            <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Quality Control</h3>
+                                            <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Smart Filenames</h3>
                                         </div>
                                         <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
-                                            Adjust compression level with visual preview
+                                            Automatically generate descriptive filenames
                                         </p>
                                     </div>
                                     
@@ -315,7 +472,7 @@ export default function CompressImage() {
                             )}
                         </AnimatePresence>
 
-                        {/* Main Card - Responsive Padding */}
+                        {/* Main Card */}
                         <div className="bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-xl md:shadow-2xl p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
                             {/* Upload Section */}
                             <div className="mb-6 md:mb-8">
@@ -336,7 +493,7 @@ export default function CompressImage() {
                                 <FileUploader
                                     accept="image/jpeg,image/jpg,image/png,image/webp"
                                     multiple={true}
-                                    onFilesSelected={setFiles}
+                                    onFilesSelected={handleFileSelect}
                                 />
 
                                 {files.length > 0 && (
@@ -347,6 +504,9 @@ export default function CompressImage() {
                                                 {files.length} images • {formatFileSize(totalSize)}
                                             </span>
                                         </div>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Files will be saved as: image_compressed_80quality_2024-01-15.jpg
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -354,14 +514,14 @@ export default function CompressImage() {
                             {/* Content Area */}
                             {files.length > 0 && (
                                 <div className="space-y-6 md:space-y-8">
-                                    {/* Quality Controls - Mobile Optimized */}
+                                    {/* Quality Controls */}
                                     <div className="space-y-4 md:space-y-6">
                                         <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 md:gap-3">
                                             <Settings className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
                                             Compression Settings
                                         </h3>
 
-                                        {/* Quality Presets - Responsive Grid */}
+                                        {/* Quality Presets */}
                                         <div>
                                             <div className="flex items-center justify-between mb-2 md:mb-3">
                                                 <label className="text-xs md:text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -395,7 +555,7 @@ export default function CompressImage() {
                                             </div>
                                         </div>
 
-                                        {/* Quality Slider - Mobile Optimized */}
+                                        {/* Quality Slider */}
                                         <div>
                                             <div className="flex items-center justify-between mb-1 md:mb-2">
                                                 <label className="text-xs md:text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -425,7 +585,7 @@ export default function CompressImage() {
                                         </div>
                                     </div>
 
-                                    {/* Image Previews - Responsive Grid */}
+                                    {/* Image Previews */}
                                     {files.length > 0 && (
                                         <div className="space-y-3 md:space-y-4">
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 md:gap-4">
@@ -433,13 +593,22 @@ export default function CompressImage() {
                                                     <Eye className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
                                                     Images ({files.length})
                                                 </h3>
-                                                <button
-                                                    onClick={() => setExpandedView(!expandedView)}
-                                                    className="px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition-colors flex items-center gap-1 md:gap-2"
-                                                >
-                                                    {expandedView ? <Maximize2 className="w-3 h-3 md:w-4 md:h-4" /> : <Eye className="w-3 h-3 md:w-4 md:h-4" />}
-                                                    {expandedView ? 'Compact' : 'Expand'}
-                                                </button>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setExpandedView(!expandedView)}
+                                                        className="px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition-colors flex items-center gap-1 md:gap-2"
+                                                    >
+                                                        {expandedView ? <Maximize2 className="w-3 h-3 md:w-4 md:h-4" /> : <Eye className="w-3 h-3 md:w-4 md:h-4" />}
+                                                        {expandedView ? 'Compact' : 'Expand'}
+                                                    </button>
+                                                    <button
+                                                        onClick={handleReset}
+                                                        className="px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-xl transition-colors flex items-center gap-1 md:gap-2"
+                                                    >
+                                                        <X className="w-3 h-3 md:w-4 md:h-4" />
+                                                        Clear All
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div className={`grid gap-2 md:gap-4 p-2 md:p-4 bg-gradient-to-br from-gray-50 to-orange-50 dark:from-gray-800 dark:to-orange-950/20 rounded-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[400px] md:max-h-[600px] overflow-y-auto ${
@@ -449,17 +618,40 @@ export default function CompressImage() {
                                                     <ImagePreview
                                                         key={index}
                                                         originalFile={file}
-                                                        compressedBlob={compressedBlobs[index] || null} // Ensure this is explicitly typed as Blob | null
+                                                        compressedBlob={compressedBlobs[index] || null}
                                                         index={index}
                                                         quality={quality}
                                                         onPreview={handlePreviewClick}
                                                     />
                                                 ))}
                                             </div>
+                                            
+                                            {/* Single Download Buttons for each compressed image */}
+                                            {compressedBlobs.length > 0 && (
+                                                <div className="mt-4">
+                                                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                                        Quick Download Options:
+                                                    </h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {compressedBlobs.map((blob, index) => (
+                                                            <motion.button
+                                                                key={index}
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                onClick={() => handleDownloadSingle(index)}
+                                                                className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-medium rounded-lg flex items-center gap-1"
+                                                            >
+                                                                <Download className="w-3 h-3" />
+                                                                Image {index + 1}
+                                                            </motion.button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
-                                    {/* Action Buttons - Mobile Optimized */}
+                                    {/* Action Buttons */}
                                     <div className="space-y-3 md:space-y-4">
                                         {converting && (
                                             <div className="space-y-3 md:space-y-4">
@@ -492,7 +684,7 @@ export default function CompressImage() {
                                         )}
                                     </div>
 
-                                    {/* Results Section - Mobile Optimized */}
+                                    {/* Results Section */}
                                     {compressedBlobs.length > 0 && compressionStats && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 20 }}
@@ -509,13 +701,13 @@ export default function CompressImage() {
                                                     </div>
                                                     <div className="flex-1 text-center sm:text-left">
                                                         <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1">
-                                                            Success! 🎉
+                                                            Compression Complete! 🎉
                                                         </h3>
                                                         <p className="text-green-700 dark:text-green-300 font-medium text-sm md:text-base">
-                                                            Reduced by {getCompressionPercent()}%
+                                                            Saved {getCompressionPercent()}% • Quality: {quality}%
                                                         </p>
                                                         <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mt-0.5 md:mt-1">
-                                                            Compressed at {quality}% quality
+                                                            Files will be saved with descriptive names
                                                         </p>
                                                     </div>
                                                     <div className="flex items-center justify-center mt-2 sm:mt-0">
@@ -526,7 +718,7 @@ export default function CompressImage() {
                                                 </div>
                                             </div>
 
-                                            {/* Stats Cards - Responsive Grid */}
+                                            {/* Stats Cards */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
                                                 <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-4 md:p-6 rounded-xl md:rounded-2xl border-2 border-blue-200 dark:border-blue-800/50">
                                                     <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
@@ -580,27 +772,54 @@ export default function CompressImage() {
                                                 </div>
                                             </div>
 
+                                            {/* Filename Preview */}
+                                            {files.length > 0 && (
+                                                <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-xl border-2 border-purple-200 dark:border-purple-800/30">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                                        <h4 className="font-semibold text-gray-900 dark:text-white">Filenames will be:</h4>
+                                                    </div>
+                                                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                                                        {files.slice(0, 3).map((file, index) => (
+                                                            <div key={index} className="text-xs text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-2 rounded">
+                                                                {generateCompressedFilename(file.name, quality, index)}
+                                                            </div>
+                                                        ))}
+                                                        {files.length > 3 && (
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                                                                ...and {files.length - 3} more files
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Download Button */}
                                             <motion.button
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={handleDownload}
-                                                className="w-full py-3 md:py-4 px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold md:font-extrabold rounded-xl md:rounded-2xl shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm md:text-lg flex items-center justify-center gap-2 md:gap-3"
+                                                disabled={downloading}
+                                                className="w-full py-3 md:py-4 px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold md:font-extrabold rounded-xl md:rounded-2xl shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm md:text-lg flex items-center justify-center gap-2 md:gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
                                             >
-                                                <Download className="w-4 h-4 md:w-6 md:h-6" />
-                                                <span>Download {files.length} Images</span>
-                                                <Sparkles className="w-3 h-3 md:w-5 md:h-5" />
+                                                {downloading ? (
+                                                    <>
+                                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                        <span>Downloading...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Download className="w-4 h-4 md:w-6 md:h-6" />
+                                                        <span>Download {files.length} Images</span>
+                                                        <Sparkles className="w-3 h-3 md:w-5 md:h-5" />
+                                                    </>
+                                                )}
                                             </motion.button>
 
                                             {/* Convert Another */}
                                             <div className="text-center">
                                                 <button
-                                                    onClick={() => {
-                                                        setFiles([]);
-                                                        setCompressedBlobs([]);
-                                                        setCompressionStats(null);
-                                                        setShowUploadInfo(true);
-                                                    }}
+                                                    onClick={handleReset}
                                                     className="inline-flex items-center gap-1 md:gap-2 px-4 py-2 md:px-6 md:py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-xl transition-colors text-sm md:text-base"
                                                 >
                                                     <Compress className="w-3 h-3 md:w-4 md:h-4" />
@@ -613,7 +832,7 @@ export default function CompressImage() {
                             )}
                         </div>
 
-                        {/* Stats Footer - Mobile Optimized */}
+                        {/* Stats Footer */}
                         <div className="mt-8 md:mt-12 pt-4 md:pt-8 border-t border-gray-200 dark:border-gray-800">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 lg:gap-6 text-center">
                                 <div>
@@ -645,7 +864,7 @@ export default function CompressImage() {
                                         {compressedBlobs.length > 0 ? '✓' : '—'}
                                     </div>
                                     <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
-                                        Ready to Download
+                                        Compressed
                                     </div>
                                 </div>
                             </div>
