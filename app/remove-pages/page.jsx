@@ -485,40 +485,44 @@ export default function RemovePages() {
                                     </div>
 
                                     {/* Page Preview Grid */}
-                                    {originalPageUrls.length > 0 && (
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <h4 className="font-semibold text-gray-900 dark:text-white">
-                                                    Page Previews ({totalPages} total)
-                                                </h4>
-                                                <span className={`text-sm font-medium ${
-                                                    pagesToRemove.length > 0 
-                                                        ? 'text-red-600 dark:text-red-400' 
-                                                        : 'text-green-600 dark:text-green-400'
-                                                }`}>
-                                                    {remainingPages} pages will remain
-                                                </span>
-                                            </div>
-                                            
-                                            <div className={`grid gap-4 p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[600px] overflow-y-auto ${
-                                                expandedView ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6'
-                                            }`}>
-                                                {originalPageUrls.map((url, index) => {
-                                                    const pageNum = index + 1;
-                                                    return (
-                                                        <PdfPagePreview
-                                                            key={pageNum}
-                                                            pageNumber={pageNum}
-                                                            isSelected={pagesToRemove.includes(pageNum)}
-                                                            onClick={() => handleToggleRemovePage(pageNum)}
-                                                            previewUrl={url}
-                                                            isLoading={false}
-                                                        />
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
+{originalPageUrls.length > 0 && (
+    <div className="space-y-3">
+        <div className="flex items-center justify-between">
+            <h4 className="font-semibold text-gray-900 dark:text-white">
+                Page Previews ({totalPages} total)
+            </h4>
+            <span className={`text-sm font-medium ${
+                pagesToRemove.length > 0 
+                    ? 'text-red-600 dark:text-red-400' 
+                    : 'text-green-600 dark:text-green-400'
+            }`}>
+                {remainingPages} pages will remain
+            </span>
+        </div>
+        
+        <div className={`grid gap-4 p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[600px] overflow-y-auto ${
+            // **मुख्य बदलाव यहाँ है:**
+            // 'grid-cols-3' को 'grid-cols-2' से बदल दिया गया है, ताकि मोबाइल पर 2 ही कॉलम रहें।
+            expandedView 
+                ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' 
+                : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6' // पहले यह 'grid-cols-3' था
+        }`}>
+            {originalPageUrls.map((url, index) => {
+                const pageNum = index + 1;
+                return (
+                    <PdfPagePreview
+                        key={pageNum}
+                        pageNumber={pageNum}
+                        isSelected={pagesToRemove.includes(pageNum)}
+                        onClick={() => handleToggleRemovePage(pageNum)}
+                        previewUrl={url}
+                        isLoading={false}
+                    />
+                );
+            })}
+        </div>
+    </div>
+)}
 
                                     {/* Status Messages */}
                                     {pagesToRemove.length === 0 && files.length > 0 && (

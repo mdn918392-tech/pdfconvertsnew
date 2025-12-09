@@ -1,8 +1,10 @@
 'use client';
 
 import { PDFDocument, rgb, degrees } from 'pdf-lib';
-// The error is likely caused by an invalid or missing key in PAPER_SIZES
-import { PAPER_SIZES, PaperSize, Orientation } from '../types';
+
+// Import types from your types file
+import type { PaperSize, Orientation } from '../types';
+import { PAPER_SIZES } from '../types';
 
 /* ============================================================
     Helper: Convert to PDF Blob

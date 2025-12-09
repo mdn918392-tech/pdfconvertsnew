@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { Suspense } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import ReactCrop, {
   type Crop as ReactCropType,
@@ -181,6 +182,7 @@ export default function JpgToPdf() {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [showDownloadSuccess, setShowDownloadSuccess] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const [cropModal, setCropModal] = useState<{
     isOpen: boolean;
@@ -194,21 +196,39 @@ export default function JpgToPdf() {
   
   const cropImageRef = useRef<HTMLImageElement>(null);
   const [cropImageLoaded, setCropImageLoaded] = useState(false);
-  const [cropImageKey, setCropImageKey] = useState(0);
+  const [cropImageError, setCropImageError] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [hasDownloaded, setHasDownloaded] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      files.forEach((item) => {
-        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
-        if (item.croppedUrl) URL.revokeObjectURL(item.croppedUrl);
-      });
+    
+    // Mobile detection
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
     };
-  }, [files]);
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+// app/jpg-to-pdf/page.tsx
+// Naya useEffect (line 315 ke aaspaas, jahan puraana galat useEffect tha)
+
+useEffect(() => {
+  // Jab component unmount hoga, tab yeh return function chalega.
+  return () => {
+    files.forEach((item) => {
+      // Sirf previewUrl aur croppedUrl ko revoke karein
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      if (item.croppedUrl) URL.revokeObjectURL(item.croppedUrl);
+    });
+  };
+}, []); // Dependency array mein [files] nahi hona chahiye!
+ 
 
   const handleRemoveFile = useCallback((fileToRemove: FileWithPreview) => {
     setFiles((prev) => prev.filter((f) => f.id !== fileToRemove.id));
@@ -217,8 +237,10 @@ export default function JpgToPdf() {
     setPdfBlob(null);
     setProgress(0);
     setShowDownloadSuccess(false);
+    setHasDownloaded(false);
   }, []);
 
+  // app/jpg-to-pdf/page.tsx
   const handleFilesUpdate = useCallback((newFiles: File[]) => {
     const filesWithIds: FileWithPreview[] = newFiles.map(file => ({
       file: file,
@@ -242,6 +264,7 @@ export default function JpgToPdf() {
     setPdfBlob(null);
     setProgress(0);
     setShowDownloadSuccess(false);
+    setHasDownloaded(false);
   }, []);
 
   const openCropModal = (index: number) => {
@@ -256,8 +279,9 @@ export default function JpgToPdf() {
       height: 100
     };
 
+    // Reset states
     setCropImageLoaded(false);
-    setCropImageKey(prev => prev + 1);
+    setCropImageError(false);
     
     setCropModal({
       isOpen: true,
@@ -323,11 +347,24 @@ export default function JpgToPdf() {
 
   const handleCropImageLoad = () => {
     setCropImageLoaded(true);
+    setCropImageError(false);
+  };
+
+  const handleCropImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    // FIX: Hanya log error tanpa akses ke searchParams
+    console.error("Failed to load crop image:", e.currentTarget.src); 
+    setCropImageLoaded(false);
+    setCropImageError(true);
   };
 
   const applyCrop = async () => {
     if (!cropModal) {
       alert("Crop modal is not open");
+      return;
+    }
+
+    if (cropImageError) {
+      alert("Cannot crop image because it failed to load. Please try again.");
       return;
     }
 
@@ -357,6 +394,7 @@ export default function JpgToPdf() {
 
       setCropModal(null);
       setCropImageLoaded(false);
+      setCropImageError(false);
     } catch (error) {
       console.error("Failed to crop image:", error);
       alert(`Failed to crop image: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -369,6 +407,7 @@ export default function JpgToPdf() {
     setConverting(true);
     setPdfBlob(null);
     setShowDownloadSuccess(false);
+    setHasDownloaded(false);
 
     const filesToConvert = await Promise.all(files.map(async (f) => {
       if (f.croppedUrl) {
@@ -411,6 +450,7 @@ export default function JpgToPdf() {
     if (pdfBlob) {
       downloadFile(pdfBlob, "converted.pdf");
       setShowDownloadSuccess(true);
+      setHasDownloaded(true);
       setTimeout(() => {
         setShowDownloadSuccess(false);
       }, 3000);
@@ -475,13 +515,18 @@ export default function JpgToPdf() {
             onClick={() => setExpandedImage(null)}
           >
             <motion.img
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              src={expandedImage}
-              alt="Expanded preview"
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
-            />
+  initial={{ scale: 0.9 }}
+  animate={{ scale: 1 }}
+  exit={{ scale: 0.9 }}
+  src={expandedImage}
+  alt="Expanded preview"
+  className="max-w-full max-h-[90vh] object-contain rounded-lg"
+  onError={(e) => {
+    // 💡 Logging the source confirms the revoked Blob URL
+    console.error("Failed to load expanded image:", e.currentTarget.src); 
+    e.currentTarget.style.display = 'none';
+  }}
+/>
             <button
               className="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-full transition-colors"
               onClick={() => setExpandedImage(null)}
@@ -499,6 +544,7 @@ export default function JpgToPdf() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] bg-black/90 overflow-y-auto"
+            key={`crop-modal-${cropModal.fileIndex}`}
           >
             <div className="min-h-screen flex flex-col items-center justify-center p-4 py-8">
               <div className="w-full max-w-6xl">
@@ -511,6 +557,7 @@ export default function JpgToPdf() {
                     onClick={() => {
                       setCropModal(null);
                       setCropImageLoaded(false);
+                      setCropImageError(false);
                     }}
                     className="p-2 hover:bg-white/10 rounded-full transition-colors"
                   >
@@ -518,11 +565,12 @@ export default function JpgToPdf() {
                   </button>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-6">
-                  <div className="lg:w-2/3">
+                <div className={`flex ${isMobile ? 'flex-col' : 'flex-col lg:flex-row'} gap-6`}>
+                  {/* Image Section */}
+                  <div className={`${isMobile ? 'w-full' : 'lg:w-2/3'}`}>
                     <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4 relative">
-                      <div className="relative w-full h-[400px] lg:h-[500px] rounded-lg overflow-hidden">
-                        {cropModal && (
+                      <div className={`relative w-full ${isMobile ? 'h-[60vh]' : 'h-[400px] lg:h-[500px]'} rounded-lg overflow-hidden`}>
+                        {cropModal && !cropImageError && (
                           <ReactCrop
                             crop={cropModal.crop}
                             onChange={handleCropChange}
@@ -530,170 +578,369 @@ export default function JpgToPdf() {
                             minWidth={50}
                             minHeight={50}
                             className="w-full h-full"
+                            disabled={!cropImageLoaded}
                           >
                             <img
                               ref={cropImageRef}
-                              key={cropImageKey}
+                              key={`crop-image-${cropModal.fileIndex}`}
                               src={cropModal.imageSrc}
                               alt="Crop preview"
                               className="max-w-full max-h-full object-contain"
                               style={{
                                 transform: `rotate(${cropModal.rotation}deg) scale(${cropModal.scale})`,
-                                transition: 'transform 0.2s'
+                                transition: 'transform 0.2s',
+                                display: cropImageLoaded ? 'block' : 'none'
                               }}
                               onLoad={handleCropImageLoad}
-                              onError={() => {
-                                setCropImageLoaded(false);
-                              }}
+                              onError={handleCropImageError}
                               crossOrigin="anonymous"
                             />
                           </ReactCrop>
                         )}
-                      </div>
-                      {!cropImageLoaded && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-                          <div className="text-white text-center">
-                            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                            <p>Loading image...</p>
+
+                        {!cropImageLoaded && !cropImageError && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+                            <div className="text-white text-center">
+                              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                              <p>Loading image...</p>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-4 text-center text-gray-400 text-sm lg:hidden">
-                      <p>👆 Drag to move crop area • Pinch to resize • Tap buttons to adjust</p>
-                    </div>
-                  </div>
-
-                  <div className="lg:w-1/3 space-y-6">
-                    <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Square className="w-5 h-5 text-blue-400" />
-                        <h4 className="text-white font-semibold">Aspect Ratio</h4>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-2 xl:grid-cols-5 gap-2">
-                        {Object.entries(aspectRatioOptions).map(([key, option]) => (
-                          <button
-                            key={key}
-                            onClick={() => handleAspectRatioChange(key as any)}
-                            className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                              cropModal?.lockedAspectRatio === key
-                                ? 'bg-blue-500 text-white shadow-lg'
-                                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                            }`}
-                            disabled={!cropImageLoaded}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <RotateCw className="w-5 h-5 text-purple-400" />
-                          <h4 className="text-white font-semibold">Rotation</h4>
-                        </div>
-                        <span className="text-white font-bold">{cropModal?.rotation}°</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => handleRotationChange((cropModal?.rotation || 0) - 90)}
-                          className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
-                          disabled={!cropImageLoaded}
-                        >
-                          <RotateCw className="w-5 h-5" />
-                        </button>
-                        <input
-                          type="range"
-                          min="0"
-                          max="360"
-                          value={cropModal?.rotation || 0}
-                          onChange={(e) => handleRotationChange(parseInt(e.target.value))}
-                          className="flex-1"
-                          disabled={!cropImageLoaded}
-                        />
-                        <button
-                          onClick={() => handleRotationChange((cropModal?.rotation || 0) + 90)}
-                          className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
-                          disabled={!cropImageLoaded}
-                        >
-                          <RotateCw className="w-5 h-5 rotate-90" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          {cropModal?.scale && cropModal.scale > 1 ? (
-                            <ZoomIn className="w-5 h-5 text-green-400" />
-                          ) : (
-                            <ZoomOut className="w-5 h-5 text-yellow-400" />
-                          )}
-                          <h4 className="text-white font-semibold">Zoom</h4>
-                        </div>
-                        <span className="text-white font-bold">{cropModal?.scale?.toFixed(1)}x</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => handleScaleChange((cropModal?.scale || 1) - 0.1)}
-                          className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
-                          disabled={!cropImageLoaded || (cropModal?.scale !== undefined && cropModal.scale <= 0.5)}
-                        >
-                          <ZoomOut className="w-5 h-5" />
-                        </button>
-                        <input
-                          type="range"
-                          min="0.5"
-                          max="3"
-                          step="0.1"
-                          value={cropModal?.scale || 1}
-                          onChange={(e) => handleScaleChange(parseFloat(e.target.value))}
-                          className="flex-1"
-                          disabled={!cropImageLoaded}
-                        />
-                        <button
-                          onClick={() => handleScaleChange((cropModal?.scale || 1) + 0.1)}
-                          className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
-                          disabled={!cropImageLoaded || (cropModal?.scale !== undefined && cropModal.scale >= 3)}
-                        >
-                          <ZoomIn className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-4 pt-4">
-                      <button
-                        onClick={applyCrop}
-                        className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={!cropImageLoaded}
-                      >
-                        {!cropImageLoaded ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            <Check className="w-5 h-5" />
-                            Apply Crop
-                          </>
                         )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setCropModal(null);
-                          setCropImageLoaded(false);
-                        }}
-                        className="w-full py-3.5 px-6 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
-                      >
-                        <X className="w-5 h-5" />
-                        Cancel
-                      </button>
+
+                        {cropImageError && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-lg">
+                            <div className="text-white text-center p-4">
+                              <X className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                              <h4 className="text-xl font-bold mb-2">Failed to Load Image</h4>
+                              <p className="text-gray-300 mb-4">
+                                The image could not be loaded for cropping.
+                              </p>
+                              <div className="flex gap-3 justify-center">
+                                <button
+                                  onClick={() => {
+                                    setCropImageError(false);
+                                    setCropImageLoaded(false);
+                                  }}
+                                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+                                >
+                                  Retry
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setCropModal(null);
+                                    setCropImageLoaded(false);
+                                    setCropImageError(false);
+                                  }}
+                                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {isMobile ? (
+                      <div className="mt-4 text-center text-gray-400 text-sm">
+                        <p>👆 Drag to move crop area • Pinch to resize</p>
+                      </div>
+                    ) : (
+                      <div className="mt-4 text-center text-gray-400 text-sm lg:hidden">
+                        <p>👆 Drag to move crop area • Pinch to resize • Tap buttons to adjust</p>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Controls Section - Hidden on mobile when in simple mode */}
+                  {!isMobile && (
+                    <div className="lg:w-1/3 space-y-6">
+                      <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Square className="w-5 h-5 text-blue-400" />
+                          <h4 className="text-white font-semibold">Aspect Ratio</h4>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-2 xl:grid-cols-5 gap-2">
+                          {Object.entries(aspectRatioOptions).map(([key, option]) => (
+                            <button
+                              key={key}
+                              onClick={() => handleAspectRatioChange(key as any)}
+                              className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                                cropModal?.lockedAspectRatio === key
+                                  ? 'bg-blue-500 text-white shadow-lg'
+                                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                              }`}
+                              disabled={!cropImageLoaded || cropImageError}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <RotateCw className="w-5 h-5 text-purple-400" />
+                            <h4 className="text-white font-semibold">Rotation</h4>
+                          </div>
+                          <span className="text-white font-bold">{cropModal?.rotation}°</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => handleRotationChange((cropModal?.rotation || 0) - 90)}
+                            className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
+                            disabled={!cropImageLoaded || cropImageError}
+                          >
+                            <RotateCw className="w-5 h-5" />
+                          </button>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={cropModal?.rotation || 0}
+                            onChange={(e) => handleRotationChange(parseInt(e.target.value))}
+                            className="flex-1"
+                            disabled={!cropImageLoaded || cropImageError}
+                          />
+                          <button
+                            onClick={() => handleRotationChange((cropModal?.rotation || 0) + 90)}
+                            className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
+                            disabled={!cropImageLoaded || cropImageError}
+                          >
+                            <RotateCw className="w-5 h-5 rotate-90" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            {cropModal?.scale && cropModal.scale > 1 ? (
+                              <ZoomIn className="w-5 h-5 text-green-400" />
+                            ) : (
+                              <ZoomOut className="w-5 h-5 text-yellow-400" />
+                            )}
+                            <h4 className="text-white font-semibold">Zoom</h4>
+                          </div>
+                          <span className="text-white font-bold">{cropModal?.scale?.toFixed(1)}x</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => handleScaleChange((cropModal?.scale || 1) - 0.1)}
+                            className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
+                            disabled={!cropImageLoaded || cropImageError || (cropModal?.scale !== undefined && cropModal.scale <= 0.5)}
+                          >
+                            <ZoomOut className="w-5 h-5" />
+                          </button>
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="3"
+                            step="0.1"
+                            value={cropModal?.scale || 1}
+                            onChange={(e) => handleScaleChange(parseFloat(e.target.value))}
+                            className="flex-1"
+                            disabled={!cropImageLoaded || cropImageError}
+                          />
+                          <button
+                            onClick={() => handleScaleChange((cropModal?.scale || 1) + 0.1)}
+                            className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
+                            disabled={!cropImageLoaded || cropImageError || (cropModal?.scale !== undefined && cropModal.scale >= 3)}
+                          >
+                            <ZoomIn className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-4 pt-4">
+                        <button
+                          onClick={applyCrop}
+                          className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={!cropImageLoaded || cropImageError}
+                        >
+                          {!cropImageLoaded && !cropImageError ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              Loading...
+                            </>
+                          ) : cropImageError ? (
+                            <>
+                              <X className="w-5 h-5" />
+                              Image Failed to Load
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-5 h-5" />
+                              Apply Crop
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCropModal(null);
+                            setCropImageLoaded(false);
+                            setCropImageError(false);
+                          }}
+                          className="w-full py-3.5 px-6 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                        >
+                          <X className="w-5 h-5" />
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mobile-only simplified controls */}
+{isMobile && (
+  <div className="w-full mt-4">
+    {/* Loading state */}
+    {!cropImageLoaded && !cropImageError && (
+      <div className="text-center p-4 mb-4">
+        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-white" />
+        <p className="text-gray-300">Loading image...</p>
+        {/* Cancel button even while loading */}
+        <button
+          onClick={() => {
+            setCropModal(null);
+            setCropImageLoaded(false);
+            setCropImageError(false);
+          }}
+          className="w-full mt-4 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+        >
+          <X className="w-5 h-5" />
+          Cancel
+        </button>
+      </div>
+    )}
+
+    {/* Error state */}
+    {cropImageError && (
+      <div className="text-center p-4 bg-red-900/30 rounded-xl mb-4">
+        <X className="w-8 h-8 text-red-400 mx-auto mb-2" />
+        <p className="text-red-300">Image failed to load</p>
+        <div className="flex flex-col gap-3 mt-4">
+          <button
+            onClick={() => {
+              setCropImageError(false);
+              setCropImageLoaded(false);
+            }}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors text-white"
+          >
+            Retry Loading
+          </button>
+          <button
+            onClick={() => {
+              setCropModal(null);
+              setCropImageLoaded(false);
+              setCropImageError(false);
+            }}
+            className="w-full py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+          >
+            <X className="w-5 h-5" />
+            Cancel
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* Loaded state - show all controls */}
+    {cropImageLoaded && !cropImageError && (
+      <>
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          <button
+            onClick={() => handleRotationChange((cropModal?.rotation || 0) - 90)}
+            className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors flex flex-col items-center justify-center"
+          >
+            <RotateCw className="w-5 h-5 mb-1" />
+            <span className="text-xs">-90°</span>
+          </button>
+          
+          <button
+            onClick={() => handleRotationChange((cropModal?.rotation || 0) + 90)}
+            className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors flex flex-col items-center justify-center"
+          >
+            <RotateCw className="w-5 h-5 rotate-90 mb-1" />
+            <span className="text-xs">+90°</span>
+          </button>
+          
+          <button
+            onClick={() => handleScaleChange((cropModal?.scale || 1) - 0.1)}
+            className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors flex flex-col items-center justify-center"
+            disabled={cropModal?.scale !== undefined && cropModal.scale <= 0.5}
+          >
+            <ZoomOut className="w-5 h-5 mb-1" />
+            <span className="text-xs">Zoom -</span>
+          </button>
+          
+          <button
+            onClick={() => handleScaleChange((cropModal?.scale || 1) + 0.1)}
+            className="p-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors flex flex-col items-center justify-center"
+            disabled={cropModal?.scale !== undefined && cropModal.scale >= 3}
+          >
+            <ZoomIn className="w-5 h-5 mb-1" />
+            <span className="text-xs">Zoom +</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <button
+            onClick={() => handleAspectRatioChange("free")}
+            className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+              cropModal?.lockedAspectRatio === "free"
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            Free
+          </button>
+          <button
+            onClick={() => handleAspectRatioChange("1:1")}
+            className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+              cropModal?.lockedAspectRatio === "1:1"
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            1:1
+          </button>
+          <button
+            onClick={() => handleAspectRatioChange("A4")}
+            className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+              cropModal?.lockedAspectRatio === "A4"
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            A4
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={applyCrop}
+            className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+          >
+            <Check className="w-5 h-5" />
+            Apply Crop
+          </button>
+          <button
+            onClick={() => {
+              setCropModal(null);
+              setCropImageLoaded(false);
+              setCropImageError(false);
+            }}
+            className="w-full py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+          >
+            <X className="w-5 h-5" />
+            Cancel
+          </button>
+        </div>
+      </>
+    )}
+  </div>
+)}
                 </div>
               </div>
             </div>
@@ -785,6 +1032,7 @@ export default function JpgToPdf() {
                         setPdfBlob(null);
                         setProgress(0);
                         setShowDownloadSuccess(false);
+                        setHasDownloaded(false);
                       }}
                       className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
                     >
@@ -820,6 +1068,7 @@ export default function JpgToPdf() {
                                   alt={item.file.name}
                                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                   onError={(e) => {
+                                    console.error("Failed to load thumbnail image");
                                     e.currentTarget.style.display = 'none';
                                   }}
                                 />
@@ -1051,6 +1300,7 @@ export default function JpgToPdf() {
                               setPdfBlob(null);
                               setProgress(0);
                               setShowDownloadSuccess(false);
+                              setHasDownloaded(false);
                             }}
                             className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
                           >

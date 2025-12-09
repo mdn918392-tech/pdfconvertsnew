@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, ArrowLeft, RotateCw, RotateCcw, CheckCircle, RefreshCw, FileText, Shield, Zap, Eye, Maximize2, Minus, Plus } from 'lucide-react';
+import { Download, ArrowLeft, RotateCw, RotateCcw, CheckCircle, RefreshCw, FileText, Shield, Zap, Eye, Maximize2, Minus, Plus, X } from 'lucide-react';
 import FileUploader from '../components/FileUploader';
 import ProgressBar from '../components/ProgressBar';
 import { rotatePdf } from '../../utils/pdfUtils'; 
@@ -16,7 +16,7 @@ interface PageRotation {
 }
 
 interface PagePreviewProps {
-    page: PageRotation; // Using the defined interface
+    page: PageRotation;
     index: number;
     onRotate: (index: number) => void;
     onPreview: (url: string, pageNumber: number) => void;
@@ -29,6 +29,11 @@ const PagePreview = ({
     onPreview 
 }: PagePreviewProps) => {
     const [isHovered, setIsHovered] = useState(false);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     return (
         <motion.div
@@ -64,16 +69,23 @@ const PagePreview = ({
                     onMouseLeave={() => setIsHovered(false)}
                     onClick={() => onPreview(page.url, index + 1)}
                 >
-                    <iframe
-                        src={page.url}
-                        title={`Page ${index + 1} Preview`}
-                        className="w-full h-full scale-75 pointer-events-none"
-                        style={{ 
-                            transform: `rotate(${page.degrees}deg)`,
-                            transition: 'transform 0.3s ease-out'
-                        }}
-                        frameBorder="0"
-                    />
+                    {isClient ? (
+                        <iframe
+                            src={`${page.url}#toolbar=0&navpanes=0&scrollbar=0`}
+                            title={`Page ${index + 1} Preview`}
+                            className="w-full h-full scale-75 pointer-events-none"
+                            style={{ 
+                                transform: `rotate(${page.degrees}deg)`,
+                                transition: 'transform 0.3s ease-out'
+                            }}
+                            frameBorder="0"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center">
+                            <FileText className="w-8 h-8 text-gray-400" />
+                            <span className="text-xs text-gray-500 mt-1">Page {index + 1}</span>
+                        </div>
+                    )}
                     
                     {/* Hover Overlay */}
                     <div className={`absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center transition-opacity duration-300 ${
@@ -103,8 +115,8 @@ const PagePreview = ({
                     
                     <span className="text-xs text-gray-600 dark:text-gray-400">
                         {page.degrees === 0 ? 'Normal' : 
-                         page.degrees === 90 ? '90° Clockwise' :
-                         page.degrees === 180 ? '180° Upside Down' : '90° Counter-Clockwise'}
+                         page.degrees === 90 ? '90° CW' :
+                         page.degrees === 180 ? '180°' : '90° CCW'}
                     </span>
                 </div>
             </div>
@@ -113,26 +125,15 @@ const PagePreview = ({
 };
 
 // --- Helper Functions ---
-
-/**
- * Rotates a single PDF page buffer and returns a new Blob.
- * This function incorporates the type fix for ArrayBuffer/Blob compatibility.
- */
 const rotatePageBlob = async (originalBytes: Uint8Array, rotation: number): Promise<Blob> => {
     const singlePagePdf = await PDFDocument.load(originalBytes);
     const page = singlePagePdf.getPage(0);
     page.setRotation(degrees(rotation));
     const rotatedBytes = await singlePagePdf.save();
     
-    // FIX APPLIED: Using a type assertion to satisfy the environment's BlobPart definition, 
-    // resolving the persistent 'SharedArrayBuffer' conflict.
     return new Blob([rotatedBytes as BlobPart], { type: 'application/pdf' });
 };
 
-/**
- * Splits a PDF file into individual page previews.
- * @param file The PDF File object from the user input.
- */
 const createPagePreviews = async (file: File) => {
     try {
         const arrayBuffer = await file.arrayBuffer();
@@ -145,7 +146,6 @@ const createPagePreviews = async (file: File) => {
             const [copiedPage] = await singlePagePdf.copyPages(pdf, [i - 1]);
             singlePagePdf.addPage(copiedPage);
             const initialSinglePageBytes = await singlePagePdf.save();
-            // Use type assertion here too for consistency with the environment
             const blob = new Blob([initialSinglePageBytes as BlobPart], { type: "application/pdf" });
             previews.push({ 
                 url: URL.createObjectURL(blob), 
@@ -172,9 +172,16 @@ export default function RotatePdf() {
     const [expandedView, setExpandedView] = useState(false);
     const [showUploadInfo, setShowUploadInfo] = useState(true);
     const [previewModal, setPreviewModal] = useState<{ url: string | null, page: number | null }>({ url: null, page: null });
+    const [isClient, setIsClient] = useState(false);
 
     const previewRef = useRef<HTMLDivElement>(null);
 
+    // Client-side detection
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    // Cleanup URLs
     useEffect(() => {
         return () => {
             pageRotations.forEach(p => URL.revokeObjectURL(p.url));
@@ -251,8 +258,7 @@ export default function RotatePdf() {
             setPdfBlob(blob);
 
             setTimeout(() => {
-                // Ensure previewRef is cast correctly for React/TS when scrolling
-                (previewRef.current as unknown as HTMLDivElement)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 100);
         } catch (error) {
             console.error('Rotation error:', error);
@@ -299,26 +305,58 @@ export default function RotatePdf() {
                             initial={{ scale: 0.9 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0.9 }}
-                            className="relative max-w-4xl max-h-[90vh]"
+                            className="relative w-full max-w-6xl max-h-[90vh] bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl overflow-hidden shadow-2xl"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-2">
-                                <iframe
-                                    src={previewModal.url}
-                                    title={`Page ${previewModal.page} Preview`}
-                                    className="w-full h-[70vh] rounded-lg"
-                                    frameBorder="0"
-                                />
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-600 to-purple-600">
+                                <div className="flex items-center gap-3">
+                                    <Eye className="w-5 h-5 text-white" />
+                                    <h3 className="text-white font-bold">
+                                        Page {previewModal.page} Preview
+                                    </h3>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            if (previewModal.url) {
+                                                window.open(previewModal.url, '_blank');
+                                            }
+                                        }}
+                                        className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                                        title="Open in new tab"
+                                    >
+                                        <Download className="w-4 h-4 text-white" />
+                                    </button>
+                                    <button
+                                        onClick={() => setPreviewModal({ url: null, page: null })}
+                                        className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                                    >
+                                        <X className="w-5 h-5 text-white" />
+                                    </button>
+                                </div>
                             </div>
-                            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full shadow-lg">
-                                Page {previewModal.page}
+
+                            {/* PDF Preview */}
+                            <div className="h-[calc(90vh-80px)] p-4">
+                                {previewModal.url && isClient ? (
+                                    <div className="w-full h-full bg-white rounded-lg overflow-hidden">
+                                        <iframe
+                                            src={`${previewModal.url}#toolbar=0&navpanes=0`}
+                                            title={`Page ${previewModal.page} Preview`}
+                                            className="w-full h-full"
+                                            frameBorder="0"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                            <span className="text-gray-600">Loading PDF...</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <button
-                                onClick={() => setPreviewModal({ url: null, page: null })}
-                                className="absolute -top-4 -right-4 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-                            >
-                                <FileText className="w-6 h-6" />
-                            </button>
                         </motion.div>
                     </motion.div>
                 )}
@@ -412,7 +450,7 @@ export default function RotatePdf() {
                         </AnimatePresence>
 
                         {/* Main Card */}
-                        <div className="bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-2xl p-6 md:p-8 mb-8">
+                        <div className="bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-2xl p-4 sm:p-6 md:p-8 mb-8">
                             {/* Upload Section */}
                             <div className="mb-8">
                                 <div className="flex items-center gap-3 mb-6">
@@ -475,9 +513,18 @@ export default function RotatePdf() {
                                             </div>
                                         </div>
 
+                                        {/* Mobile Preview Warning */}
+                     <div className="md:hidden p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+    <p className="text-xs md:text-sm text-blue-700 dark:text-blue-300 text-center">
+        Tap on any page to view the image clearly.
+    </p>
+</div>
+
+
+
                                         <div className={`grid gap-4 p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[600px] overflow-y-auto ${
                                             expandedView ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6'
-                                        }`} ref={previewRef as React.RefObject<HTMLDivElement>}>
+                                        }`} ref={previewRef}>
                                             {pageRotations.map((page, index) => (
                                                 <PagePreview
                                                     key={index}
@@ -500,9 +547,9 @@ export default function RotatePdf() {
                                             
                                             <div className="grid grid-cols-3 gap-4">
                                                 {[
-                                                    { degree: 90, icon: RotateCw, label: "90° Clockwise", color: "from-blue-500 to-blue-600" },
+                                                    { degree: 90, icon: RotateCw, label: "90° CW", color: "from-blue-500 to-blue-600" },
                                                     { degree: 180, icon: RotateCw, label: "180° Flip", color: "from-orange-500 to-orange-600", iconStyle: { transform: 'rotate(90deg)' } },
-                                                    { degree: 270, icon: RotateCcw, label: "90° Counter-Clockwise", color: "from-purple-500 to-purple-600" }
+                                                    { degree: 270, icon: RotateCcw, label: "90° CCW", color: "from-purple-500 to-purple-600" }
                                                 ].map(({ degree, icon: Icon, label, color, iconStyle }) => (
                                                     <motion.button
                                                         key={degree}
@@ -667,36 +714,36 @@ export default function RotatePdf() {
 
                         {/* Stats Footer */}
                         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 text-center">
                                 <div>
-                                    <div className="text-2xl md:text-3xl font-black text-blue-600 dark:text-blue-400 mb-2">
+                                    <div className="text-xl md:text-2xl lg:text-3xl font-black text-blue-600 dark:text-blue-400 mb-2">
                                         {files.length > 0 ? totalPages : '—'}
                                     </div>
-                                    <div className="text-gray-600 dark:text-gray-400 font-medium">
+                                    <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
                                         Total Pages
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-2xl md:text-3xl font-black text-purple-600 dark:text-purple-400 mb-2">
+                                    <div className="text-xl md:text-2xl lg:text-3xl font-black text-purple-600 dark:text-purple-400 mb-2">
                                         {pageRotations.filter(p => p.degrees !== 0).length}
                                     </div>
-                                    <div className="text-gray-600 dark:text-gray-400 font-medium">
+                                    <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
                                         Pages Rotated
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-2xl md:text-3xl font-black text-orange-600 dark:text-orange-400 mb-2">
+                                    <div className="text-xl md:text-2xl lg:text-3xl font-black text-orange-600 dark:text-orange-400 mb-2">
                                         {globalRotation}°
                                     </div>
-                                    <div className="text-gray-600 dark:text-gray-400 font-medium">
+                                    <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
                                         Global Rotation
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-2xl md:text-3xl font-black text-green-600 dark:text-green-400 mb-2">
+                                    <div className="text-xl md:text-2xl lg:text-3xl font-black text-green-600 dark:text-green-400 mb-2">
                                         {pdfBlob ? '✓' : '—'}
                                     </div>
-                                    <div className="text-gray-600 dark:text-gray-400 font-medium">
+                                    <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
                                         Ready to Download
                                     </div>
                                 </div>
