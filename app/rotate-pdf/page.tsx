@@ -60,23 +60,19 @@ interface PagePreviewProps {
     index: number;
     onRotate: (index: number) => void;
     onPreview: (url: string, pageNumber: number, imageUrl?: string) => void;
+    isMobile: boolean;
 }
 
 const PagePreview = ({ 
     page, 
     index, 
     onRotate, 
-    onPreview 
+    onPreview,
+    isMobile 
 }: PagePreviewProps) => {
     const [isHovered, setIsHovered] = useState(false);
-    const [isClient, setIsClient] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
     const [loadingImage, setLoadingImage] = useState(true);
-
-    useEffect(() => {
-        setIsClient(true);
-        setIsMobile(window.innerWidth < 768);
-    }, []);
+    const [imageError, setImageError] = useState(false);
 
     return (
         <motion.div
@@ -111,11 +107,13 @@ const PagePreview = ({
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     onClick={() => onPreview(page.url, index + 1, page.imageUrl)}
+                    onTouchStart={() => setIsHovered(true)}
+                    onTouchEnd={() => setTimeout(() => setIsHovered(false), 300)}
                 >
-                    {isClient ? (
+                    {/* Mobile: Use image preview if available */}
+                    {isMobile ? (
                         <>
-                            {/* Mobile: Use image preview if available */}
-                            {isMobile && page.imageUrl ? (
+                            {page.imageUrl && !imageError ? (
                                 <>
                                     <img
                                         src={page.imageUrl}
@@ -126,6 +124,10 @@ const PagePreview = ({
                                             transition: 'transform 0.3s ease-out'
                                         }}
                                         onLoad={() => setLoadingImage(false)}
+                                        onError={() => {
+                                            setLoadingImage(false);
+                                            setImageError(true);
+                                        }}
                                     />
                                     {loadingImage && (
                                         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
@@ -134,24 +136,35 @@ const PagePreview = ({
                                     )}
                                 </>
                             ) : (
-                                /* Desktop: Use iframe */
-                                <iframe
-                                    src={`${page.url}#toolbar=0&navpanes=0&scrollbar=0`}
-                                    title={`Page ${index + 1} Preview`}
-                                    className="w-full h-full scale-75 pointer-events-none"
-                                    style={{ 
-                                        transform: `rotate(${page.degrees}deg)`,
-                                        transition: 'transform 0.3s ease-out'
-                                    }}
-                                    frameBorder="0"
-                                />
+                                /* Fallback for when image fails to load */
+                                <div className="w-full h-full flex flex-col items-center justify-center">
+                                    <FileText className="w-8 h-8 text-gray-400" />
+                                    <span className="text-xs text-gray-500 mt-1">Page {index + 1}</span>
+                                    <span className="text-xs text-red-500 mt-1">Preview unavailable</span>
+                                </div>
                             )}
                         </>
                     ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center">
-                            <FileText className="w-8 h-8 text-gray-400" />
-                            <span className="text-xs text-gray-500 mt-1">Page {index + 1}</span>
-                        </div>
+                        /* Desktop: Use iframe */
+                        <>
+                            <iframe
+                                src={`${page.url}#toolbar=0&navpanes=0&scrollbar=0`}
+                                title={`Page ${index + 1} Preview`}
+                                className="w-full h-full scale-75 pointer-events-none"
+                                style={{ 
+                                    transform: `rotate(${page.degrees}deg)`,
+                                    transition: 'transform 0.3s ease-out'
+                                }}
+                                frameBorder="0"
+                                loading="lazy"
+                            />
+                            {/* Fallback for iframe issues */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                <div className="bg-black/50 p-2 rounded-lg">
+                                    <span className="text-xs text-white">Click to preview</span>
+                                </div>
+                            </div>
+                        </>
                     )}
                     
                     {/* Hover Overlay */}
@@ -168,7 +181,7 @@ const PagePreview = ({
                     {isMobile && (
                         <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
                             <div className="px-2 py-1 bg-black/60 rounded-full backdrop-blur-sm">
-                                <span className="text-xs text-white">Tap to preview</span>
+                                <span className="text-xs text-white">Tap to rotate/preview</span>
                             </div>
                         </div>
                     )}
@@ -182,7 +195,14 @@ const PagePreview = ({
                     <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => onRotate(index)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onRotate(index);
+                        }}
+                        onTouchStart={(e) => {
+                            e.stopPropagation();
+                            onRotate(index);
+                        }}
                         className="p-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-md hover:shadow-lg transition-all"
                         title={`Rotate Page ${index + 1}`}
                     >
@@ -211,27 +231,51 @@ const rotatePageBlob = async (originalBytes: Uint8Array, rotation: number): Prom
 };
 
 // Function to generate image from PDF page for mobile
-const generatePageImage = async (pdfBytes: Uint8Array): Promise<string> => {
+const generatePageImage = async (pdfBytes: Uint8Array, rotation: number = 0): Promise<string> => {
     try {
         const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(1);
         
-        const viewport = page.getViewport({ scale: 0.5 });
+        // Adjust scale based on rotation
+        const scale = rotation === 90 || rotation === 270 ? 0.3 : 0.5;
+        const viewport = page.getViewport({ scale: scale });
+        
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         
         if (!context) throw new Error('Could not get canvas context');
         
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+        // Adjust canvas dimensions for rotation
+        if (rotation === 90 || rotation === 270) {
+            canvas.height = viewport.width;
+            canvas.width = viewport.height;
+        } else {
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+        }
+        
+        // Apply rotation context
+        context.save();
+        if (rotation === 90) {
+            context.translate(canvas.width, 0);
+            context.rotate(Math.PI / 2);
+        } else if (rotation === 180) {
+            context.translate(canvas.width, canvas.height);
+            context.rotate(Math.PI);
+        } else if (rotation === 270) {
+            context.translate(0, canvas.height);
+            context.rotate((3 * Math.PI) / 2);
+        }
         
         await page.render({
             canvasContext: context,
             viewport: viewport
         }).promise;
         
-        return canvas.toDataURL('image/jpeg', 0.8);
+        context.restore();
+        
+        return canvas.toDataURL('image/jpeg', 0.7);
     } catch (error) {
         console.error('Failed to generate page image:', error);
         return '';
@@ -310,7 +354,7 @@ export default function RotatePdf() {
         return () => {
             pageRotations.forEach(p => {
                 URL.revokeObjectURL(p.url);
-                if (p.imageUrl) {
+                if (p.imageUrl && p.imageUrl.startsWith('blob:')) {
                     URL.revokeObjectURL(p.imageUrl);
                 }
             });
@@ -324,6 +368,8 @@ export default function RotatePdf() {
         if (pageToUpdate) {
             const currentDegrees = pageToUpdate.degrees;
             const nextDegrees = (currentDegrees + 90) % 360;
+            
+            // Rotate the PDF blob
             const rotatedBlob = await rotatePageBlob(pageToUpdate.originalBytes, nextDegrees);
             const newUrl = URL.createObjectURL(rotatedBlob);
             
@@ -331,20 +377,24 @@ export default function RotatePdf() {
             let newImageUrl = pageToUpdate.imageUrl;
             if (isMobile) {
                 const rotatedArray = await rotatedBlob.arrayBuffer();
-                newImageUrl = await generatePageImage(new Uint8Array(rotatedArray));
+                newImageUrl = await generatePageImage(new Uint8Array(rotatedArray), nextDegrees);
             }
 
             setPageRotations(prevRotations => {
                 const finalRotations = [...prevRotations];
+                // Cleanup old URLs
                 URL.revokeObjectURL(finalRotations[index].url);
-                if (finalRotations[index].imageUrl) {
+                if (finalRotations[index].imageUrl && finalRotations[index].imageUrl?.startsWith('blob:')) {
                     URL.revokeObjectURL(finalRotations[index].imageUrl!);
                 }
+                // Update with new data
                 finalRotations[index] = {
                     ...finalRotations[index],
                     degrees: nextDegrees,
                     url: newUrl,
-                    imageUrl: newImageUrl
+                    imageUrl: newImageUrl,
+                    // Keep the original bytes for future rotations
+                    originalBytes: finalRotations[index].originalBytes
                 };
                 return finalRotations;
             });
@@ -355,9 +405,10 @@ export default function RotatePdf() {
         setFiles(selectedFiles);
         setPdfBlob(null);
         setDownloadSuccess(null);
+        // Cleanup old previews
         pageRotations.forEach(p => {
             URL.revokeObjectURL(p.url);
-            if (p.imageUrl) {
+            if (p.imageUrl && p.imageUrl.startsWith('blob:')) {
                 URL.revokeObjectURL(p.imageUrl);
             }
         });
@@ -418,46 +469,45 @@ export default function RotatePdf() {
     };
 
     const handleDownload = async () => {
-    if (!pdfBlob) return;
+        if (!pdfBlob) return;
 
-    setDownloading(true);
-    try {
-        // Generate smart filename
-        let rotationType = 'global';
-        
-        // 💡 FIX: Explicitly set the type to allow both number and number[]
-        let rotationValue: number | number[] = globalRotation;
-        
-        if (pageRotations.some(p => p.degrees !== 0 && p.degrees !== globalRotation)) {
-            rotationType = 'individual';
-            rotationValue = pageRotations.map(p => p.degrees);
+        setDownloading(true);
+        try {
+            // Generate smart filename
+            let rotationType = 'global';
+            let rotationValue: number | number[] = globalRotation;
+            
+            if (pageRotations.some(p => p.degrees !== 0 && p.degrees !== globalRotation)) {
+                rotationType = 'individual';
+                rotationValue = pageRotations.map(p => p.degrees);
+            }
+            
+            const filename = generateRotatedFilename(
+                files[0]?.name || 'document', 
+                rotationValue, 
+                rotationType
+            );
+            
+            downloadFile(pdfBlob, filename);
+            
+            // Show success message
+            setDownloadSuccess(`✓ PDF downloaded successfully as: ${filename}`);
+            setTimeout(() => setDownloadSuccess(null), 5000);
+        } catch (error) {
+            console.error('Download error:', error);
+            setDownloadSuccess("✗ Failed to download PDF");
+            setTimeout(() => setDownloadSuccess(null), 3000);
+        } finally {
+            setDownloading(false);
         }
-        
-        const filename = generateRotatedFilename(
-            files[0]?.name || 'document', 
-            rotationValue, 
-            rotationType
-        );
-        
-        downloadFile(pdfBlob, filename);
-        
-        // Show success message
-        setDownloadSuccess(`✓ PDF downloaded successfully as: ${filename}`);
-        setTimeout(() => setDownloadSuccess(null), 5000);
-    } catch (error) {
-        console.error('Download error:', error);
-        setDownloadSuccess("✗ Failed to download PDF");
-        setTimeout(() => setDownloadSuccess(null), 3000);
-    } finally {
-        setDownloading(false);
-    }
-};
+    };
 
     const handlePreviewClick = (url: string, page: number, imageUrl?: string) => {
         setPreviewModal({ url, page, imageUrl });
     };
 
     const handleResetRotations = () => {
+        // Reset all pages to 0 degrees
         const resetRotations = pageRotations.map(p => ({
             ...p,
             degrees: 0
@@ -549,17 +599,24 @@ export default function RotatePdf() {
                                 {previewModal.url && isClient ? (
                                     <div className="w-full h-full bg-white rounded-lg overflow-hidden">
                                         {isMobile && previewModal.imageUrl ? (
-                                            <img
-                                                src={previewModal.imageUrl}
-                                                alt={`Page ${previewModal.page} Preview`}
-                                                className="w-full h-full object-contain"
-                                            />
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <img
+                                                    src={previewModal.imageUrl}
+                                                    alt={`Page ${previewModal.page} Preview`}
+                                                    className="max-w-full max-h-full object-contain"
+                                                    onError={(e) => {
+                                                        console.error('Image failed to load');
+                                                        e.currentTarget.style.display = 'none';
+                                                    }}
+                                                />
+                                            </div>
                                         ) : (
                                             <iframe
                                                 src={`${previewModal.url}#toolbar=0&navpanes=0`}
                                                 title={`Page ${previewModal.page} Preview`}
                                                 className="w-full h-full"
                                                 frameBorder="0"
+                                                loading="lazy"
                                             />
                                         )}
                                     </div>
@@ -655,7 +712,7 @@ export default function RotatePdf() {
                                             </div>
                                             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Global Rotation</h3>
                                         </div>
-                                        <p className="text-gray-600 dark:text-gray-400">
+                                        <p className="text-gray-600 dark:text-gray400">
                                             Apply same rotation to all pages at once
                                         </p>
                                     </div>
@@ -708,7 +765,7 @@ export default function RotatePdf() {
                                             </span>
                                         </div>
                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            Tap on page previews to rotate • Mobile-friendly previews
+                                            {isMobile ? "Tap on pages to rotate • Tap and hold for preview" : "Click on page previews to rotate"}
                                         </p>
                                     </div>
                                 )}
@@ -743,14 +800,16 @@ export default function RotatePdf() {
                                         </div>
 
                                         {/* Mobile Preview Warning */}
-                                        <div className="md:hidden p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                                <p className="text-xs text-blue-700 dark:text-blue-300">
-                                                    Tap on any page to view it clearly
-                                                </p>
+                                        {isMobile && (
+                                            <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                                                        Tap on any page to rotate • Tap and hold for preview
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
 
                                         <div className={`grid gap-4 p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[600px] overflow-y-auto ${
                                             expandedView ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6'
@@ -762,6 +821,7 @@ export default function RotatePdf() {
                                                     index={index}
                                                     onRotate={handlePageRotate}
                                                     onPreview={handlePreviewClick}
+                                                    isMobile={isMobile}
                                                 />
                                             ))}
                                         </div>
@@ -838,7 +898,7 @@ export default function RotatePdf() {
                                                             Custom Page Rotation
                                                         </h4>
                                                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                            Click on page thumbnails to rotate individually
+                                                            {isMobile ? "Tap on page thumbnails to rotate individually" : "Click on page thumbnails to rotate individually"}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -865,7 +925,7 @@ export default function RotatePdf() {
                                                     </motion.button>
                                                     
                                                     <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                                                        Click on page previews above to rotate individual pages
+                                                        {isMobile ? "Tap on page previews above to rotate individual pages" : "Click on page previews above to rotate individual pages"}
                                                     </p>
                                                 </div>
                                             </div>

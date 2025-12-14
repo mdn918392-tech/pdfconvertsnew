@@ -45,6 +45,7 @@ export default function SplitPdf() {
   const [isClient, setIsClient] = useState(false);
   const [downloadNotifications, setDownloadNotifications] = useState<DownloadNotification[]>([]);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   // Set client flag
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function SplitPdf() {
   const generateUniqueFileName = (baseName: string, pageNumber: number) => {
     const timestamp = new Date().getTime();
     const randomId = Math.random().toString(36).substring(2, 9);
-    const cleanBaseName = baseName.replace(/\.[^/.]+$/, ""); // Remove extension
+    const cleanBaseName = baseName.replace(/\.[^/.]+$/, "");
     return `${cleanBaseName}_page${pageNumber}_${timestamp}_${randomId}.pdf`;
   };
 
@@ -124,35 +125,50 @@ export default function SplitPdf() {
     }
   };
 
-  const handleDownload = (blob?: Blob, pageNumber?: number) => {
-    if (blob && pageNumber) {
-      // Single page download
-      const fileName = generateUniqueFileName(files[0].name, pageNumber);
-      downloadFile(blob, fileName);
-      
-      // Add notification
-      const notification: DownloadNotification = {
-        id: Math.random().toString(36).substring(7),
-        fileName: fileName,
-        page: pageNumber,
-        timestamp: new Date()
-      };
-      setDownloadNotifications(prev => [...prev, notification]);
-      
-      // Auto-remove notification after 5 seconds
-      setTimeout(() => {
-        setDownloadNotifications(prev => 
-          prev.filter(n => n.id !== notification.id)
-        );
-      }, 5000);
-    } else {
-      // Bulk download all pages
-      pdfBlobs.forEach((blob, index) => {
-        const pageNumber = index + 1;
+  const handleSingleDownload = (blob: Blob, pageNumber: number) => {
+    const fileName = generateUniqueFileName(files[0].name, pageNumber);
+    downloadFile(blob, fileName);
+    
+    // Add notification
+    const notification: DownloadNotification = {
+      id: Math.random().toString(36).substring(7),
+      fileName: fileName,
+      page: pageNumber,
+      timestamp: new Date()
+    };
+    setDownloadNotifications(prev => [...prev, notification]);
+    
+    // Auto-remove notification after 5 seconds
+    setTimeout(() => {
+      setDownloadNotifications(prev => 
+        prev.filter(n => n.id !== notification.id)
+      );
+    }, 5000);
+  };
+
+  const handleDownloadAll = async () => {
+    if (pdfBlobs.length === 0 || downloadingAll) return;
+    
+    setDownloadingAll(true);
+    
+    try {
+      // एक-एक करके सभी files download करें
+      for (let i = 0; i < pdfBlobs.length; i++) {
+        const blob = pdfBlobs[i];
+        const pageNumber = i + 1;
         const fileName = generateUniqueFileName(files[0].name, pageNumber);
+        
+        // थोड़ा delay देकर browser को block होने से बचाएं
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
         downloadFile(blob, fileName);
         
-        // Add notification for each download
+        // Progress update
+        setProgress(Math.round((i + 1) / pdfBlobs.length * 100));
+        
+        // Add notification
         const notification: DownloadNotification = {
           id: Math.random().toString(36).substring(7),
           fileName: fileName,
@@ -161,13 +177,35 @@ export default function SplitPdf() {
         };
         setDownloadNotifications(prev => [...prev, notification]);
         
-        // Auto-remove notification after 5 seconds
+        // Auto-remove notification
         setTimeout(() => {
           setDownloadNotifications(prev => 
             prev.filter(n => n.id !== notification.id)
           );
         }, 5000);
-      });
+      }
+      
+      // Success notification
+      const successNotification: DownloadNotification = {
+        id: 'success-all',
+        fileName: `All ${pdfBlobs.length} pages downloaded`,
+        page: 0,
+        timestamp: new Date()
+      };
+      setDownloadNotifications(prev => [...prev, successNotification]);
+      
+      setTimeout(() => {
+        setDownloadNotifications(prev => 
+          prev.filter(n => n.id !== successNotification.id)
+        );
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Some files failed to download. Please try again.');
+    } finally {
+      setDownloadingAll(false);
+      setProgress(0);
     }
   };
 
@@ -178,7 +216,7 @@ export default function SplitPdf() {
 
   const handleDownloadFromModal = () => {
     if (previewModal.blob && previewModal.page) {
-      handleDownload(previewModal.blob, previewModal.page);
+      handleSingleDownload(previewModal.blob, previewModal.page);
       setPreviewModal({ url: null, page: null, blob: null, fileName: '' });
     }
   };
@@ -205,7 +243,7 @@ export default function SplitPdf() {
                 <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-sm mb-1">
-                    Page {notification.page} Downloaded
+                    {notification.page > 0 ? `Page ${notification.page} Downloaded` : notification.fileName}
                   </h4>
                   <p className="text-xs opacity-90 truncate">
                     {notification.fileName}
@@ -232,7 +270,7 @@ export default function SplitPdf() {
         </div>
       </div>
 
-      {/* Preview Modal */}
+      {/* Preview Modal - FIXED FOR MOBILE */}
       <AnimatePresence>
         {previewModal.url && (
           <motion.div
@@ -279,19 +317,26 @@ export default function SplitPdf() {
                 </div>
               </div>
 
-              {/* PDF Preview */}
+              {/* PDF Preview - FIXED FOR MOBILE */}
               <div className="h-[calc(90vh-80px)] p-2 sm:p-4">
                 <div className="w-full h-full bg-white rounded-lg overflow-hidden flex items-center justify-center">
-                  {previewModal.url && (
-                    <iframe
-                      src={`${previewModal.url}#view=fitH`}
-                      title={`Page ${previewModal.page} Preview`}
-                      className="w-full h-full border-0"
-                      style={{ 
-                        minHeight: '400px',
-                        transform: 'scale(1)'
-                      }}
-                    />
+                  {isClient && previewModal.url && (
+                    <div className="w-full h-full">
+                      {/* Mobile friendly PDF preview */}
+                      <object
+                        data={`${previewModal.url}#view=fitH`}
+                        type="application/pdf"
+                        className="w-full h-full"
+                      >
+                        <div className="p-4 text-center">
+                          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-600">PDF preview not available on this device</p>
+                          <p className="text-sm text-gray-500 mt-2">
+                            Click the download button above to save the PDF
+                          </p>
+                        </div>
+                      </object>
+                    </div>
                   )}
                 </div>
               </div>
@@ -572,19 +617,27 @@ export default function SplitPdf() {
                                     #{pageNumber}
                                   </div>
                                   
-                                  {/* Preview Container */}
+                                  {/* Preview Container - MOBILE FRIENDLY */}
                                   <div 
                                     className="relative w-full h-24 sm:h-28 md:h-32 mb-2 sm:mb-3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-lg sm:rounded-xl overflow-hidden cursor-pointer"
                                     onClick={() => handlePreviewClick(url, pageNumber, pageBlob)}
                                   >
                                     <div className="w-full h-full flex items-center justify-center p-1 sm:p-2">
                                       <div className="w-full h-full bg-white rounded flex items-center justify-center">
-                                        <iframe
-                                          src={`${url}#view=fitH`}
-                                          title={`Page ${pageNumber} Preview`}
-                                          className="w-full h-full border-0 pointer-events-none"
-                                          style={{ minHeight: '150px' }}
-                                        />
+                                        {isClient && (
+                                          <div className="w-full h-full">
+                                            <object
+                                              data={`${url}#view=fitH`}
+                                              type="application/pdf"
+                                              className="w-full h-full"
+                                            >
+                                              <div className="flex flex-col items-center justify-center h-full p-2">
+                                                <FileText className="w-8 h-8 text-gray-400 mb-1" />
+                                                <span className="text-xs text-gray-500">Page {pageNumber}</span>
+                                              </div>
+                                            </object>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                     
@@ -611,7 +664,7 @@ export default function SplitPdf() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleDownload(pageBlob, pageNumber);
+                                      handleSingleDownload(pageBlob, pageNumber);
                                     }}
                                     className="absolute bottom-1.5 right-1.5 p-1 sm:p-1.5 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors opacity-0 group-hover:opacity-100"
                                     title={`Download Page ${pageNumber}`}
@@ -627,16 +680,29 @@ export default function SplitPdf() {
 
                       {/* Download Buttons */}
                       <div className="space-y-4 sm:space-y-6">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => handleDownload()}
-                          className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all text-base sm:text-lg flex items-center justify-center gap-2 sm:gap-3"
-                        >
-                          <Download className="w-5 h-5 sm:w-6 sm:h-6" />
-                          Download All {pdfBlobs.length} Pages
-                          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </motion.button>
+                        {downloadingAll ? (
+                          <div className="space-y-4">
+                            <ProgressBar 
+                              progress={progress} 
+                              label={`Downloading pages... (${progress}%)`} 
+                            />
+                            <div className="text-center text-sm text-green-600 dark:text-green-400">
+                              <Sparkles className="w-4 h-4 animate-pulse inline mr-2" />
+                              Downloading all {pdfBlobs.length} pages...
+                            </div>
+                          </div>
+                        ) : (
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleDownloadAll}
+                            className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all text-base sm:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                          >
+                            <Download className="w-5 h-5 sm:w-6 sm:h-6" />
+                            Download All {pdfBlobs.length} Pages
+                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                          </motion.button>
+                        )}
 
                         {/* Convert Another */}
                         <div className="text-center">
@@ -648,6 +714,8 @@ export default function SplitPdf() {
                               setTotalPages(0);
                               setIsExpandedView(false);
                               setShowUploadInfo(true);
+                              setDownloadingAll(false);
+                              setProgress(0);
                             }}
                             className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-lg sm:rounded-xl transition-colors"
                           >

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, ArrowLeft, FileText, X, Scissors, Eye, Trash2, Check, AlertCircle, Maximize2, Minus, Plus, Shield, Sparkles, Clock } from 'lucide-react';
+import { Download, ArrowLeft, FileText, X, Scissors, Eye, Trash2, Check, AlertCircle, Maximize2, Minus, Plus, Shield, Sparkles, Clock, Smartphone } from 'lucide-react';
 import FileUploader from '../components/FileUploader';
 import ProgressBar from '../components/ProgressBar';
 import { removePages } from '../../utils/pdfUtils';
@@ -68,9 +68,34 @@ const DownloadNotification = ({ id, fileName, removedPages, timestamp, onClose }
     );
 };
 
-// PDF Page Preview Component - MOBILE FIXED
+// Mobile Detection Hook
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    return isMobile;
+};
+
+// PDF Page Preview Component - FIXED FOR MOBILE & DESKTOP
 const PdfPagePreview = ({ pageNumber, isSelected, onClick, previewUrl, isLoading }) => {
     const [isHovered, setIsHovered] = useState(false);
+    const [showImageFallback, setShowImageFallback] = useState(false);
+    const isMobile = useIsMobile();
+
+    // Handle iframe load error
+    const handleIframeError = () => {
+        setShowImageFallback(true);
+    };
 
     return (
         <motion.div
@@ -95,7 +120,7 @@ const PdfPagePreview = ({ pageNumber, isSelected, onClick, previewUrl, isLoading
                 {pageNumber}
             </div>
 
-            {/* PDF Preview Container - MOBILE FIX */}
+            {/* PDF Preview Container - FIXED FOR ALL DEVICES */}
             <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center p-2">
                 {isLoading ? (
                     <div className="animate-pulse flex flex-col items-center gap-2">
@@ -103,19 +128,44 @@ const PdfPagePreview = ({ pageNumber, isSelected, onClick, previewUrl, isLoading
                         <span className="text-xs text-gray-500 dark:text-gray-400">Loading...</span>
                     </div>
                 ) : previewUrl ? (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <iframe
-                            src={`${previewUrl}#view=fitH&toolbar=0&navpanes=0`}
-                            title={`Page ${pageNumber}`}
-                            className="w-full h-full min-h-[120px]"
-                            frameBorder="0"
-                            style={{ 
-                                transform: 'scale(1)',
-                                transformOrigin: 'center',
-                                pointerEvents: 'none'
-                            }}
-                        />
-                    </div>
+                    // MOBILE FIXED: Use object tag for mobile, iframe for desktop
+                    isMobile || showImageFallback ? (
+                        // MOBILE COMPATIBLE SOLUTION
+                        <div className="w-full h-full relative">
+                            <object
+                                data={`${previewUrl}#view=fitH&toolbar=0&navpanes=0`}
+                                type="application/pdf"
+                                className="w-full h-full"
+                                aria-label={`PDF Page ${pageNumber}`}
+                            >
+                                {/* Fallback content if object doesn't load */}
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 p-4">
+                                    <FileText className="w-8 h-8 text-gray-400 dark:text-gray-600 mb-2" />
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                                        Page {pageNumber}
+                                    </span>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-center">
+                                        {isSelected ? 'Selected for removal' : 'Tap to select'}
+                                    </span>
+                                </div>
+                            </object>
+                        </div>
+                    ) : (
+                        // DESKTOP: Use iframe
+                        <div className="w-full h-full">
+                            <iframe
+                                src={`${previewUrl}#view=fitH&toolbar=0&navpanes=0`}
+                                title={`Page ${pageNumber}`}
+                                className="w-full h-full"
+                                frameBorder="0"
+                                onError={handleIframeError}
+                                style={{ 
+                                    pointerEvents: 'none'
+                                }}
+                                loading="lazy"
+                            />
+                        </div>
+                    )
                 ) : (
                     <div className="flex flex-col items-center gap-2 p-3">
                         <FileText className="w-6 h-6 text-gray-400 dark:text-gray-600" />
@@ -126,6 +176,15 @@ const PdfPagePreview = ({ pageNumber, isSelected, onClick, previewUrl, isLoading
                 )}
             </div>
 
+            {/* Mobile Tap Indicator */}
+            {isMobile && !isSelected && (
+                <div className="absolute bottom-2 right-2 z-10">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                        <Eye className="w-3 h-3 text-white" />
+                    </div>
+                </div>
+            )}
+
             {/* Selection Overlay */}
             {isSelected && (
                 <div className="absolute inset-0 bg-red-900/70 flex flex-col items-center justify-center z-10">
@@ -134,17 +193,38 @@ const PdfPagePreview = ({ pageNumber, isSelected, onClick, previewUrl, isLoading
                 </div>
             )}
 
-            {/* Hover Overlay */}
-            <div className={`absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center transition-opacity duration-300 ${
-                isHovered ? 'opacity-100' : 'opacity-0'
-            }`}>
-                {isSelected ? (
-                    <Check className="w-5 h-5 text-white" />
-                ) : (
-                    <X className="w-5 h-5 text-white" />
-                )}
-            </div>
+            {/* Hover Overlay (Desktop only) */}
+            {!isMobile && (
+                <div className={`absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center transition-opacity duration-300 ${
+                    isHovered ? 'opacity-100' : 'opacity-0'
+                }`}>
+                    {isSelected ? (
+                        <Check className="w-5 h-5 text-white" />
+                    ) : (
+                        <X className="w-5 h-5 text-white" />
+                    )}
+                </div>
+            )}
         </motion.div>
+    );
+};
+
+// Mobile PDF Preview Component (Alternative solution)
+const MobilePdfPreview = ({ pdfUrl, pageNumber, isSelected }) => {
+    return (
+        <div className="relative w-full h-full">
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-800 dark:to-blue-900/30 rounded-lg flex flex-col items-center justify-center">
+                <FileText className="w-10 h-10 text-blue-500 dark:text-blue-400 mb-2" />
+                <div className="text-center">
+                    <div className={`text-sm font-bold ${isSelected ? 'text-red-600' : 'text-blue-600'}`}>
+                        Page {pageNumber}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                        {isSelected ? 'Will be removed' : 'Will be kept'}
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
 
@@ -160,7 +240,20 @@ export default function RemovePages() {
     const [expandedView, setExpandedView] = useState(false);
     const [showUploadInfo, setShowUploadInfo] = useState(true);
     const [downloadNotifications, setDownloadNotifications] = useState([]);
+    const [isMobile, setIsMobile] = useState(false);
     const notificationsRef = useRef(null);
+
+    // Mobile detection
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Calculate the pages to be removed dynamically
     const pagesToRemove = useMemo(() => {
@@ -414,6 +507,16 @@ export default function RemovePages() {
                                         Select pages visually or by page numbers
                                     </span>
                                 </p>
+                                
+                                {/* Mobile Compatibility Notice */}
+                                {isMobile && (
+                                    <div className="mt-4 flex items-center justify-center gap-2">
+                                        <Smartphone className="w-4 h-4 text-blue-500" />
+                                        <span className="text-xs text-blue-600 font-medium">
+                                            Optimized for mobile viewing
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -534,11 +637,16 @@ export default function RemovePages() {
                                     </div>
 
                                     {/* Mobile Preview Instructions */}
-                                    <div className="sm:hidden p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                        <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-                                            👆 Tap on page previews to select/deselect
-                                        </p>
-                                    </div>
+                                    {isMobile && (
+                                        <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                            <div className="flex items-center gap-2">
+                                                <Smartphone className="w-4 h-4 text-blue-500" />
+                                                <p className="text-xs text-blue-700 dark:text-blue-300">
+                                                    👆 <strong>Tap on page previews</strong> to select/deselect pages for removal
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Page Selection Controls */}
                                     <div className="space-y-3 sm:space-y-4 md:space-y-6">
@@ -622,6 +730,15 @@ export default function RemovePages() {
                                                         {remainingPages} pages will remain
                                                     </span>
                                                 </div>
+                                                
+                                                {/* Mobile Alternative View */}
+                                                {isMobile && (
+                                                    <div className="p-3 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                                                        <p className="text-xs text-yellow-700 dark:text-yellow-300 text-center">
+                                                            📱 <strong>Mobile View:</strong> Showing simplified page previews
+                                                        </p>
+                                                    </div>
+                                                )}
                                                 
                                                 <div className={`grid gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[400px] sm:max-h-[500px] md:max-h-[600px] overflow-y-auto ${
                                                     // Mobile: grid-cols-2, Tablet: grid-cols-3, Desktop: grid-cols-4/5
@@ -786,12 +903,33 @@ export default function RemovePages() {
                                                                 expandedView ? 'h-[70vh] sm:h-[80vh]' : 'h-[40vh] sm:h-[50vh] md:h-[60vh]'
                                                             }`}
                                                         >
-                                                            <iframe
-                                                                src={`${pdfUrl}#view=fitH`}
-                                                                title="Modified PDF Preview"
-                                                                className="w-full h-full"
-                                                                frameBorder="0"
-                                                            />
+                                                            {/* MOBILE COMPATIBLE PDF VIEWER */}
+                                                            {isMobile ? (
+                                                                <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20">
+                                                                    <FileText className="w-16 h-16 text-blue-400 dark:text-blue-500 mb-4" />
+                                                                    <h5 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-2">
+                                                                        PDF Preview
+                                                                    </h5>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
+                                                                        PDF preview is best viewed on desktop
+                                                                    </p>
+                                                                    <div className="text-center">
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">
+                                                                            ✅ {remainingPages} pages in final document
+                                                                        </p>
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                                                                            ⬇️ Download to view full PDF
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <iframe
+                                                                    src={`${pdfUrl}#view=fitH`}
+                                                                    title="Modified PDF Preview"
+                                                                    className="w-full h-full"
+                                                                    frameBorder="0"
+                                                                />
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -807,6 +945,15 @@ export default function RemovePages() {
                                                     Download Modified PDF
                                                     <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                                                 </motion.button>
+
+                                                {/* Mobile Download Info */}
+                                                {isMobile && (
+                                                    <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                                        <p className="text-xs text-green-700 dark:text-green-300 text-center">
+                                                            📱 <strong>Mobile Tip:</strong> The downloaded PDF will contain all images and formatting properly
+                                                        </p>
+                                                    </div>
+                                                )}
 
                                                 {/* Convert Another */}
                                                 <div className="text-center">
@@ -849,6 +996,18 @@ export default function RemovePages() {
                                     </div>
                                 ))}
                             </div>
+                            
+                            {/* Mobile Compatibility Note */}
+                            {isMobile && (
+                                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Smartphone className="w-4 h-4 text-gray-400" />
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            Mobile optimized • All processing happens locally
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 </div>

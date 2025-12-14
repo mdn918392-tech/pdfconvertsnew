@@ -198,17 +198,13 @@ export default function ExtractPages() {
     }
 
     return (
-      <div className="w-full h-full flex items-center justify-center">
+      <div className="w-full h-full">
         <iframe
           src={`${pdfUrl}#view=fitH&toolbar=0&navpanes=0`}
           title="Extracted PDF Preview"
-          className="w-full h-full min-h-[300px]"
+          className="w-full h-full"
           frameBorder="0"
-          style={{ 
-            transform: 'scale(1)',
-            transformOrigin: 'center',
-            WebkitOverflowScrolling: 'touch'
-          }}
+          style={{ WebkitOverflowScrolling: 'touch' }}
         />
       </div>
     );
@@ -344,7 +340,7 @@ export default function ExtractPages() {
               </div>
 
               {/* PDF Preview */}
-              <div className="h-[calc(90vh-70px)] p-2 sm:p-4">
+              <div className="h-[calc(90vh-70px)]">
                 {renderFullScreenPreview()}
               </div>
             </motion.div>
@@ -705,7 +701,7 @@ export default function ExtractPages() {
                         </div>
 
                         <div className={`border-2 border-gray-300 dark:border-gray-700 rounded-lg sm:rounded-xl md:rounded-2xl overflow-hidden shadow-md sm:shadow-lg bg-white dark:bg-gray-900 transition-all duration-300 ${
-                          expandedPreview ? 'h-[70vh] sm:h-[80vh]' : 'h-[40vh] sm:h-[50vh] md:h-[60vh]'
+                          expandedPreview ? 'h-[70vh]' : 'h-[40vh] sm:h-[50vh] md:h-[60vh]'
                         }`}>
                           {previewLoading ? (
                             <div className="w-full h-full flex items-center justify-center">

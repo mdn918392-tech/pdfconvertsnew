@@ -20,6 +20,9 @@ import {
   ZoomOut,
   Square,
   Clock,
+  FileText,
+  ArrowUpDown,
+  SortDesc,
 } from "lucide-react";
 
 import FileUploader from "../components/FileUploader";
@@ -36,6 +39,7 @@ interface FileWithPreview {
   rotation: number;
   scale: number;
   aspectRatio: "free" | "1:1" | "4:3" | "16:9" | "A4";
+  previewError?: boolean;
 }
 
 interface DownloadNotification {
@@ -46,14 +50,6 @@ interface DownloadNotification {
 }
 
 const MAX_PAGES_COUNT = 1000;
-
-const aspectRatioOptions = {
-  "free": { label: "Free", value: undefined },
-  "1:1": { label: "Square (1:1)", value: 1 },
-  "4:3": { label: "Standard (4:3)", value: 4/3 },
-  "16:9": { label: "Widescreen (16:9)", value: 16/9 },
-  "A4": { label: "A4 Paper", value: 210/297 },
-};
 
 const simulateProgress = (
   callback: (p: number) => void,
@@ -79,22 +75,24 @@ const simulateProgress = (
   return () => clearInterval(progressId);
 };
 
-// Smart filename generator
+// Smart filename generator - now includes reverse order info
 const generatePdfFilename = (
   files: FileWithPreview[], 
   paperSize: PaperSize, 
-  orientation: Orientation
+  orientation: Orientation,
+  reverseOrder: boolean
 ): string => {
   const now = new Date();
   const timestamp = now.getTime();
   const randomId = Math.random().toString(36).substring(2, 9);
-  const dateStr = now.toISOString().split('T')[0];
+  
+  const orderSuffix = reverseOrder ? "_reverse" : "";
   
   if (files.length === 1) {
     const originalName = files[0].file.name.split('.')[0];
-    return `${originalName}_${paperSize}_${timestamp}_${randomId}.pdf`;
+    return `${originalName}_${paperSize}_${timestamp}_${randomId}${orderSuffix}.pdf`;
   } else {
-    return `images_${files.length}_pages_${paperSize}_${timestamp}_${randomId}.pdf`;
+    return `images_${files.length}_pages_${paperSize}_${timestamp}_${randomId}${orderSuffix}.pdf`;
   }
 };
 
@@ -138,6 +136,46 @@ const DownloadNotification = ({ id, fileName, fileCount, timestamp, onClose }: D
   );
 };
 
+// Floating Page Counter Component - updated to show reverse status
+const FloatingPageCounter = ({ 
+  count, 
+  reverseOrder 
+}: { 
+  count: number, 
+  reverseOrder: boolean
+}) => {
+  if (count === 0) return null;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className="fixed bottom-4 right-4 z-40 group"
+    >
+      <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 rounded-xl shadow-lg">
+        <FileText className="w-5 h-5" />
+        <div className="text-center">
+          <div className="text-2xl font-bold">{count}</div>
+          <div className="text-xs opacity-90">Pages</div>
+          {reverseOrder && (
+            <div className="text-[10px] opacity-80 mt-1 flex items-center justify-center gap-1">
+              <ArrowUpDown className="w-2 h-2" />
+              Reverse Order
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Tooltip */}
+      <div className="absolute -top-14 right-0 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <div>Total pages: {count}</div>
+        {reverseOrder && <div>• Images in Reverse Order</div>}
+      </div>
+    </motion.div>
+  );
+};
+
 export default function JpgToPdf() {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [paperSize, setPaperSize] = useState<PaperSize>("A4");
@@ -149,12 +187,12 @@ export default function JpgToPdf() {
   const [downloadNotifications, setDownloadNotifications] = useState<DownloadNotification[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [reverseOrder, setReverseOrder] = useState(false); // Only reverse order, not page numbers
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsClient(true);
     
-    // Mobile detection
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -200,7 +238,8 @@ export default function JpgToPdf() {
       id: Math.random().toString(36).substr(2, 9),
       rotation: 0,
       scale: 1,
-      aspectRatio: "free"
+      aspectRatio: "free",
+      previewError: false
     }));
 
     let filesToSet = filesWithIds;
@@ -217,21 +256,29 @@ export default function JpgToPdf() {
     setPdfBlob(null);
     setProgress(0);
 
-    // Then generate previews asynchronously
-    setTimeout(() => {
-      setFiles(prev => prev.map((file, index) => {
-        if (index < filesToSet.length && !file.previewUrl) {
-          try {
-            const previewUrl = URL.createObjectURL(filesToSet[index].file);
-            return { ...file, previewUrl };
-          } catch (error) {
-            console.error('Failed to create preview URL:', error);
-            return file;
-          }
+    // Generate previews with error handling
+    setFiles(prev => prev.map((file, index) => {
+      if (index < filesToSet.length && !file.previewUrl) {
+        try {
+          const previewUrl = URL.createObjectURL(filesToSet[index].file);
+          return { ...file, previewUrl, previewError: false };
+        } catch (error) {
+          console.error('Failed to create preview URL:', error);
+          return { ...file, previewError: true };
         }
-        return file;
-      }));
-    }, 0);
+      }
+      return file;
+    }));
+  }, []);
+
+  // Handle image load error
+  const handleImageError = useCallback((id: string) => {
+    setFiles(prev => prev.map(file => {
+      if (file.id === id) {
+        return { ...file, previewError: true };
+      }
+      return file;
+    }));
   }, []);
 
   const handleConvert = async () => {
@@ -241,7 +288,13 @@ export default function JpgToPdf() {
     setPdfBlob(null);
 
     try {
-      const filesToConvert = files.map(f => f.file);
+      // Prepare files based on reverse order setting
+      let filesToConvert;
+      if (reverseOrder) {
+        filesToConvert = [...files].reverse().map(f => f.file);
+      } else {
+        filesToConvert = files.map(f => f.file);
+      }
 
       let cleanup: (() => void) | null = null;
 
@@ -276,10 +329,9 @@ export default function JpgToPdf() {
 
   const handleDownload = () => {
     if (pdfBlob) {
-      const filename = generatePdfFilename(files, paperSize, orientation);
+      const filename = generatePdfFilename(files, paperSize, orientation, reverseOrder);
       downloadFile(pdfBlob, filename);
       
-      // Add download notification
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
         fileName: filename,
@@ -288,13 +340,27 @@ export default function JpgToPdf() {
       };
       setDownloadNotifications(prev => [...prev, notification]);
       
-      // Auto-remove notification after 5 seconds
       setTimeout(() => {
         setDownloadNotifications(prev => 
           prev.filter(n => n.id !== notification.id)
         );
       }, 5000);
     }
+  };
+
+  // Function to handle reverse order toggle (only reverse order, not page numbers)
+  const toggleReverseOrder = () => {
+    setReverseOrder(!reverseOrder);
+    setPdfBlob(null);
+  };
+
+  // Get display files based on reverse order
+  const displayFiles = reverseOrder ? [...files].reverse() : files;
+
+  // Calculate page number for display (ALWAYS normal numbers: 1, 2, 3, ...)
+  const getPageNumber = (displayIndex: number) => {
+    // Always return normal page numbers starting from 1
+    return displayIndex + 1;
   };
 
   if (!isClient) return null;
@@ -321,6 +387,12 @@ export default function JpgToPdf() {
         </div>
       </div>
 
+      {/* Floating Page Counter - Always visible when files are selected */}
+      <FloatingPageCounter 
+        count={files.length} 
+        reverseOrder={reverseOrder}
+      />
+
       <AnimatePresence>
         {expandedImage && (
           <motion.div
@@ -337,10 +409,7 @@ export default function JpgToPdf() {
               src={expandedImage}
               alt="Expanded preview"
               className="max-w-full max-h-[90vh] object-contain rounded-lg"
-              onError={(e) => {
-                console.error("Failed to load expanded image");
-                e.currentTarget.style.display = 'none';
-              }}
+              onError={() => setExpandedImage(null)}
             />
             <button
               className="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-full transition-colors"
@@ -426,96 +495,140 @@ export default function JpgToPdf() {
                         Click on image to preview
                       </p>
                     </div>
-                    <button
-                      onClick={() => {
-                        files.forEach(file => {
-                          if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
-                        });
-                        setFiles([]);
-                        setPdfBlob(null);
-                        setProgress(0);
-                      }}
-                      className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Clear All
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Reverse Order Button (only for order, not page numbers) */}
+                      <button
+                        onClick={toggleReverseOrder}
+                        className={`px-3 py-1.5 sm:px-4 sm:py-2 flex items-center gap-1.5 rounded-lg sm:rounded-xl transition-all text-xs sm:text-sm ${
+                          reverseOrder
+                            ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-md"
+                            : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        <ArrowUpDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        {reverseOrder ? "Normal Order" : "Reverse Order"}
+                      </button>
+                      
+                      {/* Clear All Button */}
+                      <button
+                        onClick={() => {
+                          files.forEach(file => {
+                            if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+                          });
+                          setFiles([]);
+                          setPdfBlob(null);
+                          setProgress(0);
+                          setReverseOrder(false);
+                        }}
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        Clear All
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                     <AnimatePresence initial={false}>
-                      {files.map((item, index) => (
-                        <motion.div
-                          key={item.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          layout
-                          className="group relative"
-                        >
-                          <div className="relative overflow-hidden rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-800 aspect-square cursor-pointer"
-                              onClick={() => setExpandedImage(item.previewUrl || '')}>
-                            
-                            {item.previewUrl ? (
-                              <>
-                                <img
-                                  src={item.previewUrl}
-                                  alt={item.file.name}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                  onError={(e) => {
-                                    console.error("Failed to load thumbnail image");
-                                    e.currentTarget.style.display = 'none';
+                      {displayFiles.map((item, displayIndex) => {
+                        const pageNumber = getPageNumber(displayIndex);
+                        return (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            layout
+                            className="group relative"
+                          >
+                            <div 
+                              className="relative overflow-hidden rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-800 aspect-square cursor-pointer"
+                              onClick={() => item.previewUrl && !item.previewError && setExpandedImage(item.previewUrl)}
+                            >
+                              {item.previewUrl && !item.previewError ? (
+                                <>
+                                  <img
+                                    src={item.previewUrl}
+                                    alt={item.file.name}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                    onError={() => handleImageError(item.id)}
+                                    loading="lazy"
+                                  />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                </>
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center p-3">
+                                  <div className="relative mb-1.5">
+                                    <ImageIcon className="w-6 h-6 text-gray-400" />
+                                    {item.previewError && (
+                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                                        <X className="w-2 h-2 text-white" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center truncate w-full px-1">
+                                    {item.file.name}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400 mt-1">
+                                    {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {item.previewUrl && !item.previewError && (
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <p className="text-xs truncate font-medium">{item.file.name}</p>
+                                  <p className="text-xs opacity-80">
+                                    {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* Page number with stopPropagation - ALWAYS 1, 2, 3, ... */}
+                              <div 
+                                className="absolute top-1.5 right-1.5 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {pageNumber}
+                              </div>
+                              
+                              {item.previewUrl && !item.previewError && (
+                                <button
+                                  className="absolute top-1.5 right-8 bg-black/60 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedImage(item.previewUrl || '');
                                   }}
-                                />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                              </>
-                            ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center p-3">
-                                <ImageIcon className="w-6 h-6 text-gray-400 mb-1.5" />
-                                <p className="text-xs text-gray-500 dark:text-gray-400 text-center truncate w-full">
-                                  {item.file.name}
-                                </p>
-                              </div>
-                            )}
-                            
-                            {item.previewUrl && (
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                <p className="text-xs truncate font-medium">{item.file.name}</p>
-                                <p className="text-xs opacity-80">
-                                  {(item.file.size / 1024 / 1024).toFixed(2)} MB
-                                </p>
-                              </div>
-                            )}
-                            
-                            <div className="absolute top-1.5 right-1.5 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-full">
-                              {index + 1}
+                                >
+                                  <Maximize2 className="w-3 h-3" />
+                                </button>
+                              )}
                             </div>
                             
-                            {item.previewUrl && (
-                              <button
-                                className="absolute top-1.5 right-8 bg-black/60 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setExpandedImage(item.previewUrl || '');
-                                }}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFile(item);
+                              }}
+                              className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
+                              aria-label={`Remove ${item.file.name}`}
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                            
+                            {/* Reverse Order Indicator with stopPropagation */}
+                            {reverseOrder && (
+                              <div 
+                                className="absolute -top-2 -left-2 bg-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-0.5"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <Maximize2 className="w-3 h-3" />
-                              </button>
+                                <ArrowUpDown className="w-2 h-2" />
+                                R
+                              </div>
                             )}
-                          </div>
-                          
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveFile(item);
-                            }}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
-                            aria-label={`Remove ${item.file.name}`}
-                          >
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        </motion.div>
-                      ))}
+                          </motion.div>
+                        );
+                      })}
                     </AnimatePresence>
                   </div>
 
@@ -580,6 +693,36 @@ export default function JpgToPdf() {
                       </div>
                     </div>
 
+                    {/* Page Order Settings */}
+                    <div className="mt-4 sm:mt-6 space-y-4">
+                      {/* Reverse Order Setting */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <ArrowUpDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            Reverse Page Order
+                          </label>
+                          <button
+                            onClick={toggleReverseOrder}
+                            className={`relative inline-flex h-5 sm:h-6 w-10 sm:w-12 items-center rounded-full transition-colors ${
+                              reverseOrder ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 sm:h-5 sm:w-5 transform rounded-full bg-white transition-transform ${
+                                reverseOrder ? 'translate-x-5 sm:translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                          {reverseOrder 
+                            ? "Images will be arranged in reverse order (last image first) with normal page numbers (1, 2, 3...)"
+                            : "Images will be arranged in normal order (first image first) with page numbers 1, 2, 3..."}
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                         <span>Total Pages:</span>
@@ -588,6 +731,12 @@ export default function JpgToPdf() {
                       <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
                         <span>Paper Size:</span>
                         <span className="font-semibold text-gray-800 dark:text-gray-200">{paperSize} ({orientation})</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
+                        <span>Page Order:</span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-200">
+                          {reverseOrder ? "Reverse Order" : "Normal Order"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -605,14 +754,18 @@ export default function JpgToPdf() {
                           progress={progress}
                           label={
                             progress < 90
-                              ? "Processing images..."
+                              ? reverseOrder 
+                                ? "Reversing images..." 
+                                : "Processing images..."
                               : "Finalizing PDF..."
                           }
                         />
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-3 text-blue-600 dark:text-blue-400">
                           <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Creating your PDF document...
+                            {reverseOrder 
+                              ? "Creating PDF with reverse image order..." 
+                              : "Creating your PDF document..."}
                           </span>
                         </div>
                       </motion.div>
@@ -633,6 +786,11 @@ export default function JpgToPdf() {
                           </h4>
                           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">
                             Your PDF is ready to download
+                            {reverseOrder && (
+                              <span className="text-purple-600 dark:text-purple-400">
+                                {" "}(Reverse Image Order)
+                              </span>
+                            )}
                           </p>
                           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm">
                             <span className="text-gray-600 dark:text-gray-400">
@@ -641,6 +799,11 @@ export default function JpgToPdf() {
                             <span className="text-gray-600 dark:text-gray-400">
                               Pages: {files.length}
                             </span>
+                            {reverseOrder && (
+                              <span className="text-purple-600 dark:text-purple-400 font-semibold">
+                                Reverse Image Order
+                              </span>
+                            )}
                           </div>
                         </div>
                         
@@ -653,6 +816,7 @@ export default function JpgToPdf() {
                               setFiles([]);
                               setPdfBlob(null);
                               setProgress(0);
+                              setReverseOrder(false);
                             }}
                             className="py-2.5 sm:py-3 px-4 sm:px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-sm sm:text-base"
                           >
@@ -683,11 +847,15 @@ export default function JpgToPdf() {
                           className="w-full py-3 px-4 sm:py-4 sm:px-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl sm:rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base md:text-lg font-semibold flex items-center justify-center gap-2 sm:gap-3"
                         >
                           <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                          Convert {files.length} Image{files.length !== 1 ? "s" : ""} to PDF
+                          {reverseOrder 
+                            ? `Convert ${files.length} Image${files.length !== 1 ? "s" : ""} with Reverse Order` 
+                            : `Convert ${files.length} Image${files.length !== 1 ? "s" : ""} to PDF`}
                         </button>
                         
                         <p className="text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 sm:mt-3">
-                          Your images will be converted to a single PDF document
+                          {reverseOrder 
+                            ? "Images will be arranged in reverse order with normal page numbers" 
+                            : "Your images will be converted to a single PDF document"}
                         </p>
                       </motion.div>
                     )}
@@ -727,10 +895,10 @@ export default function JpgToPdf() {
                     <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2 text-sm sm:text-base">
-                    Custom Settings
+                    Advanced Settings
                   </h4>
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    Multiple paper sizes and orientations to choose from
+                    Customize paper size, orientation, and page order
                   </p>
                 </div>
               </div>
