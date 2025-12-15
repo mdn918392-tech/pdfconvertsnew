@@ -4,324 +4,325 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { 
-  Download, 
-  ArrowLeft, 
-  CheckCircle, 
-  FileText, 
-  Image as ImageIcon, 
-  Layers,
-  ChevronRight,
-  Sparkles,
-  Zap,
-  Edit,
-  File,
-  Tablet,
-  SquareGanttChart,
-  Clock,
-  Shield,
-  X,
-  Maximize2,
-  Minimize2,
-  ZoomIn,
-  ZoomOut,
-  Loader2,
-  ChevronLeft,
-  ChevronRight as ChevronRightIcon,
-  Palette,
-  ImagePlus,
-  FileImage,
-  Check,
-  RotateCw,
-  RotateCcw,
-  Rotate3D,
-  RefreshCw,
-  Settings,
-  Grid3x3,
-  FolderOpen,
-  FileArchive,
-  Merge,
-  Split,
+  Download, 
+  ArrowLeft, 
+  CheckCircle, 
+  FileText, 
+  Image as ImageIcon, 
+  Layers,
+  ChevronRight,
+  Sparkles,
+  Zap,
+  Edit,
+  File,
+  Tablet,
+  SquareGanttChart,
+  Clock,
+  Shield,
+  X,
+  Maximize2,
+  Minimize2,
+  ZoomIn,
+  ZoomOut,
+  Loader2,
+  ChevronLeft,
+  ChevronRight as ChevronRightIcon,
+  Palette,
+  ImagePlus,
+  FileImage,
+  Check,
+  RotateCw,
+  RotateCcw,
+  Rotate3D,
+  RefreshCw,
+  Settings,
+  Grid3x3,
+  FolderOpen,
+  FileArchive,
+  Merge,
+  Split,
+  
+  Eye,
+  Smartphone,
+  Monitor,
+  Globe,
+  Server,
+  Cloud,
+  Lock,
+  Cpu,
+  Battery,
+  Wifi,
+  Upload,
+  Trash2,
+  Share2,
+  Copy,
+  Scissors,
+  Type,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  PaintBucket,
+  PenTool,
+  Crop,
+  Filter,
+  Layers as LayersIcon,
+  BookOpen,
+  Printer,
+  Mail,
+  MessageSquare,
+  Heart,
+  Star,
+  ThumbsUp,
+  Award,
+  Target,
+  TrendingUp,
+  Users,
+  HelpCircle,
+  Info,
+  AlertCircle,
+  Bell,
+  Search,
+  Menu,
+  MoreVertical,
+  Plus,
+  Minus,
+  Sliders,
+  ToggleLeft,
+  ToggleRight,
+  Sun,
+  Moon,
+  Volume2,
+  Video,
+  Music,
+  Camera,
+  Mic,
+  Headphones,
+  Gift,
+  Coffee,
+  Rocket,
+  Plane,
+  Car,
+  Bike,
+  Home,
+  Building,
+  MapPin,
+  Navigation,
+  Compass,
+  Globe2,
+  CloudRain,
+  CloudSnow,
+  Wind,
+  Thermometer,
+  Umbrella,
+  Droplets,
+  TreePine,
+  Mountain,
+  Flower2,
+  Leaf,
+  Bug,
+  Cat,
+  Dog,
+  Fish,
+  Bird,
+  Rabbit,
+  Turtle,
+  
+  Octagon,
+  Hexagon,
+  Circle,
+  Square,
+  Triangle,
+  Pentagon,
+  OctagonAlert,
+  AlertTriangle,
+  AlertOctagon,
+  XCircle,
+  XOctagon,
+  XSquare,
+  CheckSquare,
+  CheckCircle2,
+  CircleCheck,
+  CircleX,
+  SquareCheck,
+  SquareX,
+  Ban,
+  StopCircle,
+  PauseCircle,
+  PlayCircle,
+  SkipBack,
+  SkipForward,
+  Rewind,
+  FastForward,
+  Play,
+  Pause,
+  
+  Repeat,
+  Shuffle,
+  Volume,
+  VolumeX,
+  MicOff,
+  VideoOff,
+  CameraOff,
+  Phone,
+  PhoneOff,
+  PhoneCall,
+  PhoneForwarded,
+  PhoneIncoming,
+  PhoneOutgoing,
+  PhoneMissed,
+  Voicemail,
+  MessageCircle,
+  MessageSquareDashed,
+  MessageSquarePlus,
+  Send,
+  MailPlus,
+  MailOpen,
+  Inbox,
+  Archive,
+  ArchiveX,
+  Bookmark,
+  BookmarkPlus,
+  BookmarkMinus,
+  Tag,
+  Tags,
+  Hash,
+  AtSign,
+  Percent,
+  DollarSign,
+  Euro,
+  PoundSterling,
+  
+  Bitcoin,
+  CreditCard,
+  Wallet,
+  Receipt,
+  Package,
+  ShoppingCart,
+  ShoppingBag,
+  Store,
+  Truck,
+  Factory,
+  Banknote,
+  Coins,
+  Gem,
+  Crown,
+  Trophy,
+  Medal,
+  Flag,
+  Map,
+  MapPinOff,
+  Navigation2,
+  
+  Globe2 as Globe2Icon,
+  
+  CloudOff,
+  CloudDrizzle,
+  CloudLightning,
+  CloudFog,
+  Sunrise,
+  Sunset,
+  MoonStar,
+  StarHalf,
+  ZapOff,
 
-  Eye,
-  Smartphone,
-  Monitor,
-  Globe,
-  Server,
-  Cloud,
-  Lock,
-  Cpu,
-  Battery,
-  Wifi,
-  Upload,
-  Trash2,
-  Share2,
-  Copy,
-  Scissors,
-  Type,
-  Bold,
-  Italic,
-  Underline,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  PaintBucket,
-  PenTool,
-  Crop,
-  Filter,
-  Layers as LayersIcon,
-  BookOpen,
-  Printer,
-  Mail,
-  MessageSquare,
-  Heart,
-  Star,
-  ThumbsUp,
-  Award,
-  Target,
-  TrendingUp,
-  Users,
-  HelpCircle,
-  Info,
-  AlertCircle,
-  Bell,
-  Search,
-  Menu,
-  MoreVertical,
-  Plus,
-  Minus,
-  Sliders,
-  ToggleLeft,
-  ToggleRight,
-  Sun,
-  Moon,
-  Volume2,
-  Video,
-  Music,
-  Camera,
-  Mic,
-  Headphones,
-  Gift,
-  Coffee,
-  Rocket,
-  Plane,
-  Car,
-  Bike,
-  Home,
-  Building,
-  MapPin,
-  Navigation,
-  Compass,
-  Globe2,
-  CloudRain,
-  CloudSnow,
-  Wind,
-  Thermometer,
-  Umbrella,
-  Droplets,
-  TreePine,
-  Mountain,
-  Flower2,
-  Leaf,
-  Bug,
-  Cat,
-  Dog,
-  Fish,
-  Bird,
-  Rabbit,
-  Turtle,
-
-  Octagon,
-  Hexagon,
-  Circle,
-  Square,
-  Triangle,
-  Pentagon,
-  OctagonAlert,
-  AlertTriangle,
-  AlertOctagon,
-  XCircle,
-  XOctagon,
-  XSquare,
-  CheckSquare,
-  CheckCircle2,
-  CircleCheck,
-  CircleX,
-  SquareCheck,
-  SquareX,
-  Ban,
-  StopCircle,
-  PauseCircle,
-  PlayCircle,
-  SkipBack,
-  SkipForward,
-  Rewind,
-  FastForward,
-  Play,
-  Pause,
-
-  Repeat,
-  Shuffle,
-  Volume,
-  VolumeX,
-  MicOff,
-  VideoOff,
-  CameraOff,
-  Phone,
-  PhoneOff,
-  PhoneCall,
-  PhoneForwarded,
-  PhoneIncoming,
-  PhoneOutgoing,
-  PhoneMissed,
-  Voicemail,
-  MessageCircle,
-  MessageSquareDashed,
-  MessageSquarePlus,
-  Send,
-  MailPlus,
-  MailOpen,
-  Inbox,
-  Archive,
-  ArchiveX,
-  Bookmark,
-  BookmarkPlus,
-  BookmarkMinus,
-  Tag,
-  Tags,
-  Hash,
-  AtSign,
-  Percent,
-  DollarSign,
-  Euro,
-  PoundSterling,
-
-  Bitcoin,
-  CreditCard,
-  Wallet,
-  Receipt,
-  Package,
-  ShoppingCart,
-  ShoppingBag,
-  Store,
-  Truck,
-  Factory,
-  Banknote,
-  Coins,
-  Gem,
-  Crown,
-  Trophy,
-  Medal,
-  Flag,
-  Map,
-  MapPinOff,
-  Navigation2,
-
-  Globe2 as Globe2Icon,
-
-  CloudOff,
-  CloudDrizzle,
-  CloudLightning,
-  CloudFog,
-  Sunrise,
-  Sunset,
-  MoonStar,
-  StarHalf,
-  ZapOff,
-
-  ThermometerSun,
-  ThermometerSnowflake,
-  UmbrellaOff,
-  Droplet,
-  DropletOff,
-  Waves,
-  Flame,
-  Snowflake,
-  CloudSun,
-  CloudMoon,
-  CloudSunRain,
-  CloudMoonRain,
-  CloudHail,
-
-  CloudRainWind,
-
-  Bone,
-  ShieldCheck,
-  ShieldAlert,
-  ShieldOff,
-  ShieldQuestion,
-  ShieldX,
-  LockKeyhole,
-  LockOpen,
-  Key,
-  KeyRound,
-  KeySquare,
-  Fingerprint,
-  EyeOff,
-  QrCode,
-  Scan,
-  ScanFace,
-  ScanLine,
-  ScanText,
-  Barcode,
-  Radio,
-  RadioTower,
-  Satellite,
-  SatelliteDish,
-  Router,
-  WifiOff,
-  Bluetooth,
-  BluetoothConnected,
-  BluetoothOff,
-  Cpu as CpuIcon,
-  MemoryStick,
-  HardDrive,
-  HardDriveDownload,
-  HardDriveUpload,
-  Database,
-  DatabaseBackup,
-  ServerCog, 
-  ServerCrash,
-  ServerOff,
-  Terminal,
-  TerminalSquare,
-  Code,
-  Code2,
-  Brackets,
-  Braces,
-  Parentheses,
-  CurlyBraces,
-  FunctionSquare,
-  Variable,
-  Sigma,
-  Infinity as InfinityIcon, // ✅ FIXED HERE
-  Pi,
-
-  Copyright,
-  Asterisk,
-  Pilcrow,
-  Section,
-  List,
-  ListChecks,
-  ListOrdered,
-  ListTodo,
-  ListX,
-  ListMinus,
-  ListPlus,
-  ListRestart,
-  ListEnd,
-  ListStart,
-  ListTree,
-  ListFilter,
-  ListCollapse,
-
-  ListVideo,
-  ListMusic
+  ThermometerSun,
+  ThermometerSnowflake,
+  UmbrellaOff,
+  Droplet,
+  DropletOff,
+  Waves,
+  Flame,
+  Snowflake,
+  CloudSun,
+  CloudMoon,
+  CloudSunRain,
+  CloudMoonRain,
+  CloudHail,
+ 
+  CloudRainWind,
+  
+  Bone, // All missing natural disaster, mythical, and server icons removed
+  ShieldCheck,
+  ShieldAlert,
+  ShieldOff,
+  ShieldQuestion,
+  ShieldX,
+  LockKeyhole,
+  LockOpen,
+  Key,
+  KeyRound,
+  KeySquare,
+  Fingerprint,
+  EyeOff,
+  QrCode,
+  Scan,
+  ScanFace,
+  ScanLine,
+  ScanText,
+  Barcode,
+  Radio,
+  RadioTower,
+  Satellite,
+  SatelliteDish,
+  Router,
+  WifiOff,
+  Bluetooth,
+  BluetoothConnected,
+  BluetoothOff,
+  Cpu as CpuIcon,
+  MemoryStick,
+  HardDrive,
+  HardDriveDownload,
+  HardDriveUpload,
+  Database,
+  DatabaseBackup,
+  ServerCog, 
+  ServerCrash,
+  ServerOff,
+  Terminal,
+  TerminalSquare,
+  Code,
+  Code2,
+  Brackets,
+  Braces,
+  Parentheses,
+  CurlyBraces,
+  FunctionSquare,
+  Variable,
+  Sigma,
+  Infinity,
+  Pi,
+  
+  Copyright, // Registered, Trademark, and all Greek letters removed
+  Asterisk,
+  Pilcrow,
+  Section,
+  List, // Paragraph removed
+  ListChecks,
+  ListOrdered,
+  ListTodo,
+  ListX,
+  ListMinus,
+  ListPlus,
+  ListRestart,
+  ListEnd,
+  ListStart,
+  ListTree,
+  ListFilter,
+  ListCollapse,
+ 
+  ListVideo,
+  ListMusic
+  
+  
 } from "lucide-react";
-
 import FileUploader from "@/app/components/FileUploader";
 import ProgressBar from "@/app/components/ProgressBar";
 import { downloadFile } from "../../utils/imageUtils";
-import { PDFDocument, degrees } from "pdf-lib";
+import { PDFDocument } from "pdf-lib";
 
 // Import pdfjs-dist with proper configuration
 import * as pdfjsLib from "pdfjs-dist";
@@ -335,23 +336,23 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   }
 }
 
-// Page Info with rotation
+// Page Info
 type PageData = {
     pageNumber: number;
     fileName: string;
-    rotation: number; // 0, 90, 180, 270 degrees
+    isSelected: boolean; // Whether page is included in final PDF
 };
 
 // --- TOOL KEYWORDS DATA ---
 const toolKeywords = [
-    { label: "PDF Rotator", url: "/tool/pdf-rotator" },
-    { label: "Rotate PDF Pages", url: "/tool/rotate-pdf-pages" },
-    { label: "PDF Page Rotator", url: "/tool/pdf-page-rotator" },
-    { label: "Batch Rotate PDF", url: "/tool/batch-rotate-pdf" },
+    { label: "PDF Page Remover", url: "/tool/pdf-page-remover" },
+    { label: "Remove PDF Pages", url: "/tool/remove-pdf-pages" },
+    { label: "Delete PDF Pages", url: "/tool/delete-pdf-pages" },
+    { label: "PDF Splitter", url: "/tool/pdf-splitter" },
     { label: "PDF Editor", url: "/tool/pdf-editor" },
     { label: "PDF to JPG", url: "/tool/pdf-to-jpg" },
     { label: "PDF to PNG", url: "/tool/pdf-to-png" },
-    { label: "Image Rotator", url: "/tool/image-rotator" },
+    { label: "PDF Rotator", url: "/tool/pdf-rotator" },
     { label: "PDF Creator", url: "/tool/pdf-creator" },
     { label: "PDF file", url: "/tool/pdf-viewer" },
     { label: "PDF converter", url: "/tool/pdf-converter" },
@@ -365,9 +366,11 @@ const toolKeywords = [
 // --- TOOL ICON HELPER FUNCTION ---
 const getToolIcon = (label: string): React.ReactNode => {
     const lowerLabel = label.toLowerCase();
-    if (lowerLabel.includes("rotate") || lowerLabel.includes("rotator")) return <Rotate3D className="w-5 h-5 text-white" />;
+    if (lowerLabel.includes("remove") || lowerLabel.includes("delete")) return <Trash2 className="w-5 h-5 text-white" />;
+    if (lowerLabel.includes("split") || lowerLabel.includes("splitter")) return <Split className="w-5 h-5 text-white" />;
     if (lowerLabel.includes("editor") || lowerLabel.includes("edit")) return <Edit className="w-5 h-5 text-white" />;
     if (lowerLabel.includes("jpg") || lowerLabel.includes("png") || lowerLabel.includes("image")) return <ImageIcon className="w-5 h-5 text-white" />;
+    if (lowerLabel.includes("rotate") || lowerLabel.includes("rotator")) return <Rotate3D className="w-5 h-5 text-white" />;
     if (lowerLabel.includes("word")) return <FileText className="w-5 h-5 text-white" />;
     if (lowerLabel.includes("powerpoint")) return <Layers className="w-5 h-5 text-white" />;
     if (lowerLabel.includes("excel")) return <SquareGanttChart className="w-5 h-5 text-white" />;
@@ -379,8 +382,10 @@ const getToolIcon = (label: string): React.ReactNode => {
 // --- TOOL DESCRIPTION HELPER FUNCTION ---
 const getToolDescription = (label: string): string => {
     const lowerLabel = label.toLowerCase();
-    if (lowerLabel.includes("rotate") || lowerLabel.includes("rotator")) return "Rotate PDF pages to any angle and save as new PDF.";
+    if (lowerLabel.includes("remove") || lowerLabel.includes("delete")) return "Remove specific pages from PDF documents easily.";
+    if (lowerLabel.includes("split") || lowerLabel.includes("splitter")) return "Split PDF into multiple documents by page range.";
     if (lowerLabel.includes("editor") || lowerLabel.includes("edit")) return "Edit and modify your PDF documents easily.";
+    if (lowerLabel.includes("rotate") || lowerLabel.includes("rotator")) return "Rotate PDF pages to any angle and save as new PDF.";
     if (lowerLabel.includes("jpg") || lowerLabel.includes("png") || lowerLabel.includes("image")) return "Convert PDF pages to high-quality JPG or PNG images.";
     if (lowerLabel.includes("word")) return "Convert PDF documents directly to editable DOCX format.";
     if (lowerLabel.includes("creator")) return "Combine multiple documents or images into a new PDF.";
@@ -399,13 +404,13 @@ interface PdfData {
   pageCount: number;
 }
 
-// --- PDF PAGE RENDERER WITH ZOOM AND ROTATION ---
+// --- PDF PAGE RENDERER ---
 interface PdfPageRendererProps {
   pageNumber: number;
   pdfData: PdfData | null;
   fileName: string;
-  rotation: number;
-  onRotationChange?: (rotation: number) => void;
+  isSelected: boolean;
+  onSelectionToggle?: () => void;
   onZoomClick?: () => void;
 }
 
@@ -413,8 +418,8 @@ const PdfPageRenderer = ({
   pageNumber, 
   pdfData, 
   fileName, 
-  rotation, 
-  onRotationChange,
+  isSelected,
+  onSelectionToggle,
   onZoomClick 
 }: PdfPageRendererProps) => {
   const [pageImage, setPageImage] = useState<string | null>(null);
@@ -504,87 +509,46 @@ const PdfPageRenderer = ({
     };
   }, [pdfData, pageNumber]);
 
-  const rotateClockwise = (e: React.MouseEvent) => {
+  const handleSelectionToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onRotationChange) {
-      const newRotation = (rotation + 90) % 360;
-      onRotationChange(newRotation);
-    }
-  };
-
-  const rotateCounterClockwise = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onRotationChange) {
-      const newRotation = (rotation - 90 + 360) % 360;
-      onRotationChange(newRotation);
-    }
-  };
-
-  const resetRotation = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onRotationChange) {
-      onRotationChange(0);
-    }
-  };
-
-  const getRotationText = () => {
-    switch(rotation) {
-      case 0: return "0°";
-      case 90: return "90°";
-      case 180: return "180°";
-      case 270: return "270°";
-      default: return `${rotation}°`;
+    if (onSelectionToggle) {
+      onSelectionToggle();
     }
   };
 
   return (
     <div 
-      className="w-full h-48 sm:h-56 flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center border-2 border-gray-200 dark:border-gray-700 relative overflow-hidden cursor-pointer group"
+      className={`w-full h-48 sm:h-56 flex-shrink-0 rounded-xl shadow-lg flex items-center justify-center border-2 relative overflow-hidden cursor-pointer group transition-all duration-300 ${
+        isSelected 
+          ? 'bg-white dark:bg-gray-800 border-blue-500 dark:border-blue-600' 
+          : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 border-gray-300 dark:border-gray-700'
+      } ${!isSelected ? 'opacity-60' : ''}`}
       onClick={onZoomClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Rotation controls - Desktop */}
-      <div className={`absolute bottom-2 left-2 z-30 hidden sm:flex flex-col gap-1 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+      {/* Selection controls */}
+      <div className={`absolute top-2 left-2 z-30 flex items-center gap-1 transition-all duration-300`}>
         <button
-          onClick={rotateCounterClockwise}
-          className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-          title="Rotate counter-clockwise"
+          onClick={handleSelectionToggle}
+          className={`p-1.5 rounded-full backdrop-blur-sm transition-all duration-300 ${
+            isSelected 
+              ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' 
+              : 'bg-black/70 hover:bg-black/90'
+          }`}
+          title={isSelected ? "Keep page" : "Remove page"}
         >
-          <RotateCcw className="w-3 h-3 text-white" />
+          {isSelected ? (
+            <Check className="w-3 h-3 text-white" />
+          ) : (
+            <X className="w-3 h-3 text-white" />
+          )}
         </button>
-        <button
-          onClick={resetRotation}
-          className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-          title="Reset rotation"
-        >
-          <RefreshCw className="w-3 h-3 text-white" />
-        </button>
-        <button
-          onClick={rotateClockwise}
-          className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-          title="Rotate clockwise"
-        >
-          <RotateCw className="w-3 h-3 text-white" />
-        </button>
-      </div>
-
-      {/* Rotation controls - Mobile */}
-      <div className="absolute bottom-2 left-2 z-30 flex sm:hidden gap-1">
-        <button
-          onClick={rotateCounterClockwise}
-          className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-          title="Rotate left"
-        >
-          <RotateCcw className="w-3 h-3 text-white" />
-        </button>
-        <button
-          onClick={rotateClockwise}
-          className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-          title="Rotate right"
-        >
-          <RotateCw className="w-3 h-3 text-white" />
-        </button>
+        {isHovered && (
+          <span className="text-xs font-medium text-white bg-black/70 px-2 py-1 rounded-full whitespace-nowrap">
+            {isSelected ? "Keep page" : "Remove page"}
+          </span>
+        )}
       </div>
       
       {/* Zoom overlay button */}
@@ -592,6 +556,15 @@ const PdfPageRenderer = ({
         <div className="p-1.5 bg-black/70 rounded-full backdrop-blur-sm">
           <ZoomIn className="w-4 h-4 text-white" />
         </div>
+      </div>
+      
+      {/* Selection indicator */}
+      <div className={`absolute bottom-2 right-2 z-20 px-2 py-1 rounded-full text-xs font-medium ${
+        isSelected 
+          ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' 
+          : 'bg-gradient-to-r from-red-500 to-orange-600 text-white'
+      }`}>
+        {isSelected ? '✓ Keep' : '✗ Remove'}
       </div>
       
       {/* Tap hint for mobile */}
@@ -609,7 +582,11 @@ const PdfPageRenderer = ({
           </span>
         </div>
       ) : error ? (
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center p-4">
+        <div className={`absolute inset-0 flex flex-col items-center justify-center p-4 ${
+          isSelected 
+            ? 'bg-gradient-to-br from-blue-50 to-green-50 dark:from-gray-800 dark:to-green-900/20' 
+            : 'bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-800 dark:to-red-900/20'
+        }`}>
           <span className="text-xs font-bold text-blue-800 dark:text-blue-300">
             Page
           </span>
@@ -626,15 +603,8 @@ const PdfPageRenderer = ({
             src={pageImage} 
             alt={`Page ${pageNumber} of ${fileName}`}
             className="w-auto h-auto max-w-full max-h-full object-contain p-2 select-none transition-transform duration-300"
-            style={{ transform: `rotate(${rotation}deg)` }}
             draggable="false"
           />
-          
-          {/* Rotation indicator */}
-          <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-70 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-            <RotateCw className="w-3 h-3" />
-            <span>{getRotationText()}</span>
-          </div>
         </div>
       ) : null}
     </div>
@@ -740,33 +710,6 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     setZoomLevel(1);
     setIsFullscreen(false);
   };
-
-  // Handle pinch to zoom on mobile
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        const distance = Math.hypot(
-          touch1.clientX - touch2.clientX,
-          touch1.clientY - touch2.clientY
-        );
-        
-        // Simple pinch zoom logic
-        if (distance > 200) {
-          handleZoomIn();
-        } else if (distance < 100) {
-          handleZoomOut();
-        }
-      }
-    };
-
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    return () => window.removeEventListener('touchmove', handleTouchMove);
-  }, [isOpen, zoomLevel]);
 
   if (!isOpen) return null;
 
@@ -876,24 +819,12 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
           </div>
         </div>
       </div>
-      
-      {/* Swipe down indicator for mobile */}
-      <motion.div
-        animate={{ y: [0, 10, 0] }}
-        transition={{ repeat: Infinity, duration: 1.5 }}
-        className="absolute top-8 left-1/2 transform -translate-x-1/2 sm:hidden"
-      >
-        <ChevronDown className="w-6 h-6 text-white/60" />
-      </motion.div>
     </motion.div>
   );
 };
 
-// --- Smart filename generator for rotated PDF ---
-const generatePdfFilename = (
-  originalFilename: string, 
-  rotation: number = 0
-): string => {
+// --- Smart filename generator for removed PDF ---
+const generatePdfFilename = (originalFilename: string): string => {
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
   const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
@@ -905,17 +836,14 @@ const generatePdfFilename = (
     .substring(0, 30)
     .trim();
   
-  // Add rotation info to filename if rotated
-  const rotationSuffix = rotation !== 0 ? `_rotated${rotation}` : '';
-  
-  return `${cleanName}_${dateStr}${rotationSuffix}.pdf`;
+  return `${cleanName}_modified_${dateStr}_${timeStr}.pdf`;
 };
 
-export default function PdfRotatorTool() {
+export default function PdfPageRemoverTool() {
     const [files, setFiles] = useState<File[]>([]);
-    const [rotating, setRotating] = useState(false);
+    const [processing, setProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [rotated, setRotated] = useState(false);
+    const [processed, setProcessed] = useState(false);
     const [pageData, setPageData] = useState<PageData[]>([]);
     const [pdfData, setPdfData] = useState<PdfData | null>(null);
     const [showUploadInfo, setShowUploadInfo] = useState(true);
@@ -931,7 +859,7 @@ export default function PdfRotatorTool() {
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(6); // Changed to 6 for better mobile display
+    const [itemsPerPage, setItemsPerPage] = useState(6);
     const [downloadingAll, setDownloadingAll] = useState(false);
     const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
     const [downloadProgress, setDownloadProgress] = useState(0);
@@ -955,6 +883,9 @@ export default function PdfRotatorTool() {
     const endIndex = Math.min(startIndex + itemsPerPage, pageData.length);
     const currentPageData = pageData.slice(startIndex, endIndex);
 
+    // Calculate selected pages count
+    const selectedPagesCount = pageData.filter(page => page.isSelected).length;
+
     // Convert ArrayBuffer to base64 for storage
     const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
       const bytes = new Uint8Array(buffer);
@@ -966,10 +897,10 @@ export default function PdfRotatorTool() {
     };
 
     // Load PDF and initialize page data
-    const handleConvert = async () => {
+    const handleProcess = async () => {
         if (files.length === 0) return;
 
-        setRotating(true);
+        setProcessing(true);
         setProgress(0);
         setShowUploadInfo(false);
 
@@ -994,13 +925,13 @@ export default function PdfRotatorTool() {
 
             setProgress(60);
 
-            // Generate page data with initial rotation 0
+            // Generate page data with initial selection true (all pages kept by default)
             const newPageData: PageData[] = Array.from(
                 { length: pageCount },
                 (_, i) => ({
                     pageNumber: i + 1,
-                    fileName: generatePdfFilename(file.name, 0),
-                    rotation: 0,
+                    fileName: generatePdfFilename(file.name),
+                    isSelected: true, // All pages selected/kept by default
                 })
             );
 
@@ -1012,82 +943,84 @@ export default function PdfRotatorTool() {
             setProgress(100);
             
             setTimeout(() => {
-                setRotated(true);
-                setRotating(false);
+                setProcessed(true);
+                setProcessing(false);
                 setCurrentPage(1); // Reset to first page
             }, 300);
 
         } catch (error) {
             console.error("PDF loading error:", error);
             alert("Failed to load PDF. Please make sure it's a valid PDF file.");
-            setRotating(false);
+            setProcessing(false);
             setProgress(0);
         }
     };
 
-    // Update rotation for a single page
-    const handleRotationChange = async (pageIndex: number, newRotation: number) => {
+    // Toggle page selection
+    const togglePageSelection = (pageIndex: number) => {
         const updatedPageData = [...pageData];
-        const pageInfo = updatedPageData[pageIndex];
-        
-        if (pageInfo) {
-            // Update rotation
-            updatedPageData[pageIndex] = {
-                ...pageInfo,
-                rotation: newRotation,
-            };
-            
-            setPageData(updatedPageData);
-            
-            // Show success message for mobile
-            if (isMobile) {
-              setDownloadSuccess(`✓ Page ${pageIndex + 1} rotated to ${newRotation}°`);
-              setTimeout(() => setDownloadSuccess(null), 2000);
-            }
-        }
+        updatedPageData[pageIndex] = {
+            ...updatedPageData[pageIndex],
+            isSelected: !updatedPageData[pageIndex].isSelected
+        };
+        setPageData(updatedPageData);
     };
 
-    // Rotate all pages
-    const rotateAllPages = async (rotation: number) => {
-        if (pageData.length === 0) return;
-
-        setRotating(true);
-        setProgress(0);
-
-        try {
-            const updatedPageData = [...pageData];
-            
-            for (let i = 0; i < updatedPageData.length; i++) {
-                const pageInfo = updatedPageData[i];
-                // Apply rotation to each page
-                updatedPageData[i] = {
-                    ...pageInfo,
-                    rotation: rotation,
-                };
-                
-                // Update progress
-                const progress = Math.round(((i + 1) / updatedPageData.length) * 100);
-                setProgress(progress);
-            }
-
-            setPageData(updatedPageData);
-            setDownloadSuccess(`✓ All ${updatedPageData.length} pages rotated to ${rotation}°!`);
-            setTimeout(() => setDownloadSuccess(null), 3000);
-
-        } catch (error) {
-            console.error("Error rotating all pages:", error);
-            setDownloadSuccess("✗ Failed to rotate pages. Please try again.");
-            setTimeout(() => setDownloadSuccess(null), 3000);
-        } finally {
-            setRotating(false);
-            setProgress(0);
-        }
+    // Select all pages
+    const selectAllPages = () => {
+        const updatedPageData = pageData.map(page => ({
+            ...page,
+            isSelected: true
+        }));
+        setPageData(updatedPageData);
+        setDownloadSuccess(`✓ All ${pageData.length} pages selected`);
+        setTimeout(() => setDownloadSuccess(null), 2000);
     };
 
-    // Download rotated PDF
-    const handleDownloadRotatedPdf = async () => {
+    // Remove all pages (deselect all)
+    const removeAllPages = () => {
+        const updatedPageData = pageData.map(page => ({
+            ...page,
+            isSelected: false
+        }));
+        setPageData(updatedPageData);
+        setDownloadSuccess(`✗ All ${pageData.length} pages removed`);
+        setTimeout(() => setDownloadSuccess(null), 2000);
+    };
+
+    // Select even pages
+    const selectEvenPages = () => {
+        const updatedPageData = pageData.map((page, index) => ({
+            ...page,
+            isSelected: (index + 1) % 2 === 0
+        }));
+        setPageData(updatedPageData);
+        setDownloadSuccess("✓ Even pages selected");
+        setTimeout(() => setDownloadSuccess(null), 2000);
+    };
+
+    // Select odd pages
+    const selectOddPages = () => {
+        const updatedPageData = pageData.map((page, index) => ({
+            ...page,
+            isSelected: (index + 1) % 2 === 1
+        }));
+        setPageData(updatedPageData);
+        setDownloadSuccess("✓ Odd pages selected");
+        setTimeout(() => setDownloadSuccess(null), 2000);
+    };
+
+    // Download PDF with selected pages
+    const handleDownloadModifiedPdf = async () => {
         if (!pdfData || pageData.length === 0) {
             alert("PDF not available.");
+            return;
+        }
+
+        // Check if at least one page is selected
+        if (selectedPagesCount === 0) {
+            setDownloadSuccess("✗ Please select at least one page to keep");
+            setTimeout(() => setDownloadSuccess(null), 3000);
             return;
         }
 
@@ -1106,45 +1039,40 @@ export default function PdfRotatorTool() {
             const pdfDoc = await PDFDocument.load(bytes);
             const newPdf = await PDFDocument.create();
 
-            // Add each page with rotation
-            for (let i = 0; i < pageData.length; i++) {
-                const pageInfo = pageData[i];
-                const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
-                
-                // Apply rotation to the page
-                if (pageInfo.rotation !== 0) {
-                    copiedPage.setRotation(degrees(pageInfo.rotation));
-                }
-                
+            // Add only selected pages
+            const selectedPageIndices = pageData
+                .filter(page => page.isSelected)
+                .map(page => page.pageNumber - 1);
+
+            for (let i = 0; i < selectedPageIndices.length; i++) {
+                const pageIndex = selectedPageIndices[i];
+                const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageIndex]);
                 newPdf.addPage(copiedPage);
                 
                 // Update progress
-                const progress = Math.round(((i + 1) / pageData.length) * 100);
+                const progress = Math.round(((i + 1) / selectedPageIndices.length) * 100);
                 setDownloadProgress(progress);
                 
                 // Small delay for better UX
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
 
-            // Save rotated PDF
+            // Save modified PDF
             const pdfBytes = await newPdf.save();
             const blob = new Blob([new Uint8Array(pdfBytes)], {
                 type: "application/pdf",
             });
 
-            // Generate filename based on if any pages are rotated
-            const hasRotation = pageData.some(page => page.rotation !== 0);
-            const fileName = generatePdfFilename(files[0].name, hasRotation ? 90 : 0);
-            
+            const fileName = generatePdfFilename(files[0].name);
             downloadFile(blob, fileName);
 
             // Success message
-            setDownloadSuccess(`✓ Successfully downloaded rotated PDF with ${pageData.length} pages!`);
+            setDownloadSuccess(`✓ Successfully downloaded PDF with ${selectedPagesCount} pages!`);
             setTimeout(() => setDownloadSuccess(null), 5000);
 
         } catch (error) {
-            console.error("Error downloading rotated PDF:", error);
-            setDownloadSuccess("✗ Failed to generate rotated PDF. Please try again.");
+            console.error("Error downloading modified PDF:", error);
+            setDownloadSuccess("✗ Failed to generate PDF. Please try again.");
             setTimeout(() => setDownloadSuccess(null), 3000);
         } finally {
             setDownloadingAll(false);
@@ -1179,13 +1107,6 @@ export default function PdfRotatorTool() {
 
             // Copy the specific page
             const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageIndex]);
-            
-            // Apply rotation to the page
-            const pageInfo = pageData[pageIndex];
-            if (pageInfo.rotation !== 0) {
-                copiedPage.setRotation(degrees(pageInfo.rotation));
-            }
-            
             newPdf.addPage(copiedPage);
 
             // Save single page PDF
@@ -1194,11 +1115,11 @@ export default function PdfRotatorTool() {
                 type: "application/pdf",
             });
 
-            const fileName = `page_${pageIndex + 1}_rotated${pageInfo.rotation}.pdf`;
+            const fileName = `page_${pageIndex + 1}.pdf`;
             downloadFile(blob, fileName);
 
             // Show success message
-            setDownloadSuccess(`✓ Page ${pageIndex + 1} downloaded as rotated PDF!`);
+            setDownloadSuccess(`✓ Page ${pageIndex + 1} downloaded!`);
             setTimeout(() => setDownloadSuccess(null), 3000);
 
             if (statusElement) {
@@ -1227,7 +1148,7 @@ export default function PdfRotatorTool() {
 
     const handleFilesSelected = (newFiles: File[]) => {
         setFiles(newFiles);
-        setRotated(false);
+        setProcessed(false);
         setPageData([]);
         setPdfData(null);
         setShowUploadInfo(false);
@@ -1237,7 +1158,7 @@ export default function PdfRotatorTool() {
 
     const handleReset = () => {
         setFiles([]);
-        setRotated(false);
+        setProcessed(false);
         setPageData([]);
         setPdfData(null);
         setProgress(0);
@@ -1257,7 +1178,6 @@ export default function PdfRotatorTool() {
     // Pagination controls
     const goToPage = (pageNumber: number) => {
         setCurrentPage(pageNumber);
-        // Scroll to top of page grid on mobile
         if (isMobile) {
             const pageGrid = document.getElementById('page-grid');
             if (pageGrid) {
@@ -1269,7 +1189,6 @@ export default function PdfRotatorTool() {
     const nextPage = () => {
         if (currentPage < totalPages) {
             setCurrentPage(currentPage + 1);
-            // Scroll to top on mobile
             if (isMobile) {
                 const pageGrid = document.getElementById('page-grid');
                 if (pageGrid) {
@@ -1282,7 +1201,6 @@ export default function PdfRotatorTool() {
     const prevPage = () => {
         if (currentPage > 1) {
             setCurrentPage(currentPage - 1);
-            // Scroll to top on mobile
             if (isMobile) {
                 const pageGrid = document.getElementById('page-grid');
                 if (pageGrid) {
@@ -1303,7 +1221,7 @@ export default function PdfRotatorTool() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    {/* Success Message Overlay - Mobile friendly */}
+                    {/* Success Message Overlay */}
                     <AnimatePresence>
                         {downloadSuccess && (
                             <motion.div
@@ -1353,19 +1271,19 @@ export default function PdfRotatorTool() {
                         <motion.div 
                             initial={{ scale: 0.5 }}
                             animate={{ scale: 1 }}
-                            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl sm:rounded-3xl mb-4 sm:mb-6 shadow-xl sm:shadow-2xl"
+                            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-500 to-orange-600 rounded-2xl sm:rounded-3xl mb-4 sm:mb-6 shadow-xl sm:shadow-2xl"
                         >
-                            <Rotate3D className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                            <Trash2 className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                         </motion.div>
                         
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent px-2">
-                            PDF Rotator Tool
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-red-600 via-orange-600 to-red-600 bg-clip-text text-transparent px-2">
+                            PDF Page Remover Tool
                         </h1>
                         
                         <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                            Rotate PDF pages to any angle and save as new PDF document.
-                            <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
-                                Rotate individual pages or batch rotate all pages with ease!
+                            Remove unwanted pages from your PDF documents.
+                            <span className="block text-red-600 dark:text-red-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
+                                Select which pages to keep and download a clean PDF!
                             </span>
                         </p>
                     </div>
@@ -1375,15 +1293,15 @@ export default function PdfRotatorTool() {
                         {/* Upload Section */}
                         <div className="mb-6 sm:mb-8">
                             <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                                <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg sm:rounded-xl">
-                                    <FolderOpen className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
+                                <div className="p-1.5 sm:p-2 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 rounded-lg sm:rounded-xl">
+                                    <FolderOpen className="w-4 h-4 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                                         Upload PDF
                                     </h2>
                                     <p className="text-xs sm:text-sm md:text-base text-gray-500 dark:text-gray-400">
-                                        Select your PDF file to rotate pages
+                                        Select your PDF file to remove pages
                                     </p>
                                 </div>
                             </div>
@@ -1403,27 +1321,27 @@ export default function PdfRotatorTool() {
                                         exit={{ opacity: 0, height: 0 }}
                                         className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4"
                                     >
-                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-blue-200 dark:border-blue-800/50">
+                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-red-200 dark:border-red-800/50">
                                             <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
-                                                <Rotate3D className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
-                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-blue-800 dark:text-blue-300">
-                                                    Individual Rotation
+                                                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-red-600 dark:text-red-400" />
+                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-red-800 dark:text-red-300">
+                                                    Remove Pages
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-blue-700/80 dark:text-blue-400/80 mt-1 sm:mt-2">
-                                                Rotate each page independently
+                                            <p className="text-xs text-red-700/80 dark:text-red-400/80 mt-1 sm:mt-2">
+                                                Select and remove specific pages
                                             </p>
                                         </div>
                                         
-                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-purple-200 dark:border-purple-800/50">
+                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-orange-200 dark:border-orange-800/50">
                                             <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
-                                                <Grid3x3 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
-                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-purple-800 dark:text-purple-300">
-                                                    Batch Rotate
+                                                <Grid3x3 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-400" />
+                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-orange-800 dark:text-orange-300">
+                                                    Batch Selection
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-purple-700/80 dark:text-purple-400/80 mt-1 sm:mt-2">
-                                                Rotate all pages at once
+                                            <p className="text-xs text-orange-700/80 dark:text-orange-400/80 mt-1 sm:mt-2">
+                                                Select/deselect multiple pages at once
                                             </p>
                                         </div>
                                         
@@ -1435,7 +1353,7 @@ export default function PdfRotatorTool() {
                                                 </span>
                                             </div>
                                             <p className="text-xs text-green-700/80 dark:text-green-400/80 mt-1 sm:mt-2">
-                                                See rotation changes instantly
+                                                See page selection changes instantly
                                             </p>
                                         </div>
                                     </motion.div>
@@ -1447,11 +1365,11 @@ export default function PdfRotatorTool() {
                         {files.length > 0 && (
                             <div className="space-y-4 sm:space-y-6 md:space-y-8">
                                 {/* Selected File Info */}
-                                <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-xl sm:rounded-2xl border-2 border-blue-200 dark:border-blue-800/30">
+                                <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-r from-gray-50 to-red-50 dark:from-gray-800 dark:to-red-950/20 rounded-xl sm:rounded-2xl border-2 border-red-200 dark:border-red-800/30">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 md:gap-4">
                                         <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
                                             <div className="p-1.5 sm:p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-md">
-                                                <FileImage className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600 dark:text-blue-400" />
+                                                <FileImage className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 text-red-600 dark:text-red-400" />
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg truncate">
@@ -1473,7 +1391,7 @@ export default function PdfRotatorTool() {
 
                                 {/* Processing State */}
                                 <AnimatePresence mode="wait">
-                                    {rotating && !rotated && (
+                                    {processing && !processed && (
                                         <motion.div
                                             key="converting"
                                             initial={{ opacity: 0, y: 20 }}
@@ -1502,18 +1420,18 @@ export default function PdfRotatorTool() {
                                             />
                                             
                                             <div className="flex justify-center">
-                                                <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-blue-50 dark:bg-blue-950/30 rounded-full">
-                                                    <Sparkles className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
-                                                    <span className="text-xs sm:text-sm md:text-base text-blue-700 dark:text-blue-300">
-                                                        Preparing rotation editor
+                                                <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-red-50 dark:bg-red-950/30 rounded-full">
+                                                    <Sparkles className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 text-red-600 dark:text-red-400 animate-pulse" />
+                                                    <span className="text-xs sm:text-sm md:text-base text-red-700 dark:text-red-300">
+                                                        Preparing page selection editor
                                                     </span>
                                                 </div>
                                             </div>
                                         </motion.div>
                                     )}
 
-                                    {/* Convert Button */}
-                                    {!rotated && !rotating && (
+                                    {/* Process Button */}
+                                    {!processed && !processing && (
                                         <motion.button
                                             key="convert"
                                             initial={{ opacity: 0, y: 20 }}
@@ -1521,24 +1439,24 @@ export default function PdfRotatorTool() {
                                             exit={{ opacity: 0, y: -20 }}
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
-                                            onClick={handleConvert}
-                                            className="w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1 sm:gap-2 md:gap-3"
+                                            onClick={handleProcess}
+                                            className="w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1 sm:gap-2 md:gap-3"
                                         >
-                                            <Rotate3D className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                                            <span>Load PDF for Rotation</span>
+                                            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                            <span>Load PDF for Page Removal</span>
                                             <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                                         </motion.button>
                                     )}
 
                                     {/* Results */}
-                                    {rotated && (
+                                    {processed && (
                                         <motion.div
                                             key="results"
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             className="space-y-4 sm:space-y-6 md:space-y-8"
                                         >
-                                            {/* Success Banner */}
+                                            {/* Selection Summary Banner */}
                                             <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl sm:rounded-2xl border-2 border-green-200 dark:border-green-800/50">
                                                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 md:gap-4">
                                                     <div className="flex items-center justify-center sm:justify-start">
@@ -1551,64 +1469,67 @@ export default function PdfRotatorTool() {
                                                             PDF Loaded Successfully! 🎉
                                                         </h3>
                                                         <p className="text-green-700 dark:text-green-300 font-medium text-xs sm:text-sm md:text-base">
-                                                            {pageData.length} pages ready for rotation
+                                                            {selectedPagesCount} of {pageData.length} pages selected
                                                         </p>
                                                         <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-1">
-                                                            Rotate pages individually or apply batch rotation
+                                                            Click on pages to select/deselect them
                                                         </p>
                                                     </div>
-                                                    <div className="flex items-center justify-center">
+                                                    <div className="flex items-center justify-center gap-2">
                                                         <div className="px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
-                                                            {pageData.length} Pages
+                                                            {selectedPagesCount} Selected
+                                                        </div>
+                                                        <div className="px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
+                                                            {pageData.length - selectedPagesCount} Removed
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Batch Rotation Controls - Responsive */}
-                                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-indigo-200 dark:border-indigo-800/30">
+                                            {/* Batch Selection Controls - Responsive */}
+                                            <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-red-200 dark:border-red-800/30">
                                                 <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2">
-                                                    <Rotate3D className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
-                                                    Batch Rotate All Pages
+                                                    <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                                                    Batch Page Selection
                                                 </h4>
                                                 
                                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
                                                     <button
-                                                        onClick={() => rotateAllPages(90)}
-                                                        disabled={rotating}
+                                                        onClick={selectAllPages}
+                                                        disabled={processing}
+                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                                                    >
+                                                        <Check className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                        <span className="truncate">Select All</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={removeAllPages}
+                                                        disabled={processing}
+                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                                                    >
+                                                        <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                        <span className="truncate">Remove All</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={selectEvenPages}
+                                                        disabled={processing}
                                                         className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                                                     >
-                                                        <RotateCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                                                        <span className="truncate">90° Right</span>
+                                                        <span className="text-xs font-bold">2</span>
+                                                        <span className="truncate">Even Pages</span>
                                                     </button>
                                                     <button
-                                                        onClick={() => rotateAllPages(180)}
-                                                        disabled={rotating}
+                                                        onClick={selectOddPages}
+                                                        disabled={processing}
                                                         className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                                                     >
-                                                        <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                                                        <span className="truncate">180°</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => rotateAllPages(270)}
-                                                        disabled={rotating}
-                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                                                    >
-                                                        <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
-                                                        <span className="truncate">90° Left</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => rotateAllPages(0)}
-                                                        disabled={rotating}
-                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                                                    >
-                                                        <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                                                        <span className="truncate">Reset All</span>
+                                                        <span className="text-xs font-bold">1</span>
+                                                        <span className="truncate">Odd Pages</span>
                                                     </button>
                                                 </div>
                                                 
                                                 <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 text-center">
-                                                    Apply the same rotation to all {pageData.length} pages at once
+                                                    Quick selection options for {pageData.length} pages
                                                 </p>
                                             </div>
 
@@ -1620,7 +1541,7 @@ export default function PdfRotatorTool() {
                                                             Showing {startIndex + 1}-{endIndex} of {pageData.length} pages
                                                         </h4>
                                                         <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                                                            Navigate through pages using pagination
+                                                            {selectedPagesCount} pages selected • {pageData.length - selectedPagesCount} pages will be removed
                                                         </p>
                                                     </div>
                                                     
@@ -1670,7 +1591,7 @@ export default function PdfRotatorTool() {
                                                                 onClick={() => goToPage(pageNum)}
                                                                 className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
                                                                     currentPage === pageNum
-                                                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                                                        ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white'
                                                                         : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                                                                 }`}
                                                             >
@@ -1689,30 +1610,30 @@ export default function PdfRotatorTool() {
                                                 </div>
                                             </div>
 
-                                            {/* Download All Progress */}
+                                            {/* Download Progress */}
                                             {downloadingAll && (
                                                 <motion.div
                                                     initial={{ opacity: 0, scale: 0.9 }}
                                                     animate={{ opacity: 1, scale: 1 }}
-                                                    className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30"
+                                                    className="p-3 sm:p-4 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-xl border-2 border-red-200 dark:border-red-800/30"
                                                 >
                                                     <div className="flex items-center justify-between mb-2">
-                                                        <span className="font-medium text-blue-700 dark:text-blue-300 text-xs sm:text-sm">
+                                                        <span className="font-medium text-red-700 dark:text-red-300 text-xs sm:text-sm">
                                                             Downloading {downloadProgress}% complete
                                                         </span>
                                                         <span className="text-xs text-gray-600 dark:text-gray-400">
-                                                            {Math.round(downloadProgress / 100 * pageData.length)} of {pageData.length} pages
+                                                            {Math.round(downloadProgress / 100 * selectedPagesCount)} of {selectedPagesCount} pages
                                                         </span>
                                                     </div>
                                                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 sm:h-2">
                                                         <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${downloadProgress}%` }}
-                                                            className="h-1.5 sm:h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
+                                                            className="h-1.5 sm:h-2 rounded-full bg-gradient-to-r from-red-500 to-orange-600"
                                                         />
                                                     </div>
                                                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
-                                                        Please wait while rotated PDF is being generated...
+                                                        Please wait while modified PDF is being generated...
                                                     </p>
                                                 </motion.div>
                                             )}
@@ -1721,11 +1642,11 @@ export default function PdfRotatorTool() {
                                             <div id="page-grid">
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 md:mb-6 gap-1 sm:gap-2">
                                                     <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-1 sm:gap-2 md:gap-3">
-                                                        <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-500" />
+                                                        <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-500" />
                                                         Pages (Page {currentPage} of {totalPages})
                                                     </h3>
                                                     <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
-                                                        {isMobile ? "Tap buttons to rotate" : "Hover for rotation controls"} • Click to zoom
+                                                        {isMobile ? "Tap to select/deselect" : "Click to select/deselect"} • Click to zoom
                                                     </span>
                                                 </div>
 
@@ -1741,14 +1662,18 @@ export default function PdfRotatorTool() {
                                                                 whileHover={{ y: -2 }}
                                                                 className="group"
                                                             >
-                                                                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl sm:rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-3 sm:p-4 md:p-5 shadow-lg hover:shadow-xl transition-all duration-300">
+                                                                <div className={`bg-gradient-to-br rounded-xl sm:rounded-2xl border-2 p-3 sm:p-4 md:p-5 shadow-lg hover:shadow-xl transition-all duration-300 ${
+                                                                    page.isSelected
+                                                                        ? 'from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-green-500 dark:border-green-600'
+                                                                        : 'from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 border-red-500 dark:border-red-600'
+                                                                }`}>
                                                                     <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3 md:space-y-4">
                                                                         <PdfPageRenderer 
                                                                             pageNumber={page.pageNumber}
                                                                             pdfData={pdfData}
                                                                             fileName={page.fileName}
-                                                                            rotation={page.rotation}
-                                                                            onRotationChange={(newRotation) => handleRotationChange(actualIndex, newRotation)}
+                                                                            isSelected={page.isSelected}
+                                                                            onSelectionToggle={() => togglePageSelection(actualIndex)}
                                                                             onZoomClick={() => handlePageZoom(page.pageNumber, page.fileName)}
                                                                         />
                                                                         
@@ -1756,16 +1681,20 @@ export default function PdfRotatorTool() {
                                                                             <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg mb-1">
                                                                                 Page {page.pageNumber}
                                                                             </h4>
-                                                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1 sm:mb-2 md:mb-3">
-                                                                                Rotation: {page.rotation}°
+                                                                            <p className={`text-xs truncate mb-1 sm:mb-2 md:mb-3 ${
+                                                                                page.isSelected 
+                                                                                    ? 'text-green-600 dark:text-green-400' 
+                                                                                    : 'text-red-600 dark:text-red-400'
+                                                                            }`}>
+                                                                                {page.isSelected ? '✓ Selected (Will be kept)' : '✗ Removed (Will be deleted)'}
                                                                             </p>
                                                                             <div className="flex items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3">
                                                                                 <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs rounded-full ${
-                                                                                    page.rotation === 0 
-                                                                                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                                                                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                                                                                    page.isSelected 
+                                                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                                                                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                                                                                 }`}>
-                                                                                    {page.rotation}° rotated
+                                                                                    {page.isSelected ? 'Keep' : 'Remove'}
                                                                                 </span>
                                                                             </div>
                                                                             
@@ -1781,18 +1710,31 @@ export default function PdfRotatorTool() {
                                                                                     <motion.button
                                                                                         whileHover={{ scale: 1.02 }}
                                                                                         whileTap={{ scale: 0.98 }}
-                                                                                        onClick={() => handleRotationChange(actualIndex, (page.rotation + 90) % 360)}
-                                                                                        className="py-1.5 sm:py-2 px-2 sm:px-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-xs sm:text-sm"
+                                                                                        onClick={() => togglePageSelection(actualIndex)}
+                                                                                        className={`py-1.5 sm:py-2 px-2 sm:px-3 font-bold rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-xs sm:text-sm ${
+                                                                                            page.isSelected
+                                                                                                ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
+                                                                                                : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+                                                                                        }`}
                                                                                     >
-                                                                                        <RotateCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                                                                        Rotate
+                                                                                        {page.isSelected ? (
+                                                                                            <>
+                                                                                                <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                                                                                Remove
+                                                                                            </>
+                                                                                        ) : (
+                                                                                            <>
+                                                                                                <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                                                                                Keep
+                                                                                            </>
+                                                                                        )}
                                                                                     </motion.button>
                                                                                     
                                                                                     <motion.button
                                                                                         whileHover={{ scale: 1.02 }}
                                                                                         whileTap={{ scale: 0.98 }}
                                                                                         onClick={() => handleDownloadPage(actualIndex)}
-                                                                                        className="py-1.5 sm:py-2 px-2 sm:px-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-xs sm:text-sm"
+                                                                                        className="py-1.5 sm:py-2 px-2 sm:px-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-xs sm:text-sm"
                                                                                     >
                                                                                         <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                                                         Download
@@ -1808,23 +1750,27 @@ export default function PdfRotatorTool() {
                                                 </div>
                                             </div>
 
-                                            {/* Download All Button Section - Responsive */}
-                                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border-2 border-indigo-200 dark:border-indigo-800/50">
+                                            {/* Download Button Section - Responsive */}
+                                            <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border-2 border-red-200 dark:border-red-800/50">
                                                 <div className="text-center mb-3 sm:mb-4 md:mb-6">
                                                     <h4 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
-                                                        Download Rotated PDF
+                                                        Download Modified PDF
                                                     </h4>
                                                     <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">
-                                                        Download all pages as a single rotated PDF document
+                                                        Download PDF with only selected pages
                                                     </p>
                                                     
                                                     <div className="space-y-3 sm:space-y-4">
                                                         <motion.button
                                                             whileHover={{ scale: 1.02 }}
                                                             whileTap={{ scale: 0.98 }}
-                                                            onClick={handleDownloadRotatedPdf}
-                                                            disabled={downloadingAll}
-                                                            className="w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3"
+                                                            onClick={handleDownloadModifiedPdf}
+                                                            disabled={downloadingAll || selectedPagesCount === 0}
+                                                            className={`w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 text-white font-bold rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 ${
+                                                                selectedPagesCount === 0
+                                                                    ? 'bg-gradient-to-r from-gray-500 to-gray-600'
+                                                                    : 'bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700'
+                                                            }`}
                                                         >
                                                             {downloadingAll ? (
                                                                 <>
@@ -1834,34 +1780,37 @@ export default function PdfRotatorTool() {
                                                             ) : (
                                                                 <>
                                                                     <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                                                                    <span>Download Rotated PDF ({pageData.length} pages)</span>
+                                                                    <span>Download PDF ({selectedPagesCount} pages)</span>
                                                                 </>
                                                             )}
                                                         </motion.button>
                                                         
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                                                            <div className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-blue-200 dark:border-blue-700">
+                                                            <div className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-green-200 dark:border-green-700">
                                                                 <h5 className="font-bold text-gray-900 dark:text-white mb-1 text-xs sm:text-sm">
-                                                                    Individual Pages
+                                                                    Pages Kept
                                                                 </h5>
                                                                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                                                                    Download pages one by one with applied rotation
+                                                                    {selectedPagesCount} pages will be included
                                                                 </p>
                                                             </div>
                                                             
-                                                            <div className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-purple-200 dark:border-purple-700">
+                                                            <div className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-red-200 dark:border-red-700">
                                                                 <h5 className="font-bold text-gray-900 dark:text-white mb-1 text-xs sm:text-sm">
-                                                                    Complete Document
+                                                                    Pages Removed
                                                                 </h5>
                                                                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                                                                    All pages combined into a single rotated PDF
+                                                                    {pageData.length - selectedPagesCount} pages will be excluded
                                                                 </p>
                                                             </div>
                                                         </div>
                                                     </div>
                                                     
                                                     <p id="status-all-1" className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium mt-2 sm:mt-3">
-                                                        Ready to download rotated PDF
+                                                        {selectedPagesCount === 0 
+                                                            ? "Select at least one page to download"
+                                                            : "Ready to download modified PDF"
+                                                        }
                                                     </p>
                                                 </div>
                                             </div>
@@ -1873,7 +1822,7 @@ export default function PdfRotatorTool() {
                                                     className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
                                                 >
                                                     <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
-                                                    Rotate Another PDF
+                                                    Remove Pages from Another PDF
                                                 </button>
                                                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                                     All processing happens in your browser • No files are uploaded
@@ -1900,9 +1849,9 @@ export default function PdfRotatorTool() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="mt-6 sm:mt-8 md:mt-12 p-3 sm:p-4 md:p-6 lg:p-8 bg-gradient-to-r from-white to-purple-50/50 dark:from-gray-900 dark:to-purple-950/20 rounded-xl sm:rounded-2xl md:rounded-3xl border-2 border-purple-300/50 dark:border-purple-800/50 shadow-lg sm:shadow-xl md:shadow-2xl backdrop-blur-sm"
+                        className="mt-6 sm:mt-8 md:mt-12 p-3 sm:p-4 md:p-6 lg:p-8 bg-gradient-to-r from-white to-orange-50/50 dark:from-gray-900 dark:to-orange-950/20 rounded-xl sm:rounded-2xl md:rounded-3xl border-2 border-orange-300/50 dark:border-orange-800/50 shadow-lg sm:shadow-xl md:shadow-2xl backdrop-blur-sm"
                     >
-                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-extrabold text-gray-900 dark:text-white mb-3 sm:mb-4 md:mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 px-2">
+                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-extrabold text-gray-900 dark:text-white mb-3 sm:mb-4 md:mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-orange-600 px-2">
                             Explore All PDF Tools 🚀
                         </h3>
                         
@@ -1915,7 +1864,7 @@ export default function PdfRotatorTool() {
                                     transition={{ duration: 0.3, delay: index * 0.05 }}
                                     whileHover={{ 
                                         scale: 1.02, 
-                                        boxShadow: "0 10px 30px rgba(120, 80, 255, 0.25)",
+                                        boxShadow: "0 10px 30px rgba(255, 80, 80, 0.25)",
                                         y: -2
                                     }}
                                     whileTap={{ scale: 0.98 }}
@@ -1926,13 +1875,13 @@ export default function PdfRotatorTool() {
                                         className="flex items-center justify-start w-full p-2 sm:p-3 md:p-4 lg:p-5 
                                                  bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900
                                                  border border-gray-200 dark:border-gray-700 
-                                                 rounded-lg sm:rounded-xl md:rounded-2xl hover:border-purple-400 dark:hover:border-purple-500
+                                                 rounded-lg sm:rounded-xl md:rounded-2xl hover:border-orange-400 dark:hover:border-orange-500
                                                  transition-all duration-300 group
                                                  shadow-sm hover:shadow-lg"
                                     >
                                         <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 
                                                       flex items-center justify-center 
-                                                      bg-gradient-to-br from-blue-500 to-purple-600 
+                                                      bg-gradient-to-br from-red-500 to-orange-600 
                                                       rounded-lg sm:rounded-xl mr-1 sm:mr-2 md:mr-3 lg:mr-4
                                                       group-hover:scale-105 transition-transform duration-300">
                                             <span className="text-xs sm:text-sm md:text-base lg:text-lg">
@@ -1942,7 +1891,7 @@ export default function PdfRotatorTool() {
                                         
                                         <div className="flex-1 min-w-0">
                                             <span className="text-xs sm:text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 
-                                                           group-hover:text-purple-600 dark:group-hover:text-purple-400 
+                                                           group-hover:text-orange-600 dark:group-hover:text-orange-400 
                                                            transition-colors duration-300 block truncate">
                                                 {tool.label}
                                             </span>
@@ -1952,7 +1901,7 @@ export default function PdfRotatorTool() {
                                         </div>
                                         
                                         <div className="flex-shrink-0 ml-0.5 sm:ml-1 md:ml-2">
-                                            <svg className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-purple-500 
+                                            <svg className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-orange-500 
                                                           group-hover:translate-x-0.5 sm:group-hover:translate-x-1 transition-all duration-300" 
                                                  fill="none" 
                                                  stroke="currentColor" 
@@ -1965,18 +1914,6 @@ export default function PdfRotatorTool() {
                                 </motion.div>
                             ))}
                         </div>
-
-            
-
-
-
-
-
-
-
-
-
-            
                         
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -1984,9 +1921,9 @@ export default function PdfRotatorTool() {
                             transition={{ delay: 0.5 }}
                             className="mt-4 sm:mt-6 md:mt-8 text-center"
                         >
-                            <button className="px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 
+                            <button className="px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 bg-gradient-to-r from-red-600 to-orange-600 
                                              text-white font-medium rounded-full sm:rounded-xl md:rounded-2xl
-                                             hover:from-blue-700 hover:to-purple-700
+                                             hover:from-red-700 hover:to-orange-700
                                              active:scale-95 transition-all duration-300
                                              shadow-lg hover:shadow-xl
                                              text-xs sm:text-sm md:text-base">
@@ -2012,9 +1949,9 @@ export default function PdfRotatorTool() {
                                 Merge PDF
                             </a>
 
-                            <a href="/image-rotator"
+                            <a href="/split-pdf"
                                className="px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 lg:px-6 lg:py-3 bg-blue-50 text-blue-600 font-medium rounded-full hover:bg-blue-100 transition text-xs sm:text-sm md:text-base">
-                                Image Rotator
+                                Split PDF
                             </a>
 
                             <a href="/compress-pdf"
@@ -2027,14 +1964,14 @@ export default function PdfRotatorTool() {
                     {/* Info Footer - Responsive */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-center mt-6 sm:mt-8 md:mt-12">
                         <div className="p-2 sm:p-3 md:p-4">
-                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
-                                <Rotate3D className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
+                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
+                                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-600 dark:text-red-400" />
                             </div>
                             <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">
-                                Smart Rotation
+                                Selective Removal
                             </h4>
                             <p className="text-xs text-gray-600 dark:text-gray-400">
-                                Rotate individual pages or apply batch rotation to all
+                                Choose exactly which pages to keep or remove
                             </p>
                         </div>
                         
@@ -2043,22 +1980,22 @@ export default function PdfRotatorTool() {
                                 <Shield className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
                             </div>
                             <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">
-                                Real-time Preview
+                                Batch Selection
                             </h4>
                             <p className="text-xs text-gray-600 dark:text-gray-400">
-                                See rotation changes instantly without downloading
+                                Select/deselect multiple pages with one click
                             </p>
                         </div>
                         
                         <div className="p-2 sm:p-3 md:p-4">
-                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
-                                <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
+                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
+                                <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
                             </div>
                             <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">
-                                Batch Download
+                                Clean PDF Output
                             </h4>
                             <p className="text-xs text-gray-600 dark:text-gray-400">
-                                Download rotated PDF or individual pages
+                                Download PDF with only your selected pages
                             </p>
                         </div>
                     </div>
@@ -2068,28 +2005,28 @@ export default function PdfRotatorTool() {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30"
+                            className="mt-4 p-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-xl border-2 border-red-200 dark:border-red-800/30"
                         >
                             <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                                <Smartphone className="w-4 h-4 text-blue-600" />
+                                <Smartphone className="w-4 h-4 text-red-600" />
                                 Mobile Tips
                             </h4>
                             <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                                 <li className="flex items-start gap-2">
-                                    <span className="text-blue-600">•</span>
-                                    <span>Tap rotation buttons on each page preview</span>
+                                    <span className="text-red-600">•</span>
+                                    <span>Tap on pages to select/deselect them</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="text-blue-600">•</span>
+                                    <span className="text-red-600">•</span>
+                                    <span>Use batch selection for multiple pages</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-red-600">•</span>
                                     <span>Pinch to zoom in page preview</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <span className="text-blue-600">•</span>
-                                    <span>Swipe down on zoomed page to close</span>
-                                </li>
-                                <li className="flex items-start gap-2">
-                                    <span className="text-blue-600">•</span>
-                                    <span>Use batch rotate for multiple pages</span>
+                                    <span className="text-red-600">•</span>
+                                    <span>At least one page must be selected</span>
                                 </li>
                             </ul>
                         </motion.div>
@@ -2099,10 +2036,3 @@ export default function PdfRotatorTool() {
         </div>
     );
 }
-
-// Add missing ChevronDown component
-const ChevronDown = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-  </svg>
-);
