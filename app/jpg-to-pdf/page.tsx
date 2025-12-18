@@ -448,6 +448,7 @@ export default function JpgToPdf() {
               </p>
             </div>
 
+
             <div className="bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
               <div className="mb-6 sm:mb-8 md:mb-10">
                 <div className="flex items-center gap-2 mb-3 sm:mb-4">
@@ -483,6 +484,8 @@ export default function JpgToPdf() {
                   </div>
                 </div>
               </div>
+
+
 
               {files.length > 0 && (
                 <div className="space-y-6 sm:space-y-8">

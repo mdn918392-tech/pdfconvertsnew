@@ -93,16 +93,7 @@ export default function FileUploader({
   //
   // 4️⃣ REMOVE FILE
   //
-  const removeFile = useCallback((fileToRemove: FileWithPreview) => {
-    setFiles((prevFiles) => {
-      const newFiles = prevFiles.filter((file) => file !== fileToRemove);
-
-      if (fileToRemove.previewUrl) {
-        URL.revokeObjectURL(fileToRemove.previewUrl);
-      }
-      return newFiles;
-    });
-  }, []);
+ 
 
   //
   // 5️⃣ DRAG & DROP HANDLERS
@@ -144,7 +135,7 @@ export default function FileUploader({
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {multiple ? "Multiple files supported" : "Single file only"} • Max{" "}
-          {maxSize}MB per file
+          {100}MB per file
         </p>
 
         <input
@@ -157,34 +148,7 @@ export default function FileUploader({
         />
       </motion.div>
 
-      {/* File List Preview */}
-      {files.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {files.map((file, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800 rounded-lg"
-            >
-              <div className="flex items-center space-x-3">
-                <FileIcon className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">
-                  {file.name}
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </span>
-              </div>
-
-              <button
-                onClick={() => removeFile(file)}
-                className="text-gray-400 hover:text-red-500 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      
     </div>
   );
 }

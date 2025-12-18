@@ -1359,65 +1359,75 @@ export default function PdfPageSplitter() {
                             Explore All PDF Tools 🚀
                         </h3>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                            {toolKeywords.map((tool, index) => (
-                                <motion.div
-                                    key={tool.label}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                                    whileHover={{ 
-                                        scale: 1.02, 
-                                        boxShadow: "0 10px 30px rgba(120, 80, 255, 0.25)",
-                                        y: -4
-                                    }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="w-full"
-                                >
-                                    <a
-                                        href={tool.url}
-                                        className="flex items-center justify-start w-full p-3 sm:p-4 md:p-5 
-                                                 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900
-                                                 border border-gray-200 dark:border-gray-700 
-                                                 rounded-lg sm:rounded-2xl hover:border-purple-400 dark:hover:border-purple-500
-                                                 transition-all duration-300 group
-                                                 shadow-sm hover:shadow-xl"
-                                    >
-                                        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 
-                                                      flex items-center justify-center 
-                                                      bg-gradient-to-br from-blue-500 to-purple-600 
-                                                      rounded-lg sm:rounded-xl mr-2 sm:mr-3 md:mr-4
-                                                      group-hover:scale-110 transition-transform duration-300">
-                                            <span className="text-sm sm:text-base md:text-lg">
-                                                {getToolIcon(tool.label)}
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="flex-1 min-w-0">
-                                            <span className="text-xs sm:text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 
-                                                           group-hover:text-purple-600 dark:group-hover:text-purple-400 
-                                                           transition-colors duration-300 block truncate">
-                                                {tool.label}
-                                            </span>
-                                            <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 block line-clamp-2">
-                                                {getToolDescription(tool.label)}
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="flex-shrink-0 ml-1 sm:ml-2">
-                                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-purple-500 
-                                                          group-hover:translate-x-1 transition-all duration-300" 
-                                                 fill="none" 
-                                                 stroke="currentColor" 
-                                                 viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" 
-                                                      strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </div>
-                                    </a>
-                                </motion.div>
-                            ))}
-                        </div>
+                       <div className="grid 
+                grid-cols-1          /* 📱 Mobile: 1 */
+                md:grid-cols-3       /* 💻 Desktop: 3 */
+                gap-3 sm:gap-4 md:gap-6">
+    {toolKeywords.map((tool, index) => (
+        <motion.div
+            key={tool.label}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            whileHover={{ 
+                scale: 1.02, 
+                boxShadow: "0 10px 30px rgba(120, 80, 255, 0.25)",
+                y: -4
+            }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full"
+        >
+            <a
+                href={tool.url}
+                className="flex items-center justify-start w-full p-3 sm:p-4 md:p-5 
+                         bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900
+                         border border-gray-200 dark:border-gray-700 
+                         rounded-lg sm:rounded-2xl hover:border-purple-400 dark:hover:border-purple-500
+                         transition-all duration-300 group
+                         shadow-sm hover:shadow-xl"
+            >
+                {/* Icon */}
+                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 
+                              flex items-center justify-center 
+                              bg-gradient-to-br from-blue-500 to-purple-600 
+                              rounded-lg sm:rounded-xl mr-2 sm:mr-3 md:mr-4
+                              group-hover:scale-110 transition-transform duration-300">
+                    <span className="text-base sm:text-lg md:text-xl">
+                        {getToolIcon(tool.label)}
+                    </span>
+                </div>
+                
+                {/* Text */}
+                <div className="flex-1 min-w-0">
+                    <span className="text-sm sm:text-base md:text-lg 
+                                   font-semibold text-gray-800 dark:text-gray-200 
+                                   group-hover:text-purple-600 dark:group-hover:text-purple-400 
+                                   transition-colors duration-300 block truncate">
+                        {tool.label}
+                    </span>
+                    <span className="text-sm sm:text-base text-gray-500 dark:text-gray-400 
+                                   mt-1 block line-clamp-2">
+                        {getToolDescription(tool.label)}
+                    </span>
+                </div>
+                
+                {/* Arrow */}
+                <div className="flex-shrink-0 ml-1 sm:ml-2">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 
+                                  group-hover:text-purple-500 
+                                  group-hover:translate-x-1 transition-all duration-300" 
+                         fill="none" 
+                         stroke="currentColor" 
+                         viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" 
+                              strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                </div>
+            </a>
+        </motion.div>
+    ))}
+</div>
+
 
                        
                         
@@ -1438,34 +1448,7 @@ export default function PdfPageSplitter() {
                         </motion.div>
                     </motion.div>
 
-                    {/* Discover More Tools */}
-                    <section className="mt-8 sm:mt-16 bg-white dark:bg-gray-900 px-4 sm:px-6 md:px-8 py-6 sm:py-8 rounded-xl sm:rounded-2xl border border-black/10 shadow-sm">
-                        <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-black dark:text-white mb-4 sm:mb-6">
-                            Discover More Tools
-                        </h2>
-
-                        <div className="flex flex-wrap gap-2 sm:gap-4">
-                            <a href="/pdf-to-word" 
-                               className="px-3 py-2 sm:px-6 sm:py-3 bg-blue-50 text-blue-600 font-medium rounded-full hover:bg-blue-100 transition text-sm sm:text-base">
-                                PDF to Word
-                            </a>
-
-                            <a href="/merge-pdf"
-                               className="px-3 py-2 sm:px-6 sm:py-3 bg-blue-50 text-blue-600 font-medium rounded-full hover:bg-blue-100 transition text-sm sm:text-base">
-                                Merge PDF
-                            </a>
-
-                            <a href="/split-pdf"
-                               className="px-3 py-2 sm:px-6 sm:py-3 bg-blue-50 text-blue-600 font-medium rounded-full hover:bg-blue-100 transition text-sm sm:text-base">
-                                Split PDF
-                            </a>
-
-                            <a href="/compress-pdf"
-                               className="px-3 py-2 sm:px-6 sm:py-3 bg-blue-50 text-blue-600 font-medium rounded-full hover:bg-blue-100 transition text-sm sm:text-base">
-                                Compress PDF
-                            </a>
-                        </div>
-                    </section>
+                  
 
                     {/* Info Footer */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-center mt-8 sm:mt-12">
