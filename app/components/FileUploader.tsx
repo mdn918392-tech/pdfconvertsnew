@@ -4,14 +4,10 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { Upload, X, File as FileIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-interface FileWithPreview extends File {
-  previewUrl?: string;
-}
-
 interface FileUploaderProps {
   accept: string;
   multiple?: boolean;
-  onFilesSelected: (files: FileWithPreview[]) => void;
+  onFilesSelected: (files: File[]) => void; // ✅ Changed from FileWithPreview[] to File[]
   maxSize?: number; // Size in MB
 }
 
@@ -21,37 +17,13 @@ export default function FileUploader({
   onFilesSelected,
   maxSize = 1024,
 }: FileUploaderProps) {
-  const [files, setFiles] = useState<FileWithPreview[]>([]);
+  const [files, setFiles] = useState<File[]>([]); // ✅ Changed from FileWithPreview[] to File[]
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  //
-  // 1️⃣ SAFE: CREATE & CLEANUP PREVIEW URLs
-  //
-  useEffect(() => {
-    files.forEach((file) => {
-      if (file.type.startsWith("image/") && !file.previewUrl) {
-        file.previewUrl = URL.createObjectURL(file);
-      }
-    });
-
-    return () => {
-      files.forEach(
-        (file) => file.previewUrl && URL.revokeObjectURL(file.previewUrl)
-      );
-    };
-  }, [files]);
-
-  //
-  // 2️⃣ SAFE: NOTIFY PARENT ONLY WHEN FILES CHANGE (NO LOOP)
-  //
- useEffect(() => {
-  if (files && files.length > 0) {
-    onFilesSelected(files);
-  }
-}, [files]); // ✅ runs only when files change
-
-
+  // Remove the useEffect that was causing infinite loop
+  // No more preview URL creation in FileUploader
+  
   //
   // 3️⃣ HANDLE FILE SELECTION
   //
@@ -61,7 +33,7 @@ export default function FileUploader({
 
       const fileArray = Array.from(newFilesList);
 
-      const validNewFiles: FileWithPreview[] = fileArray.filter((file) => {
+      const validNewFiles: File[] = fileArray.filter((file) => {
         const sizeMB = file.size / 1024 / 1024;
         if (sizeMB > maxSize) {
           alert(`File "${file.name}" exceeds maximum size of ${maxSize}MB.`);
@@ -70,30 +42,19 @@ export default function FileUploader({
         return true;
       });
 
-      setFiles((prevFiles) => {
-        let updatedFiles: FileWithPreview[];
+      if (validNewFiles.length === 0) return;
 
-        if (multiple) {
-          updatedFiles = [...prevFiles, ...validNewFiles];
-        } else {
-          if (prevFiles.length > 0 && prevFiles[0].previewUrl) {
-            URL.revokeObjectURL(prevFiles[0].previewUrl);
-          }
-          updatedFiles = validNewFiles.slice(0, 1);
-        }
-
-        return updatedFiles;
-      });
+      // Call parent callback immediately with the new files
+      if (multiple) {
+        onFilesSelected(validNewFiles);
+      } else {
+        onFilesSelected(validNewFiles.slice(0, 1));
+      }
 
       if (inputRef.current) inputRef.current.value = "";
     },
-    [multiple, maxSize]
+    [multiple, maxSize, onFilesSelected]
   );
-
-  //
-  // 4️⃣ REMOVE FILE
-  //
- 
 
   //
   // 5️⃣ DRAG & DROP HANDLERS
@@ -135,7 +96,7 @@ export default function FileUploader({
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {multiple ? "Multiple files supported" : "Single file only"} • Max{" "}
-          {100}MB per file
+          {maxSize}MB per file
         </p>
 
         <input
@@ -147,8 +108,6 @@ export default function FileUploader({
           className="hidden"
         />
       </motion.div>
-
-      
     </div>
   );
 }

@@ -393,23 +393,21 @@ export default function JpgToPdf() {
         filesToSet = filesWithIds.slice(0, MAX_PAGES_COUNT);
       }
 
-      setFiles(prev => [...prev, ...filesToSet]);
+      // Create preview URLs for new files only
+      const filesWithPreviews = filesToSet.map(file => {
+        try {
+          const previewUrl = URL.createObjectURL(file.file);
+          return { ...file, previewUrl, previewError: false };
+        } catch (error) {
+          console.error('Failed to create preview URL:', error);
+          return { ...file, previewError: true };
+        }
+      });
+
+      // Add only new files to the existing files
+      setFiles(prev => [...prev, ...filesWithPreviews]);
       setPdfBlob(null);
       setProgress(0);
-
-      setFiles(prev => prev.map((file, index) => {
-        const fileToSet = filesToSet[index];
-        if (fileToSet && !file.previewUrl) {
-          try {
-            const previewUrl = URL.createObjectURL(fileToSet.file);
-            return { ...fileToSet, previewUrl, previewError: false };
-          } catch (error) {
-            console.error('Failed to create preview URL:', error);
-            return { ...fileToSet, previewError: true };
-          }
-        }
-        return file;
-      }));
 
     } catch (error) {
       console.error('File processing error:', error);
@@ -614,6 +612,28 @@ export default function JpgToPdf() {
         rotation: 0
       });
     }
+  };
+
+  const handleConvertMore = () => {
+    // Revoke all preview URLs
+    files.forEach(file => {
+      if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+    });
+    
+    // Revoke all rotated URLs
+    Object.values(rotatedUrls).forEach(url => {
+      if (url.startsWith('data:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
+    
+    // Clear all state
+    setFiles([]);
+    setRotatedUrls({});
+    setPdfBlob(null);
+    setProgress(0);
+    setReverseOrder(false);
+    setShowCompressionInfo(false);
   };
 
   if (!isClient) return null;
@@ -842,22 +862,7 @@ export default function JpgToPdf() {
                       </button>
                       
                       <button
-                        onClick={() => {
-                          files.forEach(file => {
-                            if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
-                          });
-                          Object.values(rotatedUrls).forEach(url => {
-                            if (url.startsWith('data:')) {
-                              URL.revokeObjectURL(url);
-                            }
-                          });
-                          setFiles([]);
-                          setRotatedUrls({});
-                          setPdfBlob(null);
-                          setProgress(0);
-                          setReverseOrder(false);
-                          setShowCompressionInfo(false);
-                        }}
+                        onClick={handleConvertMore}
                         className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors"
                       >
                         <X className="w-4 h-4" />
@@ -871,189 +876,180 @@ export default function JpgToPdf() {
                       ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4'
                       : 'space-y-3'
                   }`}>
-                    <AnimatePresence initial={false}>
-                      {displayFiles.map((item, displayIndex) => {
-                        const pageNumber = getPageNumber(displayIndex);
-                        const imageUrl = getImageUrl(item);
-                        
-                        // Create unique key for each displayed item
-                        const uniqueKey = `${item.id}-${reverseOrder ? 'reverse' : 'normal'}-${displayIndex}`;
-                        
-                        return (
-                          <motion.div
-                            key={uniqueKey} // Use unique key instead of item.id
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            layout
-                            className={`group relative ${
+                    {displayFiles.map((item, displayIndex) => {
+                      const pageNumber = getPageNumber(displayIndex);
+                      const imageUrl = getImageUrl(item);
+                      
+                      return (
+                        <div
+                          key={item.id}
+                          className={`group relative ${
+                            viewMode === 'list' 
+                              ? 'flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl'
+                              : ''
+                          }`}
+                        >
+                          <div 
+                            className={`relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer ${
                               viewMode === 'list' 
-                                ? 'flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl'
-                                : ''
+                                ? 'w-20 h-20 flex-shrink-0'
+                                : 'aspect-square'
                             }`}
+                            onClick={() => handleExpandImage(item)}
                           >
-                            <div 
-                              className={`relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer ${
-                                viewMode === 'list' 
-                                  ? 'w-20 h-20 flex-shrink-0'
-                                  : 'aspect-square'
-                              }`}
-                              onClick={() => handleExpandImage(item)}
-                            >
-                              {imageUrl && !item.previewError ? (
-                                <>
-                                  <img
-                                    src={imageUrl}
-                                    alt={item.file.name}
-                                    className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${
-                                      item.rotation !== 0 && !rotatedUrls[item.id] ? 'transform' : ''
-                                    }`}
-                                    style={
-                                      item.rotation !== 0 && !rotatedUrls[item.id] 
-                                        ? { transform: `rotate(${item.rotation}deg)` }
-                                        : undefined
-                                    }
-                                    onError={() => handleImageError(item.id)}
-                                    loading="lazy"
-                                  />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                                </>
-                              ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-3">
-                                  <div className="relative mb-2">
-                                    <ImageIcon className="w-8 h-8 text-gray-400" />
-                                    {item.previewError && (
-                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                                        <X className="w-2 h-2 text-white" />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              <div 
-                                className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {pageNumber}
-                              </div>
-                              
-                              {item.rotation !== 0 && (
-                                <div 
-                                  className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <RotateCw className="w-2 h-2" />
-                                  {item.rotation}°
-                                </div>
-                              )}
-                            </div>
-                            
-                            {viewMode === 'list' && (
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
-                                  {item.file.name}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {(item.file.size / 1024 / 1024).toFixed(2)} MB
-                                </p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, -90);
-                                    }}
-                                    className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                    title="Rotate counter-clockwise"
-                                  >
-                                    <RotateCcw className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, 90);
-                                    }}
-                                    className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                    title="Rotate clockwise"
-                                  >
-                                    <RotateCw className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemoveFile(item);
-                                    }}
-                                    className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/30 rounded-lg transition-colors ml-auto"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
+                            {imageUrl && !item.previewError ? (
+                              <>
+                                <img
+                                  src={imageUrl}
+                                  alt={item.file.name}
+                                  className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${
+                                    item.rotation !== 0 && !rotatedUrls[item.id] ? 'transform' : ''
+                                  }`}
+                                  style={
+                                    item.rotation !== 0 && !rotatedUrls[item.id] 
+                                      ? { transform: `rotate(${item.rotation}deg)` }
+                                      : undefined
+                                  }
+                                  onError={() => handleImageError(item.id)}
+                                  loading="lazy"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                              </>
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center p-3">
+                                <div className="relative mb-2">
+                                  <ImageIcon className="w-8 h-8 text-gray-400" />
+                                  {item.previewError && (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                                      <X className="w-2 h-2 text-white" />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}
                             
-                            {viewMode === 'grid' && (
-                              <>
+                            <div 
+                              className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {pageNumber}
+                            </div>
+                            
+                            {item.rotation !== 0 && (
+                              <div 
+                                className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <RotateCw className="w-2 h-2" />
+                                {item.rotation}°
+                              </div>
+                            )}
+                          </div>
+                          
+                          {viewMode === 'list' && (
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
+                                {item.file.name}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRotateFile(item.id, -90);
+                                  }}
+                                  className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                  title="Rotate counter-clockwise"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRotateFile(item.id, 90);
+                                  }}
+                                  className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                  title="Rotate clockwise"
+                                >
+                                  <RotateCw className="w-3 h-3" />
+                                </button>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleRemoveFile(item);
                                   }}
-                                  className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
-                                  aria-label={`Remove ${item.file.name}`}
+                                  className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/30 rounded-lg transition-colors ml-auto"
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
-                                
-                                <div className="absolute bottom-2 left-2 flex gap-1">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, -90);
-                                    }}
-                                    className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
-                                    title="Rotate counter-clockwise"
-                                  >
-                                    <RotateCcw className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, 90);
-                                    }}
-                                    className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
-                                    title="Rotate clockwise"
-                                  >
-                                    <RotateCw className="w-3 h-3" />
-                                  </button>
-                                </div>
-                                
-                                {imageUrl && !item.previewError && (
-                                  <button
-                                    className="absolute bottom-2 right-2 p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleExpandImage(item);
-                                    }}
-                                  >
-                                    <Maximize2 className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </>
-                            )}
-                            
-                            {reverseOrder && viewMode === 'grid' && (
-                              <div 
-                                className="absolute -top-2 -left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ArrowUpDown className="w-2 h-2" />
-                                R
                               </div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
+                            </div>
+                          )}
+                          
+                          {viewMode === 'grid' && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveFile(item);
+                                }}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
+                                aria-label={`Remove ${item.file.name}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                              
+                              <div className="absolute bottom-2 left-2 flex gap-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRotateFile(item.id, -90);
+                                  }}
+                                  className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
+                                  title="Rotate counter-clockwise"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRotateFile(item.id, 90);
+                                  }}
+                                  className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
+                                  title="Rotate clockwise"
+                                >
+                                  <RotateCw className="w-3 h-3" />
+                                </button>
+                              </div>
+                              
+                              {imageUrl && !item.previewError && (
+                                <button
+                                  className="absolute bottom-2 right-2 p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleExpandImage(item);
+                                  }}
+                                >
+                                  <Maximize2 className="w-3 h-3" />
+                                </button>
+                              )}
+                            </>
+                          )}
+                          
+                          {reverseOrder && viewMode === 'grid' && (
+                            <div 
+                              className="absolute -top-2 -left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ArrowUpDown className="w-2 h-2" />
+                              R
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 md:p-8">
@@ -1255,22 +1251,7 @@ export default function JpgToPdf() {
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <button
-                            onClick={() => {
-                              files.forEach(file => {
-                                if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
-                              });
-                              Object.values(rotatedUrls).forEach(url => {
-                                if (url.startsWith('data:')) {
-                                  URL.revokeObjectURL(url);
-                                }
-                              });
-                              setFiles([]);
-                              setRotatedUrls({});
-                              setPdfBlob(null);
-                              setProgress(0);
-                              setReverseOrder(false);
-                              setShowCompressionInfo(false);
-                            }}
+                            onClick={handleConvertMore}
                             className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
                           >
                             Convert More Files

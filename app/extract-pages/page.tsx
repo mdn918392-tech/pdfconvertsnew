@@ -388,7 +388,7 @@ interface PdfData {
   pageCount: number;
 }
 
-// --- PDF PAGE RENDERER ---
+// --- IMPROVED PDF PAGE RENDERER WITH FULL SCREEN SUPPORT ---
 interface PdfPageRendererProps {
   pageNumber: number;
   pdfData: PdfData | null;
@@ -440,10 +440,10 @@ const PdfPageRenderer = ({
         // Get specific page
         const page = await pdf.getPage(pageNumber);
         
-        // Set viewport based on device width
-        const viewportWidth = Math.min(window.innerWidth * 0.8, 400);
+        // Set viewport based on device width with higher resolution
+        const viewportWidth = Math.min(window.innerWidth * 0.8, 600); // Increased to 600px
         const scale = viewportWidth / page.getViewport({ scale: 1 }).width;
-        const viewport = page.getViewport({ scale });
+        const viewport = page.getViewport({ scale: scale * 1.5 }); // Higher resolution for better zoom
         
         // Create canvas
         const canvas = document.createElement("canvas");
@@ -453,8 +453,11 @@ const PdfPageRenderer = ({
           throw new Error("Could not get canvas context");
         }
         
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+        // Set canvas dimensions with higher DPI for better quality
+        const dpi = window.devicePixelRatio || 1;
+        canvas.height = viewport.height * dpi;
+        canvas.width = viewport.width * dpi;
+        context.scale(dpi, dpi);
         
         // Render page to canvas
         const renderContext = {
@@ -464,8 +467,8 @@ const PdfPageRenderer = ({
         
         await page.render(renderContext).promise;
         
-        // Convert canvas to image URL
-        const imageUrl = canvas.toDataURL("image/png", 0.8);
+        // Convert canvas to image URL with high quality
+        const imageUrl = canvas.toDataURL("image/png", 1.0);
         
         if (isMounted.current) {
           setPageImage(imageUrl);
@@ -591,11 +594,15 @@ const PdfPageRenderer = ({
           </p>
         </div>
       ) : pageImage ? (
-        <div className="relative w-full h-full flex items-center justify-center">
+        <div className="relative w-full h-full flex items-center justify-center p-1">
           <img 
             src={pageImage} 
             alt={`Page ${pageNumber} of ${fileName}`}
-            className="w-auto h-auto max-w-full max-h-full object-contain p-2 select-none transition-transform duration-300"
+            className="w-full h-full object-contain select-none transition-transform duration-300"
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%'
+            }}
             draggable="false"
           />
         </div>
@@ -604,7 +611,7 @@ const PdfPageRenderer = ({
   );
 };
 
-// --- IMPROVED ZOOM MODAL COMPONENT WITH SCROLL AND ROTATION ---
+// --- IMPROVED ZOOM MODAL WITH FULL SCREEN SUPPORT ---
 interface ZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -624,14 +631,15 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
   const [startY, setStartY] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   
   const containerRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLDivElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
   const isMounted = useRef(true);
 
   // Mouse event handlers for dragging
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!containerRef.current || !imageRef.current) return;
+    if (!containerRef.current) return;
     e.preventDefault();
     setIsDragging(true);
     setStartX(e.pageX - containerRef.current.offsetLeft);
@@ -696,6 +704,65 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     }
   };
 
+  // Fullscreen API support
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      // Enter fullscreen
+      setIsFullscreen(true);
+      
+      // Try browser fullscreen API first
+      const elem = containerRef.current;
+      if (elem) {
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen().catch(err => {
+            console.log(`Error attempting to enable fullscreen: ${err.message}`);
+          });
+        } else if ((elem as any).webkitRequestFullscreen) {
+          (elem as any).webkitRequestFullscreen();
+        } else if ((elem as any).msRequestFullscreen) {
+          (elem as any).msRequestFullscreen();
+        }
+      }
+      
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Exit fullscreen
+      setIsFullscreen(false);
+      
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
+      
+      // Restore body scroll
+      document.body.style.overflow = 'auto';
+    }
+  };
+
+  // Handle fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Render page for zoom modal
   useEffect(() => {
     isMounted.current = true;
     
@@ -705,29 +772,39 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       try {
         setLoading(true);
         
-        // Convert base64 back to Uint8Array for zoom
+        // Convert base64 back to Uint8Array
         const binaryString = atob(pdfData.base64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
         
+        // Load PDF with higher resolution for zoom
         const loadingTask = pdfjsLib.getDocument({ data: bytes });
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(pageNumber);
         
-        // Calculate viewport with zoom
-        const baseScale = 2;
+        // Calculate viewport - use larger scale for better zoom quality
+        const baseScale = isFullscreen ? 4 : 3; // Higher scale for better quality
         const scale = baseScale * zoomLevel;
         const viewport = page.getViewport({ scale });
+        
+        // Store image dimensions for proper scaling
+        setImageDimensions({
+          width: viewport.width,
+          height: viewport.height
+        });
         
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
         
         if (!context) return;
         
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+        // Set high DPI for crisp image
+        const dpi = window.devicePixelRatio || 1;
+        canvas.height = viewport.height * dpi;
+        canvas.width = viewport.width * dpi;
+        context.scale(dpi, dpi);
         
         await page.render({
           canvasContext: context,
@@ -759,18 +836,14 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         URL.revokeObjectURL(pageImage);
       }
     };
-  }, [isOpen, pdfData, pageNumber, zoomLevel]);
+  }, [isOpen, pdfData, pageNumber, zoomLevel, isFullscreen]);
 
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.5, 5));
+    setZoomLevel(prev => Math.min(prev + 0.25, 5));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.5, 0.5));
-  };
-
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
   };
 
   const handleClose = (e: React.MouseEvent) => {
@@ -779,6 +852,8 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     setZoomLevel(1);
     setIsFullscreen(false);
     setRotation(0);
+    // Restore body scroll
+    document.body.style.overflow = 'auto';
   };
 
   const rotateLeft = () => {
@@ -793,6 +868,15 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     setRotation(0);
   };
 
+  const resetZoom = () => {
+    setZoomLevel(1);
+    // Reset scroll position
+    if (containerRef.current) {
+      containerRef.current.scrollLeft = 0;
+      containerRef.current.scrollTop = 0;
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -800,7 +884,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4 ${
         isFullscreen ? 'bg-black' : 'bg-black/95 backdrop-blur-sm'
       }`}
       onClick={handleClose}
@@ -808,29 +892,35 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       {/* Close button */}
       <button
         onClick={handleClose}
-        className="absolute top-4 right-4 z-50 p-3 bg-black/80 rounded-full hover:bg-black transition-colors shadow-lg"
+        className="absolute top-4 right-4 z-50 p-3 bg-black/80 hover:bg-black/90 rounded-full transition-colors shadow-lg backdrop-blur-sm"
       >
         <X className="w-6 h-6 text-white" />
       </button>
       
       {/* Zoom controls */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm z-50 shadow-lg">
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-wrap items-center justify-center gap-2 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm z-50 shadow-lg">
         <button
           onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
           className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
           disabled={zoomLevel <= 0.5}
+          title="Zoom Out"
         >
           <ZoomOut className="w-5 h-5 text-white" />
         </button>
         
-        <span className="text-white text-sm font-medium min-w-[60px] text-center">
+        <button
+          onClick={(e) => { e.stopPropagation(); resetZoom(); }}
+          className="px-3 py-1 text-white text-sm font-medium hover:bg-white/10 rounded-full transition-colors"
+          title="Reset Zoom"
+        >
           {Math.round(zoomLevel * 100)}%
-        </span>
+        </button>
         
         <button
           onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
           className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
           disabled={zoomLevel >= 5}
+          title="Zoom In"
         >
           <ZoomIn className="w-5 h-5 text-white" />
         </button>
@@ -867,6 +957,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         <button
           onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
           className="p-2 hover:bg-white/10 rounded-full transition-colors"
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
         >
           {isFullscreen ? (
             <Minimize2 className="w-5 h-5 text-white" />
@@ -877,14 +968,14 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       </div>
       
       {/* Page info */}
-      <div className="absolute top-4 left-4 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg">
-        <span className="text-white text-sm font-medium">
+      <div className="absolute top-4 left-4 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg max-w-[80%]">
+        <span className="text-white text-sm font-medium truncate block">
           Page {pageNumber} • {fileName}
         </span>
       </div>
       
       {/* Scroll instructions */}
-      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg">
+      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg hidden sm:block">
         <div className="flex items-center gap-2 text-white text-sm">
           <span>Ctrl+Scroll to zoom • Drag to pan</span>
         </div>
@@ -896,7 +987,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className={`relative ${isFullscreen ? 'w-full h-full' : 'w-[90vw] h-[80vh]'} overflow-auto`}
+        className={`relative ${isFullscreen ? 'w-screen h-screen' : 'w-[95vw] h-[90vh] sm:w-[90vw] sm:h-[80vh]'} overflow-auto bg-black`}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -905,29 +996,49 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
-        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        style={{ 
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
       >
+        {/* Loading indicator */}
         {loading ? (
           <div className="flex items-center justify-center w-full h-full">
             <Loader2 className="w-12 h-12 animate-spin text-white" />
           </div>
         ) : pageImage ? (
           <div 
-            ref={imageRef}
-            className="flex items-center justify-center min-w-full min-h-full"
+            ref={imageContainerRef}
+            className="flex items-center justify-center min-w-full min-h-full p-4"
+            style={{
+              minWidth: `${imageDimensions.width * zoomLevel}px`,
+              minHeight: `${imageDimensions.height * zoomLevel}px`
+            }}
           >
-            <img
+            <motion.img
               src={pageImage}
               alt={`Zoomed view - Page ${pageNumber}`}
-              className={`${isFullscreen ? 'min-w-full min-h-full' : 'min-w-[90vw] min-h-[80vh]'} object-contain transition-transform duration-300`}
+              className="select-none"
               style={{
-                transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
-                transformOrigin: 'center center'
+                transform: `rotate(${rotation}deg)`,
+                transformOrigin: 'center center',
+                width: `${imageDimensions.width * zoomLevel}px`,
+                height: `${imageDimensions.height * zoomLevel}px`,
+                objectFit: 'contain'
               }}
               draggable="false"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
             />
           </div>
-        ) : null}
+        ) : (
+          <div className="flex items-center justify-center w-full h-full">
+            <div className="text-center text-white">
+              <File className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <p className="text-lg">Unable to load page preview</p>
+            </div>
+          </div>
+        )}
       </motion.div>
       
       {/* Mobile gesture hints */}
@@ -943,15 +1054,34 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
             <div className="p-1 bg-white/20 rounded">
               <RotateCw className="w-3 h-3" />
             </div>
-            <span>Rotate buttons above</span>
+            <span>Rotate with buttons</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="p-1 bg-white/20 rounded">
               <Maximize2 className="w-3 h-3" />
             </div>
-            <span>Tap for fullscreen</span>
+            <span>Fullscreen available</span>
           </div>
         </div>
+      </div>
+      
+      {/* Page navigation for multi-page */}
+      <div className="absolute bottom-4 right-4 z-50 flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setZoomLevel(1);
+            setRotation(0);
+            if (containerRef.current) {
+              containerRef.current.scrollLeft = 0;
+              containerRef.current.scrollTop = 0;
+            }
+          }}
+          className="p-2 bg-black/80 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
+          title="Reset View"
+        >
+          <RefreshCw className="w-5 h-5 text-white" />
+        </button>
       </div>
     </motion.div>
   );
@@ -2363,8 +2493,6 @@ export default function PdfPageExtractorTool() {
                             </a>
                         </motion.div>
                     </motion.div>
-
-                  
 
                     {/* Info Footer - Responsive */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 text-center mt-8 md:mt-12">
