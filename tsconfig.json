@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "app/remove-pages/page.tsx", "app/rotate-pdf/page.tsx", "utils/imageUtils.js"  ],
+, "app/remove-pages/page.tsx", "app/rotate-pdf/page.tsx", "utils/imageUtils.ts"  ],
   "exclude": ["node_modules"]
 }

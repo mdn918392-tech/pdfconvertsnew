@@ -293,7 +293,7 @@ import {
   FunctionSquare,
   Variable,
   Sigma,
-  Infinity as InfinityIcon, // ✅ FIXED HERE
+  Infinity as InfinityIcon,
   Pi,
 
   Copyright,
@@ -641,7 +641,7 @@ const PdfPageRenderer = ({
   );
 };
 
-// --- ZOOM MODAL COMPONENT ---
+// --- ZOOM MODAL COMPONENT WITH SCROLLABLE IMAGE ---
 interface ZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -655,7 +655,31 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [pageImage, setPageImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const isMounted = useRef(true);
+
+  // Reset position when zoom or page changes
+  useEffect(() => {
+    if (containerRef.current && imageRef.current) {
+      const container = containerRef.current;
+      const img = imageRef.current;
+      
+      // Reset to center
+      const containerRect = container.getBoundingClientRect();
+      const imgRect = img.getBoundingClientRect();
+      
+      setPosition({
+        x: (containerRect.width - imgRect.width * zoomLevel) / 2,
+        y: (containerRect.height - imgRect.height * zoomLevel) / 2
+      });
+    } else {
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [zoomLevel, pageNumber, isOpen]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -741,32 +765,122 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     setIsFullscreen(false);
   };
 
+  // Handle mouse drag for panning
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDragging(true);
+    setStartPos({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    e.stopPropagation();
+    
+    setPosition({
+      x: e.clientX - startPos.x,
+      y: e.clientY - startPos.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Handle touch events for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setStartPos({
+        x: e.touches[0].clientX - position.x,
+        y: e.touches[0].clientY - position.y
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    
+    setPosition({
+      x: e.touches[0].clientX - startPos.x,
+      y: e.touches[0].clientY - startPos.y
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Handle wheel zoom
+  const handleWheel = (e: React.WheelEvent) => {
+    e.stopPropagation();
+    
+    if (e.deltaY < 0) {
+      // Zoom in
+      handleZoomIn();
+    } else {
+      // Zoom out
+      handleZoomOut();
+    }
+  };
+
   // Handle pinch to zoom on mobile
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !containerRef.current) return;
 
-    const handleTouchMove = (e: TouchEvent) => {
+    let initialDistance = 0;
+    let initialZoom = zoomLevel;
+
+    const handleTouchStartPinch = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        initialDistance = Math.hypot(
+          touch1.clientX - touch2.clientX,
+          touch1.clientY - touch2.clientY
+        );
+        initialZoom = zoomLevel;
+      }
+    };
+
+    const handleTouchMovePinch = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         e.preventDefault();
         const touch1 = e.touches[0];
         const touch2 = e.touches[1];
-        const distance = Math.hypot(
+        const currentDistance = Math.hypot(
           touch1.clientX - touch2.clientX,
           touch1.clientY - touch2.clientY
         );
         
-        // Simple pinch zoom logic
-        if (distance > 200) {
-          handleZoomIn();
-        } else if (distance < 100) {
-          handleZoomOut();
+        const zoomChange = currentDistance / initialDistance;
+        const newZoom = Math.max(0.5, Math.min(3, initialZoom * zoomChange));
+        
+        if (Math.abs(newZoom - zoomLevel) > 0.1) {
+          setZoomLevel(newZoom);
         }
       }
     };
 
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    return () => window.removeEventListener('touchmove', handleTouchMove);
+    const container = containerRef.current;
+    container.addEventListener('touchstart', handleTouchStartPinch, { passive: true });
+    container.addEventListener('touchmove', handleTouchMovePinch, { passive: false });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStartPinch);
+      container.removeEventListener('touchmove', handleTouchMovePinch);
+    };
   }, [isOpen, zoomLevel]);
+
+  // Reset zoom and position on close
+  useEffect(() => {
+    if (!isOpen) {
+      setZoomLevel(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -789,7 +903,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       </button>
       
       {/* Zoom controls */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm">
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm z-50">
         <button
           onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
           className="p-2 hover:bg-white/10 rounded-full transition-colors"
@@ -831,31 +945,76 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         </span>
       </div>
       
-      {/* Image container */}
+      {/* Image container with scrollable area */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className={`relative ${isFullscreen ? 'w-full h-full' : 'max-w-[90vw] max-h-[80vh]'}`}
+        className={`relative overflow-hidden ${
+          isFullscreen 
+            ? 'w-full h-full' 
+            : 'w-[90vw] h-[80vh] max-w-[90vw] max-h-[80vh]'
+        }`}
         onClick={(e) => e.stopPropagation()}
+        ref={containerRef}
+        onWheel={handleWheel}
       >
         {loading ? (
           <div className="flex items-center justify-center w-full h-full">
             <Loader2 className="w-12 h-12 animate-spin text-white" />
           </div>
         ) : pageImage ? (
-          <img
-            src={pageImage}
-            alt={`Zoomed view - Page ${pageNumber}`}
-            className={`${isFullscreen ? 'w-full h-full' : 'w-auto h-auto'} object-contain rounded-lg shadow-2xl`}
-            draggable="false"
-          />
+          <div 
+            className="w-full h-full overflow-auto relative"
+            style={{
+              cursor: isDragging ? 'grabbing' : zoomLevel > 1 ? 'grab' : 'default'
+            }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div 
+              className="relative"
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px)`,
+                transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+              }}
+            >
+              <img
+                ref={imageRef}
+                src={pageImage}
+                alt={`Zoomed view - Page ${pageNumber}`}
+                className="object-contain rounded-lg shadow-2xl"
+                style={{
+                  transform: `scale(${zoomLevel})`,
+                  transformOrigin: 'top left'
+                }}
+                draggable="false"
+              />
+            </div>
+            
+            {/* Panning hint for large zoom */}
+            {zoomLevel > 1 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute bottom-4 right-4 bg-black/70 text-white text-xs px-3 py-2 rounded-full backdrop-blur-sm flex items-center gap-2"
+              >
+                <Hand className="w-4 h-4" />
+                <span>Drag to pan</span>
+              </motion.div>
+            )}
+          </div>
         ) : null}
       </motion.div>
       
       {/* Mobile gesture hints */}
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 sm:hidden">
-        <div className="flex flex-col items-center gap-2 text-white/80 text-sm">
+      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 sm:hidden z-50">
+        <div className="flex flex-col items-center gap-2 text-white/80 text-sm bg-black/50 backdrop-blur-sm px-4 py-3 rounded-xl">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-white/20 rounded-lg">
               <ZoomIn className="w-4 h-4" />
@@ -864,15 +1023,15 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
           </div>
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-white/20 rounded-lg">
-              <Maximize2 className="w-4 h-4" />
+              <Hand className="w-4 h-4" />
             </div>
-            <span>Double tap for fullscreen</span>
+            <span>Drag to pan when zoomed</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-white/20 rounded-lg">
               <X className="w-4 h-4" />
             </div>
-            <span>Swipe down to close</span>
+            <span>Tap outside to close</span>
           </div>
         </div>
       </div>
@@ -881,13 +1040,20 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       <motion.div
         animate={{ y: [0, 10, 0] }}
         transition={{ repeat: Infinity, duration: 1.5 }}
-        className="absolute top-8 left-1/2 transform -translate-x-1/2 sm:hidden"
+        className="absolute top-8 left-1/2 transform -translate-x-1/2 sm:hidden z-50"
       >
         <ChevronDown className="w-6 h-6 text-white/60" />
       </motion.div>
     </motion.div>
   );
 };
+
+// Hand icon component
+const Hand = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+  </svg>
+);
 
 // --- Smart filename generator for rotated PDF ---
 const generatePdfFilename = (
@@ -931,7 +1097,7 @@ export default function PdfRotatorTool() {
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(6); // Changed to 6 for better mobile display
+    const [itemsPerPage, setItemsPerPage] = useState(6);
     const [downloadingAll, setDownloadingAll] = useState(false);
     const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
     const [downloadProgress, setDownloadProgress] = useState(0);
@@ -1906,88 +2072,72 @@ export default function PdfRotatorTool() {
                             Explore All PDF Tools 🚀
                         </h3>
                         
-                        <div className="grid 
-                grid-cols-1          /* 📱 Mobile: 1 */
-                md:grid-cols-3       /* 💻 Desktop: 3 */
-                gap-3 sm:gap-4 md:gap-6">
-    {toolKeywords.map((tool, index) => (
-        <motion.div
-            key={tool.label}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            whileHover={{ 
-                scale: 1.02, 
-                boxShadow: "0 10px 30px rgba(120, 80, 255, 0.25)",
-                y: -4
-            }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full"
-        >
-            <a
-                href={tool.url}
-                className="flex items-center justify-start w-full p-3 sm:p-4 md:p-5 
-                         bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900
-                         border border-gray-200 dark:border-gray-700 
-                         rounded-lg sm:rounded-2xl hover:border-purple-400 dark:hover:border-purple-500
-                         transition-all duration-300 group
-                         shadow-sm hover:shadow-xl"
-            >
-                {/* Icon */}
-                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 
-                              flex items-center justify-center 
-                              bg-gradient-to-br from-blue-500 to-purple-600 
-                              rounded-lg sm:rounded-xl mr-2 sm:mr-3 md:mr-4
-                              group-hover:scale-110 transition-transform duration-300">
-                    <span className="text-base sm:text-lg md:text-xl">
-                        {getToolIcon(tool.label)}
-                    </span>
-                </div>
-                
-                {/* Text */}
-                <div className="flex-1 min-w-0">
-                    <span className="text-sm sm:text-base md:text-lg 
-                                   font-semibold text-gray-800 dark:text-gray-200 
-                                   group-hover:text-purple-600 dark:group-hover:text-purple-400 
-                                   transition-colors duration-300 block truncate">
-                        {tool.label}
-                    </span>
-                    <span className="text-sm sm:text-base text-gray-500 dark:text-gray-400 
-                                   mt-1 block line-clamp-2">
-                        {getToolDescription(tool.label)}
-                    </span>
-                </div>
-                
-                {/* Arrow */}
-                <div className="flex-shrink-0 ml-1 sm:ml-2">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 
-                                  group-hover:text-purple-500 
-                                  group-hover:translate-x-1 transition-all duration-300" 
-                         fill="none" 
-                         stroke="currentColor" 
-                         viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" 
-                              strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </div>
-            </a>
-        </motion.div>
-    ))}
-</div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+                            {toolKeywords.map((tool, index) => (
+                                <motion.div
+                                    key={tool.label}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                                    whileHover={{ 
+                                        scale: 1.02, 
+                                        boxShadow: "0 10px 30px rgba(120, 80, 255, 0.25)",
+                                        y: -4
+                                    }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="w-full"
+                                >
+                                    <a
+                                        href={tool.url}
+                                        className="flex items-center justify-start w-full p-3 sm:p-4 md:p-5 
+                                                 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900
+                                                 border border-gray-200 dark:border-gray-700 
+                                                 rounded-lg sm:rounded-2xl hover:border-purple-400 dark:hover:border-purple-500
+                                                 transition-all duration-300 group
+                                                 shadow-sm hover:shadow-xl"
+                                    >
+                                        {/* Icon */}
+                                        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 
+                                                      flex items-center justify-center 
+                                                      bg-gradient-to-br from-blue-500 to-purple-600 
+                                                      rounded-lg sm:rounded-xl mr-2 sm:mr-3 md:mr-4
+                                                      group-hover:scale-110 transition-transform duration-300">
+                                            <span className="text-base sm:text-lg md:text-xl">
+                                                {getToolIcon(tool.label)}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Text */}
+                                        <div className="flex-1 min-w-0">
+                                            <span className="text-sm sm:text-base md:text-lg 
+                                                           font-semibold text-gray-800 dark:text-gray-200 
+                                                           group-hover:text-purple-600 dark:group-hover:text-purple-400 
+                                                           transition-colors duration-300 block truncate">
+                                                {tool.label}
+                                            </span>
+                                            <span className="text-sm sm:text-base text-gray-500 dark:text-gray-400 
+                                                           mt-1 block line-clamp-2">
+                                                {getToolDescription(tool.label)}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Arrow */}
+                                        <div className="flex-shrink-0 ml-1 sm:ml-2">
+                                            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 
+                                                          group-hover:text-purple-500 
+                                                          group-hover:translate-x-1 transition-all duration-300" 
+                                                 fill="none" 
+                                                 stroke="currentColor" 
+                                                 viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" 
+                                                      strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
+                                    </a>
+                                </motion.div>
+                            ))}
+                        </div>
 
-
-            
-
-
-
-
-
-
-
-
-
-            
-                        
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -2004,8 +2154,6 @@ export default function PdfRotatorTool() {
                             </button>
                         </motion.div>
                     </motion.div>
-
-                    
 
                     {/* Info Footer - Responsive */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-center mt-6 sm:mt-8 md:mt-12">
@@ -2068,7 +2216,7 @@ export default function PdfRotatorTool() {
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
-                                    <span>Swipe down on zoomed page to close</span>
+                                    <span>Drag to pan when zoomed in</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>

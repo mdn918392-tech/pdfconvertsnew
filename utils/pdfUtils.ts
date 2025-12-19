@@ -442,3 +442,41 @@ export async function compressPdf(file: File): Promise<Blob> {
 
     return toPdfBlob(bytes);
 }
+
+// ------------------------------------------------------------
+
+/* ============================================================
+    REVERSE PDF ORDER
+============================================================ */
+export async function reversePdfOrder(file: File | Blob): Promise<Blob> {
+    let pdfBytes: ArrayBuffer;
+    
+    // Handle both File and Blob inputs
+    if (file instanceof File) {
+        pdfBytes = await file.arrayBuffer();
+    } else if (file instanceof Blob) {
+        pdfBytes = await file.arrayBuffer();
+    } else {
+        throw new Error('Input must be a File or Blob');
+    }
+    
+    const pdf = await PDFDocument.load(pdfBytes);
+    const pageCount = pdf.getPageCount();
+    
+    if (pageCount === 0) {
+        throw new Error('PDF has no pages to reverse');
+    }
+    
+    // Create a new PDF document
+    const newPdf = await PDFDocument.create();
+    
+    // Copy pages in reverse order
+    for (let i = pageCount - 1; i >= 0; i--) {
+        const [page] = await newPdf.copyPages(pdf, [i]);
+        newPdf.addPage(page);
+    }
+    
+    const bytes = await newPdf.save();
+    return toPdfBlob(bytes);
+}
+// ------------------------------------------------------------

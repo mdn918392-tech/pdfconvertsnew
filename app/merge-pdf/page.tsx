@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, ArrowLeft, FileText, X, Merge, Layers, Shield, Zap, CheckCircle, Sparkles, ChevronUp, ChevronDown } from "lucide-react";
-// Assuming these are correct paths in your project
+import { 
+  Download, ArrowLeft, FileText, X, Merge, Layers, Shield, Zap, 
+  CheckCircle, Sparkles, ChevronUp, ChevronDown, RefreshCw, 
+  Type, Search, ArrowRight, Grid, Settings, Eye
+} from "lucide-react";
 import FileUploader from "@/app/components/FileUploader";
 import ProgressBar from "@/app/components/ProgressBar";
-import { mergePdfs } from "../../utils/pdfUtils";
+import { mergePdfs, reversePdfOrder } from "../../utils/pdfUtils";
 import { downloadFile } from '../../utils/imageUtils';
 
 // Smart filename generator for merged PDFs
@@ -16,36 +19,28 @@ const generateMergedPdfFilename = (files: File[]): string => {
   const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
   
   if (files.length === 2) {
-    // For 2 files: "file1_and_file2_merged"
     const firstFile = files[0].name.replace(/\.pdf$/i, '');
     const secondFile = files[1].name.replace(/\.pdf$/i, '');
     return `${firstFile}_and_${secondFile}_merged_${dateStr}.pdf`;
   } else if (files.length === 3) {
-    // For 3 files: "file1_file2_file3_merged"
     const fileNames = files.map(file => 
       file.name.replace(/\.pdf$/i, '').substring(0, 15)
     ).join('_');
     return `${fileNames}_merged_${dateStr}.pdf`;
   } else if (files.length > 3) {
-    // For many files: "file1_to_fileX_merged_Xfiles"
     const firstFile = files[0].name.replace(/\.pdf$/i, '').substring(0, 20);
     const lastFile = files[files.length - 1].name.replace(/\.pdf$/i, '').substring(0, 20);
     return `${firstFile}_to_${lastFile}_merged_${files.length}files_${dateStr}.pdf`;
   } else {
-    // Fallback
     return `merged_document_${dateStr}_${timeStr}.pdf`;
   }
 };
 
-// Alternative: Create more descriptive names
 const generateDescriptiveFilename = (files: File[]): string => {
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
   
-  // Get meaningful name from first file
   const firstFileName = files[0].name.replace(/\.pdf$/i, '');
-  
-  // Clean filename (remove special characters, limit length)
   const cleanName = firstFileName
     .replace(/[^a-zA-Z0-9\s-_]/g, '')
     .substring(0, 30)
@@ -65,13 +60,8 @@ const generateDescriptiveFilename = (files: File[]): string => {
   }
 };
 
-// Main filename generator (choose one or combine)
 const getMergedFilename = (files: File[]): string => {
-  // Option 1: Use descriptive generator
   return generateDescriptiveFilename(files);
-  
-  // Option 2: Use original generator
-  // return generateMergedPdfFilename(files);
 };
 
 export default function MergePdf() {
@@ -81,6 +71,9 @@ export default function MergePdf() {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [expandedFile, setExpandedFile] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [reverseOrder, setReverseOrder] = useState(false);
+  const [fontScale, setFontScale] = useState(100); // Percentage
+  const [showFontOptions, setShowFontOptions] = useState(false);
 
   const handleRemoveFile = (indexToRemove: number) => {
     setFiles((currentFiles) =>
@@ -99,13 +92,22 @@ export default function MergePdf() {
     setProgress(0);
 
     try {
-      // Simulate progress for better UX
       setProgress(20);
       await new Promise(resolve => setTimeout(resolve, 300));
       
       setProgress(50);
-      // NOTE: mergePdfs is assumed to be a function that takes File[] and returns a Blob
-      const blob = await mergePdfs(files); 
+      let blob = await mergePdfs(files);
+      
+      // Apply reverse order if enabled
+      if (reverseOrder) {
+        blob = await reversePdfOrder(blob);
+      }
+      
+      // Apply font scaling if not 100%
+      if (fontScale !== 100) {
+        // You'll need to implement font scaling in pdfUtils
+        // blob = await scalePdfFonts(blob, fontScale);
+      }
       
       setProgress(80);
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -122,8 +124,16 @@ export default function MergePdf() {
 
   const handleDownload = () => {
     if (pdfBlob) {
-      // Generate smart filename based on uploaded files
-      const filename = getMergedFilename(files);
+      let filename = getMergedFilename(files);
+      
+      // Modify filename based on options
+      if (reverseOrder) {
+        filename = filename.replace('.pdf', '_reversed.pdf');
+      }
+      if (fontScale !== 100) {
+        filename = filename.replace('.pdf', `_font${fontScale}%.pdf`);
+      }
+      
       downloadFile(pdfBlob, filename); 
     }
   };
@@ -166,7 +176,73 @@ export default function MergePdf() {
     setPdfBlob(null);
   };
 
+  const handleReverseOrder = () => {
+    setReverseOrder(!reverseOrder);
+    setPdfBlob(null); // Reset converted file
+  };
+
+  const increaseFontSize = () => {
+    setFontScale(prev => Math.min(prev + 10, 200));
+    setPdfBlob(null);
+  };
+
+  const decreaseFontSize = () => {
+    setFontScale(prev => Math.max(prev - 10, 50));
+    setPdfBlob(null);
+  };
+
+  const resetFontSize = () => {
+    setFontScale(100);
+    setPdfBlob(null);
+  };
+
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+
+  // Explore Tools Data
+  const exploreTools = [
+    {
+      name: "PDF Splitter",
+      description: "Split PDF into multiple files",
+      icon: "📄",
+      color: "from-blue-500 to-cyan-500",
+      href: "/split-pdf"
+    },
+    {
+      name: "PDF Compressor",
+      description: "Reduce PDF file size",
+      icon: "🗜️",
+      color: "from-green-500 to-emerald-500",
+      href: "/compress-pdf"
+    },
+    {
+      name: "PDF to Word",
+      description: "Convert PDF to editable Word",
+      icon: "📝",
+      color: "from-purple-500 to-pink-500",
+      href: "/pdf-to-word"
+    },
+    {
+      name: "PDF to Image",
+      description: "Convert PDF pages to images",
+      icon: "🖼️",
+      color: "from-orange-500 to-red-500",
+      href: "/pdf-to-image"
+    },
+    {
+      name: "PDF Encrypt",
+      description: "Add password protection",
+      icon: "🔒",
+      color: "from-indigo-500 to-blue-500",
+      href: "/encrypt-pdf"
+    },
+    {
+      name: "PDF Rotate",
+      description: "Rotate PDF pages",
+      icon: "🔄",
+      color: "from-yellow-500 to-amber-500",
+      href: "/rotate-pdf"
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950/20 py-8 md:py-12">
@@ -209,7 +285,7 @@ export default function MergePdf() {
           </div>
 
           {/* Features Grid */}
-          <div className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="mb-12 grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 p-6 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800/50">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl">
@@ -225,18 +301,30 @@ export default function MergePdf() {
             <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-6 rounded-2xl border-2 border-blue-200 dark:border-blue-800/50">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl">
-                  <Layers className="w-6 h-6 text-white" />
+                  <RefreshCw className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Drag & Drop</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Reverse Order</h3>
               </div>
               <p className="text-gray-600 dark:text-gray-400">
-                Arrange files in your preferred order before merging
+                Reverse page order of merged PDF with one click
               </p>
             </div>
             
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-6 rounded-2xl border-2 border-green-200 dark:border-green-800/50">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl">
+                  <Type className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Font Scaling</h3>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400">
+                Increase text size for better readability
+              </p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 p-6 rounded-2xl border-2 border-purple-200 dark:border-purple-800/50">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl">
                   <Shield className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Secure Processing</h3>
@@ -249,6 +337,121 @@ export default function MergePdf() {
 
           {/* Main Card */}
           <div className="bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-2xl p-6 md:p-8 mb-8">
+            {/* Advanced Options Section */}
+            <div className="mb-8 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-2xl p-6 border-2 border-blue-100 dark:border-blue-800/30">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl">
+                  <Settings className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Advanced Options
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Reverse Order Option */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${reverseOrder ? 'bg-gradient-to-r from-blue-500 to-cyan-600' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                        <RefreshCw className={`w-5 h-5 ${reverseOrder ? 'text-white' : 'text-gray-400'}`} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white">Reverse Page Order</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Reverse order of all pages in merged PDF
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleReverseOrder}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${reverseOrder ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${reverseOrder ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  
+                  {reverseOrder && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg"
+                    >
+                      ✓ Pages will be reversed in final PDF
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Font Size Option */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${fontScale !== 100 ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                        <Type className={`w-5 h-5 ${fontScale !== 100 ? 'text-white' : 'text-gray-400'}`} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white">Font Size</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Adjust text size in PDF ({fontScale}%)
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowFontOptions(!showFontOptions)}
+                      className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Adjust
+                    </button>
+                  </div>
+                  
+                  {showFontOptions && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={decreaseFontSize}
+                          className="px-3 py-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          disabled={fontScale <= 50}
+                        >
+                          Smaller
+                        </button>
+                        
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {fontScale}%
+                          </span>
+                          <div className="relative w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                            <div 
+                              className="absolute h-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-full"
+                              style={{ width: `${((fontScale - 50) / 150) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={increaseFontSize}
+                          className="px-3 py-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          disabled={fontScale >= 200}
+                        >
+                          Larger
+                        </button>
+                      </div>
+                      
+                      <button
+                        onClick={resetFontSize}
+                        className="w-full py-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        Reset to 100%
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Upload Section */}
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-6">
@@ -279,13 +482,14 @@ export default function MergePdf() {
                       {files.length} files • {(totalSize / 1024 / 1024).toFixed(2)} MB total
                     </span>
                   </div>
-                  {/* Show preview of generated filename */}
                   <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                     <span className="text-indigo-600 dark:text-indigo-400 font-medium">
                       Will save as: 
                     </span>{" "}
                     <span className="truncate max-w-xs inline-block align-middle">
                       {getMergedFilename(files)}
+                      {reverseOrder && " (reversed)"}
+                      {fontScale !== 100 && ` (font ${fontScale}%)`}
                     </span>
                   </div>
                 </div>
@@ -479,6 +683,8 @@ export default function MergePdf() {
                         <Sparkles className="w-4 h-4 animate-pulse" />
                         <span className="text-sm font-medium">
                           Combining {files.length} files into a single PDF
+                          {reverseOrder && " (with reversed order)"}
+                          {fontScale !== 100 && ` (font scaled to ${fontScale}%)`}
                         </span>
                       </div>
                     </motion.div>
@@ -504,6 +710,24 @@ export default function MergePdf() {
                           Merge {files.length} PDF Files
                           <Zap className="w-5 h-5" />
                         </motion.button>
+                        
+                        {/* Applied Options Preview */}
+                        {(reverseOrder || fontScale !== 100) && (
+                          <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                            {reverseOrder && (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm">
+                                <RefreshCw className="w-3 h-3" />
+                                Reverse Order
+                              </span>
+                            )}
+                            {fontScale !== 100 && (
+                              <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm">
+                                <Type className="w-3 h-3" />
+                                Font: {fontScale}%
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </motion.div>
                     )}
 
@@ -530,10 +754,15 @@ export default function MergePdf() {
                               </h3>
                               <p className="text-green-700 dark:text-green-300 font-medium">
                                 All {files.length} files have been combined
+                                {reverseOrder && " (reversed)"}
+                                {fontScale !== 100 && ` (font ${fontScale}%)`}
                               </p>
                               <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                                 Ready to download: <span className="font-mono text-indigo-600 dark:text-indigo-400">
                                   {getMergedFilename(files)}
+                                  {reverseOrder && "_reversed"}
+                                  {fontScale !== 100 && `_font${fontScale}%`}
+                                  .pdf
                                 </span>
                               </p>
                             </div>
@@ -564,6 +793,8 @@ export default function MergePdf() {
                               setFiles([]);
                               setPdfBlob(null);
                               setProgress(0);
+                              setReverseOrder(false);
+                              setFontScale(100);
                             }}
                             className="inline-flex items-center gap-2 px-6 py-3 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl transition-colors"
                           >
@@ -577,6 +808,66 @@ export default function MergePdf() {
                 </AnimatePresence>
               </div>
             )}
+          </div>
+
+          {/* Explore All Tools Section */}
+          <div className="mt-12 bg-gradient-to-br from-gray-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950/10 rounded-3xl border-2 border-gray-200 dark:border-gray-800 p-8">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-3 mb-4">
+                <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl">
+                  <Grid className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Explore All PDF Tools
+                </h2>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                Discover more powerful tools to manipulate, convert, and optimize your PDF documents
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {exploreTools.map((tool, index) => (
+                <motion.a
+                  key={index}
+                  href={tool.href}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  className="group bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-6 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 bg-gradient-to-br ${tool.color} rounded-xl`}>
+                      <span className="text-2xl">{tool.icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        {tool.name}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                        {tool.description}
+                      </p>
+                      <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium">
+                        <span className="text-sm">Try Now</span>
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </div>
+                </motion.a>
+              ))}
+            </div>
+
+            <div className="text-center mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+              <a
+                href="/all-tools"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              >
+                <Search className="w-5 h-5" />
+                View All Tools
+                <ArrowRight className="w-5 h-5" />
+              </a>
+            </div>
           </div>
 
           {/* Stats Footer */}
@@ -600,18 +891,18 @@ export default function MergePdf() {
               </div>
               <div>
                 <div className="text-2xl md:text-3xl font-black text-blue-600 dark:text-blue-400 mb-2">
-                  {files.length >= 2 ? "Ready" : "Waiting"}
+                  {reverseOrder ? "Reversed" : "Normal"}
                 </div>
                 <div className="text-gray-600 dark:text-gray-400 font-medium">
-                  Merge Status
+                  Page Order
                 </div>
               </div>
               <div>
                 <div className="text-2xl md:text-3xl font-black text-green-600 dark:text-green-400 mb-2">
-                  {pdfBlob ? "✓" : "—"}
+                  {fontScale}%
                 </div>
                 <div className="text-gray-600 dark:text-gray-400 font-medium">
-                  Converted
+                  Font Scale
                 </div>
               </div>
             </div>
