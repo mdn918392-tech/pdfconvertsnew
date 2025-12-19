@@ -29,6 +29,66 @@ export async function compressImage(
   return compressedFile;
 }
 
+// Add this function to your imageUtils.ts
+export const processImageForPdf = async (
+  blob: Blob, 
+  options: { flipHorizontal?: boolean; flipVertical?: boolean } = {}
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(blob);
+      
+      img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+              reject(new Error('Canvas context not available'));
+              return;
+          }
+          
+          // Apply transformations
+          if (options.flipHorizontal || options.flipVertical) {
+              ctx.save();
+              
+              // Move to center
+              ctx.translate(canvas.width / 2, canvas.height / 2);
+              
+              // Apply flips
+              if (options.flipHorizontal) {
+                  ctx.scale(-1, 1);
+              }
+              if (options.flipVertical) {
+                  ctx.scale(1, -1);
+              }
+              
+              // Draw image centered
+              ctx.drawImage(img, -img.width / 2, -img.height / 2);
+              ctx.restore();
+          } else {
+              ctx.drawImage(img, 0, 0);
+          }
+          
+          canvas.toBlob((newBlob) => {
+              if (newBlob) {
+                  resolve(newBlob);
+              } else {
+                  reject(new Error('Failed to create blob'));
+              }
+              URL.revokeObjectURL(url);
+          }, 'image/jpeg', 0.95);
+      };
+      
+      img.onerror = () => {
+          reject(new Error('Failed to load image'));
+          URL.revokeObjectURL(url);
+      };
+      
+      img.src = url;
+  });
+};
 // --------------------------------------------------
 
 /**

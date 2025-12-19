@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, 
   ArrowLeft, 
-  Image, 
+  Image as ImageIcon, 
   Zap, 
   Shield, 
   Minimize2 as Compress, 
@@ -24,12 +24,15 @@ import {
   FileImage,
   Trash2,
   CheckSquare,
-  Square
+  Square,
+  FlipHorizontal,
+  FlipVertical,
+  RotateCw
 } from 'lucide-react';
 import FileUploader from '../components/FileUploader';
 import ProgressBar from '../components/ProgressBar';
 // Import the PDF function
-import { downloadAsPdf } from '../../utils/imageUtils';
+import { downloadAsPdf, processImageForPdf } from '../../utils/imageUtils';
 import { compressImage, downloadFile } from '../../utils/imageUtils';
 
 // --- Smart filename generator ---
@@ -63,11 +66,12 @@ interface ImagePreviewProps {
     compressedBlob: Blob | null;
     index: number;
     quality: number;
-    onPreview: (url: string, index: number, isCompressed: boolean) => void;
+    onPreview: (url: string, index: number, isCompressed: boolean, reversed: boolean) => void;
     onRemove: (index: number) => void;
     selected: boolean;
     onToggleSelect: (index: number) => void;
     showSelection: boolean;
+    reversed: boolean;
 }
 
 // Image Preview Component
@@ -80,25 +84,74 @@ const ImagePreview = ({
     onRemove,
     selected,
     onToggleSelect,
-    showSelection
+    showSelection,
+    reversed
 }: ImagePreviewProps) => {
     const [isHovered, setIsHovered] = useState(false);
-    const originalUrl = useMemo(() => URL.createObjectURL(originalFile), [originalFile]);
-    const compressedUrl = useMemo(() => compressedBlob ? URL.createObjectURL(compressedBlob) : null, [compressedBlob]);
+    const [imgError, setImgError] = useState(false);
+    const [localReversed, setLocalReversed] = useState(reversed);
     
-    const originalSize = (originalFile.size / 1024).toFixed(1);
-    const compressedSize = compressedBlob ? (compressedBlob.size / 1024).toFixed(1) : null;
-    const savings = compressedBlob ? (((originalFile.size - compressedBlob.size) / originalFile.size) * 100).toFixed(1) : null;
+    // Update localReversed when prop changes
+    useEffect(() => {
+        setLocalReversed(reversed);
+    }, [reversed]);
+    
+    const originalUrl = useMemo(() => {
+        try {
+            return URL.createObjectURL(originalFile);
+        } catch (error) {
+            console.error('Failed to create original URL:', error);
+            return '';
+        }
+    }, [originalFile]);
+    
+    const compressedUrl = useMemo(() => {
+        if (!compressedBlob) return null;
+        try {
+            return URL.createObjectURL(compressedBlob);
+        } catch (error) {
+            console.error('Failed to create compressed URL:', error);
+            return null;
+        }
+    }, [compressedBlob]);
 
     // Cleanup URLs on unmount
     useEffect(() => {
         return () => {
-            URL.revokeObjectURL(originalUrl);
-            if (compressedUrl) {
-                URL.revokeObjectURL(compressedUrl);
-            }
+            if (originalUrl) URL.revokeObjectURL(originalUrl);
+            if (compressedUrl) URL.revokeObjectURL(compressedUrl);
         };
     }, [originalUrl, compressedUrl]);
+
+    const originalSize = (originalFile.size / 1024).toFixed(1);
+    const compressedSize = compressedBlob ? (compressedBlob.size / 1024).toFixed(1) : null;
+    const savings = compressedBlob ? (((originalFile.size - compressedBlob.size) / originalFile.size) * 100).toFixed(1) : null;
+
+    // Fallback SVG for image errors
+    const fallbackSvg = (index: number) => {
+        const svgString = `<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="60" height="60" fill="#F3F4F6"/>
+            <path d="M30 20V30M30 40V30M20 30H40M40 30H20" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>
+            <rect x="10" y="10" width="40" height="40" stroke="#6B7280" stroke-width="1" stroke-dasharray="2 2"/>
+            <text x="30" y="32" text-anchor="middle" fill="#6B7280" font-size="10" font-family="Arial, sans-serif">Image ${index + 1}</text>
+        </svg>`;
+        return `data:image/svg+xml;base64,${btoa(svgString)}`;
+    };
+
+    const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const target = e.currentTarget;
+        setImgError(true);
+        target.src = fallbackSvg(index);
+        target.classList.remove('object-cover', 'group-hover:scale-110');
+        target.classList.add('object-contain', 'p-4', 'bg-gray-100', 'dark:bg-gray-700');
+    };
+
+    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const target = e.currentTarget;
+        setImgError(false);
+        target.classList.remove('object-contain', 'p-4', 'bg-gray-100', 'dark:bg-gray-700');
+        target.classList.add('object-cover', 'group-hover:scale-110');
+    };
 
     return (
         <motion.div
@@ -148,16 +201,23 @@ const ImagePreview = ({
                     className="relative w-full h-32 mb-3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer"
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
-                    onClick={() => onPreview(compressedUrl || originalUrl, index + 1, !!compressedBlob)}
+                    onClick={() => {
+                        const urlToPreview = compressedUrl || originalUrl;
+                        if (urlToPreview) {
+                            onPreview(urlToPreview, index + 1, !!compressedBlob, localReversed);
+                        }
+                    }}
                 >
                     <img 
-                        src={compressedUrl || originalUrl} 
+                        src={compressedUrl || originalUrl || fallbackSvg(index)} 
                         alt={`Image ${index + 1}`} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        onError={(e) => {
-                            console.error("Failed to load image preview");
-                            e.currentTarget.style.display = 'none';
+                        className={`w-full h-full ${imgError ? 'object-contain p-4 bg-gray-100 dark:bg-gray-700' : 'object-cover group-hover:scale-110'} transition-transform duration-500`}
+                        style={{
+                            transform: localReversed ? 'scaleX(-1)' : 'none',
+                            transformOrigin: 'center'
                         }}
+                        onError={handleImageError}
+                        onLoad={handleImageLoad}
                     />
                     
                     {/* Hover Overlay */}
@@ -193,6 +253,18 @@ const ImagePreview = ({
                             <Trash2 className="w-3 h-3" />
                         </button>
                     )}
+
+                    {/* Flip Button */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setLocalReversed(!localReversed);
+                        }}
+                        className="absolute top-2 left-2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full transition-colors z-10"
+                        title="Flip image horizontally"
+                    >
+                        <FlipHorizontal className="w-3 h-3" />
+                    </button>
                 </div>
 
                 {/* Image Info */}
@@ -237,8 +309,9 @@ export default function CompressImage() {
     const [previewModal, setPreviewModal] = useState<{ 
         url: string | null, 
         index: number | null,
-        isCompressed: boolean 
-    }>({ url: null, index: null, isCompressed: false });
+        isCompressed: boolean,
+        reversed: boolean
+    }>({ url: null, index: null, isCompressed: false, reversed: false });
     const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
     const [downloading, setDownloading] = useState(false);
     const [compressionComplete, setCompressionComplete] = useState(false);
@@ -251,6 +324,16 @@ export default function CompressImage() {
     const [showPdfOptions, setShowPdfOptions] = useState(false);
     const [selectedImages, setSelectedImages] = useState<number[]>([]);
     const [showSelection, setShowSelection] = useState(false);
+    const [reverseImages, setReverseImages] = useState(false);
+    const [compressionError, setCompressionError] = useState<string | null>(null);
+    const [imageReversal, setImageReversal] = useState<boolean[]>([]);
+
+    // Initialize image reversal array
+    useEffect(() => {
+        if (files.length > 0 && imageReversal.length !== files.length) {
+            setImageReversal(Array(files.length).fill(reverseImages));
+        }
+    }, [files.length, reverseImages]);
 
     const handleConvert = async () => {
         if (files.length === 0) return;
@@ -264,6 +347,7 @@ export default function CompressImage() {
         setCompressionComplete(false);
         setSelectedImages([]);
         setShowSelection(false);
+        setCompressionError(null);
 
         try {
             const blobs: Blob[] = [];
@@ -272,10 +356,19 @@ export default function CompressImage() {
 
             for (let i = 0; i < files.length; i++) {
                 setProgress(20 + (i / files.length) * 60);
-                const blob = await compressImage(files[i], quality / 100);
-                blobs.push(blob);
-                totalOriginal += files[i].size;
-                totalCompressed += blob.size;
+                try {
+                    const blob = await compressImage(files[i], quality / 100);
+                    console.log(`Compressed file ${i}:`, blob.size, blob.type);
+                    blobs.push(blob);
+                    totalOriginal += files[i].size;
+                    totalCompressed += blob.size;
+                } catch (error) {
+                    console.error(`Error compressing file ${i}:`, error);
+                    // Add original file as fallback
+                    blobs.push(files[i]);
+                    totalOriginal += files[i].size;
+                    totalCompressed += files[i].size;
+                }
                 await new Promise(resolve => setTimeout(resolve, 200));
             }
 
@@ -293,6 +386,7 @@ export default function CompressImage() {
             setTimeout(() => setDownloadSuccess(null), 5000);
         } catch (error) {
             console.error('Compression error:', error);
+            setCompressionError("Failed to compress images. Please try again.");
             setDownloadSuccess("✗ Failed to compress images. Please try again.");
             setTimeout(() => setDownloadSuccess(null), 3000);
         } finally {
@@ -333,10 +427,24 @@ export default function CompressImage() {
         setDownloading(true);
         try {
             // Prepare images data for PDF creation
-            const imagesData = compressedBlobs.map((blob, index) => ({
-                blob,
-                name: files[index].name
-            }));
+            let imagesData = await Promise.all(
+                compressedBlobs.map(async (blob, index) => {
+                    // Process image for PDF with reversal if needed
+                    const processedBlob = imageReversal[index] 
+                        ? await processImageForPdf(blob, { flipHorizontal: true })
+                        : blob;
+                    
+                    return {
+                        blob: processedBlob,
+                        name: files[index].name
+                    };
+                })
+            );
+
+            // Reverse the order if selected (this is just order, not image flipping)
+            if (pdfSettings.reverseOrder) {
+                imagesData = imagesData.reverse();
+            }
 
             // Create PDF with settings
             const pdfBlob = await downloadAsPdf(imagesData, pdfSettings);
@@ -366,10 +474,25 @@ export default function CompressImage() {
         setDownloading(true);
         try {
             // Prepare only selected images data for PDF creation
-            const imagesData = selectedImages.map(index => ({
-                blob: compressedBlobs[index],
-                name: files[index].name
-            }));
+            let imagesData = await Promise.all(
+                selectedImages.map(async index => {
+                    // Process image for PDF with reversal if needed
+                    const processedBlob = imageReversal[index] 
+                        ? await processImageForPdf(compressedBlobs[index], { flipHorizontal: true })
+                        : compressedBlobs[index];
+                    
+                    return {
+                        blob: processedBlob,
+                        name: files[index].name
+                    };
+                })
+            );
+            
+
+            // Reverse the order if selected
+            if (pdfSettings.reverseOrder) {
+                imagesData = imagesData.reverse();
+            }
 
             // Create PDF with settings
             const pdfBlob = await downloadAsPdf(imagesData, pdfSettings);
@@ -421,6 +544,9 @@ export default function CompressImage() {
         // Adjust indices for selected images after removal
         setSelectedImages(prev => prev.map(i => i > index ? i - 1 : i));
         
+        // Update reversal array
+        setImageReversal(prev => prev.filter((_, i) => i !== index));
+        
         setDownloadSuccess(`✗ Removed image ${index + 1}`);
         setTimeout(() => setDownloadSuccess(null), 3000);
     };
@@ -450,6 +576,8 @@ export default function CompressImage() {
         sortedIndices.forEach(index => {
             setFiles(prev => prev.filter((_, i) => i !== index));
             setCompressedBlobs(prev => prev.filter((_, i) => i !== index));
+            // Update reversal array
+            setImageReversal(prev => prev.filter((_, i) => i !== index));
         });
         
         setSelectedImages([]);
@@ -464,7 +592,7 @@ export default function CompressImage() {
     };
 
     const getCompressionPercent = () => {
-        if (!compressionStats) return 0;
+        if (!compressionStats) return "0";
         return ((1 - compressionStats.compressed / compressionStats.original) * 100).toFixed(1);
     };
 
@@ -477,12 +605,24 @@ export default function CompressImage() {
         { value: 95, label: 'Max', color: 'from-blue-500 to-purple-600', desc: 'Best quality' },
     ];
 
-    const handlePreviewClick = (url: string, index: number, isCompressed: boolean) => {
-        setPreviewModal({ url, index, isCompressed });
+    const handlePreviewClick = (url: string, index: number, isCompressed: boolean, reversed: boolean) => {
+        setPreviewModal({ url, index, isCompressed, reversed });
     };
 
     const handleFileSelect = (selectedFiles: File[]) => {
-        setFiles(selectedFiles);
+        // Filter only image files
+        const imageFiles = selectedFiles.filter(file => 
+            file.type.startsWith('image/') && 
+            ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml'].includes(file.type.toLowerCase())
+        );
+        
+        if (imageFiles.length === 0) {
+            setDownloadSuccess("✗ Please select valid image files (JPG, PNG, WebP, GIF, BMP, SVG)");
+            setTimeout(() => setDownloadSuccess(null), 3000);
+            return;
+        }
+        
+        setFiles(imageFiles);
         setCompressedBlobs([]);
         setCompressionStats(null);
         setDownloadSuccess(null);
@@ -490,6 +630,8 @@ export default function CompressImage() {
         setShowUploadInfo(false);
         setSelectedImages([]);
         setShowSelection(false);
+        setImageReversal(Array(imageFiles.length).fill(false));
+        setCompressionError(null);
     };
 
     const handleReset = () => {
@@ -501,6 +643,23 @@ export default function CompressImage() {
         setShowUploadInfo(true);
         setSelectedImages([]);
         setShowSelection(false);
+        setReverseImages(false);
+        setImageReversal([]);
+        setCompressionError(null);
+    };
+
+    const toggleReverseImages = () => {
+        const newReversed = !reverseImages;
+        setReverseImages(newReversed);
+        setImageReversal(Array(files.length).fill(newReversed));
+    };
+
+    const toggleIndividualReverse = (index: number) => {
+        setImageReversal(prev => {
+            const newReversal = [...prev];
+            newReversal[index] = !newReversal[index];
+            return newReversal;
+        });
     };
 
     // Explore Tools Data
@@ -549,6 +708,33 @@ export default function CompressImage() {
         }
     ];
 
+    // Preview modal fallback SVG
+    const previewFallbackSvg = (index: number | null, isCompressed: boolean, reversed: boolean) => {
+        const svgString = `<svg width="300" height="200" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="300" height="200" fill="#F3F4F6"/>
+            <rect x="20" y="20" width="260" height="160" stroke="#6B7280" stroke-width="2" stroke-dasharray="4 4"/>
+            <path d="M150 70V100M150 130V100M100 100H200M200 100H100" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"/>
+            <text x="150" y="160" text-anchor="middle" fill="#6B7280" font-size="14" font-family="Arial, sans-serif">
+                Image ${index} - Failed to load
+            </text>
+            <text x="150" y="180" text-anchor="middle" fill="#9CA3AF" font-size="12" font-family="Arial, sans-serif">
+                ${isCompressed ? 'Compressed' : 'Original'} ${reversed ? '• Reversed' : ''}
+            </text>
+        </svg>`;
+        return `data:image/svg+xml;base64,${btoa(svgString)}`;
+    };
+
+    const handlePreviewImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const target = e.currentTarget;
+        target.src = previewFallbackSvg(previewModal.index, previewModal.isCompressed, previewModal.reversed);
+        target.classList.add('p-8', 'bg-gray-100', 'dark:bg-gray-700');
+    };
+
+    const handlePreviewImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const target = e.currentTarget;
+        target.classList.remove('p-8', 'bg-gray-100', 'dark:bg-gray-700');
+    };
+
     return (
         <>
             {/* Success Message Overlay */}
@@ -578,6 +764,22 @@ export default function CompressImage() {
                 )}
             </AnimatePresence>
 
+            {/* Error Message */}
+            {compressionError && (
+                <motion.div
+                    initial={{ opacity: 0, y: -50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
+                >
+                    <div className="p-4 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-xl shadow-2xl">
+                        <div className="flex items-center justify-center gap-3">
+                            <X className="w-5 h-5" />
+                            <span className="font-medium text-sm">{compressionError}</span>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+
             {/* Preview Modal */}
             <AnimatePresence>
                 {previewModal.url && (
@@ -586,7 +788,7 @@ export default function CompressImage() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-                        onClick={() => setPreviewModal({ url: null, index: null, isCompressed: false })}
+                        onClick={() => setPreviewModal({ url: null, index: null, isCompressed: false, reversed: false })}
                     >
                         <motion.div
                             initial={{ scale: 0.9 }}
@@ -600,17 +802,18 @@ export default function CompressImage() {
                                     src={previewModal.url} 
                                     alt={`Image ${previewModal.index}`}
                                     className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-                                    onError={(e) => {
-                                        console.error("Failed to load preview image");
-                                        e.currentTarget.style.display = 'none';
+                                    style={{
+                                        transform: previewModal.reversed ? 'scaleX(-1)' : 'none'
                                     }}
+                                    onError={handlePreviewImageError}
+                                    onLoad={handlePreviewImageLoad}
                                 />
                             </div>
                             <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-orange-600 to-pink-600 text-white px-4 py-2 rounded-full shadow-lg text-sm">
-                                Image {previewModal.index} • {previewModal.isCompressed ? 'Compressed' : 'Original'}
+                                Image {previewModal.index} • {previewModal.isCompressed ? 'Compressed' : 'Original'} {previewModal.reversed ? '• Reversed' : ''}
                             </div>
                             <button
-                                onClick={() => setPreviewModal({ url: null, index: null, isCompressed: false })}
+                                onClick={() => setPreviewModal({ url: null, index: null, isCompressed: false, reversed: false })}
                                 className="absolute -top-3 -right-3 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
                             >
                                 <X className="w-5 h-5" />
@@ -653,7 +856,7 @@ export default function CompressImage() {
                                 <p className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
                                     Reduce JPG/PNG file size while maintaining visual quality
                                     <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-sm md:text-base">
-                                        Smart filename generation • Success feedback • PDF export
+                                        Smart filename generation • Success feedback • PDF export • Image reversal
                                     </span>
                                 </p>
                             </div>
@@ -709,10 +912,10 @@ export default function CompressImage() {
                                             <div className="p-1.5 md:p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl">
                                                 <Shield className="w-4 h-4 md:w-6 md:h-6 text-white" />
                                             </div>
-                                            <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Secure Processing</h3>
+                                            <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Image Reversal</h3>
                                         </div>
                                         <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                            All processing happens locally in your browser
+                                            Flip images horizontally for mirror effects
                                         </p>
                                     </div>
                                 </motion.div>
@@ -725,7 +928,7 @@ export default function CompressImage() {
                             <div className="mb-6 md:mb-8">
                                 <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
                                     <div className="p-1.5 md:p-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-xl">
-                                        <Image className="w-4 h-4 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
+                                        <ImageIcon className="w-4 h-4 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
                                     </div>
                                     <div>
                                         <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
@@ -738,7 +941,7 @@ export default function CompressImage() {
                                 </div>
 
                                 <FileUploader
-                                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/bmp,image/svg+xml"
                                     multiple={true}
                                     onFilesSelected={handleFileSelect}
                                 />
@@ -746,7 +949,7 @@ export default function CompressImage() {
                                 {files.length > 0 && (
                                     <div className="mt-3 md:mt-4 text-center">
                                         <div className="inline-flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-full text-sm md:text-base">
-                                            <Image className="w-3 h-3 md:w-4 md:h-4 text-orange-600 dark:text-orange-400" />
+                                            <ImageIcon className="w-3 h-3 md:w-4 md:h-4 text-orange-600 dark:text-orange-400" />
                                             <span className="font-medium text-orange-700 dark:text-orange-300">
                                                 {files.length} images • {formatFileSize(totalSize)}
                                             </span>
@@ -923,6 +1126,32 @@ export default function CompressImage() {
                                             </div>
                                         </div>
 
+                                        {/* Reverse Images Control */}
+                                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-xl p-4 border-2 border-purple-200 dark:border-purple-800/30">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <FlipHorizontal className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm md:text-base">
+                                                        Image Reversal
+                                                    </h4>
+                                                </div>
+                                                <button
+                                                    onClick={toggleReverseImages}
+                                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 ${
+                                                        reverseImages
+                                                            ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
+                                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                                    }`}
+                                                >
+                                                    <FlipHorizontal className="w-3 h-3" />
+                                                    {reverseImages ? 'Reverse All' : 'Reverse All'}
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                Flip images horizontally for mirror effects. This applies to previews and PDF downloads.
+                                            </p>
+                                        </div>
+
                                         {/* PDF Export Options */}
                                         <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800/30">
                                             <div className="flex items-center justify-between mb-3">
@@ -1002,12 +1231,12 @@ export default function CompressImage() {
                                                             className="rounded text-blue-600 focus:ring-blue-500"
                                                         />
                                                         <label htmlFor="reverseOrder" className="text-sm text-gray-700 dark:text-gray-300">
-                                                            Reverse order in PDF
+                                                            Reverse order in PDF (just order, not image flipping)
                                                         </label>
                                                     </div>
 
                                                     <p className="text-xs text-blue-600 dark:text-blue-400">
-                                                        All images will be combined into 1 PDF file
+                                                        All images will be combined into 1 PDF file with individual reversal settings
                                                     </p>
                                                 </motion.div>
                                             )}
@@ -1020,9 +1249,20 @@ export default function CompressImage() {
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 md:gap-4">
                                                 <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 md:gap-3">
                                                     <Eye className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
-                                                    Images ({files.length})
+                                                    Images ({files.length}) {reverseImages && '• Reversed'}
                                                 </h3>
                                                 <div className="flex gap-2">
+                                                    <button
+                                                        onClick={toggleReverseImages}
+                                                        className={`px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium rounded-xl transition-colors flex items-center gap-1 md:gap-2 ${
+                                                            reverseImages
+                                                                ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
+                                                                : 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-900/50'
+                                                        }`}
+                                                    >
+                                                        <FlipHorizontal className="w-3 h-3 md:w-4 md:h-4" />
+                                                        {reverseImages ? 'Restore All' : 'Reverse All'}
+                                                    </button>
                                                     <button
                                                         onClick={() => setExpandedView(!expandedView)}
                                                         className="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition-colors flex items-center gap-1 md:gap-2"
@@ -1055,6 +1295,7 @@ export default function CompressImage() {
                                                         selected={selectedImages.includes(index)}
                                                         onToggleSelect={handleToggleSelect}
                                                         showSelection={showSelection}
+                                                        reversed={imageReversal[index] || false}
                                                     />
                                                 ))}
                                             </div>
@@ -1137,7 +1378,7 @@ export default function CompressImage() {
                                                             Compression Complete! 🎉
                                                         </h3>
                                                         <p className="text-green-700 dark:text-green-300 font-medium text-sm md:text-base">
-                                                            Saved {getCompressionPercent()}% • Quality: {quality}%
+                                                            Saved {getCompressionPercent()}% • Quality: {quality}% {imageReversal.some(r => r) && '• Some images reversed'}
                                                         </p>
                                                         <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base mt-0.5 md:mt-1">
                                                             Download individual files or combine all into 1 PDF
@@ -1156,7 +1397,7 @@ export default function CompressImage() {
                                                 <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-4 md:p-6 rounded-xl md:rounded-2xl border-2 border-blue-200 dark:border-blue-800/50">
                                                     <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
                                                         <div className="p-1.5 md:p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg md:rounded-xl">
-                                                            <Image className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                                                            <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />
                                                         </div>
                                                         <h4 className="font-bold text-gray-900 dark:text-white text-sm md:text-base">Original Size</h4>
                                                     </div>

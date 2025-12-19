@@ -102,7 +102,7 @@ const compressImageForPdf = async (file: File, rotation: number = 0, targetQuali
     const fileSizeMB = file.size / (1024 * 1024);
     
     // If file is already small enough, return as is
-    if (fileSizeMB <= 1) {
+    if (fileSizeMB <= 0.5) { // Changed from 1MB to 0.5MB
       resolve(file);
       return;
     }
@@ -115,34 +115,65 @@ const compressImageForPdf = async (file: File, rotation: number = 0, targetQuali
       img.src = e.target?.result as string;
       
       img.onload = () => {
+        // ✅ Calculate maximum dimensions for PDF (max 1600px for large dimensions)
+        let maxDimension = 1600;
+        if (fileSizeMB > 10) maxDimension = 1200;
+        else if (fileSizeMB > 5) maxDimension = 1400;
+        else if (fileSizeMB > 2) maxDimension = 1600;
+        
+        // Calculate scale to fit within max dimension
+        let scale = 1;
+        const largerDimension = Math.max(img.width, img.height);
+        if (largerDimension > maxDimension) {
+          scale = maxDimension / largerDimension;
+        }
+        
+        // Additional scaling for very large files
+        if (fileSizeMB > 15) {
+          scale = scale * 0.6; // 40% additional reduction
+        } else if (fileSizeMB > 10) {
+          scale = scale * 0.7; // 30% additional reduction
+        } else if (fileSizeMB > 5) {
+          scale = scale * 0.8; // 20% additional reduction
+        }
+        
+        const newWidth = Math.floor(img.width * scale);
+        const newHeight = Math.floor(img.height * scale);
+        
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
         // Set canvas size based on rotation
         if (rotation === 90 || rotation === 270) {
-          canvas.width = img.height;
-          canvas.height = img.width;
+          canvas.width = newHeight;
+          canvas.height = newWidth;
         } else {
-          canvas.width = img.width;
-          canvas.height = img.height;
+          canvas.width = newWidth;
+          canvas.height = newHeight;
         }
         
         if (ctx) {
+          // Set image smoothing for better quality
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'medium';
+          
           // If rotation needed, apply it
           if (rotation !== 0) {
             ctx.translate(canvas.width / 2, canvas.height / 2);
             ctx.rotate((rotation * Math.PI) / 180);
-            ctx.drawImage(img, -img.width / 2, -img.height / 2);
+            ctx.drawImage(img, -newWidth / 2, -newHeight / 2, newWidth, newHeight);
           } else {
-            // No rotation, just draw
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            // No rotation, just draw with scaling
+            ctx.drawImage(img, 0, 0, newWidth, newHeight);
           }
           
           // Calculate optimal quality based on file size
           let quality = targetQuality;
           
           // Reduce quality for larger files
-          if (fileSizeMB > 10) {
+          if (fileSizeMB > 20) {
+            quality = 0.4; // Very aggressive for huge files
+          } else if (fileSizeMB > 10) {
             quality = 0.5;
           } else if (fileSizeMB > 5) {
             quality = 0.6;
@@ -150,18 +181,27 @@ const compressImageForPdf = async (file: File, rotation: number = 0, targetQuali
             quality = 0.7;
           }
           
+          // Use appropriate format
+          const outputFormat = file.type.includes('png') ? 'image/png' : 'image/jpeg';
+          
           canvas.toBlob((blob) => {
             if (blob) {
               const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
+                type: outputFormat,
                 lastModified: Date.now(),
               });
+              
+              // Log compression results
+              const compressionRatio = ((file.size - blob.size) / file.size * 100).toFixed(1);
+              console.log(`Compression: ${file.name} - ${(file.size/1024/1024).toFixed(2)}MB → ${(blob.size/1024/1024).toFixed(2)}MB (${compressionRatio}% reduced)`);
+              
               resolve(compressedFile);
             } else {
               // Fallback to original file if compression fails
+              console.warn(`Compression failed for ${file.name}, using original`);
               resolve(file);
             }
-          }, 'image/jpeg', quality);
+          }, outputFormat, outputFormat === 'image/jpeg' ? quality : 0.9);
         } else {
           reject(new Error('Failed to get canvas context'));
         }
@@ -442,15 +482,25 @@ export default function JpgToPdf() {
         filesToConvert = [...files];
       }
 
+      // Show compression progress
+      setProgress(10);
+      
       // First, compress all images (with rotation applied)
+      let cleanup: (() => void) | null = null;
+      cleanup = simulateProgress(setProgress, 10, 50, 3000);
+      
       const compressedFiles = await Promise.all(
-        filesToConvert.map(async (fileWithPreview) => {
+        filesToConvert.map(async (fileWithPreview, index) => {
           try {
+            // Update progress based on file index
+            const fileProgress = 10 + ((index / filesToConvert.length) * 40);
+            setProgress(Math.floor(fileProgress));
+            
             // Compress image with rotation applied
             const compressedFile = await compressImageForPdf(
               fileWithPreview.file, 
               fileWithPreview.rotation,
-              0.7 // Target quality for PDF
+              0.65 // Slightly more aggressive compression
             );
             
             // Calculate compression ratio
@@ -458,25 +508,26 @@ export default function JpgToPdf() {
             const compressedSize = compressedFile.size;
             const compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
             
-            console.log(`File: ${fileWithPreview.file.name}`);
+            console.log(`File ${index + 1}/${filesToConvert.length}: ${fileWithPreview.file.name}`);
             console.log(`Original: ${(originalSize / 1024 / 1024).toFixed(2)} MB`);
             console.log(`Compressed: ${(compressedSize / 1024 / 1024).toFixed(2)} MB`);
             console.log(`Reduced by: ${compressionRatio}%`);
             
             return compressedFile;
           } catch (error) {
-            console.error('Failed to compress image:', error);
+            console.error(`Failed to compress image ${fileWithPreview.file.name}:`, error);
             // If compression fails, use original file
             return fileWithPreview.file;
           }
         })
       );
 
-      let cleanup: (() => void) | null = null;
-
+      if (cleanup) cleanup();
+      
+      // Now create PDF with compressed files
       try {
-        setProgress(10);
-        cleanup = simulateProgress(setProgress, 10, 90, 5000);
+        setProgress(50);
+        cleanup = simulateProgress(setProgress, 50, 90, 3000);
 
         const blob = await imageToPdf(
           compressedFiles, 
@@ -490,6 +541,16 @@ export default function JpgToPdf() {
         setTimeout(() => {
           setPdfBlob(blob);
           setConverting(false);
+          
+          // Log final PDF size
+          const totalOriginalSize = filesToConvert.reduce((sum, f) => sum + f.file.size, 0);
+          const pdfSize = blob.size;
+          const totalCompressionRatio = ((totalOriginalSize - pdfSize) / totalOriginalSize * 100).toFixed(1);
+          
+          console.log(`\n=== PDF Generation Complete ===`);
+          console.log(`Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
+          console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
+          console.log(`Total reduction: ${totalCompressionRatio}%`);
           
           // Hide compression info after 3 seconds
           setTimeout(() => {
@@ -785,14 +846,31 @@ export default function JpgToPdf() {
                         <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                         <div className="flex-1">
                           <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1">
-                            Smart Compression Active
+                            Advanced Compression Active
                           </h4>
                           <p className="text-sm text-blue-700 dark:text-blue-400">
-                            All images are being compressed before PDF creation. 
-                            {files.length > 0 && ` Large images will be reduced in size.`}
+                            All images are being optimized for PDF:
                           </p>
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-blue-600 dark:text-blue-500">
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              <span>Resizing to 1600px max</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              <span>Smart quality reduction</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              <span>Rotation-preserving</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              <span>Format optimization</span>
+                            </div>
+                          </div>
                           <div className="mt-2 text-xs text-blue-600 dark:text-blue-500">
-                            <span className="font-medium">Note:</span> Compression applies to both rotated and non-rotated images
+                            <span className="font-medium">Expected reduction:</span> Large files (&gt;5MB) will be reduced by 40-60%
                           </div>
                         </div>
                       </div>
@@ -1170,12 +1248,12 @@ export default function JpgToPdf() {
                         <div className="flex items-center gap-2 mb-1">
                           <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">
-                            Smart Compression
+                            Advanced Compression
                           </span>
                         </div>
                         <p className="text-xs text-blue-600 dark:text-blue-400">
-                          All images will be compressed during PDF creation to reduce file size.
-                          Large images ({">"}5MB) will be optimized automatically.
+                          All images will be compressed and resized during PDF creation to reduce file size.
+                          Large images ({">"}5MB) will be optimized aggressively (40-60% reduction).
                         </p>
                       </div>
                     </div>
@@ -1194,20 +1272,22 @@ export default function JpgToPdf() {
                           progress={progress}
                           label={
                             progress < 30
-                              ? "Preparing images..."
+                              ? "Analyzing image sizes..."
                               : progress < 60
                               ? "Compressing images..."
                               : progress < 90
-                              ? "Creating PDF..."
+                              ? "Creating optimized PDF..."
                               : "Finalizing..."
                           }
                         />
                         <div className="flex items-center justify-center gap-3 mt-4 text-blue-600 dark:text-blue-400">
                           <Loader2 className="w-5 h-5 animate-spin" />
                           <span className="text-base font-medium">
-                            {progress < 50 
-                              ? "Optimizing image sizes for PDF..." 
-                              : "Creating your PDF document..."}
+                            {progress < 30 
+                              ? "Analyzing image sizes..." 
+                              : progress < 60
+                              ? "Compressing images..." 
+                              : "Creating optimized PDF..."}
                           </span>
                         </div>
                       </motion.div>
