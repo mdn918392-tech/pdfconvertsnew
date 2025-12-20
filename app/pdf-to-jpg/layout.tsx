@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
-import SitelinkSearchSchema from "./SitelinkSearchSchema";
+
 import BreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default function PDFToJPGLayout({
       <HowToSchema />
       <FAQSchema />
        <BreadcrumbSchema />
-      <SitelinkSearchSchema/>
+      
       <main>{children}</main>
     </>
   );

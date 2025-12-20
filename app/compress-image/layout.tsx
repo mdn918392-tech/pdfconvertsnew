@@ -1,23 +1,34 @@
 import type { Metadata, Viewport } from "next";
-import CompressImageStructuredData from "./CompressImageStructuredData"; // <-- यह जोड़ना जरूरी है
+import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
+import BreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
-  title: "Compress Images Online - Fast & Free",
-  description: "Compress image files quickly and easily online without losing quality.",
+  title: "Compress Images & Download as PDF/Image - Free Online Tool",
+  description:
+    "Compress images online quickly and securely. Download compressed images as PDF, JPG, or PNG formats without losing quality.",
   keywords:
-    "compress image, reduce image size, optimize image, online image compression, free image compressor",
+    "Compress image, reduce image size, download image as PDF, download image as JPG, online image compressor, free image tool",
 };
 
+// ✅ viewport must be exported separately
 export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
 };
 
-export default function CompressImageLayout({ children }: { children: React.ReactNode }) {
+export default function CompressImageLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <>
-      <CompressImageStructuredData />
+      <HowToSchema />
+      <FAQSchema />
+      <BreadcrumbSchema />
+      
       <main>{children}</main>
     </>
   );

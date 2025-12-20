@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import StructuredData from "./StructuredData";
+import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
+import BreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
-  title: "Extract PDF Pages Online - Fast & Free",
+  title: "Extract Pages from PDF - Free Online Tool",
   description:
-    "Extract pages from PDF files quickly and easily online. Select specific pages and download instantly.",
+    "Extract specific pages from PDF files online quickly and securely. Download extracted pages instantly using our free tool.",
   keywords:
-    "extract PDF pages, split PDF, PDF page extraction, online PDF tools, free PDF extractor",
+    "Extract pages from PDF, PDF page extractor, online PDF tool, free PDF extractor, split PDF pages",
 };
 
-// ✅ Viewport must be exported separately (not inside metadata)
+// ✅ viewport must be exported separately
 export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
@@ -23,7 +25,10 @@ export default function ExtractPDFLayout({
 }) {
   return (
     <>
-      <StructuredData />
+      <HowToSchema />
+      <FAQSchema />
+      <BreadcrumbSchema />
+      
       <main>{children}</main>
     </>
   );

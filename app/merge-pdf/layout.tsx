@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import StructuredData from "./StructuredData";
+import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
+import BreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
-  title: "Merge PDF Files - Fast & Free PDF Combiner",
+  title: "Merge PDF Tool - Free Online PDF Merger",
   description:
-    "Merge multiple PDF files into a single high-quality PDF instantly. 100% free online PDF merger tool.",
+    "Merge multiple PDF files online easily and securely. Combine PDFs instantly with our free tool.",
   keywords:
-    "merge PDF, combine PDF, PDF merger, PDF joiner, online PDF tools, free PDF merger",
+    "Merge PDF, PDF merger, online PDF tool, free PDF merge, combine PDF files",
 };
 
-// ✅ Viewport must be exported separately
+// ✅ viewport must be exported separately
 export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
@@ -23,7 +25,10 @@ export default function MergePDFLayout({
 }) {
   return (
     <>
-      <StructuredData />
+      <HowToSchema />
+      <FAQSchema />
+      <BreadcrumbSchema />
+      
       <main>{children}</main>
     </>
   );

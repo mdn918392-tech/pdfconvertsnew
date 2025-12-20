@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import StructuredData from "./StructuredData";
+import PNGtoJPGHowToSchema from "./HowToSchema";
+import PNGtoJPGFAQSchema from "./FAQSchema";
+import PNGtoJPGBreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
-  title: "PNG to JPG Converter - Fast & Free",
-  description: "Convert PNG images to JPG instantly with high quality.",
+  title: "PNG to JPG Converter – Fast & Free",
+  description:
+    "Convert PNG images to JPG format instantly with high quality and secure processing.",
   keywords:
-    "PNG to JPG, image converter, PNG to JPEG, free image tool, convert PNG",
+    "PNG to JPG, image converter, PNG converter, JPG converter, free image tool, convert PNG to JPG",
 };
 
 // ✅ viewport must be exported separately
@@ -15,14 +18,18 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function PNGToJPGLayout({
+export default function PNGtoJPGLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <>
-      <StructuredData />
+      {/* Tool-specific schemas */}
+      <PNGtoJPGHowToSchema />
+      <PNGtoJPGFAQSchema />
+      <PNGtoJPGBreadcrumbSchema />
+
       <main>{children}</main>
     </>
   );

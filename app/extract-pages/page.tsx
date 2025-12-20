@@ -611,7 +611,7 @@ const PdfPageRenderer = ({
   );
 };
 
-// --- IMPROVED ZOOM MODAL WITH FULL SCREEN SUPPORT ---
+// --- PERFECT ZOOM MODAL WITH 50-100% OPTIMIZED ZOOM ---
 interface ZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -632,14 +632,80 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+  const [lastInteractionTime, setLastInteractionTime] = useState(0);
+  const [showControls, setShowControls] = useState(true);
+  const [zoomMode, setZoomMode] = useState<'fit' | '50' | '75' | '100' | 'custom'>('fit');
+  const [zoomHistory, setZoomHistory] = useState<number[]>([1]);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
   const isMounted = useRef(true);
+  const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
+  const interactionTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Hide controls after 3 seconds of inactivity
+  const resetControlsTimer = () => {
+    setLastInteractionTime(Date.now());
+    setShowControls(true);
+    
+    if (hideControlsTimeout.current) {
+      clearTimeout(hideControlsTimeout.current);
+    }
+    
+    hideControlsTimeout.current = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+  };
+
+  // Zoom presets
+  const zoomPresets = [
+    { label: 'Fit', value: 'fit', level: 1 },
+    { label: '50%', value: '50', level: 0.5 },
+    { label: '75%', value: '75', level: 0.75 },
+    { label: '100%', value: '100', level: 1 },
+    { label: '150%', value: 'custom', level: 1.5 }
+  ];
+
+  // Apply zoom preset
+  const applyZoomPreset = (preset: typeof zoomPresets[0]) => {
+    setZoomMode(preset.value as any);
+    
+    if (preset.value === 'fit') {
+      setZoomLevel(1);
+      // Reset scroll to center
+      if (containerRef.current && imageContainerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const containerHeight = containerRef.current.clientHeight;
+        const imageWidth = imageDimensions.width;
+        const imageHeight = imageDimensions.height;
+        
+        containerRef.current.scrollLeft = Math.max(0, (imageWidth - containerWidth) / 2);
+        containerRef.current.scrollTop = Math.max(0, (imageHeight - containerHeight) / 2);
+      }
+    } else {
+      setZoomLevel(preset.level);
+    }
+    
+    // Add to zoom history
+    setZoomHistory(prev => {
+      const newHistory = [...prev, preset.level];
+      if (newHistory.length > 5) newHistory.shift();
+      return newHistory;
+    });
+    
+    resetControlsTimer();
+  };
 
   // Mouse event handlers for dragging
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
+    
+    // Only start dragging if clicking on the image area (not controls)
+    if (controlsRef.current && controlsRef.current.contains(e.target as Node)) {
+      return;
+    }
+    
     e.preventDefault();
     setIsDragging(true);
     setStartX(e.pageX - containerRef.current.offsetLeft);
@@ -650,10 +716,16 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     if (containerRef.current) {
       containerRef.current.style.cursor = 'grabbing';
     }
+    
+    resetControlsTimer();
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !containerRef.current) return;
+    
+    // Reset interaction timer
+    resetControlsTimer();
+    
     e.preventDefault();
     const x = e.pageX - containerRef.current.offsetLeft;
     const y = e.pageY - containerRef.current.offsetTop;
@@ -666,18 +738,26 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
   const handleMouseUp = () => {
     setIsDragging(false);
     if (containerRef.current) {
-      containerRef.current.style.cursor = 'grab';
+      containerRef.current.style.cursor = 'default';
     }
   };
 
   // Touch event handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!containerRef.current) return;
+    
+    // Don't start dragging if touching controls
+    if (controlsRef.current && e.target && controlsRef.current.contains(e.target as Node)) {
+      return;
+    }
+    
     const touch = e.touches[0];
     setStartX(touch.pageX - containerRef.current.offsetLeft);
     setStartY(touch.pageY - containerRef.current.offsetTop);
     setScrollLeft(containerRef.current.scrollLeft);
     setScrollTop(containerRef.current.scrollTop);
+    
+    resetControlsTimer();
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -690,17 +770,30 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     const walkY = (y - startY) * 2;
     containerRef.current.scrollLeft = scrollLeft - walkX;
     containerRef.current.scrollTop = scrollTop - walkY;
+    
+    resetControlsTimer();
   };
 
-  // Zoom with mouse wheel
+  // Smooth zoom with mouse wheel
   const handleWheel = (e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
-      if (e.deltaY < 0) {
-        handleZoomIn();
-      } else {
-        handleZoomOut();
-      }
+      resetControlsTimer();
+      
+      const zoomStep = 0.1;
+      const newZoom = e.deltaY < 0 
+        ? Math.min(zoomLevel + zoomStep, 3)
+        : Math.max(zoomLevel - zoomStep, 0.1);
+      
+      setZoomLevel(newZoom);
+      setZoomMode('custom');
+      
+      // Add to zoom history
+      setZoomHistory(prev => {
+        const newHistory = [...prev, newZoom];
+        if (newHistory.length > 5) newHistory.shift();
+        return newHistory;
+      });
     }
   };
 
@@ -741,12 +834,15 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       // Restore body scroll
       document.body.style.overflow = 'auto';
     }
+    
+    resetControlsTimer();
   };
 
   // Handle fullscreen change events
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
+      resetControlsTimer();
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -761,6 +857,35 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, []);
+
+  // Handle interaction detection for hiding controls
+  useEffect(() => {
+    if (!isOpen) return;
+
+    resetControlsTimer();
+
+    const handleInteraction = () => {
+      resetControlsTimer();
+    };
+
+    // Add event listeners for interaction
+    window.addEventListener('mousemove', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
+
+    return () => {
+      window.removeEventListener('mousemove', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+      
+      if (hideControlsTimeout.current) {
+        clearTimeout(hideControlsTimeout.current);
+      }
+      if (interactionTimeout.current) {
+        clearTimeout(interactionTimeout.current);
+      }
+    };
+  }, [isOpen]);
 
   // Render page for zoom modal
   useEffect(() => {
@@ -784,8 +909,8 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(pageNumber);
         
-        // Calculate viewport - use larger scale for better zoom quality
-        const baseScale = isFullscreen ? 4 : 3; // Higher scale for better quality
+        // Calculate viewport - use optimized scale for 50-100% zoom
+        const baseScale = 2; // Base scale for good quality
         const scale = baseScale * zoomLevel;
         const viewport = page.getViewport({ scale });
         
@@ -836,14 +961,36 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         URL.revokeObjectURL(pageImage);
       }
     };
-  }, [isOpen, pdfData, pageNumber, zoomLevel, isFullscreen]);
+  }, [isOpen, pdfData, pageNumber, zoomLevel]);
 
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.25, 5));
+    const newZoom = Math.min(zoomLevel + 0.25, 3);
+    setZoomLevel(newZoom);
+    setZoomMode('custom');
+    
+    // Add to zoom history
+    setZoomHistory(prev => {
+      const newHistory = [...prev, newZoom];
+      if (newHistory.length > 5) newHistory.shift();
+      return newHistory;
+    });
+    
+    resetControlsTimer();
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
+    const newZoom = Math.max(zoomLevel - 0.25, 0.1);
+    setZoomLevel(newZoom);
+    setZoomMode('custom');
+    
+    // Add to zoom history
+    setZoomHistory(prev => {
+      const newHistory = [...prev, newZoom];
+      if (newHistory.length > 5) newHistory.shift();
+      return newHistory;
+    });
+    
+    resetControlsTimer();
   };
 
   const handleClose = (e: React.MouseEvent) => {
@@ -852,28 +999,58 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     setZoomLevel(1);
     setIsFullscreen(false);
     setRotation(0);
+    setShowControls(true);
+    setZoomMode('fit');
+    
     // Restore body scroll
     document.body.style.overflow = 'auto';
+    
+    // Clear timeouts
+    if (hideControlsTimeout.current) {
+      clearTimeout(hideControlsTimeout.current);
+    }
+    if (interactionTimeout.current) {
+      clearTimeout(interactionTimeout.current);
+    }
   };
 
   const rotateLeft = () => {
     setRotation(prev => (prev - 90) % 360);
+    resetControlsTimer();
   };
 
   const rotateRight = () => {
     setRotation(prev => (prev + 90) % 360);
+    resetControlsTimer();
   };
 
   const resetRotation = () => {
     setRotation(0);
+    resetControlsTimer();
   };
 
-  const resetZoom = () => {
+  const resetView = () => {
     setZoomLevel(1);
-    // Reset scroll position
+    setZoomMode('fit');
+    setRotation(0);
+    // Reset scroll position to center
     if (containerRef.current) {
-      containerRef.current.scrollLeft = 0;
-      containerRef.current.scrollTop = 0;
+      const containerWidth = containerRef.current.clientWidth;
+      const containerHeight = containerRef.current.clientHeight;
+      const imageWidth = imageDimensions.width;
+      const imageHeight = imageDimensions.height;
+      
+      containerRef.current.scrollLeft = Math.max(0, (imageWidth - containerWidth) / 2);
+      containerRef.current.scrollTop = Math.max(0, (imageHeight - containerHeight) / 2);
+    }
+    resetControlsTimer();
+  };
+
+  // Handle modal container click to show controls
+  const handleContainerClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setShowControls(true);
+      resetControlsTimer();
     }
   };
 
@@ -884,102 +1061,156 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4 ${
-        isFullscreen ? 'bg-black' : 'bg-black/95 backdrop-blur-sm'
-      }`}
-      onClick={handleClose}
+      className="fixed inset-0 z-[9999] !p-0 !m-0 bg-black"
+      onClick={handleContainerClick}
     >
-      {/* Close button */}
-      <button
+      {/* Close button - Always visible */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         onClick={handleClose}
         className="absolute top-4 right-4 z-50 p-3 bg-black/80 hover:bg-black/90 rounded-full transition-colors shadow-lg backdrop-blur-sm"
       >
         <X className="w-6 h-6 text-white" />
-      </button>
+      </motion.button>
       
-      {/* Zoom controls */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-wrap items-center justify-center gap-2 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm z-50 shadow-lg">
-        <button
-          onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
-          disabled={zoomLevel <= 0.5}
-          title="Zoom Out"
-        >
-          <ZoomOut className="w-5 h-5 text-white" />
-        </button>
-        
-        <button
-          onClick={(e) => { e.stopPropagation(); resetZoom(); }}
-          className="px-3 py-1 text-white text-sm font-medium hover:bg-white/10 rounded-full transition-colors"
-          title="Reset Zoom"
-        >
-          {Math.round(zoomLevel * 100)}%
-        </button>
-        
-        <button
-          onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
-          disabled={zoomLevel >= 5}
-          title="Zoom In"
-        >
-          <ZoomIn className="w-5 h-5 text-white" />
-        </button>
-        
-        {/* Rotation controls */}
-        <div className="h-6 w-px bg-white/30 mx-1"></div>
-        
-        <button
-          onClick={(e) => { e.stopPropagation(); rotateLeft(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          title="Rotate Left"
-        >
-          <RotateCcw className="w-5 h-5 text-white" />
-        </button>
-        
-        <button
-          onClick={(e) => { e.stopPropagation(); resetRotation(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors text-xs font-medium text-white"
-          title="Reset Rotation"
-        >
-          0°
-        </button>
-        
-        <button
-          onClick={(e) => { e.stopPropagation(); rotateRight(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          title="Rotate Right"
-        >
-          <RotateCw className="w-5 h-5 text-white" />
-        </button>
-        
-        <div className="h-6 w-px bg-white/30 mx-1"></div>
-        
-        <button
-          onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-        >
-          {isFullscreen ? (
-            <Minimize2 className="w-5 h-5 text-white" />
-          ) : (
-            <Maximize2 className="w-5 h-5 text-white" />
-          )}
-        </button>
-      </div>
-      
-      {/* Page info */}
-      <div className="absolute top-4 left-4 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg max-w-[80%]">
+      {/* Page info - Always visible */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute top-4 left-4 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg max-w-[80%]"
+      >
         <span className="text-white text-sm font-medium truncate block">
           Page {pageNumber} • {fileName}
         </span>
-      </div>
+      </motion.div>
       
-      {/* Scroll instructions */}
-      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg hidden sm:block">
-        <div className="flex items-center gap-2 text-white text-sm">
-          <span>Ctrl+Scroll to zoom • Drag to pan</span>
+      {/* Interactive Controls Container */}
+      <motion.div
+        ref={controlsRef}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: showControls ? 1 : 0 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        className="absolute inset-0 z-40 pointer-events-none"
+      >
+        {/* Top Gradient Overlay */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/70 to-transparent pointer-events-none"></div>
+        
+        {/* Bottom Gradient Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black/70 to-transparent pointer-events-none"></div>
+        
+        {/* Zoom Preset Buttons - Top Center */}
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 flex items-center justify-center gap-2 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg pointer-events-auto">
+          {zoomPresets.map((preset) => (
+            <button
+              key={preset.value}
+              onClick={(e) => { e.stopPropagation(); applyZoomPreset(preset); }}
+              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all ${
+                zoomMode === preset.value 
+                  ? 'bg-white text-black' 
+                  : 'bg-black/50 text-white hover:bg-white/20'
+              }`}
+              title={`Zoom to ${preset.label}`}
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
-      </div>
+        
+        {/* Zoom controls - Bottom Center */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50 flex items-center justify-center gap-2 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg pointer-events-auto">
+          <button
+            onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
+            disabled={zoomLevel <= 0.1}
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-5 h-5 text-white" />
+          </button>
+          
+          <button
+            onClick={(e) => { e.stopPropagation(); resetView(); }}
+            className="px-4 py-1.5 text-white text-sm font-medium hover:bg-white/10 rounded-full transition-colors min-w-[100px] text-center"
+            title="Reset View"
+          >
+            {Math.round(zoomLevel * 100)}% • Fit
+          </button>
+          
+          <button
+            onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
+            disabled={zoomLevel >= 3}
+            title="Zoom In"
+          >
+            <ZoomIn className="w-5 h-5 text-white" />
+          </button>
+          
+          {/* Rotation controls */}
+          <div className="h-6 w-px bg-white/30 mx-1"></div>
+          
+          <button
+            onClick={(e) => { e.stopPropagation(); rotateLeft(); }}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            title="Rotate Left"
+          >
+            <RotateCcw className="w-5 h-5 text-white" />
+          </button>
+          
+          <button
+            onClick={(e) => { e.stopPropagation(); resetRotation(); }}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-xs font-medium text-white min-w-[30px]"
+            title="Reset Rotation"
+          >
+            0°
+          </button>
+          
+          <button
+            onClick={(e) => { e.stopPropagation(); rotateRight(); }}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            title="Rotate Right"
+          >
+            <RotateCw className="w-5 h-5 text-white" />
+          </button>
+          
+          <div className="h-6 w-px bg-white/30 mx-1"></div>
+          
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-5 h-5 text-white" />
+            ) : (
+              <Maximize2 className="w-5 h-5 text-white" />
+            )}
+          </button>
+        </div>
+        
+        {/* Scroll instructions - Top Center */}
+        <div className="absolute top-44 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg pointer-events-none hidden sm:block">
+          <div className="flex items-center gap-2 text-white text-sm">
+            <span>Ctrl+Scroll to zoom • Click & drag to pan</span>
+          </div>
+        </div>
+        
+        {/* Reset View Button - Bottom Right */}
+        <div className="absolute bottom-4 right-4 z-50 pointer-events-auto">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              resetView();
+            }}
+            className="p-2 bg-black/80 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
+            title="Reset View"
+          >
+            <RefreshCw className="w-5 h-5 text-white" />
+          </button>
+        </div>
+      </motion.div>
       
       {/* Image container with scroll */}
       <motion.div
@@ -987,7 +1218,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className={`relative ${isFullscreen ? 'w-screen h-screen' : 'w-[95vw] h-[90vh] sm:w-[90vw] sm:h-[80vh]'} overflow-auto bg-black`}
+        className="relative w-screen h-screen overflow-auto bg-black"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -997,18 +1228,22 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         style={{ 
-          cursor: isDragging ? 'grabbing' : 'grab'
+          cursor: isDragging ? 'grabbing' : 'default'
         }}
       >
         {/* Loading indicator */}
         {loading ? (
           <div className="flex items-center justify-center w-full h-full">
-            <Loader2 className="w-12 h-12 animate-spin text-white" />
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin text-white mx-auto mb-4" />
+              <p className="text-white text-lg">Loading page {pageNumber}...</p>
+              <p className="text-gray-400 text-sm mt-2">Preparing high-quality zoom</p>
+            </div>
           </div>
         ) : pageImage ? (
           <div 
             ref={imageContainerRef}
-            className="flex items-center justify-center min-w-full min-h-full p-4"
+            className="flex items-center justify-center min-w-full min-h-full p-8"
             style={{
               minWidth: `${imageDimensions.width * zoomLevel}px`,
               minHeight: `${imageDimensions.height * zoomLevel}px`
@@ -1017,18 +1252,19 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
             <motion.img
               src={pageImage}
               alt={`Zoomed view - Page ${pageNumber}`}
-              className="select-none"
+              className="select-none shadow-2xl"
               style={{
                 transform: `rotate(${rotation}deg)`,
                 transformOrigin: 'center center',
                 width: `${imageDimensions.width * zoomLevel}px`,
                 height: `${imageDimensions.height * zoomLevel}px`,
-                objectFit: 'contain'
+                objectFit: 'contain',
+                transition: 'transform 0.3s ease, width 0.3s ease, height 0.3s ease'
               }}
               draggable="false"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.5 }}
             />
           </div>
         ) : (
@@ -1036,53 +1272,75 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
             <div className="text-center text-white">
               <File className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <p className="text-lg">Unable to load page preview</p>
+              <p className="text-gray-400 text-sm mt-2">Page {pageNumber}</p>
             </div>
           </div>
         )}
       </motion.div>
       
       {/* Mobile gesture hints */}
-      <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 sm:hidden">
-        <div className="flex flex-col items-center gap-1 text-white/80 text-xs bg-black/70 rounded-lg p-2">
+      <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 sm:hidden pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: showControls ? 1 : 0 }}
+          exit={{ opacity: 0 }}
+          className="flex flex-col items-center gap-1 text-white/80 text-xs bg-black/70 rounded-lg p-2"
+        >
           <div className="flex items-center gap-1">
             <div className="p-1 bg-white/20 rounded">
               <ZoomIn className="w-3 h-3" />
             </div>
-            <span>Pinch to zoom</span>
+            <span>Tap presets for 50%, 75%, 100%</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="p-1 bg-white/20 rounded">
               <RotateCw className="w-3 h-3" />
             </div>
-            <span>Rotate with buttons</span>
+            <span>Pinch to zoom</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="p-1 bg-white/20 rounded">
               <Maximize2 className="w-3 h-3" />
             </div>
-            <span>Fullscreen available</span>
+            <span>Tap to show controls</span>
           </div>
-        </div>
+        </motion.div>
       </div>
       
-      {/* Page navigation for multi-page */}
-      <div className="absolute bottom-4 right-4 z-50 flex items-center gap-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setZoomLevel(1);
-            setRotation(0);
-            if (containerRef.current) {
-              containerRef.current.scrollLeft = 0;
-              containerRef.current.scrollTop = 0;
-            }
-          }}
-          className="p-2 bg-black/80 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-          title="Reset View"
-        >
-          <RefreshCw className="w-5 h-5 text-white" />
-        </button>
-      </div>
+      {/* Tap hint to show controls */}
+      <AnimatePresence>
+        {!showControls && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
+          >
+            <div className="text-center bg-black/70 rounded-2xl px-8 py-4 backdrop-blur-sm">
+              <p className="text-white text-base font-medium mb-2">
+                Tap anywhere to show controls
+              </p>
+              <p className="text-gray-300 text-sm">
+                Use 50%, 75%, 100% presets for perfect zoom
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Zoom level indicator */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="absolute top-16 right-4 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg pointer-events-none"
+      >
+        <div className="flex items-center gap-2">
+          <ZoomIn className="w-4 h-4 text-white" />
+          <span className="text-white text-sm font-medium">
+            Zoom: {Math.round(zoomLevel * 100)}%
+          </span>
+        </div>
+      </motion.div>
     </motion.div>
   );
 };

@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import StructuredData from "./StructuredData";
+import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
+
+import BreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
-  title: "Remove Pages from PDF Online - Fast & Free",
+  title: "PDF to JPG Converter - Fast & Free",
   description:
-    "Remove specific pages from PDF files online instantly and efficiently.",
+    "Convert PDF pages to JPG images instantly with high quality.",
   keywords:
-    "remove PDF pages, delete PDF pages, PDF editor, PDF page removal, online PDF tools, free PDF tool",
+    "PDF to JPG, PDF converter, extract images, pdf to image, free PDF tool, convert PDF",
 };
 
 // ✅ viewport must be exported separately
@@ -16,14 +19,18 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RemovePagesPDFLayout({
+export default function PDFToJPGLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <>
-      <StructuredData />
+      {/* Only keep the schemas you need */}
+      <HowToSchema />
+      <FAQSchema />
+      <BreadcrumbSchema />
+      
       <main>{children}</main>
     </>
   );

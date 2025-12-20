@@ -41,7 +41,6 @@ import {
   FileArchive,
   Merge,
   Split,
-
   Eye,
   Smartphone,
   Monitor,
@@ -129,7 +128,6 @@ import {
   Bird,
   Rabbit,
   Turtle,
-
   Octagon,
   Hexagon,
   Circle,
@@ -158,7 +156,6 @@ import {
   FastForward,
   Play,
   Pause,
-
   Repeat,
   Shuffle,
   Volume,
@@ -194,7 +191,6 @@ import {
   DollarSign,
   Euro,
   PoundSterling,
-
   Bitcoin,
   CreditCard,
   Wallet,
@@ -215,9 +211,7 @@ import {
   Map,
   MapPinOff,
   Navigation2,
-
   Globe2 as Globe2Icon,
-
   CloudOff,
   CloudDrizzle,
   CloudLightning,
@@ -227,7 +221,6 @@ import {
   MoonStar,
   StarHalf,
   ZapOff,
-
   ThermometerSun,
   ThermometerSnowflake,
   UmbrellaOff,
@@ -241,9 +234,7 @@ import {
   CloudSunRain,
   CloudMoonRain,
   CloudHail,
-
   CloudRainWind,
-
   Bone,
   ShieldCheck,
   ShieldAlert,
@@ -295,7 +286,6 @@ import {
   Sigma,
   Infinity as InfinityIcon,
   Pi,
-
   Copyright,
   Asterisk,
   Pilcrow,
@@ -313,7 +303,6 @@ import {
   ListTree,
   ListFilter,
   ListCollapse,
-
   ListVideo,
   ListMusic
 } from "lucide-react";
@@ -641,7 +630,7 @@ const PdfPageRenderer = ({
   );
 };
 
-// --- ZOOM MODAL COMPONENT WITH SCROLLABLE IMAGE ---
+// --- ZOOM MODAL COMPONENT WITH COMPLETE PAGE VISIBILITY ---
 interface ZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -655,31 +644,8 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [pageImage, setPageImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
   const isMounted = useRef(true);
-
-  // Reset position when zoom or page changes
-  useEffect(() => {
-    if (containerRef.current && imageRef.current) {
-      const container = containerRef.current;
-      const img = imageRef.current;
-      
-      // Reset to center
-      const containerRect = container.getBoundingClientRect();
-      const imgRect = img.getBoundingClientRect();
-      
-      setPosition({
-        x: (containerRect.width - imgRect.width * zoomLevel) / 2,
-        y: (containerRect.height - imgRect.height * zoomLevel) / 2
-      });
-    } else {
-      setPosition({ x: 0, y: 0 });
-    }
-  }, [zoomLevel, pageNumber, isOpen]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -701,9 +667,19 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(pageNumber);
         
-        // Calculate viewport with zoom
-        const baseScale = 2;
-        const scale = baseScale * zoomLevel;
+        // Calculate viewport to fit the screen while maintaining aspect ratio
+        const containerWidth = window.innerWidth * 0.9;
+        const containerHeight = window.innerHeight * 0.8;
+        
+        const pageViewport = page.getViewport({ scale: 1 });
+        const pageWidth = pageViewport.width;
+        const pageHeight = pageViewport.height;
+        
+        // Calculate scale to fit within container
+        const scaleX = containerWidth / pageWidth;
+        const scaleY = containerHeight / pageHeight;
+        const scale = Math.min(scaleX, scaleY, 2) * zoomLevel; // Max 2x zoom
+        
         const viewport = page.getViewport({ scale });
         
         const canvas = document.createElement("canvas");
@@ -746,12 +722,13 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     };
   }, [isOpen, pdfData, pageNumber, zoomLevel]);
 
+  // Zoom को 25% से 200% तक रखने के लिए
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.5, 3));
+    setZoomLevel(prev => Math.min(prev + 0.25, 2)); // Max 200%
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.5, 0.5));
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.25)); // Min 25%
   };
 
   const toggleFullscreen = () => {
@@ -765,57 +742,10 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     setIsFullscreen(false);
   };
 
-  // Handle mouse drag for panning
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsDragging(true);
-    setStartPos({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
-    });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    e.stopPropagation();
-    
-    setPosition({
-      x: e.clientX - startPos.x,
-      y: e.clientY - startPos.y
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Handle touch events for mobile
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      setIsDragging(true);
-      setStartPos({
-        x: e.touches[0].clientX - position.x,
-        y: e.touches[0].clientY - position.y
-      });
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    
-    setPosition({
-      x: e.touches[0].clientX - startPos.x,
-      y: e.touches[0].clientY - startPos.y
-    });
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-  };
-
   // Handle wheel zoom
   const handleWheel = (e: React.WheelEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     
     if (e.deltaY < 0) {
       // Zoom in
@@ -826,59 +756,11 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     }
   };
 
-  // Handle pinch to zoom on mobile
-  useEffect(() => {
-    if (!isOpen || !containerRef.current) return;
-
-    let initialDistance = 0;
-    let initialZoom = zoomLevel;
-
-    const handleTouchStartPinch = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        initialDistance = Math.hypot(
-          touch1.clientX - touch2.clientX,
-          touch1.clientY - touch2.clientY
-        );
-        initialZoom = zoomLevel;
-      }
-    };
-
-    const handleTouchMovePinch = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        const currentDistance = Math.hypot(
-          touch1.clientX - touch2.clientX,
-          touch1.clientY - touch2.clientY
-        );
-        
-        const zoomChange = currentDistance / initialDistance;
-        const newZoom = Math.max(0.5, Math.min(3, initialZoom * zoomChange));
-        
-        if (Math.abs(newZoom - zoomLevel) > 0.1) {
-          setZoomLevel(newZoom);
-        }
-      }
-    };
-
-    const container = containerRef.current;
-    container.addEventListener('touchstart', handleTouchStartPinch, { passive: true });
-    container.addEventListener('touchmove', handleTouchMovePinch, { passive: false });
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStartPinch);
-      container.removeEventListener('touchmove', handleTouchMovePinch);
-    };
-  }, [isOpen, zoomLevel]);
-
   // Reset zoom and position on close
   useEffect(() => {
     if (!isOpen) {
       setZoomLevel(1);
-      setPosition({ x: 0, y: 0 });
+      setIsFullscreen(false);
     }
   }, [isOpen]);
 
@@ -907,7 +789,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         <button
           onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
           className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          disabled={zoomLevel <= 0.5}
+          disabled={zoomLevel <= 0.25}
         >
           <ZoomOut className="w-5 h-5 text-white" />
         </button>
@@ -919,7 +801,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         <button
           onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
           className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          disabled={zoomLevel >= 3}
+          disabled={zoomLevel >= 2}
         >
           <ZoomIn className="w-5 h-5 text-white" />
         </button>
@@ -945,15 +827,15 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         </span>
       </div>
       
-      {/* Image container with scrollable area */}
+      {/* Image container - COMPLETE PAGE VISIBILITY */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className={`relative overflow-hidden ${
+        className={`relative ${
           isFullscreen 
-            ? 'w-full h-full' 
-            : 'w-[90vw] h-[80vh] max-w-[90vw] max-h-[80vh]'
+            ? 'w-screen h-screen' 
+            : 'max-w-[90vw] max-h-[80vh]'
         }`}
         onClick={(e) => e.stopPropagation()}
         ref={containerRef}
@@ -965,49 +847,25 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
           </div>
         ) : pageImage ? (
           <div 
-            className="w-full h-full overflow-auto relative"
-            style={{
-              cursor: isDragging ? 'grabbing' : zoomLevel > 1 ? 'grab' : 'default'
-            }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+            className={`w-full h-full flex items-center justify-center ${
+              isFullscreen ? 'p-4' : ''
+            }`}
           >
-            <div 
-              className="relative"
+            <motion.img
+              src={pageImage}
+              alt={`Zoomed view - Page ${pageNumber}`}
+              className={`${
+                isFullscreen 
+                  ? 'max-w-full max-h-full object-contain' 
+                  : 'max-w-full max-h-full object-contain'
+              }`}
               style={{
-                transform: `translate(${position.x}px, ${position.y}px)`,
-                transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: 'center',
+                transition: 'transform 0.1s ease-out'
               }}
-            >
-              <img
-                ref={imageRef}
-                src={pageImage}
-                alt={`Zoomed view - Page ${pageNumber}`}
-                className="object-contain rounded-lg shadow-2xl"
-                style={{
-                  transform: `scale(${zoomLevel})`,
-                  transformOrigin: 'top left'
-                }}
-                draggable="false"
-              />
-            </div>
-            
-            {/* Panning hint for large zoom */}
-            {zoomLevel > 1 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute bottom-4 right-4 bg-black/70 text-white text-xs px-3 py-2 rounded-full backdrop-blur-sm flex items-center gap-2"
-              >
-                <Hand className="w-4 h-4" />
-                <span>Drag to pan</span>
-              </motion.div>
-            )}
+              draggable="false"
+            />
           </div>
         ) : null}
       </motion.div>
@@ -1017,15 +875,19 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         <div className="flex flex-col items-center gap-2 text-white/80 text-sm bg-black/50 backdrop-blur-sm px-4 py-3 rounded-xl">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-white/20 rounded-lg">
-              <ZoomIn className="w-4 h-4" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-            <span>Pinch to zoom</span>
+            <span>Pinch to zoom (25%-200%)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-white/20 rounded-lg">
-              <Hand className="w-4 h-4" />
+              <div className="w-4 h-4 flex items-center justify-center">
+                <span className="text-xs">□</span>
+              </div>
             </div>
-            <span>Drag to pan when zoomed</span>
+            <span>Full page view</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-white/20 rounded-lg">
@@ -1036,24 +898,21 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         </div>
       </div>
       
-      {/* Swipe down indicator for mobile */}
-      <motion.div
-        animate={{ y: [0, 10, 0] }}
-        transition={{ repeat: Infinity, duration: 1.5 }}
-        className="absolute top-8 left-1/2 transform -translate-x-1/2 sm:hidden z-50"
-      >
-        <ChevronDown className="w-6 h-6 text-white/60" />
-      </motion.div>
+      {/* Fullscreen indicator */}
+      {isFullscreen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50"
+        >
+          <div className="px-3 py-1 bg-black/70 rounded-full backdrop-blur-sm">
+            <span className="text-xs text-white">Fullscreen Mode - Complete Page View</span>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 };
-
-// Hand icon component
-const Hand = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-  </svg>
-);
 
 // --- Smart filename generator for rotated PDF ---
 const generatePdfFilename = (
@@ -2212,11 +2071,11 @@ export default function PdfRotatorTool() {
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
-                                    <span>Pinch to zoom in page preview</span>
+                                    <span>Pinch to zoom (25%-200%) in page preview</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
-                                    <span>Drag to pan when zoomed in</span>
+                                    <span>Fullscreen mode shows complete page content</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
@@ -2230,10 +2089,3 @@ export default function PdfRotatorTool() {
         </div>
     );
 }
-
-// Add missing ChevronDown component
-const ChevronDown = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-  </svg>
-);
