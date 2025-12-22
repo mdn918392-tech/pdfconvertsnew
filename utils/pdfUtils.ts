@@ -10,8 +10,8 @@ import { PAPER_SIZES } from '../types';
     Helper: Convert to PDF Blob
 ============================================================ */
 function toPdfBlob(bytes: Uint8Array | ArrayBuffer | any): Blob {
-    const arrayBuffer = bytes instanceof ArrayBuffer ? bytes : new Uint8Array(bytes).buffer;
-    return new Blob([arrayBuffer], { type: "application/pdf" });
+    // Casting to any bypasses the SharedArrayBuffer type error in build environments
+    return new Blob([bytes as any], { type: "application/pdf" });
 }
 
 /* ============================================================
@@ -111,128 +111,6 @@ async function createPlaceholderImage(pdfDoc: PDFDocument): Promise<any> {
 }
 
 /* ============================================================
-    Helper: Advanced image compression for PDF
-============================================================ */
-async function compressAndResizeImageForPdf(
-    arrayBuffer: ArrayBuffer, 
-    fileType: string, 
-    paperWidth: number, 
-    paperHeight: number
-): Promise<{ buffer: ArrayBuffer; width: number; height: number; format: string }> {
-    return new Promise((resolve, reject) => {
-        try {
-            const blob = new Blob([arrayBuffer], { type: fileType });
-            const url = URL.createObjectURL(blob);
-            
-            const img = new Image();
-            img.onload = () => {
-                try {
-                    // Calculate paper dimensions in pixels (assuming 96 DPI screen)
-                    const paperWidthPx = paperWidth * (96 / 72); // Convert points to pixels
-                    const paperHeightPx = paperHeight * (96 / 72);
-                    
-                    // Calculate optimal dimensions to fit paper size
-                    const scaleX = paperWidthPx / img.width;
-                    const scaleY = paperHeightPx / img.height;
-                    const scale = Math.min(scaleX, scaleY, 1); // Don't upscale images
-                    
-                    // Apply additional compression for large files
-                    const fileSizeMB = arrayBuffer.byteLength / (1024 * 1024);
-                    let quality = 0.85; // Default quality
-                    let maxDimension = 1200; // Default max dimension
-                    
-                    // Adjust settings based on file size
-                    if (fileSizeMB > 10) {
-                        quality = 0.5;
-                        maxDimension = 800;
-                    } else if (fileSizeMB > 5) {
-                        quality = 0.6;
-                        maxDimension = 1000;
-                    } else if (fileSizeMB > 2) {
-                        quality = 0.7;
-                        maxDimension = 1200;
-                    }
-                    
-                    // Calculate final dimensions
-                    let newWidth = Math.floor(img.width * scale);
-                    let newHeight = Math.floor(img.height * scale);
-                    
-                    // Ensure dimensions don't exceed maximum
-                    if (newWidth > maxDimension || newHeight > maxDimension) {
-                        const maxScale = maxDimension / Math.max(newWidth, newHeight);
-                        newWidth = Math.floor(newWidth * maxScale);
-                        newHeight = Math.floor(newHeight * maxScale);
-                    }
-                    
-                    // Minimum dimensions
-                    newWidth = Math.max(newWidth, 100);
-                    newHeight = Math.max(newHeight, 100);
-                    
-                    console.log(`Resizing image: ${img.width}x${img.height} → ${newWidth}x${newHeight}, quality: ${quality}`);
-                    
-                    const canvas = document.createElement('canvas');
-                    canvas.width = newWidth;
-                    canvas.height = newHeight;
-                    const ctx = canvas.getContext('2d');
-                    
-                    if (!ctx) {
-                        reject(new Error('Could not get canvas context'));
-                        return;
-                    }
-                    
-                    // Optimize canvas settings for compression
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'low'; // Use low for better compression
-                    
-                    // Draw resized image
-                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
-                    
-                    // Always convert to JPEG for better compression (except when transparency is needed)
-                    const hasTransparency = fileType.includes('png') || fileType.includes('webp');
-                    const outputFormat = hasTransparency ? 'image/png' : 'image/jpeg';
-                    
-                    canvas.toBlob(async (blob) => {
-                        URL.revokeObjectURL(url);
-                        
-                        if (!blob) {
-                            reject(new Error('Failed to create compressed image'));
-                            return;
-                        }
-                        
-                        const compressedBuffer = await blob.arrayBuffer();
-                        const originalSize = arrayBuffer.byteLength / 1024 / 1024;
-                        const compressedSize = compressedBuffer.byteLength / 1024 / 1024;
-                        const compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
-                        
-                        console.log(`Compression: ${originalSize.toFixed(2)}MB → ${compressedSize.toFixed(2)}MB (${compressionRatio}% reduction)`);
-                        
-                        resolve({
-                            buffer: compressedBuffer,
-                            width: newWidth,
-                            height: newHeight,
-                            format: outputFormat
-                        });
-                    }, outputFormat, outputFormat === 'image/jpeg' ? quality : 0.9);
-                    
-                } catch (error) {
-                    URL.revokeObjectURL(url);
-                    reject(error);
-                }
-            };
-            
-            img.onerror = () => {
-                URL.revokeObjectURL(url);
-                reject(new Error('Failed to load image'));
-            };
-            
-            img.src = url;
-        } catch (error) {
-            reject(error);
-        }
-    });
-}
-
-/* ============================================================
     Helper: Convert image with validation and fallbacks
 ============================================================ */
 async function embedImageWithValidation(
@@ -247,9 +125,7 @@ async function embedImageWithValidation(
     
     console.log(`Processing ${fileName}: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB`);
     
-    // Special handling for WebP files
     if (detectedFormat === 'webp' || file.name.toLowerCase().endsWith('.webp') || file.type === 'image/webp') {
-        console.warn(`WebP image detected: ${fileName}. Converting to JPEG for better compression...`);
         try {
             const blob = new Blob([arrayBuffer], { type: 'image/webp' });
             const url = URL.createObjectURL(blob);
@@ -283,7 +159,7 @@ async function embedImageWithValidation(
                                 URL.revokeObjectURL(url);
                                 reject(error);
                             }
-                        }, 'image/jpeg', 0.7); // Use JPEG with 70% quality for WebP
+                        }, 'image/jpeg', 0.7);
                     } catch (error) {
                         URL.revokeObjectURL(url);
                         reject(error);
@@ -302,23 +178,6 @@ async function embedImageWithValidation(
         }
     }
     
-    // Try to compress and resize image before embedding
-    try {
-        console.log(`Compressing ${fileName} for PDF...`);
-        const compressed = await compressAndResizeImageForPdf(arrayBuffer, file.type, paperWidth, paperHeight);
-        
-        // Use compressed image for embedding
-        if (compressed.format === 'image/png') {
-            return await pdfDoc.embedPng(compressed.buffer);
-        } else {
-            return await pdfDoc.embedJpg(compressed.buffer);
-        }
-    } catch (compressError) {
-        console.warn(`Compression failed for ${fileName}, using original:`, compressError);
-        // Fallback to original embedding
-    }
-    
-    // Try embedding based on detected format first
     if (detectedFormat === 'png') {
         try {
             return await pdfDoc.embedPng(arrayBuffer);
@@ -335,7 +194,6 @@ async function embedImageWithValidation(
         }
     }
     
-    // Try both PNG and JPEG regardless of detection
     try {
         return await pdfDoc.embedJpg(arrayBuffer);
     } catch (jpgError) {
@@ -345,8 +203,6 @@ async function embedImageWithValidation(
             return await pdfDoc.embedPng(arrayBuffer);
         } catch (pngError) {
             console.warn(`Failed to embed as PNG: ${fileName}`, pngError);
-            
-            // Last resort: create a proper placeholder image
             return await createPlaceholderImage(pdfDoc);
         }
     }
@@ -404,9 +260,6 @@ export async function imageToPdf(files: File[], paperSize: PaperSize, orientatio
     let errorCount = 0;
     let placeholderCount = 0;
     let totalOriginalSize = 0;
-    let totalCompressedSize = 0;
-
-    console.log(`Creating PDF with ${files.length} images, paper: ${paperSize}, orientation: ${orientation}`);
 
     for (const file of files) {
         try {
@@ -447,7 +300,6 @@ export async function imageToPdf(files: File[], paperSize: PaperSize, orientatio
                     throw new Error('Invalid image dimensions');
                 }
                 
-                // Scale to fit page with 5% margin
                 const margin = 0.05;
                 const maxWidth = pageWidth * (1 - 2 * margin);
                 const maxHeight = pageHeight * (1 - 2 * margin);
@@ -456,7 +308,6 @@ export async function imageToPdf(files: File[], paperSize: PaperSize, orientatio
                 const scaledWidth = imgDims.width * scale;
                 const scaledHeight = imgDims.height * scale;
 
-                // Center the image with margin
                 page.drawImage(image, {
                     x: (pageWidth - scaledWidth) / 2,
                     y: (pageHeight - scaledHeight) / 2,
@@ -489,87 +340,30 @@ export async function imageToPdf(files: File[], paperSize: PaperSize, orientatio
         throw new Error('No images could be processed. Please check your image files.');
     }
     
-    // Add summary page if there were any issues
-    if (errorCount > 0 || placeholderCount > 0) {
-        try {
-            const summaryPage = pdfDoc.addPage([pageWidth, pageHeight]);
-            summaryPage.drawText(`PDF Generation Summary`, {
-                x: 50,
-                y: pageHeight - 100,
-                size: 16,
-                color: rgb(0, 0, 0),
-            });
-            summaryPage.drawText(`Successfully processed: ${successCount} images`, {
-                x: 50,
-                y: pageHeight - 140,
-                size: 12,
-                color: rgb(0, 0.5, 0),
-            });
-            if (placeholderCount > 0) {
-                summaryPage.drawText(`Placeholder created for: ${placeholderCount} images`, {
-                    x: 50,
-                    y: pageHeight - 170,
-                    size: 12,
-                    color: rgb(0.8, 0.5, 0),
-                });
-            }
-            if (errorCount > 0) {
-                summaryPage.drawText(`Failed to process: ${errorCount} images`, {
-                    x: 50,
-                    y: pageHeight - (placeholderCount > 0 ? 200 : 170),
-                    size: 12,
-                    color: rgb(1, 0, 0),
-                });
-            }
-        } catch (error) {
-            console.error('Failed to create summary page:', error);
-        }
-    }
-
-    // Save with MAXIMUM compression
-    console.log(`Saving PDF with maximum compression...`);
     const bytes = await pdfDoc.save({
         useObjectStreams: true,
         addDefaultPage: false,
         objectsPerTick: 100,
         updateFieldAppearances: false,
-        compress: true, // Enable PDF compression
     });
-    
-    totalCompressedSize = bytes.byteLength;
-    const originalMB = totalOriginalSize / 1024 / 1024;
-    const compressedMB = totalCompressedSize / 1024 / 1024;
-    const reduction = ((originalMB - compressedMB) / originalMB * 100).toFixed(1);
-    
-    console.log(`PDF created! Size: ${originalMB.toFixed(2)}MB → ${compressedMB.toFixed(2)}MB (${reduction}% smaller)`);
     
     return toPdfBlob(bytes);
 }
 
 /* ============================================================
-    COMPRESS PDF (Enhanced Version)
+    COMPRESS PDF
 ============================================================ */
 export async function compressPdf(file: File): Promise<Blob> {
-    const originalSize = file.size;
     const pdfBytes = await file.arrayBuffer();
     const pdf = await PDFDocument.load(pdfBytes);
     
-    // Save with maximum compression settings
     const bytes = await pdf.save({ 
         useObjectStreams: true,
         addDefaultPage: false,
         objectsPerTick: 100,
         updateFieldAppearances: false,
-        compress: true,
     }); 
 
-    const compressedSize = bytes.byteLength;
-    const originalMB = originalSize / 1024 / 1024;
-    const compressedMB = compressedSize / 1024 / 1024;
-    const reduction = ((originalMB - compressedMB) / originalMB * 100).toFixed(1);
-    
-    console.log(`PDF compressed: ${originalMB.toFixed(2)}MB → ${compressedMB.toFixed(2)}MB (${reduction}% reduction)`);
-    
     return toPdfBlob(bytes);
 }
 
@@ -588,7 +382,6 @@ export async function mergePdfs(files: File[]): Promise<Blob> {
 
     const bytes = await mergedPdf.save({
         useObjectStreams: true,
-        compress: true,
     });
     return toPdfBlob(bytes);
 }
@@ -628,7 +421,7 @@ export async function extractPages(file: File, pageNumbers: number[]): Promise<B
     pages.forEach(p => newPdf.addPage(p));
 
     const bytes = await newPdf.save({
-        compress: true,
+        useObjectStreams: true,
     });
     return toPdfBlob(bytes);
 }
@@ -649,7 +442,7 @@ export async function removePages(file: File, pageNumbers: number[]): Promise<Bl
     pages.forEach(p => newPdf.addPage(p));
 
     const bytes = await newPdf.save({
-        compress: true,
+        useObjectStreams: true,
     });
     return toPdfBlob(bytes);
 }
@@ -673,7 +466,7 @@ export async function rotatePdf(file: File, rotationData: number | number[]): Pr
     }
 
     const bytes = await pdf.save({
-        compress: true,
+        useObjectStreams: true,
     });
     return toPdfBlob(bytes);
 }
@@ -682,16 +475,7 @@ export async function rotatePdf(file: File, rotationData: number | number[]): Pr
     REVERSE PDF ORDER
 ============================================================ */
 export async function reversePdfOrder(file: File | Blob): Promise<Blob> {
-    let pdfBytes: ArrayBuffer;
-    
-    if (file instanceof File) {
-        pdfBytes = await file.arrayBuffer();
-    } else if (file instanceof Blob) {
-        pdfBytes = await file.arrayBuffer();
-    } else {
-        throw new Error('Input must be a File or Blob');
-    }
-    
+    const pdfBytes = await file.arrayBuffer();
     const pdf = await PDFDocument.load(pdfBytes);
     const pageCount = pdf.getPageCount();
     
@@ -707,13 +491,13 @@ export async function reversePdfOrder(file: File | Blob): Promise<Blob> {
     }
     
     const bytes = await newPdf.save({
-        compress: true,
+        useObjectStreams: true,
     });
     return toPdfBlob(bytes);
 }
 
 /* ============================================================
-    OPTIMIZE PDF (Alternative to compressPdf)
+    OPTIMIZE PDF
 ============================================================ */
 export async function optimizePdf(file: File, quality: 'low' | 'medium' | 'high' = 'medium'): Promise<Blob> {
     const pdfBytes = await file.arrayBuffer();
@@ -722,24 +506,14 @@ export async function optimizePdf(file: File, quality: 'low' | 'medium' | 'high'
     const options: any = {
         useObjectStreams: true,
         addDefaultPage: false,
-        compress: true,
     };
     
     if (quality === 'low') {
-        // Maximum compression
         options.objectsPerTick = 50;
     } else if (quality === 'high') {
-        // Better quality, less compression
         options.objectsPerTick = 200;
     }
     
     const bytes = await pdf.save(options);
-    
-    const originalMB = file.size / 1024 / 1024;
-    const optimizedMB = bytes.byteLength / 1024 / 1024;
-    const reduction = ((originalMB - optimizedMB) / originalMB * 100).toFixed(1);
-    
-    console.log(`PDF optimized (${quality}): ${originalMB.toFixed(2)}MB → ${optimizedMB.toFixed(2)}MB (${reduction}% smaller)`);
-    
     return toPdfBlob(bytes);
 }

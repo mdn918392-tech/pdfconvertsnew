@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
 import {
   Download,
   ArrowLeft,
@@ -20,7 +19,18 @@ import {
   RotateCcw,
   Grid,
   List,
-  AlertCircle,
+  GripVertical,
+  Move,
+  Zap,
+  ZapOff,
+  Percent,
+  Palette,
+  Layers,
+  Target,
+  AlertTriangle,
+  RefreshCw,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 import FileUploader from "../components/FileUploader";
@@ -49,8 +59,10 @@ interface DownloadNotification {
   fileSize: number;
 }
 
+// Compression Quality Options
+type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
+
 const MAX_PAGES_COUNT = 1000;
-const MAX_IMAGE_SIZE_MB = 5;
 
 const simulateProgress = (
   callback: (p: number) => void,
@@ -80,7 +92,9 @@ const generatePdfFilename = (
   files: FileWithPreview[], 
   paperSize: PaperSize, 
   orientation: Orientation,
-  reverseOrder: boolean
+  reverseOrder: boolean,
+  compressionQuality: CompressionQuality,
+  customQualityValue?: number
 ): string => {
   const now = new Date();
   const timestamp = now.getTime();
@@ -88,21 +102,33 @@ const generatePdfFilename = (
   
   const orderSuffix = reverseOrder ? "_reverse" : "";
   
+  let qualitySuffix = "";
+  if (compressionQuality === "custom" && customQualityValue !== undefined) {
+    qualitySuffix = `_${customQualityValue}%`;
+  } else if (compressionQuality !== "none") {
+    qualitySuffix = `_${compressionQuality}`;
+  } else {
+    qualitySuffix = "_original";
+  }
+  
   if (files.length === 1) {
     const originalName = files[0].file.name.split('.')[0];
-    return `${originalName}_${paperSize}_${timestamp}_${randomId}${orderSuffix}.pdf`;
+    return `${originalName}_${paperSize}${qualitySuffix}_${timestamp}_${randomId}${orderSuffix}.pdf`;
   } else {
-    return `images_${files.length}_pages_${paperSize}_${timestamp}_${randomId}${orderSuffix}.pdf`;
+    return `images_${files.length}_pages_${paperSize}${qualitySuffix}_${timestamp}_${randomId}${orderSuffix}.pdf`;
   }
 };
 
-// Smart compression function that works for both rotated and non-rotated images
-const compressImageForPdf = async (file: File, rotation: number = 0, targetQuality: number = 0.7): Promise<File> => {
+// Enhanced compression function with quality options and white background
+const compressImageForPdf = async (
+  file: File, 
+  rotation: number = 0, 
+  quality: CompressionQuality = "medium",
+  customQualityValue: number = 85
+): Promise<File> => {
   return new Promise((resolve, reject) => {
-    const fileSizeMB = file.size / (1024 * 1024);
-    
-    // If file is already small enough, return as is
-    if (fileSizeMB <= 0.5) { // Changed from 1MB to 0.5MB
+    // If quality is "none", return original file
+    if (quality === "none") {
       resolve(file);
       return;
     }
@@ -115,12 +141,35 @@ const compressImageForPdf = async (file: File, rotation: number = 0, targetQuali
       img.src = e.target?.result as string;
       
       img.onload = () => {
-        // ✅ Calculate maximum dimensions for PDF (max 1600px for large dimensions)
-        let maxDimension = 1600;
-        if (fileSizeMB > 10) maxDimension = 1200;
-        else if (fileSizeMB > 5) maxDimension = 1400;
-        else if (fileSizeMB > 2) maxDimension = 1600;
-        
+        // Calculate dimensions based on quality setting
+        let maxDimension = 4096;
+        let qualityValue = 1.0;
+        let additionalScale = 1.0;
+
+        switch (quality) {
+          case "custom":
+            maxDimension = 4096;
+            qualityValue = customQualityValue / 100;
+            additionalScale = customQualityValue >= 90 ? 1.0 : 
+                             customQualityValue >= 75 ? 0.95 : 0.9;
+            break;
+          case "high":
+            maxDimension = 4096;
+            qualityValue = 0.95;
+            additionalScale = 1.0;
+            break;
+          case "medium":
+            maxDimension = 2048;
+            qualityValue = 0.85;
+            additionalScale = 0.9;
+            break;
+          case "low":
+            maxDimension = 1024;
+            qualityValue = 0.7;
+            additionalScale = 0.8;
+            break;
+        }
+
         // Calculate scale to fit within max dimension
         let scale = 1;
         const largerDimension = Math.max(img.width, img.height);
@@ -128,15 +177,9 @@ const compressImageForPdf = async (file: File, rotation: number = 0, targetQuali
           scale = maxDimension / largerDimension;
         }
         
-        // Additional scaling for very large files
-        if (fileSizeMB > 15) {
-          scale = scale * 0.6; // 40% additional reduction
-        } else if (fileSizeMB > 10) {
-          scale = scale * 0.7; // 30% additional reduction
-        } else if (fileSizeMB > 5) {
-          scale = scale * 0.8; // 20% additional reduction
-        }
-        
+        // Apply additional scale for medium/low quality
+        scale *= additionalScale;
+
         const newWidth = Math.floor(img.width * scale);
         const newHeight = Math.floor(img.height * scale);
         
@@ -153,32 +196,24 @@ const compressImageForPdf = async (file: File, rotation: number = 0, targetQuali
         }
         
         if (ctx) {
+          // Set white background for the entire canvas
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
           // Set image smoothing for better quality
           ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'medium';
+          ctx.imageSmoothingQuality = 'high';
           
           // If rotation needed, apply it
           if (rotation !== 0) {
+            ctx.save();
             ctx.translate(canvas.width / 2, canvas.height / 2);
             ctx.rotate((rotation * Math.PI) / 180);
             ctx.drawImage(img, -newWidth / 2, -newHeight / 2, newWidth, newHeight);
+            ctx.restore();
           } else {
             // No rotation, just draw with scaling
             ctx.drawImage(img, 0, 0, newWidth, newHeight);
-          }
-          
-          // Calculate optimal quality based on file size
-          let quality = targetQuality;
-          
-          // Reduce quality for larger files
-          if (fileSizeMB > 20) {
-            quality = 0.4; // Very aggressive for huge files
-          } else if (fileSizeMB > 10) {
-            quality = 0.5;
-          } else if (fileSizeMB > 5) {
-            quality = 0.6;
-          } else if (fileSizeMB > 2) {
-            quality = 0.7;
           }
           
           // Use appropriate format
@@ -193,15 +228,17 @@ const compressImageForPdf = async (file: File, rotation: number = 0, targetQuali
               
               // Log compression results
               const compressionRatio = ((file.size - blob.size) / file.size * 100).toFixed(1);
-              console.log(`Compression: ${file.name} - ${(file.size/1024/1024).toFixed(2)}MB → ${(blob.size/1024/1024).toFixed(2)}MB (${compressionRatio}% reduced)`);
+              const isLarger = blob.size > file.size;
+              
+              console.log(`${quality === "custom" ? `${customQualityValue}%` : quality.toUpperCase()} Compression: ${file.name}`);
+              console.log(`Original: ${(file.size/1024/1024).toFixed(2)}MB → Compressed: ${(blob.size/1024/1024).toFixed(2)}MB`);
+              console.log(`Change: ${isLarger ? '+' : ''}${compressionRatio}% (${isLarger ? 'larger' : 'reduced'})`);
               
               resolve(compressedFile);
             } else {
-              // Fallback to original file if compression fails
-              console.warn(`Compression failed for ${file.name}, using original`);
-              resolve(file);
+              reject(new Error('Failed to create blob'));
             }
-          }, outputFormat, outputFormat === 'image/jpeg' ? quality : 0.9);
+          }, outputFormat, outputFormat === 'image/jpeg' ? qualityValue : 0.95);
         } else {
           reject(new Error('Failed to get canvas context'));
         }
@@ -262,12 +299,26 @@ const DownloadNotification = ({
 
 const FloatingPageCounter = ({ 
   count, 
-  reverseOrder 
+  reverseOrder,
+  compressionQuality,
+  customQualityValue,
+  showWarning
 }: { 
   count: number, 
-  reverseOrder: boolean
+  reverseOrder: boolean,
+  compressionQuality: CompressionQuality,
+  customQualityValue?: number,
+  showWarning: boolean
 }) => {
   if (count === 0) return null;
+  
+  const qualityLabels = {
+    none: "100% Quality",
+    custom: `${customQualityValue}% Quality`,
+    high: "High Quality (95%)",
+    medium: "Medium Quality (85%)",
+    low: "Low Quality (70%)"
+  };
   
   return (
     <motion.div
@@ -276,11 +327,18 @@ const FloatingPageCounter = ({
       exit={{ opacity: 0, y: 20 }}
       className="fixed bottom-4 right-4 z-40 group"
     >
-      <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-4 rounded-xl shadow-lg">
-        <FileText className="w-6 h-6" />
+      <div className={`flex items-center gap-2 ${showWarning ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-gradient-to-r from-blue-500 to-purple-600'} text-white px-5 py-4 rounded-xl shadow-lg ${showWarning ? 'animate-pulse' : ''}`}>
+        {showWarning ? (
+          <AlertTriangle className="w-6 h-6 animate-pulse" />
+        ) : (
+          <FileText className="w-6 h-6" />
+        )}
         <div className="text-center">
           <div className="text-3xl font-bold">{count}</div>
           <div className="text-sm opacity-90">Pages</div>
+          <div className="text-xs opacity-80 mt-1">
+            {qualityLabels[compressionQuality]}
+          </div>
           {reverseOrder && (
             <div className="text-xs opacity-80 mt-1 flex items-center justify-center gap-1">
               <ArrowUpDown className="w-3 h-3" />
@@ -290,11 +348,49 @@ const FloatingPageCounter = ({
         </div>
       </div>
       
-      <div className="absolute -top-14 right-0 bg-gray-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+      <div className="absolute -top-32 right-0 bg-gray-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
         <div className="font-medium">Total pages: {count}</div>
+        <div className="text-xs mt-1">Quality: {qualityLabels[compressionQuality]}</div>
         {reverseOrder && <div className="text-xs mt-1">• Images in Reverse Order</div>}
+        {showWarning && (
+          <div className="text-xs mt-1 text-amber-300 font-semibold">
+            • Changes detected - Convert Again
+          </div>
+        )}
       </div>
     </motion.div>
+  );
+};
+
+// Drag and Drop Component
+const DraggableItem = ({ 
+  children, 
+  index, 
+  onDragStart, 
+  onDragOver, 
+  onDrop,
+  isDragging
+}: { 
+  children: React.ReactNode;
+  index: number;
+  onDragStart: (e: React.DragEvent, index: number) => void;
+  onDragOver: (e: React.DragEvent, index: number) => void;
+  onDrop: (e: React.DragEvent, fromIndex: number, toIndex: number) => void;
+  isDragging: boolean;
+}) => {
+  return (
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, index)}
+      onDragOver={(e) => onDragOver(e, index)}
+      onDrop={(e) => onDrop(e, index, index)}
+      className={`relative ${isDragging ? 'opacity-50' : ''}`}
+    >
+      <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 cursor-move text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+        <GripVertical className="w-4 h-4" />
+      </div>
+      {children}
+    </div>
   );
 };
 
@@ -317,7 +413,36 @@ export default function JpgToPdf() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [compressing, setCompressing] = useState(false);
   const [showCompressionInfo, setShowCompressionInfo] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [compressionQuality, setCompressionQuality] = useState<CompressionQuality>("none");
+  const [customQualityValue, setCustomQualityValue] = useState<number>(85);
+  const [showChangesWarning, setShowChangesWarning] = useState(false);
+  const [originalStateHash, setOriginalStateHash] = useState<string>("");
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  // Function to calculate hash of current state
+  const calculateStateHash = useCallback(() => {
+    const state = {
+      files: files.map(f => ({
+        id: f.id,
+        rotation: f.rotation,
+        order: files.indexOf(f)
+      })),
+      paperSize,
+      orientation,
+      reverseOrder,
+      compressionQuality,
+      customQualityValue
+    };
+    return JSON.stringify(state);
+  }, [files, paperSize, orientation, reverseOrder, compressionQuality, customQualityValue]);
+
+  // Check for changes when state changes
+  useEffect(() => {
+    if (pdfBlob && originalStateHash && calculateStateHash() !== originalStateHash) {
+      setShowChangesWarning(true);
+    }
+  }, [files, paperSize, orientation, reverseOrder, compressionQuality, customQualityValue, pdfBlob, originalStateHash, calculateStateHash]);
 
   useEffect(() => {
     setIsClient(true);
@@ -350,6 +475,18 @@ export default function JpgToPdf() {
     };
   }, [files]);
 
+  // Handle setting PDF blob and resetting warning
+  const setPdfBlobWithState = useCallback((blob: Blob | null) => {
+    setPdfBlob(blob);
+    if (blob) {
+      setOriginalStateHash(calculateStateHash());
+      setShowChangesWarning(false);
+    } else {
+      setOriginalStateHash("");
+      setShowChangesWarning(false);
+    }
+  }, [calculateStateHash]);
+
   const handleRemoveFile = useCallback((fileToRemove: FileWithPreview) => {
     setFiles((prev) => prev.filter((f) => f.id !== fileToRemove.id));
     if (fileToRemove.previewUrl) URL.revokeObjectURL(fileToRemove.previewUrl);
@@ -363,9 +500,52 @@ export default function JpgToPdf() {
         return newUrls;
       });
     }
-    setPdfBlob(null);
+    setPdfBlobWithState(null);
     setProgress(0);
-  }, [rotatedUrls]);
+  }, [rotatedUrls, setPdfBlobWithState]);
+
+  // Drag and Drop Handlers
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, fromIndex: number, toIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null) return;
+
+    const newFiles = [...files];
+    const [draggedItem] = newFiles.splice(draggedIndex, 1);
+    newFiles.splice(toIndex, 0, draggedItem);
+
+    setFiles(newFiles);
+    setDraggedIndex(null);
+    setPdfBlobWithState(null);
+  }, [files, draggedIndex, setPdfBlobWithState]);
+
+  const handleMoveUp = useCallback((index: number) => {
+    if (index <= 0) return;
+    
+    const newFiles = [...files];
+    [newFiles[index], newFiles[index - 1]] = [newFiles[index - 1], newFiles[index]];
+    setFiles(newFiles);
+    setPdfBlobWithState(null);
+  }, [files, setPdfBlobWithState]);
+
+  const handleMoveDown = useCallback((index: number) => {
+    if (index >= files.length - 1) return;
+    
+    const newFiles = [...files];
+    [newFiles[index], newFiles[index + 1]] = [newFiles[index + 1], newFiles[index]];
+    setFiles(newFiles);
+    setPdfBlobWithState(null);
+  }, [files, setPdfBlobWithState]);
 
   const handleRotateFile = useCallback((id: string, degrees: number) => {
     const file = files.find(f => f.id === id);
@@ -377,7 +557,7 @@ export default function JpgToPdf() {
       f.id === id ? { ...f, rotation: newRotation } : f
     ));
     
-    setPdfBlob(null);
+    setPdfBlobWithState(null);
     
     // Clear rotated URL for this file since rotation changed
     if (rotatedUrls[id]) {
@@ -390,7 +570,7 @@ export default function JpgToPdf() {
         return newUrls;
       });
     }
-  }, [files, rotatedUrls]);
+  }, [files, rotatedUrls, setPdfBlobWithState]);
 
   const handleRotateAll = useCallback((degrees: number) => {
     setFiles(prev => prev.map(file => ({
@@ -398,7 +578,7 @@ export default function JpgToPdf() {
       rotation: (file.rotation + degrees) % 360
     })));
     
-    setPdfBlob(null);
+    setPdfBlobWithState(null);
     
     // Clear all rotated URLs
     Object.values(rotatedUrls).forEach(url => {
@@ -407,7 +587,7 @@ export default function JpgToPdf() {
       }
     });
     setRotatedUrls({});
-  }, [rotatedUrls]);
+  }, [rotatedUrls, setPdfBlobWithState]);
 
   const handleFilesUpdate = useCallback(async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
@@ -446,7 +626,7 @@ export default function JpgToPdf() {
 
       // Add only new files to the existing files
       setFiles(prev => [...prev, ...filesWithPreviews]);
-      setPdfBlob(null);
+      setPdfBlobWithState(null);
       setProgress(0);
 
     } catch (error) {
@@ -455,7 +635,7 @@ export default function JpgToPdf() {
     } finally {
       setCompressing(false);
     }
-  }, []);
+  }, [setPdfBlobWithState]);
 
   const handleImageError = useCallback((id: string) => {
     setFiles(prev => prev.map(file => {
@@ -470,17 +650,12 @@ export default function JpgToPdf() {
     if (files.length === 0) return;
 
     setConverting(true);
-    setPdfBlob(null);
+    setPdfBlobWithState(null);
     setShowCompressionInfo(true);
 
     try {
-      // Prepare files based on reverse order setting
-      let filesToConvert;
-      if (reverseOrder) {
-        filesToConvert = [...files].reverse();
-      } else {
-        filesToConvert = [...files];
-      }
+      // Prepare files in current order
+      let filesToConvert = [...files];
 
       // Show compression progress
       setProgress(10);
@@ -500,7 +675,8 @@ export default function JpgToPdf() {
             const compressedFile = await compressImageForPdf(
               fileWithPreview.file, 
               fileWithPreview.rotation,
-              0.65 // Slightly more aggressive compression
+              compressionQuality,
+              customQualityValue
             );
             
             // Calculate compression ratio
@@ -511,11 +687,11 @@ export default function JpgToPdf() {
             console.log(`File ${index + 1}/${filesToConvert.length}: ${fileWithPreview.file.name}`);
             console.log(`Original: ${(originalSize / 1024 / 1024).toFixed(2)} MB`);
             console.log(`Compressed: ${(compressedSize / 1024 / 1024).toFixed(2)} MB`);
-            console.log(`Reduced by: ${compressionRatio}%`);
+            console.log(`Change: ${compressionRatio}%`);
             
             return compressedFile;
           } catch (error) {
-            console.error(`Failed to compress image ${fileWithPreview.file.name}:`, error);
+            console.error(`Failed to process image ${fileWithPreview.file.name}:`, error);
             // If compression fails, use original file
             return fileWithPreview.file;
           }
@@ -539,7 +715,7 @@ export default function JpgToPdf() {
         setProgress(100);
 
         setTimeout(() => {
-          setPdfBlob(blob);
+          setPdfBlobWithState(blob);
           setConverting(false);
           
           // Log final PDF size
@@ -548,9 +724,10 @@ export default function JpgToPdf() {
           const totalCompressionRatio = ((totalOriginalSize - pdfSize) / totalOriginalSize * 100).toFixed(1);
           
           console.log(`\n=== PDF Generation Complete ===`);
+          console.log(`Quality Setting: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ''}`);
           console.log(`Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
           console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
-          console.log(`Total reduction: ${totalCompressionRatio}%`);
+          console.log(`Total change: ${totalCompressionRatio}%`);
           
           // Hide compression info after 3 seconds
           setTimeout(() => {
@@ -572,7 +749,14 @@ export default function JpgToPdf() {
 
   const handleDownload = () => {
     if (pdfBlob) {
-      const filename = generatePdfFilename(files, paperSize, orientation, reverseOrder);
+      const filename = generatePdfFilename(
+        files, 
+        paperSize, 
+        orientation, 
+        reverseOrder, 
+        compressionQuality,
+        customQualityValue
+      );
       downloadFile(pdfBlob, filename);
       
       const notification: DownloadNotification = {
@@ -594,7 +778,31 @@ export default function JpgToPdf() {
 
   const toggleReverseOrder = () => {
     setReverseOrder(!reverseOrder);
-    setPdfBlob(null);
+    setPdfBlobWithState(null);
+  };
+
+  // Handle quality change
+  const handleCompressionQualityChange = (quality: CompressionQuality) => {
+    setCompressionQuality(quality);
+    setPdfBlobWithState(null);
+  };
+
+  // Handle custom quality change
+  const handleCustomQualityChange = (value: number) => {
+    setCustomQualityValue(value);
+    setPdfBlobWithState(null);
+  };
+
+  // Handle paper size change
+  const handlePaperSizeChange = (size: PaperSize) => {
+    setPaperSize(size);
+    setPdfBlobWithState(null);
+  };
+
+  // Handle orientation change
+  const handleOrientationChange = (orient: Orientation) => {
+    setOrientation(orient);
+    setPdfBlobWithState(null);
   };
 
   const displayFiles = reverseOrder ? [...files].reverse() : files;
@@ -603,13 +811,10 @@ export default function JpgToPdf() {
     return displayIndex + 1;
   };
 
-  // Get image URL for display (with rotation applied)
   const getImageUrl = (file: FileWithPreview) => {
-    // If we have a rotated URL, use it
     if (rotatedUrls[file.id]) {
       return rotatedUrls[file.id];
     }
-    // Otherwise use original preview URL
     return file.previewUrl;
   };
 
@@ -617,7 +822,6 @@ export default function JpgToPdf() {
     if (!file.previewUrl || file.previewError) return;
     
     try {
-      // If rotation is 0, use original URL
       if (file.rotation === 0) {
         setExpandedImage({
           url: file.previewUrl,
@@ -626,7 +830,6 @@ export default function JpgToPdf() {
         return;
       }
       
-      // Generate rotated URL if not already cached
       if (!rotatedUrls[file.id]) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -642,6 +845,9 @@ export default function JpgToPdf() {
           }
           
           if (ctx) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
             ctx.translate(canvas.width / 2, canvas.height / 2);
             ctx.rotate((file.rotation * Math.PI) / 180);
             ctx.drawImage(img, -img.width / 2, -img.height / 2);
@@ -667,7 +873,6 @@ export default function JpgToPdf() {
       }
     } catch (error) {
       console.error('Failed to prepare expanded image:', error);
-      // Fallback to original URL
       setExpandedImage({
         url: file.previewUrl,
         rotation: 0
@@ -676,25 +881,31 @@ export default function JpgToPdf() {
   };
 
   const handleConvertMore = () => {
-    // Revoke all preview URLs
     files.forEach(file => {
       if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
     });
     
-    // Revoke all rotated URLs
     Object.values(rotatedUrls).forEach(url => {
       if (url.startsWith('data:')) {
         URL.revokeObjectURL(url);
       }
     });
     
-    // Clear all state
     setFiles([]);
     setRotatedUrls({});
-    setPdfBlob(null);
+    setPdfBlobWithState(null);
     setProgress(0);
     setReverseOrder(false);
     setShowCompressionInfo(false);
+    setShowChangesWarning(false);
+  };
+
+  // Function to handle changes and show warning
+  const handleSettingChange = (setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
+    setter(value);
+    if (pdfBlob) {
+      setShowChangesWarning(true);
+    }
   };
 
   if (!isClient) return null;
@@ -723,6 +934,9 @@ export default function JpgToPdf() {
       <FloatingPageCounter 
         count={files.length} 
         reverseOrder={reverseOrder}
+        compressionQuality={compressionQuality}
+        customQualityValue={customQualityValue}
+        showWarning={showChangesWarning}
       />
 
       <AnimatePresence>
@@ -743,7 +957,7 @@ export default function JpgToPdf() {
               <img
                 src={expandedImage.url}
                 alt="Expanded preview"
-                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                className="max-w-full max-h-[90vh] object-contain rounded-lg bg-white"
                 style={{
                   transform: expandedImage.rotation !== 0 
                     ? `rotate(${expandedImage.rotation}deg)` 
@@ -758,6 +972,39 @@ export default function JpgToPdf() {
             >
               <X className="w-6 h-6" />
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Changes Warning Banner */}
+      <AnimatePresence>
+        {showChangesWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 shadow-lg"
+          >
+            <div className="container mx-auto max-w-7xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 animate-pulse" />
+                  <div>
+                    <h3 className="font-bold text-lg">Changes Detected!</h3>
+                    <p className="text-sm opacity-90">
+                      You've made changes to images or settings. Click "Convert Again" to update your PDF.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleConvert}
+                  className="px-4 py-2 bg-white text-amber-700 font-semibold rounded-lg hover:bg-amber-50 transition-colors flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Convert Again
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -782,10 +1029,10 @@ export default function JpgToPdf() {
                 <ImageIcon className="w-10 h-10 text-white" />
               </div>
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                JPG to PDF Converter
+                Professional JPG to PDF Converter
               </h1>
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Transform your images into a polished PDF document
+                Transform images with maximum quality control and professional PDF output
               </p>
             </div>
 
@@ -808,19 +1055,19 @@ export default function JpgToPdf() {
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>JPG, PNG, WebP</span>
+                    <span>Maximum Quality</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Multiple selection</span>
+                    <span>Drag & Drop Reorder</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Auto compression</span>
+                    <span>Professional Layout</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Secure & private</span>
+                    <span>Precise Control</span>
                   </div>
                 </div>
 
@@ -834,56 +1081,56 @@ export default function JpgToPdf() {
 
               {files.length > 0 && (
                 <div className="space-y-8">
-                  {/* Compression Info Banner */}
-                  {showCompressionInfo && (
+                  {/* Changes Warning Box */}
+                  {showChangesWarning && (
                     <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6"
                     >
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1">
-                            Advanced Compression Active
-                          </h4>
-                          <p className="text-sm text-blue-700 dark:text-blue-400">
-                            All images are being optimized for PDF:
-                          </p>
-                          <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-blue-600 dark:text-blue-500">
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              <span>Resizing to 1600px max</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              <span>Smart quality reduction</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              <span>Rotation-preserving</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              <span>Format optimization</span>
-                            </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
+                            <AlertTriangle className="w-6 h-6 text-white" />
                           </div>
-                          <div className="mt-2 text-xs text-blue-600 dark:text-blue-500">
-                            <span className="font-medium">Expected reduction:</span> Large files (&gt;5MB) will be reduced by 40-60%
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-amber-800 dark:text-amber-300 mb-1">
+                            Changes Detected - Convert Again Required
+                          </h3>
+                          <p className="text-amber-700 dark:text-amber-400 mb-3">
+                            You've made changes to your images or settings. Your current PDF is outdated. Click the button below to convert again with the latest changes.
+                          </p>
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              onClick={handleConvert}
+                              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all shadow-md flex items-center gap-2"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              Convert Again with Changes
+                            </button>
+                            <button
+                              onClick={() => setShowChangesWarning(false)}
+                              className="px-5 py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              Dismiss Warning
+                            </button>
                           </div>
                         </div>
                       </div>
                     </motion.div>
                   )}
 
+                 
+
+                  {/* Selected Images Section */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
                         Selected Images ({files.length})
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Click on image to preview • Click rotate to adjust orientation
+                        Drag to reorder • Click to preview • Rotate to adjust
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -949,6 +1196,7 @@ export default function JpgToPdf() {
                     </div>
                   </div>
 
+                  {/* Images Grid/List View */}
                   <div className={`${
                     viewMode === 'grid' 
                       ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4'
@@ -959,182 +1207,363 @@ export default function JpgToPdf() {
                       const imageUrl = getImageUrl(item);
                       
                       return (
-                        <div
+                        <DraggableItem
                           key={item.id}
-                          className={`group relative ${
-                            viewMode === 'list' 
-                              ? 'flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl'
-                              : ''
-                          }`}
+                          index={displayIndex}
+                          onDragStart={handleDragStart}
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                          isDragging={draggedIndex === displayIndex}
                         >
-                          <div 
-                            className={`relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer ${
-                              viewMode === 'list' 
-                                ? 'w-20 h-20 flex-shrink-0'
-                                : 'aspect-square'
-                            }`}
-                            onClick={() => handleExpandImage(item)}
-                          >
-                            {imageUrl && !item.previewError ? (
-                              <>
-                                <img
-                                  src={imageUrl}
-                                  alt={item.file.name}
-                                  className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${
-                                    item.rotation !== 0 && !rotatedUrls[item.id] ? 'transform' : ''
-                                  }`}
-                                  style={
-                                    item.rotation !== 0 && !rotatedUrls[item.id] 
-                                      ? { transform: `rotate(${item.rotation}deg)` }
-                                      : undefined
-                                  }
-                                  onError={() => handleImageError(item.id)}
-                                  loading="lazy"
-                                />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                              </>
-                            ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center p-3">
-                                <div className="relative mb-2">
-                                  <ImageIcon className="w-8 h-8 text-gray-400" />
-                                  {item.previewError && (
-                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                                      <X className="w-2 h-2 text-white" />
-                                    </div>
-                                  )}
-                                </div>
+                          <div className={`group relative ${
+                            viewMode === 'list' 
+                              ? 'flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl ml-6'
+                              : ''
+                          }`}>
+                            {viewMode === 'list' && (
+                              <div className="flex flex-col gap-1">
+                                <button
+                                  onClick={() => handleMoveUp(displayIndex)}
+                                  disabled={displayIndex === 0}
+                                  className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
+                                >
+                                  <ChevronUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleMoveDown(displayIndex)}
+                                  disabled={displayIndex === files.length - 1}
+                                  className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
+                                >
+                                  <ChevronDown className="w-3 h-3" />
+                                </button>
                               </div>
                             )}
                             
                             <div 
-                              className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full"
-                              onClick={(e) => e.stopPropagation()}
+                              className={`relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer ${
+                                viewMode === 'list' 
+                                  ? 'w-20 h-20 flex-shrink-0'
+                                  : 'aspect-square'
+                              }`}
+                              onClick={() => handleExpandImage(item)}
                             >
-                              {pageNumber}
-                            </div>
-                            
-                            {item.rotation !== 0 && (
+                              {imageUrl && !item.previewError ? (
+                                <>
+                                  <img
+                                    src={imageUrl}
+                                    alt={item.file.name}
+                                    className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${
+                                      item.rotation !== 0 && !rotatedUrls[item.id] ? 'transform' : ''
+                                    }`}
+                                    style={
+                                      item.rotation !== 0 && !rotatedUrls[item.id] 
+                                        ? { transform: `rotate(${item.rotation}deg)` }
+                                        : undefined
+                                    }
+                                    onError={() => handleImageError(item.id)}
+                                    loading="lazy"
+                                  />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                </>
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center p-3">
+                                  <div className="relative mb-2">
+                                    <ImageIcon className="w-8 h-8 text-gray-400" />
+                                    {item.previewError && (
+                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                                        <X className="w-2 h-2 text-white" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              
                               <div 
-                                className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <RotateCw className="w-2 h-2" />
-                                {item.rotation}°
+                                {pageNumber}
+                              </div>
+                              
+                              {item.rotation !== 0 && (
+                                <div 
+                                  className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <RotateCw className="w-2 h-2" />
+                                  {item.rotation}°
+                                </div>
+                              )}
+                            </div>
+                            
+                            {viewMode === 'list' && (
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
+                                  {item.file.name}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRotateFile(item.id, -90);
+                                    }}
+                                    className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                    title="Rotate counter-clockwise"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRotateFile(item.id, 90);
+                                    }}
+                                    className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                    title="Rotate clockwise"
+                                  >
+                                    <RotateCw className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveFile(item);
+                                    }}
+                                    className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/30 rounded-lg transition-colors ml-auto"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
                               </div>
                             )}
-                          </div>
-                          
-                          {viewMode === 'list' && (
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
-                                {item.file.name}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {(item.file.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRotateFile(item.id, -90);
-                                  }}
-                                  className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                  title="Rotate counter-clockwise"
-                                >
-                                  <RotateCcw className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRotateFile(item.id, 90);
-                                  }}
-                                  className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                  title="Rotate clockwise"
-                                >
-                                  <RotateCw className="w-3 h-3" />
-                                </button>
+                            
+                            {viewMode === 'grid' && (
+                              <>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleRemoveFile(item);
                                   }}
-                                  className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/30 rounded-lg transition-colors ml-auto"
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
+                                  aria-label={`Remove ${item.file.name}`}
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {viewMode === 'grid' && (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveFile(item);
-                                }}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
-                                aria-label={`Remove ${item.file.name}`}
+                                
+                                <div className="absolute bottom-2 left-2 flex gap-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRotateFile(item.id, -90);
+                                    }}
+                                    className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
+                                    title="Rotate counter-clockwise"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRotateFile(item.id, 90);
+                                    }}
+                                    className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
+                                    title="Rotate clockwise"
+                                  >
+                                    <RotateCw className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                
+                                {imageUrl && !item.previewError && (
+                                  <button
+                                    className="absolute bottom-2 right-2 p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleExpandImage(item);
+                                    }}
+                                  >
+                                    <Maximize2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                            
+                            {reverseOrder && viewMode === 'grid' && (
+                              <div 
+                                className="absolute -top-2 -left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <X className="w-3 h-3" />
-                              </button>
-                              
-                              <div className="absolute bottom-2 left-2 flex gap-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRotateFile(item.id, -90);
-                                  }}
-                                  className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
-                                  title="Rotate counter-clockwise"
-                                >
-                                  <RotateCcw className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRotateFile(item.id, 90);
-                                  }}
-                                  className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
-                                  title="Rotate clockwise"
-                                >
-                                  <RotateCw className="w-3 h-3" />
-                                </button>
+                                <ArrowUpDown className="w-2 h-2" />
+                                R
                               </div>
-                              
-                              {imageUrl && !item.previewError && (
-                                <button
-                                  className="absolute bottom-2 right-2 p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleExpandImage(item);
-                                  }}
-                                >
-                                  <Maximize2 className="w-3 h-3" />
-                                </button>
-                              )}
-                            </>
-                          )}
-                          
-                          {reverseOrder && viewMode === 'grid' && (
-                            <div 
-                              className="absolute -top-2 -left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ArrowUpDown className="w-2 h-2" />
-                              R
-                            </div>
-                          )}
-                        </div>
+                            )}
+                          </div>
+                        </DraggableItem>
                       );
                     })}
                   </div>
 
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 md:p-8">
+                   {/* Advanced Settings Section - Always Visible */}
+                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Target className="w-7 h-7 text-blue-500" />
+                      <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                        Quality Control Settings
+                      </h3>
+                    </div>
+
+                    <div className="space-y-6">
+                      {/* Quality Settings */}
+                      <div className="space-y-3">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                          <Palette className="w-4 h-4" />
+                          Image Quality Preset
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                          {([
+                            { value: "none", label: "Maximum Quality", icon: ZapOff, desc: "100% Original", color: "from-emerald-500 to-green-600" },
+                            { value: "custom", label: "Custom Quality", icon: Percent, desc: "Precise Control", color: "from-blue-500 to-purple-600" },
+                            { value: "high", label: "High Quality", icon: Zap, desc: "95% Quality", color: "from-cyan-500 to-blue-600" },
+                            { value: "medium", label: "Balanced", icon: Layers, desc: "85% Quality", color: "from-amber-500 to-orange-600" },
+                            { value: "low", label: "Small Size", icon: Zap, desc: "70% Quality", color: "from-rose-500 to-pink-600" }
+                          ] as const).map((option) => {
+                            const Icon = option.icon;
+                            return (
+                              <button
+                                key={option.value}
+                                onClick={() => handleCompressionQualityChange(option.value)}
+                                className={`px-4 py-4 rounded-xl border transition-all transform hover:scale-[1.02] ${
+                                  compressionQuality === option.value
+                                    ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-lg scale-[1.02]`
+                                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                }`}
+                              >
+                                <div className="flex flex-col items-center gap-2">
+                                  <Icon className="w-6 h-6 mb-1" />
+                                  <span className="font-semibold">{option.label}</span>
+                                  <span className="text-xs opacity-90">{option.desc}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Custom Quality Slider */}
+                        {compressionQuality === "custom" && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl border border-blue-200 dark:border-blue-800"
+                          >
+                            <div className="flex items-center justify-between mb-4">
+                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                <Target className="w-4 h-4" />
+                                Custom Quality: {customQualityValue}%
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleCustomQualityChange(Math.max(10, customQualityValue - 5))}
+                                  className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+                                >
+                                  <span className="text-sm font-medium">-5%</span>
+                                </button>
+                                <button
+                                  onClick={() => handleCustomQualityChange(Math.min(100, customQualityValue + 5))}
+                                  className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+                                >
+                                  <span className="text-sm font-medium">+5%</span>
+                                </button>
+                              </div>
+                            </div>
+                            <input
+                              type="range"
+                              min="10"
+                              max="100"
+                              step="1"
+                              value={customQualityValue}
+                              onChange={(e) => handleCustomQualityChange(parseInt(e.target.value))}
+                              className="w-full h-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-500"
+                            />
+                            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mt-3">
+                              <span className="flex flex-col items-center">
+                                <span>10%</span>
+                                <span className="text-[10px]">Smallest</span>
+                              </span>
+                              <span className="flex flex-col items-center">
+                                <span>50%</span>
+                                <span className="text-[10px]">Balanced</span>
+                              </span>
+                              <span className="flex flex-col items-center">
+                                <span>90%</span>
+                                <span className="text-[10px]">High Quality</span>
+                              </span>
+                              <span className="flex flex-col items-center">
+                                <span>100%</span>
+                                <span className="text-[10px]">Maximum</span>
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
+                              <span className="font-semibold">Higher percentage = Better quality = Larger file size</span>
+                            </p>
+                          </motion.div>
+                        )}
+                      </div>
+
+                      {/* Quality Info Bar */}
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Settings className="w-5 h-5 text-blue-500" />
+                          <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                            Quality Settings Summary
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                            <div className="font-semibold text-gray-700 dark:text-gray-300">Quality Preset</div>
+                            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                              {compressionQuality === "none" ? "Maximum" : 
+                               compressionQuality === "custom" ? "Custom" :
+                               compressionQuality.charAt(0).toUpperCase() + compressionQuality.slice(1)}
+                            </div>
+                          </div>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                            <div className="font-semibold text-gray-700 dark:text-gray-300">Quality Value</div>
+                            <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                              {compressionQuality === "none" ? "100%" : 
+                               compressionQuality === "custom" ? `${customQualityValue}%` :
+                               compressionQuality === "high" ? "95%" :
+                               compressionQuality === "medium" ? "85%" : "70%"}
+                            </div>
+                          </div>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                            <div className="font-semibold text-gray-700 dark:text-gray-300">File Size Impact</div>
+                            <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                              {compressionQuality === "none" ? "Largest" : 
+                               compressionQuality === "custom" ? "Variable" :
+                               compressionQuality === "high" ? "Large" :
+                               compressionQuality === "medium" ? "Medium" : "Small"}
+                            </div>
+                          </div>
+                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                            <div className="font-semibold text-gray-700 dark:text-gray-300">Recommended For</div>
+                            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                              {compressionQuality === "none" ? "Print & Professional" : 
+                               compressionQuality === "custom" ? "Specific Requirements" :
+                               compressionQuality === "high" ? "High-Quality Display" :
+                               compressionQuality === "medium" ? "General Use" : "Web & Email"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PDF Settings */}
+                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3 mb-6">
                       <Settings className="w-6 h-6 text-blue-500" />
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        PDF Settings
+                        PDF Output Settings
                       </h3>
                     </div>
 
@@ -1147,7 +1576,7 @@ export default function JpgToPdf() {
                           {(["A4", "Letter", "Legal", "A3"] as PaperSize[]).map((size) => (
                             <button
                               key={size}
-                              onClick={() => setPaperSize(size)}
+                              onClick={() => handlePaperSizeChange(size)}
                               className={`px-4 py-3 rounded-lg border transition-all text-base ${
                                 paperSize === size
                                   ? "bg-blue-500 text-white border-blue-500 shadow-md"
@@ -1166,7 +1595,7 @@ export default function JpgToPdf() {
                         </label>
                         <div className="grid grid-cols-2 gap-3">
                           <button
-                            onClick={() => setOrientation("Portrait")}
+                            onClick={() => handleOrientationChange("Portrait")}
                             className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
                               orientation === "Portrait"
                                 ? "bg-blue-500 text-white border-blue-500 shadow-md"
@@ -1177,7 +1606,7 @@ export default function JpgToPdf() {
                             <span>Portrait</span>
                           </button>
                           <button
-                            onClick={() => setOrientation("Landscape")}
+                            onClick={() => handleOrientationChange("Landscape")}
                             className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
                               orientation === "Landscape"
                                 ? "bg-blue-500 text-white border-blue-500 shadow-md"
@@ -1213,14 +1642,14 @@ export default function JpgToPdf() {
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           {reverseOrder 
-                            ? "Images will be arranged in reverse order (last image first) with normal page numbers (1, 2, 3...)"
-                            : "Images will be arranged in normal order (first image first) with page numbers 1, 2, 3..."}
+                            ? "Images will be arranged in reverse order (last image first)"
+                            : "Images will be arranged in normal order (first image first)"}
                         </p>
                       </div>
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div className="text-sm">
                           <span className="text-gray-600 dark:text-gray-400">Total Pages:</span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">{files.length}</span>
@@ -1230,9 +1659,18 @@ export default function JpgToPdf() {
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">{paperSize} ({orientation})</span>
                         </div>
                         <div className="text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Quality:</span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                            {compressionQuality === "none" ? "100% Maximum" : 
+                             compressionQuality === "custom" ? `${customQualityValue}% Custom` :
+                             compressionQuality === "high" ? "High (95%)" :
+                             compressionQuality === "medium" ? "Medium (85%)" : "Low (70%)"}
+                          </span>
+                        </div>
+                        <div className="text-sm">
                           <span className="text-gray-600 dark:text-gray-400">Page Order:</span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {reverseOrder ? "Reverse Order" : "Normal Order"}
+                            {reverseOrder ? "Reverse" : "Normal"}
                           </span>
                         </div>
                         <div className="text-sm">
@@ -1241,24 +1679,20 @@ export default function JpgToPdf() {
                             {(files.reduce((acc, file) => acc + file.file.size, 0) / (1024 * 1024)).toFixed(2)} MB
                           </span>
                         </div>
-                      </div>
-                      
-                      {/* Compression Info */}
-                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <div className="flex items-center gap-2 mb-1">
-                          <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">
-                            Advanced Compression
+                        <div className="text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Expected PDF Size:</span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                            {compressionQuality === "none" ? "Large" : 
+                             compressionQuality === "custom" ? customQualityValue >= 80 ? "Large" : customQualityValue >= 50 ? "Medium" : "Small" :
+                             compressionQuality === "high" ? "Large" :
+                             compressionQuality === "medium" ? "Medium" : "Small"}
                           </span>
                         </div>
-                        <p className="text-xs text-blue-600 dark:text-blue-400">
-                          All images will be compressed and resized during PDF creation to reduce file size.
-                          Large images ({">"}5MB) will be optimized aggressively (40-60% reduction).
-                        </p>
                       </div>
                     </div>
                   </div>
 
+                  {/* Convert/Progress/Download Buttons */}
                   <AnimatePresence mode="wait">
                     {converting && (
                       <motion.div
@@ -1272,11 +1706,13 @@ export default function JpgToPdf() {
                           progress={progress}
                           label={
                             progress < 30
-                              ? "Analyzing image sizes..."
+                              ? "Processing images..."
                               : progress < 60
-                              ? "Compressing images..."
+                              ? compressionQuality === "custom" 
+                                ? `Applying ${customQualityValue}% quality...` 
+                                : `Applying ${compressionQuality} quality...`
                               : progress < 90
-                              ? "Creating optimized PDF..."
+                              ? "Creating professional PDF..."
                               : "Finalizing..."
                           }
                         />
@@ -1284,10 +1720,12 @@ export default function JpgToPdf() {
                           <Loader2 className="w-5 h-5 animate-spin" />
                           <span className="text-base font-medium">
                             {progress < 30 
-                              ? "Analyzing image sizes..." 
+                              ? "Processing images..." 
                               : progress < 60
-                              ? "Compressing images..." 
-                              : "Creating optimized PDF..."}
+                              ? compressionQuality === "custom" 
+                                ? `Applying ${customQualityValue}% quality...` 
+                                : `Applying ${compressionQuality} quality...` 
+                              : "Creating professional PDF..."}
                           </span>
                         </div>
                       </motion.div>
@@ -1304,13 +1742,13 @@ export default function JpgToPdf() {
                         <div className="text-center p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl border border-green-200 dark:border-emerald-800">
                           <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
                           <h4 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                            Conversion Complete! 🎉
+                            Professional PDF Ready! 🎉
                           </h4>
                           <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
-                            Your PDF is ready to download
-                            {reverseOrder && (
-                              <span className="text-purple-600 dark:text-purple-400">
-                                {" "}(Reverse Image Order)
+                            Your high-quality PDF is ready for download
+                            {compressionQuality !== "none" && (
+                              <span className="text-blue-600 dark:text-blue-400">
+                                {" "}({compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality} quality)
                               </span>
                             )}
                           </p>
@@ -1321,11 +1759,14 @@ export default function JpgToPdf() {
                             <span className="text-gray-600 dark:text-gray-400">
                               Pages: {files.length}
                             </span>
-                            {reverseOrder && (
-                              <span className="text-purple-600 dark:text-purple-400 font-semibold">
-                                Reverse Image Order
+                            {compressionQuality !== "none" && (
+                              <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                                {compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality} Quality
                               </span>
                             )}
+                            <span className="text-purple-600 dark:text-purple-400 font-semibold">
+                              Professional Layout
+                            </span>
                           </div>
                         </div>
                         
@@ -1341,7 +1782,7 @@ export default function JpgToPdf() {
                             className="py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-3 text-base"
                           >
                             <Download className="w-5 h-5" />
-                            Download PDF
+                            Download Professional PDF
                           </button>
                         </div>
                       </motion.div>
@@ -1358,18 +1799,36 @@ export default function JpgToPdf() {
                         <button
                           onClick={handleConvert}
                           disabled={files.length === 0}
-                          className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold flex items-center justify-center gap-3"
+                          className={`w-full py-4 px-6 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold flex items-center justify-center gap-3 ${
+                            showChangesWarning 
+                              ? 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 animate-pulse' 
+                              : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
+                          }`}
                         >
-                          <ImageIcon className="w-6 h-6" />
-                          {reverseOrder 
-                            ? `Convert ${files.length} Image${files.length !== 1 ? "s" : ""} with Reverse Order` 
-                            : `Convert ${files.length} Image${files.length !== 1 ? "s" : ""} to PDF`}
+                          {showChangesWarning ? (
+                            <>
+                              <RefreshCw className="w-6 h-6" />
+                              Convert Again with Changes
+                            </>
+                          ) : (
+                            <>
+                              <ImageIcon className="w-6 h-6" />
+                              {`Convert ${files.length} Image${files.length !== 1 ? "s" : ""} to Professional PDF`}
+                            </>
+                          )}
+                          {!showChangesWarning && compressionQuality !== "none" && ` (${compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality} quality)`}
                         </button>
                         
                         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
-                          {reverseOrder 
-                            ? "Images will be arranged in reverse order with normal page numbers" 
-                            : "Your images will be converted to a single PDF document with smart compression"}
+                          {showChangesWarning ? (
+                            <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                              ⚠️ You have made changes to images or settings. Click above to convert again with the latest changes.
+                            </span>
+                          ) : compressionQuality === "none" ? (
+                            "Images will be converted with maximum 100% quality for professional output"
+                          ) : (
+                            `Images will be converted with ${compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality} quality for optimal results`
+                          )}
                         </p>
                       </motion.div>
                     )}
@@ -1380,39 +1839,39 @@ export default function JpgToPdf() {
 
             {files.length === 0 && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
-                  <div className="inline-flex p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl mb-4">
-                    <ImageIcon className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                  <div className="inline-flex p-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl mb-4">
+                    <Target className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Smart Compression
+                    Maximum Quality
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Automatically compresses all images (rotated or not) to reduce PDF size
+                    Choose 100% original quality for print-ready PDFs with no compression loss
                   </p>
                 </div>
                 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
-                  <div className="inline-flex p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl mb-4">
-                    <Maximize2 className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                  <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl mb-4">
+                    <Move className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Full Screen Preview
+                    Professional Reordering
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    View rotated images in full screen with rotation applied
+                    Drag & drop to arrange images in perfect order for your professional PDF document
                   </p>
                 </div>
                 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
-                  <div className="inline-flex p-3 bg-green-100 dark:bg-green-900/30 rounded-xl mb-4">
-                    <Settings className="w-7 h-7 text-green-600 dark:text-green-400" />
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                  <div className="inline-flex p-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl mb-4">
+                    <Percent className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Size Optimization
+                    Precise Quality Control
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Reduces file size while maintaining quality for both mobile and desktop
+                    Custom quality slider from 10% to 100% for perfect balance of size and quality
                   </p>
                 </div>
               </div>

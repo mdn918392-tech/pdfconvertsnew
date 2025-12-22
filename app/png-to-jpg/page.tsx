@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, ArrowLeft, XCircle, CheckCircle, Image, Sparkles, Zap, Shield, Palette, Upload, Layers, Eye, Clock, Check, X } from 'lucide-react';
+import { Download, ArrowLeft, XCircle, CheckCircle, Image, Sparkles, Zap, Shield, Palette, Upload, Layers, Eye, Clock, Check, X, Plus } from 'lucide-react';
 import FileUploader from '../components/FileUploader';
 import ProgressBar from '../components/ProgressBar';
 import { convertPngToJpg, downloadFile } from '../../utils/imageUtils';
@@ -226,6 +226,7 @@ export default function PngToJpg() {
     const [jpgBlobs, setJpgBlobs] = useState<ConvertedFile[]>([]);
     const [showFeatures, setShowFeatures] = useState(true);
     const [downloadNotifications, setDownloadNotifications] = useState<DownloadNotification[]>([]);
+    const [showFileUploader, setShowFileUploader] = useState(true); // New state to control FileUploader visibility
     const notificationsRef = useRef<HTMLDivElement>(null);
 
     // Generate unique filename
@@ -243,6 +244,13 @@ export default function PngToJpg() {
             notificationsRef.current.scrollTop = notificationsRef.current.scrollHeight;
         }
     }, [downloadNotifications]);
+
+    // Hide FileUploader when files are uploaded
+    useEffect(() => {
+        if (files.length > 0) {
+            setShowFileUploader(false);
+        }
+    }, [files]);
 
     const handleConvert = async () => {
         if (files.length === 0) return;
@@ -326,11 +334,17 @@ export default function PngToJpg() {
     const handleRemoveFile = (indexToRemove: number) => {
         setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToRemove));
         setJpgBlobs([]);
-        setShowFeatures(files.length === 1); // Show features when last file is removed
+        
+        // Show FileUploader if all files are removed
+        if (files.length === 1) {
+            setShowFileUploader(true);
+            setShowFeatures(true);
+        }
     };
 
     const handleFilesSelected = (newFiles: File[]) => {
-        setFiles(newFiles);
+        // Add new files to existing files
+        setFiles(prev => [...prev, ...newFiles]);
         setJpgBlobs([]);
         setShowFeatures(false);
     };
@@ -339,7 +353,12 @@ export default function PngToJpg() {
         setFiles([]);
         setJpgBlobs([]);
         setProgress(0);
+        setShowFileUploader(true); // Show FileUploader on reset
         setShowFeatures(true);
+    };
+
+    const handleAddMoreFiles = () => {
+        setShowFileUploader(true);
     };
 
     const hasFiles = files.length > 0;
@@ -414,7 +433,7 @@ export default function PngToJpg() {
 
                         {/* --- Features Grid --- */}
                         <AnimatePresence>
-                            {showFeatures && (
+                            {showFeatures && !hasFiles && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
@@ -486,14 +505,18 @@ export default function PngToJpg() {
                                     </div>
                                 </div>
 
-                                {!hasFiles ? (
-                                    <FileUploader
-                                        accept="image/png"
-                                        multiple={true}
-                                        onFilesSelected={handleFilesSelected}
-                                    />
-                                ) : (
-                                    <div className="text-center mb-3">
+                                {showFileUploader && (
+                                    <div className="mb-6">
+                                        <FileUploader
+                                            accept="image/png"
+                                            multiple={true}
+                                            onFilesSelected={handleFilesSelected}
+                                        />
+                                    </div>
+                                )}
+
+                                {hasFiles && (
+                                    <div className="text-center mb-6">
                                         <div className="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-full">
                                             <div className="flex items-center gap-1 sm:gap-2">
                                                 <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400" />
@@ -505,6 +528,21 @@ export default function PngToJpg() {
                                                 <span>• {(totalSize / 1024 / 1024).toFixed(2)} MB total</span>
                                             </div>
                                         </div>
+                                        
+                                        {/* Add More Files Button */}
+                                        {!showFileUploader && !hasResults && (
+                                            <motion.button
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={handleAddMoreFiles}
+                                                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                Add More Files
+                                            </motion.button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -657,25 +695,27 @@ export default function PngToJpg() {
                         )}
 
                         {/* --- Stats Footer --- */}
-                        <div className="mt-4 sm:mt-8 md:mt-12 pt-3 sm:pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-800">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 text-center">
-                                {[
-                                    { value: files.length, label: 'Files Uploaded', color: 'text-orange-600' },
-                                    { value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`, label: 'Total Size', color: 'text-blue-600' },
-                                    { value: jpgBlobs.length, label: 'Files Converted', color: 'text-green-600' },
-                                    { value: `${sizeReduction}%`, label: 'Size Reduction', color: 'text-purple-600' }
-                                ].map((stat, index) => (
-                                    <div key={index}>
-                                        <div className={`text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-black ${stat.color} dark:${stat.color.replace('600', '400')} mb-0.5 sm:mb-1 md:mb-2`}>
-                                            {stat.value}
+                        {(hasFiles || hasResults) && (
+                            <div className="mt-4 sm:mt-8 md:mt-12 pt-3 sm:pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-800">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 text-center">
+                                    {[
+                                        { value: files.length, label: 'Files Uploaded', color: 'text-orange-600' },
+                                        { value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`, label: 'Total Size', color: 'text-blue-600' },
+                                        { value: jpgBlobs.length, label: 'Files Converted', color: 'text-green-600' },
+                                        { value: `${sizeReduction}%`, label: 'Size Reduction', color: 'text-purple-600' }
+                                    ].map((stat, index) => (
+                                        <div key={index}>
+                                            <div className={`text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-black ${stat.color} dark:${stat.color.replace('600', '400')} mb-0.5 sm:mb-1 md:mb-2`}>
+                                                {stat.value}
+                                            </div>
+                                            <div className="text-xs sm:text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                                {stat.label}
+                                            </div>
                                         </div>
-                                        <div className="text-xs sm:text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
-                                            {stat.label}
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </motion.div>
                 </div>
             </div>

@@ -659,26 +659,35 @@ const PdfPageRenderer = ({
   );
 };
 
-// --- ZOOM MODAL COMPONENT WITH NON-SCROLLABLE IMAGE ---
-interface ZoomModalProps {
+// --- SIMPLE ZOOM MODAL COMPONENT WITH ROTATION ---
+interface SimpleZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   pageNumber: number;
   pdfData: PdfData | null;
   fileName: string;
+  rotation: number; // ✅ rotation prop जोड़ा
 }
 
-const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModalProps) => {
+const SimpleZoomModal = ({ 
+  isOpen, 
+  onClose, 
+  pageNumber, 
+  pdfData, 
+  fileName,
+  rotation // ✅ rotation prop प्राप्त करें
+}: SimpleZoomModalProps) => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [pageImage, setPageImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
+  const [currentRotation, setCurrentRotation] = useState(rotation); // ✅ rotation state
   const isMounted = useRef(true);
+
+  useEffect(() => {
+    // ✅ जब rotation prop बदले, तो state update करें
+    setCurrentRotation(rotation);
+  }, [rotation]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -745,32 +754,25 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     };
   }, [isOpen, pdfData, pageNumber, zoomLevel]);
 
-  useEffect(() => {
-    if (isOpen && containerRef.current && imageRef.current && pageImage) {
-      // Center the image
-      const container = containerRef.current;
-      const img = imageRef.current;
-      
-      if (img) {
-        // Calculate centered position
-        const containerRect = container.getBoundingClientRect();
-        const imgWidth = img.naturalWidth * zoomLevel;
-        const imgHeight = img.naturalHeight * zoomLevel;
-        
-        setPosition({
-          x: (containerRect.width - imgWidth) / 2,
-          y: (containerRect.height - imgHeight) / 2
-        });
-      }
-    }
-  }, [isOpen, zoomLevel, pageImage]);
+  // ✅ Rotation functions for zoom modal
+  const rotateClockwise = () => {
+    setCurrentRotation(prev => (prev + 90) % 360);
+  };
+
+  const rotateCounterClockwise = () => {
+    setCurrentRotation(prev => (prev - 90 + 360) % 360);
+  };
+
+  const resetRotation = () => {
+    setCurrentRotation(0);
+  };
 
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.5, 3));
+    setZoomLevel(prev => Math.min(prev + 0.25, 3));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.5, 0.5));
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
   };
 
   const toggleFullscreen = () => {
@@ -782,57 +784,6 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     onClose();
     setZoomLevel(1);
     setIsFullscreen(false);
-    setPosition({ x: 0, y: 0 });
-  };
-
-  // Handle mouse drag for panning (only when zoomed in)
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoomLevel > 1) {
-      e.stopPropagation();
-      setIsDragging(true);
-      setStartPos({
-        x: e.clientX - position.x,
-        y: e.clientY - position.y
-      });
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || zoomLevel <= 1) return;
-    e.stopPropagation();
-    
-    setPosition({
-      x: e.clientX - startPos.x,
-      y: e.clientY - startPos.y
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Handle touch events for mobile
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (zoomLevel > 1 && e.touches.length === 1) {
-      setIsDragging(true);
-      setStartPos({
-        x: e.touches[0].clientX - position.x,
-        y: e.touches[0].clientY - position.y
-      });
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || zoomLevel <= 1 || e.touches.length !== 1) return;
-    
-    setPosition({
-      x: e.touches[0].clientX - startPos.x,
-      y: e.touches[0].clientY - startPos.y
-    });
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
   };
 
   // Handle wheel zoom
@@ -849,62 +800,22 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     }
   };
 
-  // Handle pinch to zoom on mobile
-  useEffect(() => {
-    if (!isOpen || !containerRef.current || !pageImage) return;
-
-    let initialDistance = 0;
-    let initialZoom = zoomLevel;
-
-    const handleTouchStartPinch = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        initialDistance = Math.hypot(
-          touch1.clientX - touch2.clientX,
-          touch1.clientY - touch2.clientY
-        );
-        initialZoom = zoomLevel;
-      }
-    };
-
-    const handleTouchMovePinch = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        const currentDistance = Math.hypot(
-          touch1.clientX - touch2.clientX,
-          touch1.clientY - touch2.clientY
-        );
-        
-        const zoomChange = currentDistance / initialDistance;
-        const newZoom = Math.max(0.5, Math.min(3, initialZoom * zoomChange));
-        
-        if (Math.abs(newZoom - zoomLevel) > 0.1) {
-          setZoomLevel(newZoom);
-        }
-      }
-    };
-
-    const container = containerRef.current;
-    container.addEventListener('touchstart', handleTouchStartPinch, { passive: true });
-    container.addEventListener('touchmove', handleTouchMovePinch, { passive: false });
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStartPinch);
-      container.removeEventListener('touchmove', handleTouchMovePinch);
-    };
-  }, [isOpen, zoomLevel, pageImage]);
-
-  // Reset zoom and position on close
+  // Reset zoom on close
   useEffect(() => {
     if (!isOpen) {
       setZoomLevel(1);
-      setPosition({ x: 0, y: 0 });
-      setIsDragging(false);
     }
   }, [isOpen]);
+
+  const getRotationText = () => {
+    switch(currentRotation) {
+      case 0: return "0°";
+      case 90: return "90°";
+      case 180: return "180°";
+      case 270: return "270°";
+      default: return `${currentRotation}°`;
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -925,6 +836,31 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       >
         <X className="w-6 h-6 text-white" />
       </button>
+      
+      {/* ✅ Rotation controls in zoom modal */}
+      <div className="absolute top-4 left-4 z-50 flex gap-2">
+        <button
+          onClick={(e) => { e.stopPropagation(); rotateCounterClockwise(); }}
+          className="p-2 bg-black/70 hover:bg-black/90 rounded-full transition-colors"
+          title="Rotate left"
+        >
+          <RotateCcw className="w-5 h-5 text-white" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); rotateClockwise(); }}
+          className="p-2 bg-black/70 hover:bg-black/90 rounded-full transition-colors"
+          title="Rotate right"
+        >
+          <RotateCw className="w-5 h-5 text-white" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); resetRotation(); }}
+          className="p-2 bg-black/70 hover:bg-black/90 rounded-full transition-colors"
+          title="Reset rotation"
+        >
+          <RefreshCw className="w-5 h-5 text-white" />
+        </button>
+      </div>
       
       {/* Zoom controls */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm z-50">
@@ -962,25 +898,29 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         </button>
       </div>
       
-      {/* Page info */}
-      <div className="absolute top-4 left-4 z-50 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm">
+      {/* Page info with rotation indicator */}
+      <div className="absolute top-4 right-20 z-50 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm flex items-center gap-2">
         <span className="text-white text-sm font-medium">
-          Page {pageNumber} • {fileName}
+          Page {pageNumber} • {fileName.substring(0, 15)}...
         </span>
+        <div className="w-px h-4 bg-white/30"></div>
+        <div className="flex items-center gap-1">
+          <RotateCw className="w-3 h-3 text-white" />
+          <span className="text-white text-sm font-medium">{getRotationText()}</span>
+        </div>
       </div>
       
-      {/* Image container - NON-SCROLLABLE */}
+      {/* Image container */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className={`relative overflow-hidden ${
+        className={`relative ${
           isFullscreen 
-            ? 'w-full h-full' 
+            ? 'w-full h-full flex items-center justify-center' 
             : 'w-[90vw] h-[80vh] max-w-[90vw] max-h-[80vh]'
         }`}
         onClick={(e) => e.stopPropagation()}
-        ref={containerRef}
         onWheel={handleWheel}
       >
         {loading ? (
@@ -988,92 +928,186 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
             <Loader2 className="w-12 h-12 animate-spin text-white" />
           </div>
         ) : pageImage ? (
-          <div 
-            className="w-full h-full relative"
-            style={{
-              cursor: isDragging ? 'grabbing' : zoomLevel > 1 ? 'grab' : 'default',
-              overflow: 'hidden'
-            }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            <motion.img
-              ref={imageRef}
-              src={pageImage}
+          <div className="w-full h-full flex items-center justify-center overflow-auto">
+            <img 
+              src={pageImage} 
               alt={`Zoomed view - Page ${pageNumber}`}
-              className="absolute top-0 left-0"
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel})`,
-                transformOrigin: '0 0',
-                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-                maxWidth: 'none'
+              className="max-w-none max-h-none"
+              style={{ 
+                transform: `scale(${zoomLevel}) rotate(${currentRotation}deg)`, // ✅ rotation लागू करें
+                transition: 'transform 0.1s ease-out'
               }}
               draggable="false"
-              onLoad={(e) => {
-                const img = e.target as HTMLImageElement;
-                if (img && containerRef.current) {
-                  const containerRect = containerRef.current.getBoundingClientRect();
-                  const imgWidth = img.naturalWidth * zoomLevel;
-                  const imgHeight = img.naturalHeight * zoomLevel;
-                  
-                  setPosition({
-                    x: (containerRect.width - imgWidth) / 2,
-                    y: (containerRect.height - imgHeight) / 2
-                  });
-                }
-              }}
             />
-            
-            {/* Panning hint for large zoom */}
-            {zoomLevel > 1 && !isDragging && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute bottom-4 right-4 bg-black/70 text-white text-xs px-3 py-2 rounded-full backdrop-blur-sm flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-                </svg>
-                <span>Drag to pan</span>
-              </motion.div>
-            )}
           </div>
         ) : null}
       </motion.div>
       
-      {/* Mobile gesture hints */}
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 sm:hidden z-50">
-        <div className="flex flex-col items-center gap-2 text-white/80 text-sm bg-black/50 backdrop-blur-sm px-4 py-3 rounded-xl">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-white/20 rounded-lg">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <span>Pinch to zoom</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-white/20 rounded-lg">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-              </svg>
-            </div>
-            <span>Drag to pan when zoomed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-white/20 rounded-lg">
-              <X className="w-4 h-4" />
-            </div>
-            <span>Tap outside to close</span>
-          </div>
+      {/* Simple instructions */}
+      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="bg-black/70 text-white text-xs px-3 py-2 rounded-full backdrop-blur-sm">
+          <span>Scroll to zoom • Use rotation buttons • Click outside to close</span>
         </div>
       </div>
     </motion.div>
+  );
+};
+
+// --- Ultra Simple Zoom Modal (Simplest Version) WITH ROTATION ---
+interface UltraSimpleZoomModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  pageImage: string | null;
+  pageNumber: number;
+  fileName: string;
+  rotation: number; // ✅ rotation prop जोड़ा
+}
+
+const UltraSimpleZoomModal = ({ 
+  isOpen, 
+  onClose, 
+  pageImage, 
+  pageNumber, 
+  fileName,
+  rotation // ✅ rotation prop प्राप्त करें
+}: UltraSimpleZoomModalProps) => {
+  const [zoom, setZoom] = useState(1);
+  const [currentRotation, setCurrentRotation] = useState(rotation); // ✅ rotation state
+
+  useEffect(() => {
+    // ✅ जब rotation prop बदले, तो state update करें
+    setCurrentRotation(rotation);
+  }, [rotation]);
+
+  if (!isOpen || !pageImage) return null;
+
+  const handleZoomIn = () => {
+    setZoom(z => Math.min(z + 0.25, 3));
+  };
+
+  const handleZoomOut = () => {
+    setZoom(z => Math.max(z - 0.25, 0.5));
+  };
+
+  // ✅ Rotation functions
+  const rotateClockwise = () => {
+    setCurrentRotation(prev => (prev + 90) % 360);
+  };
+
+  const rotateCounterClockwise = () => {
+    setCurrentRotation(prev => (prev - 90 + 360) % 360);
+  };
+
+  const resetRotation = () => {
+    setCurrentRotation(0);
+  };
+
+  const handleClose = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose();
+    setZoom(1);
+    setCurrentRotation(rotation); // ✅ Reset to original rotation
+  };
+
+  const getRotationText = () => {
+    switch(currentRotation) {
+      case 0: return "0°";
+      case 90: return "90°";
+      case 180: return "180°";
+      case 270: return "270°";
+      default: return `${currentRotation}°`;
+    }
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      onClick={handleClose}
+    >
+      <div 
+        className="relative max-w-full max-h-full bg-black/80 rounded-lg overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-2 right-2 z-50 p-2 bg-black/70 rounded-full hover:bg-black/90 transition-colors"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
+        
+        {/* ✅ Rotation controls */}
+        <div className="absolute top-2 left-2 z-50 flex gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); rotateCounterClockwise(); }}
+            className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full transition-colors"
+            title="Rotate left"
+          >
+            <RotateCcw className="w-4 h-4 text-white" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); rotateClockwise(); }}
+            className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full transition-colors"
+            title="Rotate right"
+          >
+            <RotateCw className="w-4 h-4 text-white" />
+          </button>
+        </div>
+        
+        {/* Zoom controls */}
+        <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-3 py-1.5 z-50">
+          <button
+            onClick={handleZoomOut}
+            className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+            disabled={zoom <= 0.5}
+          >
+            <Minus className="w-4 h-4 text-white" />
+          </button>
+          
+          <span className="text-white text-xs font-medium min-w-[50px] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          
+          <button
+            onClick={handleZoomIn}
+            className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+            disabled={zoom >= 3}
+          >
+            <Plus className="w-4 h-4 text-white" />
+          </button>
+        </div>
+        
+        {/* Page info with rotation */}
+        <div className="absolute top-3 left-12 z-50 bg-black/70 rounded-full px-3 py-1.5 flex items-center gap-2">
+          <span className="text-white text-xs">
+            Page {pageNumber} • {fileName.substring(0, 20)}...
+          </span>
+          <div className="w-px h-3 bg-white/30"></div>
+          <div className="flex items-center gap-1">
+            <RotateCw className="w-3 h-3 text-white" />
+            <span className="text-white text-xs">{getRotationText()}</span>
+          </div>
+        </div>
+        
+        {/* Image with rotation */}
+        <img 
+          src={pageImage} 
+          alt={`Page ${pageNumber}`}
+          className="max-w-full max-h-screen object-contain"
+          style={{ 
+            transform: `scale(${zoom}) rotate(${currentRotation}deg)`, // ✅ rotation लागू करें
+            transition: 'transform 0.2s ease-out'
+          }}
+        />
+        
+        {/* Instructions */}
+        <div className="absolute bottom-14 left-1/2 transform -translate-x-1/2">
+          <div className="bg-black/70 text-white text-xs px-3 py-1.5 rounded-full">
+            <span>Click outside to close</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -1112,10 +1146,27 @@ export default function PdfSplitRotatorTool() {
       isOpen: boolean;
       pageNumber: number;
       fileName: string;
+      rotation: number; // ✅ rotation जोड़ा
     }>({
       isOpen: false,
       pageNumber: 1,
-      fileName: ''
+      fileName: '',
+      rotation: 0 // ✅ डिफ़ॉल्ट rotation
+    });
+
+    // Simple zoom modal state
+    const [simpleZoomModal, setSimpleZoomModal] = useState<{
+      isOpen: boolean;
+      pageNumber: number;
+      fileName: string;
+      pageImage: string | null;
+      rotation: number; // ✅ rotation जोड़ा
+    }>({
+      isOpen: false,
+      pageNumber: 1,
+      fileName: '',
+      pageImage: null,
+      rotation: 0 // ✅ डिफ़ॉल्ट rotation
     });
 
     // Pagination states
@@ -1230,6 +1281,21 @@ export default function PdfSplitRotatorTool() {
             
             setPageData(updatedPageData);
             
+            // ✅ Zoom modal में अगर यही page खुला है, तो उसका rotation भी update करें
+            if (zoomModal.isOpen && zoomModal.pageNumber === pageInfo.pageNumber) {
+                setZoomModal(prev => ({
+                    ...prev,
+                    rotation: newRotation
+                }));
+            }
+            
+            if (simpleZoomModal.isOpen && simpleZoomModal.pageNumber === pageInfo.pageNumber) {
+                setSimpleZoomModal(prev => ({
+                    ...prev,
+                    rotation: newRotation
+                }));
+            }
+            
             // Show success message for mobile
             if (isMobile) {
               setDownloadSuccess(`✓ Page ${pageIndex + 1} rotated to ${newRotation}°`);
@@ -1278,6 +1344,28 @@ export default function PdfSplitRotatorTool() {
             }
 
             setPageData(updatedPageData);
+            
+            // ✅ अगर zoom modal खुला है, तो उसका rotation भी update करें
+            if (zoomModal.isOpen) {
+                const currentPageIndex = zoomModal.pageNumber - 1;
+                if (currentPageIndex >= 0 && currentPageIndex < updatedPageData.length) {
+                    setZoomModal(prev => ({
+                        ...prev,
+                        rotation: rotation
+                    }));
+                }
+            }
+            
+            if (simpleZoomModal.isOpen) {
+                const currentPageIndex = simpleZoomModal.pageNumber - 1;
+                if (currentPageIndex >= 0 && currentPageIndex < updatedPageData.length) {
+                    setSimpleZoomModal(prev => ({
+                        ...prev,
+                        rotation: rotation
+                    }));
+                }
+            }
+            
             setDownloadSuccess(`✓ All ${updatedPageData.length} pages rotated to ${rotation}°!`);
             setTimeout(() => setDownloadSuccess(null), 3000);
 
@@ -1579,6 +1667,19 @@ export default function PdfSplitRotatorTool() {
         setShowUploadInfo(false);
         setCurrentPage(1);
         setDownloadSuccess(null);
+        setZoomModal({
+            isOpen: false,
+            pageNumber: 1,
+            fileName: '',
+            rotation: 0
+        });
+        setSimpleZoomModal({
+            isOpen: false,
+            pageNumber: 1,
+            fileName: '',
+            pageImage: null,
+            rotation: 0
+        });
     };
 
     const handleReset = () => {
@@ -1590,14 +1691,78 @@ export default function PdfSplitRotatorTool() {
         setShowUploadInfo(true);
         setCurrentPage(1);
         setDownloadSuccess(null);
+        setZoomModal({
+            isOpen: false,
+            pageNumber: 1,
+            fileName: '',
+            rotation: 0
+        });
+        setSimpleZoomModal({
+            isOpen: false,
+            pageNumber: 1,
+            fileName: '',
+            pageImage: null,
+            rotation: 0
+        });
     };
 
     const handlePageZoom = (pageNumber: number, fileName: string) => {
         setZoomModal({
             isOpen: true,
             pageNumber,
-            fileName
+            fileName,
+            rotation: 0 // ✅ Initial rotation 0
         });
+    };
+
+    // Simple zoom handler
+    const handleSimpleZoom = async (pageNumber: number, fileName: string) => {
+        if (!pdfData) return;
+
+        try {
+            // Convert base64 back to Uint8Array
+            const binaryString = atob(pdfData.base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            const loadingTask = pdfjsLib.getDocument({ data: bytes });
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(pageNumber);
+            
+            // Create a larger canvas for zoom
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            
+            if (!context) return;
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+            
+            const imageUrl = canvas.toDataURL("image/png", 1.0);
+            
+            // ✅ Current page का rotation ढूंढें
+            const pageIndex = pageNumber - 1;
+            const currentRotation = pageData[pageIndex]?.rotation || 0;
+            
+            setSimpleZoomModal({
+                isOpen: true,
+                pageNumber,
+                fileName,
+                pageImage: imageUrl,
+                rotation: currentRotation // ✅ rotation भेजें
+            });
+            
+        } catch (error) {
+            console.error("Error creating zoom image:", error);
+        }
     };
 
     // Pagination controls
@@ -2115,7 +2280,7 @@ export default function PdfSplitRotatorTool() {
                                                                             selected={page.selected}
                                                                             onRotationChange={(newRotation) => handleRotationChange(actualIndex, newRotation)}
                                                                             onSelectChange={(selected) => handleSelectChange(actualIndex, selected)}
-                                                                            onZoomClick={() => handlePageZoom(page.pageNumber, page.fileName)}
+                                                                            onZoomClick={() => handleSimpleZoom(page.pageNumber, page.fileName)}
                                                                         />
                                                                         
                                                                         <div className="w-full">
@@ -2271,13 +2436,24 @@ export default function PdfSplitRotatorTool() {
                         )}
                     </div>
 
-                    {/* Zoom Modal */}
-                    <ZoomModal
+                    {/* Simple Zoom Modal with rotation */}
+                    <SimpleZoomModal
                         isOpen={zoomModal.isOpen}
                         onClose={() => setZoomModal({ ...zoomModal, isOpen: false })}
                         pageNumber={zoomModal.pageNumber}
                         pdfData={pdfData}
                         fileName={zoomModal.fileName}
+                        rotation={zoomModal.rotation} // ✅ rotation भेजें
+                    />
+
+                    {/* Ultra Simple Zoom Modal with rotation */}
+                    <UltraSimpleZoomModal
+                        isOpen={simpleZoomModal.isOpen}
+                        onClose={() => setSimpleZoomModal({ ...simpleZoomModal, isOpen: false })}
+                        pageImage={simpleZoomModal.pageImage}
+                        pageNumber={simpleZoomModal.pageNumber}
+                        fileName={simpleZoomModal.fileName}
+                        rotation={simpleZoomModal.rotation} // ✅ rotation भेजें
                     />
 
                     {/* Enhanced Tools Section - Responsive */}

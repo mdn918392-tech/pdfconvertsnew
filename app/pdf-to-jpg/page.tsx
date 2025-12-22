@@ -387,89 +387,176 @@ const PdfPageRenderer = ({ pageNumber, pdfData, fileName, onZoomClick }: PdfPage
   );
 };
 
-// --- ZOOM MODAL COMPONENT (FIXED) ---
+// --- ZOOM MODAL COMPONENT (FIXED WITH ROTATION SUPPORT) ---
 interface ZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   pageNumber: number;
   pdfData: PdfData | null;
   fileName: string;
+  pageRotation?: number;
+  pageImageData?: string;
 }
 
-const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModalProps) => {
+const ZoomModal = ({ 
+  isOpen, 
+  onClose, 
+  pageNumber, 
+  pdfData, 
+  fileName,
+  pageRotation = 0,
+  pageImageData
+}: ZoomModalProps) => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [pageImage, setPageImage] = useState<string | null>(null);
+  const [displayImage, setDisplayImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const isMounted = useRef(true);
+  const [currentRotation, setCurrentRotation] = useState(pageRotation);
+
+  useEffect(() => {
+    setCurrentRotation(pageRotation);
+  }, [pageRotation]);
 
   useEffect(() => {
     isMounted.current = true;
     
-    const renderPageForZoom = async () => {
-      if (!isOpen || !pdfData || !isMounted.current) return;
+    const prepareZoomImage = async () => {
+      if (!isOpen || !isMounted.current) return;
 
       try {
         setLoading(true);
-        setPageImage(null);
+        setDisplayImage(null);
         
-        // Convert base64 back to Uint8Array for zoom
-        const binaryString = atob(pdfData.base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        
-        const loadingTask = pdfjsLib.getDocument({ data: bytes });
-        const pdf = await loadingTask.promise;
-        const page = await pdf.getPage(pageNumber);
-        
-        // Calculate optimal scale for zoom modal
-        // Use a moderate scale for better performance
-        const baseScale = 1.5; // Reduced from 2 for better performance
-        const scale = baseScale * zoomLevel;
-        const viewport = page.getViewport({ scale });
-        
-        // Limit maximum dimensions for performance
-        const MAX_WIDTH = 2000;
-        const MAX_HEIGHT = 2000;
-        
-        let finalScale = scale;
-        if (viewport.width > MAX_WIDTH || viewport.height > MAX_HEIGHT) {
-          const widthScale = MAX_WIDTH / viewport.width;
-          const heightScale = MAX_HEIGHT / viewport.height;
-          finalScale = Math.min(widthScale, heightScale) * scale;
-        }
-        
-        const finalViewport = page.getViewport({ scale: finalScale });
-        
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        
-        if (!context) return;
-        
-        canvas.height = finalViewport.height;
-        canvas.width = finalViewport.width;
-        
-        // Set white background for canvas
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        
-        await page.render({
-          canvasContext: context,
-          viewport: finalViewport
-        }).promise;
-        
-        const imageUrl = canvas.toDataURL("image/png", 1.0);
-        
-        if (isMounted.current) {
-          setPageImage(imageUrl);
+        // If we have pre-rotated image data, use it
+        if (pageImageData) {
+          // Create a temporary image to apply rotation to
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!ctx) {
+              if (isMounted.current) {
+                setDisplayImage(pageImageData);
+                setLoading(false);
+              }
+              return;
+            }
+            
+            // Calculate dimensions based on rotation
+            let width = img.width;
+            let height = img.height;
+            
+            if (currentRotation === 90 || currentRotation === 270) {
+              width = img.height;
+              height = img.width;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Clear canvas with white background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Translate to center, rotate, and draw
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((currentRotation * Math.PI) / 180);
+            ctx.translate(-img.width / 2, -img.height / 2);
+            ctx.drawImage(img, 0, 0);
+            
+            const rotatedImageUrl = canvas.toDataURL("image/png", 1.0);
+            
+            if (isMounted.current) {
+              setDisplayImage(rotatedImageUrl);
+              setLoading(false);
+            }
+          };
+          img.onerror = () => {
+            if (isMounted.current) {
+              setDisplayImage(pageImageData);
+              setLoading(false);
+            }
+          };
+          img.src = pageImageData;
+        } 
+        // Otherwise, render from PDF and apply rotation
+        else if (pdfData) {
+          // Convert base64 back to Uint8Array for zoom
+          const binaryString = atob(pdfData.base64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          const loadingTask = pdfjsLib.getDocument({ data: bytes });
+          const pdf = await loadingTask.promise;
+          const page = await pdf.getPage(pageNumber);
+          
+          // Calculate optimal scale for zoom modal
+          const baseScale = 1.5;
+          const scale = baseScale * zoomLevel;
+          const viewport = page.getViewport({ scale });
+          
+          // Limit maximum dimensions for performance
+          const MAX_WIDTH = 2000;
+          const MAX_HEIGHT = 2000;
+          
+          let finalScale = scale;
+          if (viewport.width > MAX_WIDTH || viewport.height > MAX_HEIGHT) {
+            const widthScale = MAX_WIDTH / viewport.width;
+            const heightScale = MAX_HEIGHT / viewport.height;
+            finalScale = Math.min(widthScale, heightScale) * scale;
+          }
+          
+          const finalViewport = page.getViewport({ scale: finalScale });
+          
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          
+          if (!context) {
+            setLoading(false);
+            return;
+          }
+          
+          // Adjust canvas size for rotation
+          let canvasWidth = finalViewport.width;
+          let canvasHeight = finalViewport.height;
+          
+          if (currentRotation === 90 || currentRotation === 270) {
+            canvasWidth = finalViewport.height;
+            canvasHeight = finalViewport.width;
+          }
+          
+          canvas.width = canvasWidth;
+          canvas.height = canvasHeight;
+          
+          // Set white background for canvas
+          context.fillStyle = '#ffffff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Apply rotation
+          context.translate(canvas.width / 2, canvas.height / 2);
+          context.rotate((currentRotation * Math.PI) / 180);
+          context.translate(-finalViewport.width / 2, -finalViewport.height / 2);
+          
+          await page.render({
+            canvasContext: context,
+            viewport: finalViewport
+          }).promise;
+          
+          const imageUrl = canvas.toDataURL("image/png", 1.0);
+          
+          if (isMounted.current) {
+            setDisplayImage(imageUrl);
+            setLoading(false);
+          }
         }
         
       } catch (error) {
         console.error("Error rendering zoom page:", error);
-      } finally {
         if (isMounted.current) {
           setLoading(false);
         }
@@ -477,19 +564,19 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     };
 
     if (isOpen) {
-      renderPageForZoom();
+      prepareZoomImage();
     }
     
     return () => {
       isMounted.current = false;
-      if (pageImage) {
-        URL.revokeObjectURL(pageImage);
+      if (displayImage && displayImage.startsWith('data:')) {
+        URL.revokeObjectURL(displayImage);
       }
     };
-  }, [isOpen, pdfData, pageNumber, zoomLevel]);
+  }, [isOpen, pdfData, pageNumber, zoomLevel, currentRotation, pageImageData]);
 
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.25, 3)); // Smaller increments
+    setZoomLevel(prev => Math.min(prev + 0.25, 3));
   };
 
   const handleZoomOut = () => {
@@ -585,6 +672,17 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
             <Maximize2 className="w-5 h-5 text-white" />
           )}
         </button>
+
+        {/* Rotation info */}
+        {currentRotation !== 0 && (
+          <>
+            <div className="h-6 w-px bg-white/30 mx-1"></div>
+            <div className="flex items-center gap-1 px-2 py-1 bg-white/20 rounded">
+              <RotateCw className="w-4 h-4 text-white" />
+              <span className="text-white text-sm">{currentRotation}°</span>
+            </div>
+          </>
+        )}
       </div>
       
       {/* Page info */}
@@ -594,7 +692,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         </span>
       </div>
       
-      {/* Image container - FIXED FOR FULL SCREEN */}
+      {/* Image container */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -610,10 +708,10 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
               <p className="text-white/80 text-sm">Loading page {pageNumber}...</p>
             </div>
           </div>
-        ) : pageImage ? (
+        ) : displayImage ? (
           <div className={`flex items-center justify-center ${isFullscreen ? 'w-full h-full' : 'w-auto h-auto'}`}>
             <img
-              src={pageImage}
+              src={displayImage}
               alt={`Zoomed view - Page ${pageNumber}`}
               className="max-w-full max-h-full object-contain"
               style={{
@@ -624,7 +722,13 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
               draggable="false"
             />
           </div>
-        ) : null}
+        ) : (
+          <div className="flex items-center justify-center w-full h-full min-h-[200px]">
+            <div className="text-center">
+              <p className="text-white/80 text-sm">Unable to load image</p>
+            </div>
+          </div>
+        )}
       </motion.div>
       
       {/* Instructions for mobile */}
@@ -714,6 +818,8 @@ export default function PdfToImageConverterWithRotation() {
       isOpen: boolean;
       pageNumber: number;
       fileName: string;
+      pageRotation?: number;
+      pageImageData?: string;
     }>({
       isOpen: false,
       pageNumber: 1,
@@ -1102,10 +1208,15 @@ export default function PdfToImageConverterWithRotation() {
     };
 
     const handlePageZoom = (pageNumber: number, fileName: string) => {
+        const pageIndex = pageNumber - 1;
+        const pageInfo = pageData[pageIndex];
+        
         setZoomModal({
             isOpen: true,
             pageNumber,
-            fileName
+            fileName,
+            pageRotation: pageInfo?.rotation || 0,
+            pageImageData: pageInfo?.imageData
         });
     };
 
@@ -1847,6 +1958,8 @@ export default function PdfToImageConverterWithRotation() {
                         pageNumber={zoomModal.pageNumber}
                         pdfData={pdfData}
                         fileName={zoomModal.fileName}
+                        pageRotation={zoomModal.pageRotation}
+                        pageImageData={zoomModal.pageImageData}
                     />
 
                     {/* Enhanced Tools Section */}

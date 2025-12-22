@@ -388,7 +388,7 @@ interface PdfData {
   pageCount: number;
 }
 
-// --- IMPROVED PDF PAGE RENDERER WITH FULL SCREEN SUPPORT ---
+// --- SIMPLE PDF PAGE RENDERER ---
 interface PdfPageRendererProps {
   pageNumber: number;
   pdfData: PdfData | null;
@@ -409,7 +409,6 @@ const PdfPageRenderer = ({
   const [pageImage, setPageImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -440,10 +439,10 @@ const PdfPageRenderer = ({
         // Get specific page
         const page = await pdf.getPage(pageNumber);
         
-        // Set viewport based on device width with higher resolution
-        const viewportWidth = Math.min(window.innerWidth * 0.8, 600); // Increased to 600px
+        // Set viewport based on device width
+        const viewportWidth = Math.min(window.innerWidth * 0.8, 400);
         const scale = viewportWidth / page.getViewport({ scale: 1 }).width;
-        const viewport = page.getViewport({ scale: scale * 1.5 }); // Higher resolution for better zoom
+        const viewport = page.getViewport({ scale });
         
         // Create canvas
         const canvas = document.createElement("canvas");
@@ -453,11 +452,8 @@ const PdfPageRenderer = ({
           throw new Error("Could not get canvas context");
         }
         
-        // Set canvas dimensions with higher DPI for better quality
-        const dpi = window.devicePixelRatio || 1;
-        canvas.height = viewport.height * dpi;
-        canvas.width = viewport.width * dpi;
-        context.scale(dpi, dpi);
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
         
         // Render page to canvas
         const renderContext = {
@@ -467,8 +463,8 @@ const PdfPageRenderer = ({
         
         await page.render(renderContext).promise;
         
-        // Convert canvas to image URL with high quality
-        const imageUrl = canvas.toDataURL("image/png", 1.0);
+        // Convert canvas to image URL
+        const imageUrl = canvas.toDataURL("image/png", 0.8);
         
         if (isMounted.current) {
           setPageImage(imageUrl);
@@ -511,8 +507,6 @@ const PdfPageRenderer = ({
           : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 border-gray-300 dark:border-gray-700'
       } ${!isSelected ? 'opacity-60' : ''}`}
       onClick={onZoomClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Selection controls */}
       <div className={`absolute top-2 left-2 z-30 flex items-center gap-1 transition-all duration-300`}>
@@ -531,11 +525,6 @@ const PdfPageRenderer = ({
             <File className="w-3 h-3 text-white" />
           )}
         </button>
-        {isHovered && (
-          <span className="text-xs font-medium text-white bg-black/70 px-2 py-1 rounded-full whitespace-nowrap">
-            {isSelected ? "Will be extracted" : "Will be skipped"}
-          </span>
-        )}
       </div>
       
       {/* Zoom overlay button */}
@@ -545,20 +534,20 @@ const PdfPageRenderer = ({
         </div>
       </div>
       
-      {/* Selection indicator */}
+      {/* Selection indicator - ENHANCED COLORS */}
       <div className={`absolute bottom-2 right-2 z-20 px-2 py-1 rounded-full text-xs font-medium ${
         isSelected 
-          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
-          : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
+          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30' 
+          : 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-600/30'
       }`}>
         {isSelected ? '✓ Extract' : '✗ Skip'}
       </div>
       
-      {/* Page number */}
+      {/* Page number - ENHANCED COLORS */}
       <div className={`absolute top-2 right-2 z-20 px-2 py-1 rounded-full text-xs font-medium ${
         isSelected 
-          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
-          : 'bg-black/70 text-white'
+          ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30' 
+          : 'bg-gradient-to-r from-gray-700 to-gray-800 text-white shadow-lg shadow-gray-700/30'
       }`}>
         Page {pageNumber}
       </div>
@@ -598,11 +587,7 @@ const PdfPageRenderer = ({
           <img 
             src={pageImage} 
             alt={`Page ${pageNumber} of ${fileName}`}
-            className="w-full h-full object-contain select-none transition-transform duration-300"
-            style={{
-              maxWidth: '100%',
-              maxHeight: '100%'
-            }}
+            className="w-full h-full object-contain select-none"
             draggable="false"
           />
         </div>
@@ -611,8 +596,8 @@ const PdfPageRenderer = ({
   );
 };
 
-// --- PERFECT ZOOM MODAL WITH 50-100% OPTIMIZED ZOOM ---
-interface ZoomModalProps {
+// --- SIMPLE ZOOM MODAL (Mobile Friendly) ---
+interface SimpleZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   pageNumber: number;
@@ -620,274 +605,19 @@ interface ZoomModalProps {
   fileName: string;
 }
 
-const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModalProps) => {
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+const SimpleZoomModal = ({ 
+  isOpen, 
+  onClose, 
+  pageNumber, 
+  pdfData, 
+  fileName 
+}: SimpleZoomModalProps) => {
+  const [zoom, setZoom] = useState(1);
   const [pageImage, setPageImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [rotation, setRotation] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [startY, setStartY] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
-  const [lastInteractionTime, setLastInteractionTime] = useState(0);
-  const [showControls, setShowControls] = useState(true);
-  const [zoomMode, setZoomMode] = useState<'fit' | '50' | '75' | '100' | 'custom'>('fit');
-  const [zoomHistory, setZoomHistory] = useState<number[]>([1]);
-  
-  const containerRef = useRef<HTMLDivElement>(null);
-  const imageContainerRef = useRef<HTMLDivElement>(null);
-  const controlsRef = useRef<HTMLDivElement>(null);
   const isMounted = useRef(true);
-  const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
-  const interactionTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Hide controls after 3 seconds of inactivity
-  const resetControlsTimer = () => {
-    setLastInteractionTime(Date.now());
-    setShowControls(true);
-    
-    if (hideControlsTimeout.current) {
-      clearTimeout(hideControlsTimeout.current);
-    }
-    
-    hideControlsTimeout.current = setTimeout(() => {
-      setShowControls(false);
-    }, 3000);
-  };
-
-  // Zoom presets
-  const zoomPresets = [
-    { label: 'Fit', value: 'fit', level: 1 },
-    { label: '50%', value: '50', level: 0.5 },
-    { label: '75%', value: '75', level: 0.75 },
-    { label: '100%', value: '100', level: 1 },
-    { label: '150%', value: 'custom', level: 1.5 }
-  ];
-
-  // Apply zoom preset
-  const applyZoomPreset = (preset: typeof zoomPresets[0]) => {
-    setZoomMode(preset.value as any);
-    
-    if (preset.value === 'fit') {
-      setZoomLevel(1);
-      // Reset scroll to center
-      if (containerRef.current && imageContainerRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const containerHeight = containerRef.current.clientHeight;
-        const imageWidth = imageDimensions.width;
-        const imageHeight = imageDimensions.height;
-        
-        containerRef.current.scrollLeft = Math.max(0, (imageWidth - containerWidth) / 2);
-        containerRef.current.scrollTop = Math.max(0, (imageHeight - containerHeight) / 2);
-      }
-    } else {
-      setZoomLevel(preset.level);
-    }
-    
-    // Add to zoom history
-    setZoomHistory(prev => {
-      const newHistory = [...prev, preset.level];
-      if (newHistory.length > 5) newHistory.shift();
-      return newHistory;
-    });
-    
-    resetControlsTimer();
-  };
-
-  // Mouse event handlers for dragging
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!containerRef.current) return;
-    
-    // Only start dragging if clicking on the image area (not controls)
-    if (controlsRef.current && controlsRef.current.contains(e.target as Node)) {
-      return;
-    }
-    
-    e.preventDefault();
-    setIsDragging(true);
-    setStartX(e.pageX - containerRef.current.offsetLeft);
-    setStartY(e.pageY - containerRef.current.offsetTop);
-    setScrollLeft(containerRef.current.scrollLeft);
-    setScrollTop(containerRef.current.scrollTop);
-    
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grabbing';
-    }
-    
-    resetControlsTimer();
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !containerRef.current) return;
-    
-    // Reset interaction timer
-    resetControlsTimer();
-    
-    e.preventDefault();
-    const x = e.pageX - containerRef.current.offsetLeft;
-    const y = e.pageY - containerRef.current.offsetTop;
-    const walkX = (x - startX) * 2;
-    const walkY = (y - startY) * 2;
-    containerRef.current.scrollLeft = scrollLeft - walkX;
-    containerRef.current.scrollTop = scrollTop - walkY;
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'default';
-    }
-  };
-
-  // Touch event handlers for mobile
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!containerRef.current) return;
-    
-    // Don't start dragging if touching controls
-    if (controlsRef.current && e.target && controlsRef.current.contains(e.target as Node)) {
-      return;
-    }
-    
-    const touch = e.touches[0];
-    setStartX(touch.pageX - containerRef.current.offsetLeft);
-    setStartY(touch.pageY - containerRef.current.offsetTop);
-    setScrollLeft(containerRef.current.scrollLeft);
-    setScrollTop(containerRef.current.scrollTop);
-    
-    resetControlsTimer();
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!containerRef.current) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const x = touch.pageX - containerRef.current.offsetLeft;
-    const y = touch.pageY - containerRef.current.offsetTop;
-    const walkX = (x - startX) * 2;
-    const walkY = (y - startY) * 2;
-    containerRef.current.scrollLeft = scrollLeft - walkX;
-    containerRef.current.scrollTop = scrollTop - walkY;
-    
-    resetControlsTimer();
-  };
-
-  // Smooth zoom with mouse wheel
-  const handleWheel = (e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      resetControlsTimer();
-      
-      const zoomStep = 0.1;
-      const newZoom = e.deltaY < 0 
-        ? Math.min(zoomLevel + zoomStep, 3)
-        : Math.max(zoomLevel - zoomStep, 0.1);
-      
-      setZoomLevel(newZoom);
-      setZoomMode('custom');
-      
-      // Add to zoom history
-      setZoomHistory(prev => {
-        const newHistory = [...prev, newZoom];
-        if (newHistory.length > 5) newHistory.shift();
-        return newHistory;
-      });
-    }
-  };
-
-  // Fullscreen API support
-  const toggleFullscreen = () => {
-    if (!isFullscreen) {
-      // Enter fullscreen
-      setIsFullscreen(true);
-      
-      // Try browser fullscreen API first
-      const elem = containerRef.current;
-      if (elem) {
-        if (elem.requestFullscreen) {
-          elem.requestFullscreen().catch(err => {
-            console.log(`Error attempting to enable fullscreen: ${err.message}`);
-          });
-        } else if ((elem as any).webkitRequestFullscreen) {
-          (elem as any).webkitRequestFullscreen();
-        } else if ((elem as any).msRequestFullscreen) {
-          (elem as any).msRequestFullscreen();
-        }
-      }
-      
-      // Prevent body scroll
-      document.body.style.overflow = 'hidden';
-    } else {
-      // Exit fullscreen
-      setIsFullscreen(false);
-      
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      } else if ((document as any).msExitFullscreen) {
-        (document as any).msExitFullscreen();
-      }
-      
-      // Restore body scroll
-      document.body.style.overflow = 'auto';
-    }
-    
-    resetControlsTimer();
-  };
-
-  // Handle fullscreen change events
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-      resetControlsTimer();
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-    };
-  }, []);
-
-  // Handle interaction detection for hiding controls
-  useEffect(() => {
-    if (!isOpen) return;
-
-    resetControlsTimer();
-
-    const handleInteraction = () => {
-      resetControlsTimer();
-    };
-
-    // Add event listeners for interaction
-    window.addEventListener('mousemove', handleInteraction);
-    window.addEventListener('touchstart', handleInteraction);
-    window.addEventListener('keydown', handleInteraction);
-
-    return () => {
-      window.removeEventListener('mousemove', handleInteraction);
-      window.removeEventListener('touchstart', handleInteraction);
-      window.removeEventListener('keydown', handleInteraction);
-      
-      if (hideControlsTimeout.current) {
-        clearTimeout(hideControlsTimeout.current);
-      }
-      if (interactionTimeout.current) {
-        clearTimeout(interactionTimeout.current);
-      }
-    };
-  }, [isOpen]);
-
-  // Render page for zoom modal
   useEffect(() => {
     isMounted.current = true;
     
@@ -909,27 +639,16 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(pageNumber);
         
-        // Calculate viewport - use optimized scale for 50-100% zoom
-        const baseScale = 2; // Base scale for good quality
-        const scale = baseScale * zoomLevel;
-        const viewport = page.getViewport({ scale });
-        
-        // Store image dimensions for proper scaling
-        setImageDimensions({
-          width: viewport.width,
-          height: viewport.height
-        });
+        // Higher quality for zoom
+        const viewport = page.getViewport({ scale: 2 });
         
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
         
         if (!context) return;
         
-        // Set high DPI for crisp image
-        const dpi = window.devicePixelRatio || 1;
-        canvas.height = viewport.height * dpi;
-        canvas.width = viewport.width * dpi;
-        context.scale(dpi, dpi);
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
         
         await page.render({
           canvasContext: context,
@@ -961,387 +680,268 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         URL.revokeObjectURL(pageImage);
       }
     };
-  }, [isOpen, pdfData, pageNumber, zoomLevel]);
+  }, [isOpen, pdfData, pageNumber]);
 
   const handleZoomIn = () => {
-    const newZoom = Math.min(zoomLevel + 0.25, 3);
-    setZoomLevel(newZoom);
-    setZoomMode('custom');
-    
-    // Add to zoom history
-    setZoomHistory(prev => {
-      const newHistory = [...prev, newZoom];
-      if (newHistory.length > 5) newHistory.shift();
-      return newHistory;
-    });
-    
-    resetControlsTimer();
+    setZoom(z => Math.min(z + 0.25, 3));
   };
 
   const handleZoomOut = () => {
-    const newZoom = Math.max(zoomLevel - 0.25, 0.1);
-    setZoomLevel(newZoom);
-    setZoomMode('custom');
-    
-    // Add to zoom history
-    setZoomHistory(prev => {
-      const newHistory = [...prev, newZoom];
-      if (newHistory.length > 5) newHistory.shift();
-      return newHistory;
-    });
-    
-    resetControlsTimer();
+    setZoom(z => Math.max(z - 0.25, 0.5));
   };
 
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClose();
-    setZoomLevel(1);
-    setIsFullscreen(false);
+    setZoom(1);
     setRotation(0);
-    setShowControls(true);
-    setZoomMode('fit');
-    
-    // Restore body scroll
-    document.body.style.overflow = 'auto';
-    
-    // Clear timeouts
-    if (hideControlsTimeout.current) {
-      clearTimeout(hideControlsTimeout.current);
-    }
-    if (interactionTimeout.current) {
-      clearTimeout(interactionTimeout.current);
-    }
   };
 
   const rotateLeft = () => {
     setRotation(prev => (prev - 90) % 360);
-    resetControlsTimer();
   };
 
   const rotateRight = () => {
     setRotation(prev => (prev + 90) % 360);
-    resetControlsTimer();
   };
 
   const resetRotation = () => {
     setRotation(0);
-    resetControlsTimer();
   };
 
-  const resetView = () => {
-    setZoomLevel(1);
-    setZoomMode('fit');
-    setRotation(0);
-    // Reset scroll position to center
-    if (containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
-      const imageWidth = imageDimensions.width;
-      const imageHeight = imageDimensions.height;
-      
-      containerRef.current.scrollLeft = Math.max(0, (imageWidth - containerWidth) / 2);
-      containerRef.current.scrollTop = Math.max(0, (imageHeight - containerHeight) / 2);
+  // Handle wheel zoom
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      handleZoomIn();
+    } else {
+      handleZoomOut();
     }
-    resetControlsTimer();
   };
 
-  // Handle modal container click to show controls
-  const handleContainerClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      setShowControls(true);
-      resetControlsTimer();
+  // Reset on close
+  useEffect(() => {
+    if (!isOpen) {
+      setZoom(1);
+      setRotation(0);
     }
-  };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9999] !p-0 !m-0 bg-black"
-      onClick={handleContainerClick}
+    <div 
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      onClick={handleClose}
     >
-      {/* Close button - Always visible */}
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={handleClose}
-        className="absolute top-4 right-4 z-50 p-3 bg-black/80 hover:bg-black/90 rounded-full transition-colors shadow-lg backdrop-blur-sm"
+      <div 
+        className="relative max-w-full max-h-full bg-black/80 rounded-lg overflow-hidden"
+        onClick={e => e.stopPropagation()}
+        onWheel={handleWheel}
       >
-        <X className="w-6 h-6 text-white" />
-      </motion.button>
-      
-      {/* Page info - Always visible */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute top-4 left-4 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg max-w-[80%]"
-      >
-        <span className="text-white text-sm font-medium truncate block">
-          Page {pageNumber} • {fileName}
-        </span>
-      </motion.div>
-      
-      {/* Interactive Controls Container */}
-      <motion.div
-        ref={controlsRef}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: showControls ? 1 : 0 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="absolute inset-0 z-40 pointer-events-none"
-      >
-        {/* Top Gradient Overlay */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/70 to-transparent pointer-events-none"></div>
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-2 right-2 z-50 p-2 bg-black/70 rounded-full hover:bg-black/90 transition-colors"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
         
-        {/* Bottom Gradient Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black/70 to-transparent pointer-events-none"></div>
-        
-        {/* Zoom Preset Buttons - Top Center */}
-        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 flex items-center justify-center gap-2 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg pointer-events-auto">
-          {zoomPresets.map((preset) => (
-            <button
-              key={preset.value}
-              onClick={(e) => { e.stopPropagation(); applyZoomPreset(preset); }}
-              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all ${
-                zoomMode === preset.value 
-                  ? 'bg-white text-black' 
-                  : 'bg-black/50 text-white hover:bg-white/20'
-              }`}
-              title={`Zoom to ${preset.label}`}
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
-        
-        {/* Zoom controls - Bottom Center */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-50 flex items-center justify-center gap-2 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg pointer-events-auto">
+        {/* Zoom controls */}
+        <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-4 py-2 z-50">
           <button
-            onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
-            disabled={zoomLevel <= 0.1}
-            title="Zoom Out"
+            onClick={handleZoomOut}
+            className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+            disabled={zoom <= 0.5}
           >
-            <ZoomOut className="w-5 h-5 text-white" />
+            <ZoomOut className="w-4 h-4 text-white" />
           </button>
           
-          <button
-            onClick={(e) => { e.stopPropagation(); resetView(); }}
-            className="px-4 py-1.5 text-white text-sm font-medium hover:bg-white/10 rounded-full transition-colors min-w-[100px] text-center"
-            title="Reset View"
-          >
-            {Math.round(zoomLevel * 100)}% • Fit
-          </button>
+          <span className="text-white text-sm font-medium min-w-[50px] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
           
           <button
-            onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
-            disabled={zoomLevel >= 3}
-            title="Zoom In"
+            onClick={handleZoomIn}
+            className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+            disabled={zoom >= 3}
           >
-            <ZoomIn className="w-5 h-5 text-white" />
+            <ZoomIn className="w-4 h-4 text-white" />
           </button>
           
           {/* Rotation controls */}
           <div className="h-6 w-px bg-white/30 mx-1"></div>
           
           <button
-            onClick={(e) => { e.stopPropagation(); rotateLeft(); }}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
-            title="Rotate Left"
+            onClick={rotateLeft}
+            className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
           >
-            <RotateCcw className="w-5 h-5 text-white" />
+            <RotateCcw className="w-4 h-4 text-white" />
           </button>
           
           <button
-            onClick={(e) => { e.stopPropagation(); resetRotation(); }}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-xs font-medium text-white min-w-[30px]"
-            title="Reset Rotation"
+            onClick={resetRotation}
+            className="px-2 py-1 hover:bg-white/10 rounded transition-colors text-xs text-white"
           >
             0°
           </button>
           
           <button
-            onClick={(e) => { e.stopPropagation(); rotateRight(); }}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
-            title="Rotate Right"
+            onClick={rotateRight}
+            className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
           >
-            <RotateCw className="w-5 h-5 text-white" />
-          </button>
-          
-          <div className="h-6 w-px bg-white/30 mx-1"></div>
-          
-          <button
-            onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
-            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-          >
-            {isFullscreen ? (
-              <Minimize2 className="w-5 h-5 text-white" />
-            ) : (
-              <Maximize2 className="w-5 h-5 text-white" />
-            )}
+            <RotateCw className="w-4 h-4 text-white" />
           </button>
         </div>
         
-        {/* Scroll instructions - Top Center */}
-        <div className="absolute top-44 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg pointer-events-none hidden sm:block">
-          <div className="flex items-center gap-2 text-white text-sm">
-            <span>Ctrl+Scroll to zoom • Click & drag to pan</span>
-          </div>
+        {/* Page info */}
+        <div className="absolute top-3 left-3 z-50 bg-black/70 rounded-full px-3 py-1.5 max-w-[80%]">
+          <span className="text-white text-xs sm:text-sm truncate block">
+            Page {pageNumber} • {fileName}
+          </span>
         </div>
         
-        {/* Reset View Button - Bottom Right */}
-        <div className="absolute bottom-4 right-4 z-50 pointer-events-auto">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              resetView();
-            }}
-            className="p-2 bg-black/80 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-            title="Reset View"
-          >
-            <RefreshCw className="w-5 h-5 text-white" />
-          </button>
-        </div>
-      </motion.div>
-      
-      {/* Image container with scroll */}
-      <motion.div
-        ref={containerRef}
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-screen h-screen overflow-auto bg-black"
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        style={{ 
-          cursor: isDragging ? 'grabbing' : 'default'
-        }}
-      >
         {/* Loading indicator */}
         {loading ? (
-          <div className="flex items-center justify-center w-full h-full">
-            <div className="text-center">
-              <Loader2 className="w-12 h-12 animate-spin text-white mx-auto mb-4" />
-              <p className="text-white text-lg">Loading page {pageNumber}...</p>
-              <p className="text-gray-400 text-sm mt-2">Preparing high-quality zoom</p>
-            </div>
+          <div className="w-96 h-96 flex items-center justify-center">
+            <Loader2 className="w-12 h-12 animate-spin text-white" />
           </div>
         ) : pageImage ? (
-          <div 
-            ref={imageContainerRef}
-            className="flex items-center justify-center min-w-full min-h-full p-8"
-            style={{
-              minWidth: `${imageDimensions.width * zoomLevel}px`,
-              minHeight: `${imageDimensions.height * zoomLevel}px`
-            }}
-          >
-            <motion.img
-              src={pageImage}
-              alt={`Zoomed view - Page ${pageNumber}`}
-              className="select-none shadow-2xl"
-              style={{
-                transform: `rotate(${rotation}deg)`,
+          <div className="overflow-auto max-h-screen p-4">
+            <img 
+              src={pageImage} 
+              alt={`Page ${pageNumber}`}
+              className="mx-auto"
+              style={{ 
+                transform: `scale(${zoom}) rotate(${rotation}deg)`,
                 transformOrigin: 'center center',
-                width: `${imageDimensions.width * zoomLevel}px`,
-                height: `${imageDimensions.height * zoomLevel}px`,
-                objectFit: 'contain',
-                transition: 'transform 0.3s ease, width 0.3s ease, height 0.3s ease'
+                transition: 'transform 0.2s ease'
               }}
-              draggable="false"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
             />
           </div>
         ) : (
-          <div className="flex items-center justify-center w-full h-full">
+          <div className="w-96 h-96 flex items-center justify-center">
             <div className="text-center text-white">
               <File className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-lg">Unable to load page preview</p>
+              <p className="text-lg">Unable to load page</p>
               <p className="text-gray-400 text-sm mt-2">Page {pageNumber}</p>
             </div>
           </div>
         )}
-      </motion.div>
-      
-      {/* Mobile gesture hints */}
-      <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 sm:hidden pointer-events-none">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: showControls ? 1 : 0 }}
-          exit={{ opacity: 0 }}
-          className="flex flex-col items-center gap-1 text-white/80 text-xs bg-black/70 rounded-lg p-2"
-        >
-          <div className="flex items-center gap-1">
-            <div className="p-1 bg-white/20 rounded">
-              <ZoomIn className="w-3 h-3" />
-            </div>
-            <span>Tap presets for 50%, 75%, 100%</span>
+        
+        {/* Mobile instructions */}
+        <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 sm:hidden">
+          <div className="bg-black/70 text-white text-xs px-3 py-2 rounded-full backdrop-blur-sm">
+            <span>Pinch to zoom • Tap outside to close</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="p-1 bg-white/20 rounded">
-              <RotateCw className="w-3 h-3" />
-            </div>
-            <span>Pinch to zoom</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="p-1 bg-white/20 rounded">
-              <Maximize2 className="w-3 h-3" />
-            </div>
-            <span>Tap to show controls</span>
-          </div>
-        </motion.div>
-      </div>
-      
-      {/* Tap hint to show controls */}
-      <AnimatePresence>
-        {!showControls && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
-          >
-            <div className="text-center bg-black/70 rounded-2xl px-8 py-4 backdrop-blur-sm">
-              <p className="text-white text-base font-medium mb-2">
-                Tap anywhere to show controls
-              </p>
-              <p className="text-gray-300 text-sm">
-                Use 50%, 75%, 100% presets for perfect zoom
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Zoom level indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="absolute top-16 right-4 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg pointer-events-none"
-      >
-        <div className="flex items-center gap-2">
-          <ZoomIn className="w-4 h-4 text-white" />
-          <span className="text-white text-sm font-medium">
-            Zoom: {Math.round(zoomLevel * 100)}%
-          </span>
         </div>
-      </motion.div>
-    </motion.div>
+        
+        {/* Desktop instructions */}
+        <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 hidden sm:block">
+          <div className="bg-black/70 text-white text-xs px-3 py-2 rounded-full backdrop-blur-sm">
+            <span>Scroll to zoom • Click outside to close</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- ULTRA SIMPLE ZOOM MODAL (Even Simpler) ---
+interface UltraSimpleZoomModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  pageImage: string | null;
+  pageNumber: number;
+  fileName: string;
+}
+
+const UltraSimpleZoomModal = ({ 
+  isOpen, 
+  onClose, 
+  pageImage, 
+  pageNumber, 
+  fileName 
+}: UltraSimpleZoomModalProps) => {
+  const [zoom, setZoom] = useState(1);
+
+  if (!isOpen || !pageImage) return null;
+
+  const handleZoomIn = () => {
+    setZoom(z => Math.min(z + 0.25, 3));
+  };
+
+  const handleZoomOut = () => {
+    setZoom(z => Math.max(z - 0.25, 0.5));
+  };
+
+  const handleClose = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose();
+    setZoom(1);
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      onClick={handleClose}
+    >
+      <div 
+        className="relative max-w-full max-h-full"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Simple controls */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-4 py-2 z-50">
+          <button
+            onClick={handleZoomOut}
+            className="p-1.5 hover:bg-white/10 rounded-full"
+            disabled={zoom <= 0.5}
+          >
+            <Minus className="w-4 h-4 text-white" />
+          </button>
+          
+          <span className="text-white text-sm font-medium min-w-[60px] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          
+          <button
+            onClick={handleZoomIn}
+            className="p-1.5 hover:bg-white/10 rounded-full"
+            disabled={zoom >= 3}
+          >
+            <Plus className="w-4 h-4 text-white" />
+          </button>
+        </div>
+        
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-2 right-2 z-50 p-2 bg-black/70 rounded-full hover:bg-black/90"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
+        
+        {/* Image */}
+        <img 
+          src={pageImage} 
+          alt={`Page ${pageNumber}`}
+          className="max-w-full max-h-screen"
+          style={{ transform: `scale(${zoom})` }}
+        />
+        
+        {/* Page info */}
+        <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+          Page {pageNumber} • {fileName.substring(0, 20)}...
+        </div>
+        
+        {/* Mobile hint */}
+        <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 sm:hidden">
+          <div className="bg-black/70 text-white text-xs px-3 py-1.5 rounded">
+            Tap outside to close
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -1389,17 +989,25 @@ export default function PdfPageExtractorTool() {
       fileName: ''
     });
 
-    // Enhanced Pagination states
+    // Simple zoom state
+    const [simpleZoomModal, setSimpleZoomModal] = useState<{
+      isOpen: boolean;
+      pageNumber: number;
+      fileName: string;
+      pageImage: string | null;
+    }>({
+      isOpen: false,
+      pageNumber: 1,
+      fileName: '',
+      pageImage: null
+    });
+
+    // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(6);
     const [downloadingAll, setDownloadingAll] = useState(false);
     const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
     const [downloadProgress, setDownloadProgress] = useState(0);
-    
-    // New pagination features
-    const [showGoToPage, setShowGoToPage] = useState(false);
-    const [goToPageInput, setGoToPageInput] = useState("");
-    const [jumpToSection, setJumpToSection] = useState<"first" | "last" | "middle" | null>(null);
 
     // Mobile detection
     const [isMobile, setIsMobile] = useState(false);
@@ -1525,50 +1133,6 @@ export default function PdfPageExtractorTool() {
         }));
         setPageData(updatedPageData);
         setDownloadSuccess(`✗ All ${pageData.length} pages deselected`);
-        setTimeout(() => setDownloadSuccess(null), 2000);
-    };
-
-    // Select even pages
-    const selectEvenPages = () => {
-        const updatedPageData = pageData.map((page, index) => ({
-            ...page,
-            isSelected: (index + 1) % 2 === 0
-        }));
-        setPageData(updatedPageData);
-        setDownloadSuccess("✓ Even pages selected");
-        setTimeout(() => setDownloadSuccess(null), 2000);
-    };
-
-    // Select odd pages
-    const selectOddPages = () => {
-        const updatedPageData = pageData.map((page, index) => ({
-            ...page,
-            isSelected: (index + 1) % 2 === 1
-        }));
-        setPageData(updatedPageData);
-        setDownloadSuccess("✓ Odd pages selected");
-        setTimeout(() => setDownloadSuccess(null), 2000);
-    };
-
-    // Select first page only
-    const selectFirstPage = () => {
-        const updatedPageData = pageData.map((page, index) => ({
-            ...page,
-            isSelected: index === 0
-        }));
-        setPageData(updatedPageData);
-        setDownloadSuccess("✓ First page selected");
-        setTimeout(() => setDownloadSuccess(null), 2000);
-    };
-
-    // Select last page only
-    const selectLastPage = () => {
-        const updatedPageData = pageData.map((page, index) => ({
-            ...page,
-            isSelected: index === pageData.length - 1
-        }));
-        setPageData(updatedPageData);
-        setDownloadSuccess("✓ Last page selected");
         setTimeout(() => setDownloadSuccess(null), 2000);
     };
 
@@ -1737,12 +1301,55 @@ export default function PdfPageExtractorTool() {
         });
     };
 
-    // Enhanced Pagination controls
+    // Simple zoom handler
+    const handleSimpleZoom = async (pageNumber: number, fileName: string) => {
+        if (!pdfData) return;
+
+        try {
+            // Convert base64 back to Uint8Array
+            const binaryString = atob(pdfData.base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            const loadingTask = pdfjsLib.getDocument({ data: bytes });
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(pageNumber);
+            
+            // Create a larger canvas for zoom
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            
+            if (!context) return;
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+            
+            const imageUrl = canvas.toDataURL("image/png", 1.0);
+            
+            setSimpleZoomModal({
+                isOpen: true,
+                pageNumber,
+                fileName,
+                pageImage: imageUrl
+            });
+            
+        } catch (error) {
+            console.error("Error creating zoom image:", error);
+        }
+    };
+
+    // Pagination controls
     const goToPage = (pageNumber: number) => {
         const page = Math.min(Math.max(1, pageNumber), totalPages);
         setCurrentPage(page);
-        setShowGoToPage(false);
-        setGoToPageInput("");
         if (isMobile) {
             const pageGrid = document.getElementById('page-grid');
             if (pageGrid) {
@@ -1775,67 +1382,38 @@ export default function PdfPageExtractorTool() {
         }
     };
 
-    const jumpToFirstPage = () => {
-        setCurrentPage(1);
-        setJumpToSection("first");
-        setTimeout(() => setJumpToSection(null), 1000);
-    };
-
-    const jumpToLastPage = () => {
-        setCurrentPage(totalPages);
-        setJumpToSection("last");
-        setTimeout(() => setJumpToSection(null), 1000);
-    };
-
-    const jumpToMiddlePage = () => {
-        const middlePage = Math.ceil(totalPages / 2);
-        setCurrentPage(middlePage);
-        setJumpToSection("middle");
-        setTimeout(() => setJumpToSection(null), 1000);
-    };
-
-    const handleGoToPageSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (goToPageInput.trim()) {
-            const pageNum = parseInt(goToPageInput);
-            if (!isNaN(pageNum)) {
-                goToPage(pageNum);
-            }
-        }
-    };
-
     // Items per page options - responsive
     const itemsPerPageOptions = isMobile ? [4, 6, 8] : [6, 9, 12];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-8 sm:py-12 md:py-16 lg:py-20">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-4 sm:py-8 md:py-12">
+            <div className="container mx-auto px-3 sm:px-4 max-w-6xl">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    {/* Success Message Overlay */}
+                    {/* Success Message Overlay - Mobile friendly */}
                     <AnimatePresence>
                         {downloadSuccess && (
                             <motion.div
                                 initial={{ opacity: 0, y: -50 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -50 }}
-                                className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
+                                className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
                             >
-                                <div className={`p-4 md:p-5 rounded-2xl shadow-2xl backdrop-blur-sm ${
+                                <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-2xl backdrop-blur-sm ${
                                     downloadSuccess.startsWith("✓") 
                                         ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" 
                                         : "bg-gradient-to-r from-red-500 to-orange-600 text-white"
                                 }`}>
-                                    <div className="flex items-center justify-center gap-3">
+                                    <div className="flex items-center justify-center gap-2 sm:gap-3">
                                         {downloadSuccess.startsWith("✓") ? (
-                                            <CheckCircle className="w-6 h-6 md:w-7 md:h-7" />
+                                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                                         ) : (
-                                            <X className="w-6 h-6 md:w-7 md:h-7" />
+                                            <X className="w-4 h-4 sm:w-5 sm:h-5" />
                                         )}
-                                        <span className="font-bold text-lg md:text-xl">{downloadSuccess}</span>
+                                        <span className="font-medium text-sm sm:text-base">{downloadSuccess}</span>
                                     </div>
                                 </div>
                             </motion.div>
@@ -1843,58 +1421,58 @@ export default function PdfPageExtractorTool() {
                     </AnimatePresence>
 
                     {/* Header - Responsive */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-8 md:mb-12">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
                         <a
                             href="/"
-                            className="inline-flex items-center gap-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium group text-base md:text-lg"
+                            className="inline-flex items-center gap-2 sm:gap-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium group"
                         >
-                            <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 group-hover:-translate-x-1 transition-transform" />
-                            <span>Back to Tools</span>
+                            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
+                            <span className="text-sm sm:text-base">Back to Tools</span>
                         </a>
                         
-                        <div className="flex items-center gap-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-gray-800 dark:to-purple-950/30 px-4 py-2 md:px-5 md:py-2.5 rounded-full mt-2 md:mt-0">
-                            <Shield className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm md:text-base text-blue-700 dark:text-blue-300 font-medium">
-                                Secure & Private • No Uploads
+                        <div className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-gray-800 dark:to-purple-950/30 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full mt-2 md:mt-0">
+                            <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+                            <span className="text-xs sm:text-sm text-blue-700 dark:text-blue-300 font-medium">
+                                Secure & Private
                             </span>
                         </div>
                     </div>
 
                     {/* Hero Section - Responsive */}
-                    <div className="text-center mb-12 md:mb-16 lg:mb-20">
+                    <div className="text-center mb-8 sm:mb-10 md:mb-12">
                         <motion.div 
                             initial={{ scale: 0.5 }}
                             animate={{ scale: 1 }}
-                            className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl md:rounded-[2rem] mb-4 md:mb-6 shadow-2xl"
+                            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl sm:rounded-3xl mb-4 sm:mb-6 shadow-xl sm:shadow-2xl"
                         >
-                            <Scissors className="w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 text-white" />
+                            <Scissors className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                         </motion.div>
                         
-                        <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-3 md:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent px-2">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent px-2">
                             PDF Page Extractor Tool
                         </h1>
                         
-                        <p className="text-base md:text-xl lg:text-2xl text-gray-600 dark:text-gray-400 max-w-4xl mx-auto leading-relaxed px-4">
+                        <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
                             Extract specific pages from your PDF documents.
-                            <span className="block text-blue-600 dark:text-blue-400 font-bold mt-2 md:mt-3 text-lg md:text-2xl">
+                            <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
                                 Select pages to extract and download them as a new PDF!
                             </span>
                         </p>
                     </div>
 
                     {/* Main Card - Responsive */}
-                    <div className="bg-white dark:bg-gray-900 rounded-3xl md:rounded-[2rem] border-2 border-gray-200 dark:border-gray-800 shadow-2xl p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-xl sm:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 sm:mb-8">
                         {/* Upload Section */}
-                        <div className="mb-6 md:mb-8">
-                            <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6">
-                                <div className="p-2 md:p-3 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-2xl">
-                                    <FolderOpen className="w-6 h-6 md:w-8 md:h-8 text-blue-600 dark:text-blue-400" />
+                        <div className="mb-6 sm:mb-8">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                                <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg sm:rounded-xl">
+                                    <FolderOpen className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                                         Upload PDF
                                     </h2>
-                                    <p className="text-sm md:text-base lg:text-lg text-gray-500 dark:text-gray-400 mt-1">
+                                    <p className="text-xs sm:text-sm md:text-base text-gray-500 dark:text-gray-400">
                                         Select your PDF file to extract pages
                                     </p>
                                 </div>
@@ -1913,40 +1491,40 @@ export default function PdfPageExtractorTool() {
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        className="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4"
+                                        className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4"
                                     >
-                                        <div className="p-3 md:p-4 lg:p-5 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-xl md:rounded-2xl border border-blue-200 dark:border-blue-800/50">
-                                            <div className="flex items-center gap-2 md:gap-3 mb-2">
-                                                <Scissors className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
-                                                <span className="text-base md:text-lg font-bold text-blue-800 dark:text-blue-300">
+                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-blue-200 dark:border-blue-800/50">
+                                            <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+                                                <Scissors className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
+                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-blue-800 dark:text-blue-300">
                                                     Extract Pages
                                                 </span>
                                             </div>
-                                            <p className="text-sm md:text-base text-blue-700/80 dark:text-blue-400/80">
+                                            <p className="text-xs text-blue-700/80 dark:text-blue-400/80 mt-1 sm:mt-2">
                                                 Select specific pages to extract
                                             </p>
                                         </div>
                                         
-                                        <div className="p-3 md:p-4 lg:p-5 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 rounded-xl md:rounded-2xl border border-purple-200 dark:border-purple-800/50">
-                                            <div className="flex items-center gap-2 md:gap-3 mb-2">
-                                                <Grid3x3 className="w-5 h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
-                                                <span className="text-base md:text-lg font-bold text-purple-800 dark:text-purple-300">
+                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-purple-200 dark:border-purple-800/50">
+                                            <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+                                                <Grid3x3 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
+                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-purple-800 dark:text-purple-300">
                                                     Batch Selection
                                                 </span>
                                             </div>
-                                            <p className="text-sm md:text-base text-purple-700/80 dark:text-purple-400/80">
+                                            <p className="text-xs text-purple-700/80 dark:text-purple-400/80 mt-1 sm:mt-2">
                                                 Select multiple pages at once
                                             </p>
                                         </div>
                                         
-                                        <div className="p-3 md:p-4 lg:p-5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-900/20 rounded-xl md:rounded-2xl border border-green-200 dark:border-green-800/50">
-                                            <div className="flex items-center gap-2 md:gap-3 mb-2">
-                                                <Clock className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
-                                                <span className="text-base md:text-lg font-bold text-green-800 dark:text-green-300">
+                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-green-200 dark:border-green-800/50">
+                                            <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+                                                <Clock className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
+                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-green-800 dark:text-green-300">
                                                     Real-time Preview
                                                 </span>
                                             </div>
-                                            <p className="text-sm md:text-base text-green-700/80 dark:text-green-400/80">
+                                            <p className="text-xs text-green-700/80 dark:text-green-400/80 mt-1 sm:mt-2">
                                                 See selected pages instantly
                                             </p>
                                         </div>
@@ -1957,26 +1535,26 @@ export default function PdfPageExtractorTool() {
 
                         {/* Content Area */}
                         {files.length > 0 && (
-                            <div className="space-y-4 md:space-y-6">
+                            <div className="space-y-4 sm:space-y-6 md:space-y-8">
                                 {/* Selected File Info */}
-                                <div className="p-4 md:p-5 lg:p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-xl md:rounded-2xl border-2 border-blue-200 dark:border-blue-800/30">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
-                                        <div className="flex items-center gap-3 md:gap-4">
-                                            <div className="p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-md">
-                                                <FileImage className="w-6 h-6 md:w-8 md:h-8 text-blue-600 dark:text-blue-400" />
+                                <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-xl sm:rounded-2xl border-2 border-blue-200 dark:border-blue-800/30">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 md:gap-4">
+                                        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+                                            <div className="p-1.5 sm:p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-md">
+                                                <FileImage className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600 dark:text-blue-400" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <h3 className="font-bold text-gray-900 dark:text-white text-base md:text-lg lg:text-xl truncate">
+                                                <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg truncate">
                                                     {files[0].name}
                                                 </h3>
-                                                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">
                                                     {(files[0].size / 1024 / 1024).toFixed(2)} MB • {pageData.length} pages
                                                 </p>
                                             </div>
                                         </div>
                                         <button
                                             onClick={handleReset}
-                                            className="px-3 py-2 md:px-4 md:py-2.5 text-sm md:text-base font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg md:rounded-xl transition-colors mt-3 md:mt-0 w-full md:w-auto"
+                                            className="px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-2.5 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors mt-2 sm:mt-0 w-full sm:w-auto"
                                         >
                                             Change File
                                         </button>
@@ -1991,13 +1569,13 @@ export default function PdfPageExtractorTool() {
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: -20 }}
-                                            className="space-y-4 md:space-y-6"
+                                            className="space-y-3 sm:space-y-4 md:space-y-6"
                                         >
                                             <div className="text-center">
-                                                <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1 md:mb-2">
+                                                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                                                     Loading PDF 📄
                                                 </h3>
-                                                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
+                                                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400">
                                                     Processing {pageData.length} pages...
                                                 </p>
                                             </div>
@@ -2014,9 +1592,9 @@ export default function PdfPageExtractorTool() {
                                             />
                                             
                                             <div className="flex justify-center">
-                                                <div className="inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-full">
-                                                    <Sparkles className="w-3 h-3 md:w-4 md:h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
-                                                    <span className="text-sm md:text-base text-blue-700 dark:text-blue-300">
+                                                <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-blue-50 dark:bg-blue-950/30 rounded-full">
+                                                    <Sparkles className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+                                                    <span className="text-xs sm:text-sm md:text-base text-blue-700 dark:text-blue-300">
                                                         Preparing page selection for extraction
                                                     </span>
                                                 </div>
@@ -2034,11 +1612,11 @@ export default function PdfPageExtractorTool() {
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
                                             onClick={handleProcess}
-                                            className="w-full py-3 md:py-4 px-4 md:px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl md:rounded-2xl shadow-xl md:shadow-2xl hover:shadow-3xl transition-all text-base md:text-lg flex items-center justify-center gap-2"
+                                            className="w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1 sm:gap-2 md:gap-3"
                                         >
-                                            <Scissors className="w-5 h-5 md:w-6 md:h-6" />
+                                            <Scissors className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                                             <span>Load PDF for Extraction</span>
-                                            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                                            <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                                         </motion.button>
                                     )}
 
@@ -2048,124 +1626,94 @@ export default function PdfPageExtractorTool() {
                                             key="results"
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            className="space-y-6 md:space-y-8"
+                                            className="space-y-4 sm:space-y-6 md:space-y-8"
                                         >
                                             {/* Selection Summary Banner */}
-                                            <div className="p-4 md:p-5 lg:p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl md:rounded-2xl border-2 border-green-200 dark:border-green-800/50">
-                                                <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
-                                                    <div className="flex items-center justify-center md:justify-start">
-                                                        <div className="p-2 md:p-3 bg-green-100 dark:bg-green-900/50 rounded-lg md:rounded-xl">
-                                                            <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-green-600 dark:text-green-400" />
+                                            <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl sm:rounded-2xl border-2 border-green-200 dark:border-green-800/50">
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 md:gap-4">
+                                                    <div className="flex items-center justify-center sm:justify-start">
+                                                        <div className="p-1.5 sm:p-2 md:p-3 bg-green-100 dark:bg-green-900/50 rounded-lg sm:rounded-xl">
+                                                            <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 text-green-600 dark:text-green-400" />
                                                         </div>
                                                     </div>
-                                                    <div className="flex-1 text-center md:text-left">
-                                                        <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                                                    <div className="flex-1 text-center sm:text-left">
+                                                        <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1">
                                                             PDF Loaded Successfully! 🎉
                                                         </h3>
-                                                        <p className="text-green-700 dark:text-green-300 font-bold text-base md:text-lg">
+                                                        <p className="text-green-700 dark:text-green-300 font-medium text-xs sm:text-sm md:text-base">
                                                             {selectedPagesCount} of {pageData.length} pages selected for extraction
                                                         </p>
-                                                        <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base mt-1">
+                                                        <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-1">
                                                             Click on pages to select/deselect them for extraction
                                                         </p>
                                                     </div>
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <div className="px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-lg md:rounded-xl text-sm md:text-base">
+                                                    <div className="flex items-center justify-center">
+                                                        <div className="px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
                                                             {selectedPagesCount} Selected
-                                                        </div>
-                                                        <div className="px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold rounded-lg md:rounded-xl text-sm md:text-base">
-                                                            Pages {selectedPageNumbers.length > 0 ? selectedPageNumbers.join(', ') : 'None'}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Batch Selection Controls - Responsive */}
-                                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl md:rounded-2xl p-4 md:p-5 border-2 border-blue-200 dark:border-blue-800/30">
-                                                <h4 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4 flex items-center gap-2">
-                                                    <Grid3x3 className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
+                                                <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2">
+                                                    <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                                                     Quick Page Selection
                                                 </h4>
                                                 
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-3 md:mb-4">
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
                                                     <button
                                                         onClick={selectAllPages}
                                                         disabled={processing}
-                                                        className="py-2 md:py-3 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold rounded-lg md:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 text-sm md:text-base"
+                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                                                     >
-                                                        <Check className="w-3 h-3 md:w-4 md:h-4" />
+                                                        <Check className="w-3 h-3 sm:w-4 sm:h-4" />
                                                         <span>Select All</span>
                                                     </button>
                                                     <button
                                                         onClick={deselectAllPages}
                                                         disabled={processing}
-                                                        className="py-2 md:py-3 px-3 md:px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-bold rounded-lg md:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 text-sm md:text-base"
+                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-medium rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                                                     >
-                                                        <X className="w-3 h-3 md:w-4 md:h-4" />
+                                                        <X className="w-3 h-3 sm:w-4 sm:h-4" />
                                                         <span>Deselect All</span>
                                                     </button>
                                                     <button
-                                                        onClick={selectEvenPages}
-                                                        disabled={processing}
-                                                        className="py-2 md:py-3 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg md:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 text-sm md:text-base"
+                                                        onClick={handleDownloadExtractedPdf}
+                                                        disabled={downloadingAll || selectedPagesCount === 0}
+                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
                                                     >
-                                                        <span className="text-base font-bold">2</span>
-                                                        <span>Even Pages</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={selectOddPages}
-                                                        disabled={processing}
-                                                        className="py-2 md:py-3 px-3 md:px-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold rounded-lg md:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 text-sm md:text-base"
-                                                    >
-                                                        <span className="text-base font-bold">1</span>
-                                                        <span>Odd Pages</span>
+                                                        <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                        <span>Extract {selectedPagesCount} Pages</span>
                                                     </button>
                                                 </div>
                                                 
-                                                <div className="grid grid-cols-2 md:grid-cols-2 gap-2 md:gap-3">
-                                                    <button
-                                                        onClick={selectFirstPage}
-                                                        disabled={processing}
-                                                        className="py-2 md:py-3 px-3 md:px-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-lg md:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 text-sm md:text-base"
-                                                    >
-                                                        <span className="text-base font-bold">1st</span>
-                                                        <span>First Page</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={selectLastPage}
-                                                        disabled={processing}
-                                                        className="py-2 md:py-3 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-lg md:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 text-sm md:text-base"
-                                                    >
-                                                        <span className="text-base font-bold">Last</span>
-                                                        <span>Last Page</span>
-                                                    </button>
-                                                </div>
-                                                
-                                                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 text-center mt-3 md:mt-4">
+                                                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 text-center">
                                                     Quick selection options for {pageData.length} pages
                                                 </p>
                                             </div>
 
-                                            {/* Enhanced Pagination Controls - Responsive */}
-                                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl md:rounded-2xl p-4 md:p-5 border-2 border-blue-200 dark:border-blue-800/30">
-                                                <div className="flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4 mb-3 md:mb-4">
+                                            {/* Pagination Controls - Responsive */}
+                                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
+                                                <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
                                                     <div>
-                                                        <h4 className="font-bold text-gray-900 dark:text-white text-lg md:text-xl">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
                                                             Showing {startIndex + 1}-{endIndex} of {pageData.length} pages
                                                         </h4>
-                                                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                                            {selectedPagesCount} pages selected for extraction
+                                                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                                            Navigate through pages using pagination
                                                         </p>
                                                     </div>
                                                     
-                                                    <div className="flex items-center gap-2 md:gap-3">
-                                                        <label className="text-sm md:text-base text-gray-700 dark:text-gray-300 font-medium">
+                                                    <div className="flex items-center gap-2 sm:gap-3">
+                                                        <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
                                                             Items per page:
                                                         </label>
                                                         <select
                                                             value={itemsPerPage}
                                                             onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                                                            className="px-2 py-1.5 md:px-3 md:py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"
+                                                            className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm"
                                                         >
                                                             {itemsPerPageOptions.map(option => (
                                                                 <option key={option} value={option}>
@@ -2176,128 +1724,50 @@ export default function PdfPageExtractorTool() {
                                                     </div>
                                                 </div>
 
-                                                {/* Enhanced Pagination Buttons */}
-                                                <div className="space-y-3">
-                                                    {/* Quick Navigation Buttons */}
-                                                    <div className="flex flex-wrap items-center justify-center gap-2">
-                                                        <button
-                                                            onClick={jumpToFirstPage}
-                                                            disabled={currentPage === 1}
-                                                            className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg text-sm flex items-center gap-1 disabled:opacity-50"
-                                                        >
-                                                            <ChevronLeft className="w-3 h-3" />
-                                                            <span>First</span>
-                                                        </button>
+                                                {/* Pagination Buttons */}
+                                                <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
+                                                    <button
+                                                        onClick={prevPage}
+                                                        disabled={currentPage === 1}
+                                                        className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+                                                    >
+                                                        <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                    </button>
+                                                    
+                                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                        let pageNum;
+                                                        if (totalPages <= 5) {
+                                                            pageNum = i + 1;
+                                                        } else if (currentPage <= 3) {
+                                                            pageNum = i + 1;
+                                                        } else if (currentPage >= totalPages - 2) {
+                                                            pageNum = totalPages - 4 + i;
+                                                        } else {
+                                                            pageNum = currentPage - 2 + i;
+                                                        }
                                                         
-                                                        <button
-                                                            onClick={jumpToMiddlePage}
-                                                            disabled={totalPages <= 2}
-                                                            className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold rounded-lg text-sm flex items-center gap-1 disabled:opacity-50"
-                                                        >
-                                                            <span>Middle</span>
-                                                        </button>
-                                                        
-                                                        <button
-                                                            onClick={jumpToLastPage}
-                                                            disabled={currentPage === totalPages}
-                                                            className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-lg text-sm flex items-center gap-1 disabled:opacity-50"
-                                                        >
-                                                            <span>Last</span>
-                                                            <ChevronRightIcon className="w-3 h-3" />
-                                                        </button>
-                                                    </div>
-
-                                                    {/* Main Pagination */}
-                                                    <div className="flex flex-wrap items-center justify-center gap-2">
-                                                        <button
-                                                            onClick={prevPage}
-                                                            disabled={currentPage === 1}
-                                                            className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
-                                                        >
-                                                            <ChevronLeft className="w-3 h-3" />
-                                                        </button>
-                                                        
-                                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                                            let pageNum;
-                                                            if (totalPages <= 5) {
-                                                                pageNum = i + 1;
-                                                            } else if (currentPage <= 3) {
-                                                                pageNum = i + 1;
-                                                            } else if (currentPage >= totalPages - 2) {
-                                                                pageNum = totalPages - 4 + i;
-                                                            } else {
-                                                                pageNum = currentPage - 2 + i;
-                                                            }
-                                                            
-                                                            return (
-                                                                <button
-                                                                    key={pageNum}
-                                                                    onClick={() => goToPage(pageNum)}
-                                                                    className={`px-3 py-1.5 rounded-lg font-bold transition-colors text-sm ${
-                                                                        currentPage === pageNum
-                                                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                                                            : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                                                                    }`}
-                                                                >
-                                                                    {pageNum}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                        
-                                                        <button
-                                                            onClick={nextPage}
-                                                            disabled={currentPage === totalPages}
-                                                            className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
-                                                        >
-                                                            <ChevronRightIcon className="w-3 h-3" />
-                                                        </button>
-                                                    </div>
-
-                                                    {/* Go to Page Section */}
-                                                    <div className="flex flex-col items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                                                        {!showGoToPage ? (
+                                                        return (
                                                             <button
-                                                                onClick={() => setShowGoToPage(true)}
-                                                                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex items-center gap-1"
+                                                                key={pageNum}
+                                                                onClick={() => goToPage(pageNum)}
+                                                                className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
+                                                                    currentPage === pageNum
+                                                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                                                                        : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                                }`}
                                                             >
-                                                                <Navigation className="w-3 h-3" />
-                                                                Go to page
+                                                                {pageNum}
                                                             </button>
-                                                        ) : (
-                                                            <form onSubmit={handleGoToPageSubmit} className="flex items-center gap-2">
-                                                                <input
-                                                                    type="number"
-                                                                    min="1"
-                                                                    max={totalPages}
-                                                                    value={goToPageInput}
-                                                                    onChange={(e) => setGoToPageInput(e.target.value)}
-                                                                    placeholder="Page number"
-                                                                    className="w-20 px-2 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-center text-sm"
-                                                                />
-                                                                <button
-                                                                    type="submit"
-                                                                    className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg text-sm"
-                                                                >
-                                                                    Go
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setShowGoToPage(false);
-                                                                        setGoToPageInput("");
-                                                                    }}
-                                                                    className="px-3 py-1.5 bg-gray-500 text-white font-bold rounded-lg text-sm"
-                                                                >
-                                                                    Cancel
-                                                                </button>
-                                                            </form>
-                                                        )}
-                                                        
-                                                        {/* Page Info */}
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                            Page {currentPage} of {totalPages} • {pageData.length} total pages
-                                                        </div>
-                                                    </div>
+                                                        );
+                                                    })}
+                                                    
+                                                    <button
+                                                        onClick={nextPage}
+                                                        disabled={currentPage === totalPages}
+                                                        className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+                                                    >
+                                                        <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                    </button>
                                                 </div>
                                             </div>
 
@@ -2306,24 +1776,24 @@ export default function PdfPageExtractorTool() {
                                                 <motion.div
                                                     initial={{ opacity: 0, scale: 0.9 }}
                                                     animate={{ opacity: 1, scale: 1 }}
-                                                    className="p-4 md:p-5 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30"
+                                                    className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30"
                                                 >
-                                                    <div className="flex items-center justify-between mb-2 md:mb-3">
-                                                        <span className="font-bold text-blue-700 dark:text-blue-300 text-sm md:text-base">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-blue-700 dark:text-blue-300 text-xs sm:text-sm">
                                                             Extracting {downloadProgress}% complete
                                                         </span>
-                                                        <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                                                        <span className="text-xs text-gray-600 dark:text-gray-400">
                                                             {Math.round(downloadProgress / 100 * selectedPagesCount)} of {selectedPagesCount} pages
                                                         </span>
                                                     </div>
-                                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 md:h-3">
+                                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 sm:h-2">
                                                         <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${downloadProgress}%` }}
-                                                            className="h-2 md:h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
+                                                            className="h-1.5 sm:h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
                                                         />
                                                     </div>
-                                                    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1 md:mt-2">
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
                                                         Please wait while pages are being extracted...
                                                     </p>
                                                 </motion.div>
@@ -2331,17 +1801,17 @@ export default function PdfPageExtractorTool() {
 
                                             {/* Page Grid */}
                                             <div id="page-grid">
-                                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 md:mb-6 gap-1 md:gap-2">
-                                                    <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-1 md:gap-2">
-                                                        <Grid3x3 className="w-5 h-5 md:w-6 md:h-6 text-blue-500" />
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 md:mb-6 gap-1 sm:gap-2">
+                                                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-1 sm:gap-2 md:gap-3">
+                                                        <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-500" />
                                                         Pages (Page {currentPage} of {totalPages})
                                                     </h3>
-                                                    <span className="text-sm md:text-base text-gray-500 dark:text-gray-400 font-medium">
+                                                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
                                                         {isMobile ? "Tap to select/deselect" : "Click to select/deselect"} • Click to zoom
                                                     </span>
                                                 </div>
 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                                                     {currentPageData.map((page, index) => {
                                                         const actualIndex = startIndex + index;
                                                         return (
@@ -2353,70 +1823,74 @@ export default function PdfPageExtractorTool() {
                                                                 whileHover={{ y: -2 }}
                                                                 className="group"
                                                             >
-                                                                <div className={`bg-gradient-to-br rounded-xl md:rounded-2xl border-2 p-3 md:p-4 shadow-lg hover:shadow-xl transition-all duration-300 ${
+                                                                <div className={`bg-gradient-to-br rounded-xl sm:rounded-2xl border-2 p-3 sm:p-4 md:p-5 shadow-lg hover:shadow-xl transition-all duration-300 ${
                                                                     page.isSelected
                                                                         ? 'from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-blue-500 dark:border-blue-600'
                                                                         : 'from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 border-gray-300 dark:border-gray-700'
                                                                 }`}>
-                                                                    <div className="flex flex-col items-center text-center space-y-2 md:space-y-3">
+                                                                    <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3 md:space-y-4">
                                                                         <PdfPageRenderer 
                                                                             pageNumber={page.pageNumber}
                                                                             pdfData={pdfData}
                                                                             fileName={page.fileName}
                                                                             isSelected={page.isSelected}
                                                                             onSelectionToggle={() => togglePageSelection(actualIndex)}
-                                                                            onZoomClick={() => handlePageZoom(page.pageNumber, page.fileName)}
+                                                                            onZoomClick={() => handleSimpleZoom(page.pageNumber, page.fileName)}
                                                                         />
                                                                         
                                                                         <div className="w-full">
-                                                                            <h4 className="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1">
-                                                                                Page {page.pageNumber}
-                                                                            </h4>
-                                                                            <p className={`text-sm md:text-base mb-1 md:mb-2 ${
-                                                                                page.isSelected 
-                                                                                    ? 'text-blue-600 dark:text-blue-400' 
-                                                                                    : 'text-gray-600 dark:text-gray-400'
-                                                                            }`}>
-                                                                                {page.isSelected ? '✓ Selected for extraction' : '✗ Not selected'}
-                                                                            </p>
-                                                                            <div className="flex items-center justify-center gap-1 mb-2 md:mb-3">
-                                                                                <span className={`px-2 py-0.5 text-xs md:text-sm rounded-full ${
+                                                                            <div className="flex items-center justify-between mb-1">
+                                                                                <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
+                                                                                    Page {page.pageNumber}
+                                                                                </h4>
+                                                                                <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs rounded-full ${
                                                                                     page.isSelected 
-                                                                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                                                                                        : 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300'
+                                                                                        ? 'bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 text-blue-700 dark:text-blue-300 font-bold'
+                                                                                        : 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 text-gray-700 dark:text-gray-300 font-bold'
                                                                                 }`}>
-                                                                                    {page.isSelected ? 'Extract' : 'Skip'}
+                                                                                    {page.isSelected ? 'Selected ✓' : 'Not Selected ✗'}
                                                                                 </span>
                                                                             </div>
+                                                                            <p className={`text-xs truncate mb-1 sm:mb-2 md:mb-3 ${
+                                                                                page.isSelected 
+                                                                                    ? 'text-green-600 dark:text-green-400 font-bold' 
+                                                                                    : 'text-red-600 dark:text-red-400 font-bold'
+                                                                            }`}>
+                                                                                {page.isSelected ? '✓ Selected for extraction' : '✗ Not selected for extraction'}
+                                                                            </p>
                                                                             
-                                                                            <div className="space-y-1 md:space-y-2">
+                                                                            <div className="space-y-1.5 sm:space-y-2 md:space-y-3">
                                                                                 <span
                                                                                     id={`status-${actualIndex}`}
-                                                                                    className="text-sm md:text-base text-blue-600 dark:text-blue-400 font-medium"
+                                                                                    className="text-xs font-medium ${
+                                                                                        page.isSelected 
+                                                                                            ? 'text-green-600 dark:text-green-400' 
+                                                                                            : 'text-blue-600 dark:text-blue-400'
+                                                                                    }"
                                                                                 >
-                                                                                    Ready to extract
+                                                                                    {page.isSelected ? '✓ Ready to extract' : 'Ready to extract'}
                                                                                 </span>
                                                                                 
-                                                                                <div className="grid grid-cols-2 gap-2">
+                                                                                <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                                                                                     <motion.button
                                                                                         whileHover={{ scale: 1.02 }}
                                                                                         whileTap={{ scale: 0.98 }}
                                                                                         onClick={() => togglePageSelection(actualIndex)}
-                                                                                        className={`py-2 px-3 md:py-2.5 md:px-4 font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1 text-sm md:text-base ${
+                                                                                        className={`py-1.5 sm:py-2 px-2 sm:px-3 font-bold rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-xs sm:text-sm ${
                                                                                             page.isSelected
-                                                                                                ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white'
+                                                                                                ? 'bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white'
                                                                                                 : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
                                                                                         }`}
                                                                                     >
                                                                                         {page.isSelected ? (
                                                                                             <>
-                                                                                                <X className="w-3 h-3 md:w-4 md:h-4" />
+                                                                                                <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                                                                 Deselect
                                                                                             </>
                                                                                         ) : (
                                                                                             <>
-                                                                                                <Scissors className="w-3 h-3 md:w-4 md:h-4" />
-                                                                                                Extract
+                                                                                                <Scissors className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                                                                                Select
                                                                                             </>
                                                                                         )}
                                                                                     </motion.button>
@@ -2425,9 +1899,9 @@ export default function PdfPageExtractorTool() {
                                                                                         whileHover={{ scale: 1.02 }}
                                                                                         whileTap={{ scale: 0.98 }}
                                                                                         onClick={() => handleDownloadPage(actualIndex)}
-                                                                                        className="py-2 px-3 md:py-2.5 md:px-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1 text-sm md:text-base"
-                                                                                    >
-                                                                                        <Download className="w-3 h-3 md:w-4 md:h-4" />
+                                                                                        className="py-1.5 sm:py-2 px-2 sm:px-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-xs sm:text-sm"
+                                                    >
+                                                        <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                                                                         Extract
                                                                                     </motion.button>
                                                                                 </div>
@@ -2441,216 +1915,81 @@ export default function PdfPageExtractorTool() {
                                                 </div>
                                             </div>
 
-                                            {/* Enhanced Pagination Controls - Bottom */}
-                                            {totalPages > 1 && (
-                                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl md:rounded-2xl p-4 md:p-5 border-2 border-blue-200 dark:border-blue-800/30">
-                                                    <div className="flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4 mb-3 md:mb-4">
-                                                        <div>
-                                                            <h4 className="font-bold text-gray-900 dark:text-white text-lg md:text-xl">
-                                                                Page {currentPage} of {totalPages}
-                                                            </h4>
-                                                            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                                                Navigate between pages
-                                                            </p>
-                                                        </div>
-                                                        
-                                                        <div className="flex items-center gap-2 md:gap-3">
-                                                            <span className="text-sm md:text-base text-gray-700 dark:text-gray-300 font-medium">
-                                                                Go to page:
-                                                            </span>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                max={totalPages}
-                                                                value={currentPage}
-                                                                onChange={(e) => {
-                                                                    const page = Math.min(Math.max(1, parseInt(e.target.value) || 1), totalPages);
-                                                                    goToPage(page);
-                                                                }}
-                                                                className="w-16 md:w-20 px-2 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-center text-sm"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Enhanced Pagination Buttons */}
-                                                    <div className="space-y-3">
-                                                        {/* Quick Navigation Buttons */}
-                                                        <div className="flex flex-wrap items-center justify-center gap-2">
-                                                            <button
-                                                                onClick={jumpToFirstPage}
-                                                                disabled={currentPage === 1}
-                                                                className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg text-sm flex items-center gap-1 disabled:opacity-50"
-                                                            >
-                                                                <ChevronLeft className="w-3 h-3" />
-                                                                First
-                                                            </button>
-                                                            
-                                                            <button
-                                                                onClick={jumpToMiddlePage}
-                                                                disabled={totalPages <= 2}
-                                                                className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold rounded-lg text-sm flex items-center gap-1 disabled:opacity-50"
-                                                            >
-                                                                Middle
-                                                            </button>
-                                                            
-                                                            <button
-                                                                onClick={jumpToLastPage}
-                                                                disabled={currentPage === totalPages}
-                                                                className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-lg text-sm flex items-center gap-1 disabled:opacity-50"
-                                                            >
-                                                                Last
-                                                                <ChevronRightIcon className="w-3 h-3" />
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Main Pagination */}
-                                                        <div className="flex flex-wrap items-center justify-center gap-2">
-                                                            <button
-                                                                onClick={prevPage}
-                                                                disabled={currentPage === 1}
-                                                                className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-1"
-                                                            >
-                                                                <ChevronLeft className="w-3 h-3" />
-                                                                <span>Prev</span>
-                                                            </button>
-                                                            
-                                                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                                                let pageNum;
-                                                                if (totalPages <= 5) {
-                                                                    pageNum = i + 1;
-                                                                } else if (currentPage <= 3) {
-                                                                    pageNum = i + 1;
-                                                                } else if (currentPage >= totalPages - 2) {
-                                                                    pageNum = totalPages - 4 + i;
-                                                                } else {
-                                                                    pageNum = currentPage - 2 + i;
-                                                                }
-                                                                
-                                                                return (
-                                                                    <button
-                                                                        key={pageNum}
-                                                                        onClick={() => goToPage(pageNum)}
-                                                                        className={`px-3 py-1.5 rounded-lg font-bold transition-colors text-sm ${
-                                                                            currentPage === pageNum
-                                                                                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                                                                                : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                                                                        }`}
-                                                                    >
-                                                                        {pageNum}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                            
-                                                            <button
-                                                                onClick={nextPage}
-                                                                disabled={currentPage === totalPages}
-                                                                className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-1"
-                                                            >
-                                                                <span>Next</span>
-                                                                <ChevronRightIcon className="w-3 h-3" />
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Page Statistics */}
-                                                        <div className="flex flex-wrap justify-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-                                                            <div className="text-center">
-                                                                <div className="text-xs text-gray-500 dark:text-gray-400">Current Position</div>
-                                                                <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                                                    {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, pageData.length)}
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-center">
-                                                                <div className="text-xs text-gray-500 dark:text-gray-400">Progress</div>
-                                                                <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                                                                    {Math.round((currentPage / totalPages) * 100)}%
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-center">
-                                                                <div className="text-xs text-gray-500 dark:text-gray-400">Remaining</div>
-                                                                <div className="text-sm font-bold text-orange-600 dark:text-orange-400">
-                                                                    {totalPages - currentPage} pages
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
                                             {/* Download Button Section - Responsive */}
-                                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-xl md:rounded-2xl p-5 md:p-6 lg:p-8 border-2 border-blue-200 dark:border-blue-800/50">
-                                                <div className="text-center mb-4 md:mb-6">
-                                                    <h4 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-2 md:mb-3">
+                                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border-2 border-indigo-200 dark:border-indigo-800/50">
+                                                <div className="text-center mb-3 sm:mb-4 md:mb-6">
+                                                    <h4 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
                                                         Download Extracted Pages
                                                     </h4>
-                                                    <p className="text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 mb-3 md:mb-4">
+                                                    <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">
                                                         Download selected pages as a new PDF document
                                                     </p>
                                                     
-                                                    <div className="space-y-3 md:space-y-4">
+                                                    <div className="space-y-3 sm:space-y-4">
                                                         <motion.button
                                                             whileHover={{ scale: 1.02 }}
                                                             whileTap={{ scale: 0.98 }}
                                                             onClick={handleDownloadExtractedPdf}
                                                             disabled={downloadingAll || selectedPagesCount === 0}
-                                                            className={`w-full py-3 md:py-4 px-4 md:px-6 text-white font-bold rounded-xl md:rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-base md:text-lg flex items-center justify-center gap-2 ${
-                                                                selectedPagesCount === 0
-                                                                    ? 'bg-gradient-to-r from-gray-500 to-gray-600'
-                                                                    : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
-                                                            }`}
+                                                            className="w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3"
                                                         >
                                                             {downloadingAll ? (
                                                                 <>
-                                                                    <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
+                                                                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                                                                     <span>Extracting...</span>
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <Scissors className="w-5 h-5 md:w-6 md:h-6" />
+                                                                    <Scissors className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                                                                     <span>Extract {selectedPagesCount} Pages</span>
                                                                 </>
                                                             )}
                                                         </motion.button>
                                                         
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-                                                            <div className="p-3 md:p-4 bg-white dark:bg-gray-800 rounded-lg md:rounded-xl border border-blue-200 dark:border-blue-700">
-                                                                <h5 className="font-bold text-gray-900 dark:text-white mb-1 text-sm md:text-base">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                                            <div className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-blue-200 dark:border-blue-700">
+                                                                <h5 className="font-bold text-gray-900 dark:text-white mb-1 text-xs sm:text-sm">
                                                                     Pages to Extract
                                                                 </h5>
-                                                                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
+                                                                <p className="text-xs text-gray-600 dark:text-gray-400">
                                                                     {selectedPagesCount} pages selected
                                                                 </p>
                                                             </div>
                                                             
-                                                            <div className="p-3 md:p-4 bg-white dark:bg-gray-800 rounded-lg md:rounded-xl border border-purple-200 dark:border-purple-700">
-                                                                <h5 className="font-bold text-gray-900 dark:text-white mb-1 text-sm md:text-base">
+                                                            <div className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-purple-200 dark:border-purple-700">
+                                                                <h5 className="font-bold text-gray-900 dark:text-white mb-1 text-xs sm:text-sm">
                                                                     Page Numbers
                                                                 </h5>
-                                                                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 truncate">
+                                                                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                                                                     {selectedPageNumbers.length > 0 ? selectedPageNumbers.join(', ') : 'None selected'}
                                                                 </p>
                                                             </div>
                                                         </div>
                                                     </div>
                                                     
-                                                    <p id="status-all-1" className="text-sm md:text-base text-blue-600 dark:text-blue-400 font-medium mt-2 md:mt-3">
+                                                    <p id="status-all-1" className="text-xs sm:text-sm font-medium mt-2 sm:mt-3 ${
+                                                        selectedPagesCount === 0 
+                                                            ? 'text-red-600 dark:text-red-400'
+                                                            : 'text-green-600 dark:text-green-400'
+                                                    }">
                                                         {selectedPagesCount === 0 
-                                                            ? "Select at least one page to extract"
-                                                            : `Ready to extract pages: ${selectedPageNumbers.join(', ')}`
+                                                            ? "✗ Please select at least one page to extract"
+                                                            : `✓ Ready to extract pages: ${selectedPageNumbers.join(', ')}`
                                                         }
                                                     </p>
                                                 </div>
                                             </div>
 
                                             {/* Reset & Another PDF */}
-                                            <div className="text-center space-y-2 md:space-y-3">
+                                            <div className="text-center space-y-2 sm:space-y-3">
                                                 <button
                                                     onClick={handleReset}
-                                                    className="inline-flex items-center gap-2 px-4 py-2 md:px-5 md:py-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg md:rounded-xl transition-colors text-sm md:text-base"
+                                                    className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
                                                 >
-                                                    <FolderOpen className="w-4 h-4 md:w-5 md:h-5" />
+                                                    <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                                                     Extract Pages from Another PDF
                                                 </button>
-                                                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                                     All processing happens in your browser • No files are uploaded
                                                 </p>
                                             </div>
@@ -2661,8 +2000,8 @@ export default function PdfPageExtractorTool() {
                         )}
                     </div>
 
-                    {/* Zoom Modal */}
-                    <ZoomModal
+                    {/* Simple Zoom Modal */}
+                    <SimpleZoomModal
                         isOpen={zoomModal.isOpen}
                         onClose={() => setZoomModal({ ...zoomModal, isOpen: false })}
                         pageNumber={zoomModal.pageNumber}
@@ -2670,18 +2009,27 @@ export default function PdfPageExtractorTool() {
                         fileName={zoomModal.fileName}
                     />
 
+                    {/* Ultra Simple Zoom Modal */}
+                    <UltraSimpleZoomModal
+                        isOpen={simpleZoomModal.isOpen}
+                        onClose={() => setSimpleZoomModal({ ...simpleZoomModal, isOpen: false })}
+                        pageImage={simpleZoomModal.pageImage}
+                        pageNumber={simpleZoomModal.pageNumber}
+                        fileName={simpleZoomModal.fileName}
+                    />
+
                     {/* Enhanced Tools Section - Responsive */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="mt-8 md:mt-12 lg:mt-16 p-4 md:p-5 lg:p-6 bg-gradient-to-r from-white to-purple-50/50 dark:from-gray-900 dark:to-purple-950/20 rounded-xl md:rounded-2xl border-2 border-purple-300/50 dark:border-purple-800/50 shadow-xl backdrop-blur-sm"
+                        className="mt-6 sm:mt-8 md:mt-12 p-3 sm:p-4 md:p-6 lg:p-8 bg-gradient-to-r from-white to-purple-50/50 dark:from-gray-900 dark:to-purple-950/20 rounded-xl sm:rounded-2xl md:rounded-3xl border-2 border-purple-300/50 dark:border-purple-800/50 shadow-lg sm:shadow-xl md:shadow-2xl backdrop-blur-sm"
                     >
-                        <h3 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-gray-900 dark:text-white mb-4 md:mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 px-2">
+                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-extrabold text-gray-900 dark:text-white mb-3 sm:mb-4 md:mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 px-2">
                             Explore All PDF Tools 🚀
                         </h3>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                             {toolKeywords.map((tool, index) => (
                                 <motion.div
                                     key={tool.label}
@@ -2689,103 +2037,115 @@ export default function PdfPageExtractorTool() {
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: 0.3, delay: index * 0.05 }}
                                     whileHover={{ 
-                                        scale: 1.01, 
-                                        boxShadow: "0 8px 20px rgba(120, 80, 255, 0.2)",
-                                        y: -2
+                                        scale: 1.02, 
+                                        boxShadow: "0 10px 30px rgba(120, 80, 255, 0.25)",
+                                        y: -4
                                     }}
-                                    whileTap={{ scale: 0.99 }}
+                                    whileTap={{ scale: 0.98 }}
                                     className="w-full"
                                 >
                                     <a
                                         href={tool.url}
-                                        className="flex items-center justify-start w-full p-3 md:p-4 
+                                        className="flex items-center justify-start w-full p-3 sm:p-4 md:p-5 
                                                  bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900
                                                  border border-gray-200 dark:border-gray-700 
-                                                 rounded-lg md:rounded-xl hover:border-purple-400 dark:hover:border-purple-500
+                                                 rounded-lg sm:rounded-2xl hover:border-purple-400 dark:hover:border-purple-500
                                                  transition-all duration-300 group
-                                                 shadow-md hover:shadow-lg"
+                                                 shadow-sm hover:shadow-xl"
                                     >
-                                        <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 
+                                        {/* Icon */}
+                                        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 
                                                       flex items-center justify-center 
                                                       bg-gradient-to-br from-blue-500 to-purple-600 
-                                                      rounded-lg md:rounded-xl mr-2 md:mr-3
-                                                      group-hover:scale-105 transition-transform duration-300">
-                                            <span className="text-sm md:text-base">
+                                                      rounded-lg sm:rounded-xl mr-2 sm:mr-3 md:mr-4
+                                                      group-hover:scale-110 transition-transform duration-300">
+                                            <span className="text-base sm:text-lg md:text-xl">
                                                 {getToolIcon(tool.label)}
                                             </span>
                                         </div>
                                         
+                                        {/* Text */}
                                         <div className="flex-1 min-w-0">
-                                            <span className="text-sm md:text-base font-bold text-gray-800 dark:text-gray-200 
+                                            <span className="text-sm sm:text-base md:text-lg 
+                                                           font-semibold text-gray-800 dark:text-gray-200 
                                                            group-hover:text-purple-600 dark:group-hover:text-purple-400 
                                                            transition-colors duration-300 block truncate">
                                                 {tool.label}
                                             </span>
-                                            <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-0.5 block line-clamp-2">
+                                            <span className="text-sm sm:text-base text-gray-500 dark:text-gray-400 
+                                                           mt-1 block line-clamp-2">
                                                 {getToolDescription(tool.label)}
                                             </span>
                                         </div>
                                         
-                                        <div className="flex-shrink-0 ml-1">
-                                            <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-purple-500 
-                                                          group-hover:translate-x-0.5 transition-all duration-300" />
+                                        {/* Arrow */}
+                                        <div className="flex-shrink-0 ml-1 sm:ml-2">
+                                            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 
+                                                          group-hover:text-purple-500 
+                                                          group-hover:translate-x-1 transition-all duration-300" 
+                                                 fill="none" 
+                                                 stroke="currentColor" 
+                                                 viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" 
+                                                      strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
                                         </div>
                                     </a>
                                 </motion.div>
                             ))}
                         </div>
-                        
+
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="mt-4 md:mt-6 text-center"
+                            className="mt-4 sm:mt-6 md:mt-8 text-center"
                         >
-                            <a href="/tools" className="inline-block px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 
-                                             text-white font-bold rounded-full md:rounded-xl
+                            <button className="px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 
+                                             text-white font-medium rounded-full sm:rounded-xl md:rounded-2xl
                                              hover:from-blue-700 hover:to-purple-700
                                              active:scale-95 transition-all duration-300
                                              shadow-lg hover:shadow-xl
-                                             text-sm md:text-base">
+                                             text-xs sm:text-sm md:text-base">
                                 View All Tools ({toolKeywords.length}+)
-                            </a>
+                            </button>
                         </motion.div>
                     </motion.div>
 
                     {/* Info Footer - Responsive */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 text-center mt-8 md:mt-12">
-                        <div className="p-3 md:p-4 lg:p-5">
-                            <div className="inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl md:rounded-2xl mb-2 md:mb-3">
-                                <Scissors className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-center mt-6 sm:mt-8 md:mt-12">
+                        <div className="p-2 sm:p-3 md:p-4">
+                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
+                                <Scissors className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 md:mb-2 text-sm md:text-base lg:text-lg">
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">
                                 Selective Extraction
                             </h4>
-                            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
                                 Choose exactly which pages to extract
                             </p>
                         </div>
                         
-                        <div className="p-3 md:p-4 lg:p-5">
-                            <div className="inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 rounded-xl md:rounded-2xl mb-2 md:mb-3">
-                                <Grid3x3 className="w-5 h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
+                        <div className="p-2 sm:p-3 md:p-4">
+                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
+                                <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
                             </div>
-                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 md:mb-2 text-sm md:text-base lg:text-lg">
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">
                                 Batch Selection
                             </h4>
-                            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
-                                Select multiple pages with one click
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                Select multiple pages at once
                             </p>
                         </div>
                         
-                        <div className="p-3 md:p-4 lg:p-5">
-                            <div className="inline-flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 rounded-xl md:rounded-2xl mb-2 md:mb-3">
-                                <Download className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
+                        <div className="p-2 sm:p-3 md:p-4">
+                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
+                                <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
                             </div>
-                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 md:mb-2 text-sm md:text-base lg:text-lg">
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">
                                 Clean PDF Output
                             </h4>
-                            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
                                 Download extracted pages as new PDF
                             </p>
                         </div>
@@ -2796,26 +2156,26 @@ export default function PdfPageExtractorTool() {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30"
+                            className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30"
                         >
-                            <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-1 text-sm">
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                                 <Smartphone className="w-4 h-4 text-blue-600" />
                                 Mobile Tips
                             </h4>
                             <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                                <li className="flex items-start gap-1">
+                                <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
                                     <span>Tap on pages to select/deselect them</span>
                                 </li>
-                                <li className="flex items-start gap-1">
+                                <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
                                     <span>Use quick selection for multiple pages</span>
                                 </li>
-                                <li className="flex items-start gap-1">
+                                <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
                                     <span>Pinch to zoom in page preview</span>
                                 </li>
-                                <li className="flex items-start gap-1">
+                                <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
                                     <span>At least one page must be selected</span>
                                 </li>

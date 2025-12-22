@@ -20,291 +20,19 @@ import {
   Clock,
   Shield,
   X,
-  Maximize2,
-  Minimize2,
   ZoomIn,
   ZoomOut,
   Loader2,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
-  Palette,
-  ImagePlus,
   FileImage,
-  Check,
   RotateCw,
   RotateCcw,
   Rotate3D,
   RefreshCw,
-  Settings,
   Grid3x3,
   FolderOpen,
-  FileArchive,
-  Merge,
-  Split,
-  Eye,
-  Smartphone,
-  Monitor,
-  Globe,
-  Server,
-  Cloud,
-  Lock,
-  Cpu,
-  Battery,
-  Wifi,
-  Upload,
-  Trash2,
-  Share2,
-  Copy,
-  Scissors,
-  Type,
-  Bold,
-  Italic,
-  Underline,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  PaintBucket,
-  PenTool,
-  Crop,
-  Filter,
-  Layers as LayersIcon,
-  BookOpen,
-  Printer,
-  Mail,
-  MessageSquare,
-  Heart,
-  Star,
-  ThumbsUp,
-  Award,
-  Target,
-  TrendingUp,
-  Users,
-  HelpCircle,
-  Info,
-  AlertCircle,
-  Bell,
-  Search,
-  Menu,
-  MoreVertical,
-  Plus,
-  Minus,
-  Sliders,
-  ToggleLeft,
-  ToggleRight,
-  Sun,
-  Moon,
-  Volume2,
-  Video,
-  Music,
-  Camera,
-  Mic,
-  Headphones,
-  Gift,
-  Coffee,
-  Rocket,
-  Plane,
-  Car,
-  Bike,
-  Home,
-  Building,
-  MapPin,
-  Navigation,
-  Compass,
-  Globe2,
-  CloudRain,
-  CloudSnow,
-  Wind,
-  Thermometer,
-  Umbrella,
-  Droplets,
-  TreePine,
-  Mountain,
-  Flower2,
-  Leaf,
-  Bug,
-  Cat,
-  Dog,
-  Fish,
-  Bird,
-  Rabbit,
-  Turtle,
-  Octagon,
-  Hexagon,
-  Circle,
-  Square,
-  Triangle,
-  Pentagon,
-  OctagonAlert,
-  AlertTriangle,
-  AlertOctagon,
-  XCircle,
-  XOctagon,
-  XSquare,
-  CheckSquare,
-  CheckCircle2,
-  CircleCheck,
-  CircleX,
-  SquareCheck,
-  SquareX,
-  Ban,
-  StopCircle,
-  PauseCircle,
-  PlayCircle,
-  SkipBack,
-  SkipForward,
-  Rewind,
-  FastForward,
-  Play,
-  Pause,
-  Repeat,
-  Shuffle,
-  Volume,
-  VolumeX,
-  MicOff,
-  VideoOff,
-  CameraOff,
-  Phone,
-  PhoneOff,
-  PhoneCall,
-  PhoneForwarded,
-  PhoneIncoming,
-  PhoneOutgoing,
-  PhoneMissed,
-  Voicemail,
-  MessageCircle,
-  MessageSquareDashed,
-  MessageSquarePlus,
-  Send,
-  MailPlus,
-  MailOpen,
-  Inbox,
-  Archive,
-  ArchiveX,
-  Bookmark,
-  BookmarkPlus,
-  BookmarkMinus,
-  Tag,
-  Tags,
-  Hash,
-  AtSign,
-  Percent,
-  DollarSign,
-  Euro,
-  PoundSterling,
-  Bitcoin,
-  CreditCard,
-  Wallet,
-  Receipt,
-  Package,
-  ShoppingCart,
-  ShoppingBag,
-  Store,
-  Truck,
-  Factory,
-  Banknote,
-  Coins,
-  Gem,
-  Crown,
-  Trophy,
-  Medal,
-  Flag,
-  Map,
-  MapPinOff,
-  Navigation2,
-  Globe2 as Globe2Icon,
-  CloudOff,
-  CloudDrizzle,
-  CloudLightning,
-  CloudFog,
-  Sunrise,
-  Sunset,
-  MoonStar,
-  StarHalf,
-  ZapOff,
-  ThermometerSun,
-  ThermometerSnowflake,
-  UmbrellaOff,
-  Droplet,
-  DropletOff,
-  Waves,
-  Flame,
-  Snowflake,
-  CloudSun,
-  CloudMoon,
-  CloudSunRain,
-  CloudMoonRain,
-  CloudHail,
-  CloudRainWind,
-  Bone,
-  ShieldCheck,
-  ShieldAlert,
-  ShieldOff,
-  ShieldQuestion,
-  ShieldX,
-  LockKeyhole,
-  LockOpen,
-  Key,
-  KeyRound,
-  KeySquare,
-  Fingerprint,
-  EyeOff,
-  QrCode,
-  Scan,
-  ScanFace,
-  ScanLine,
-  ScanText,
-  Barcode,
-  Radio,
-  RadioTower,
-  Satellite,
-  SatelliteDish,
-  Router,
-  WifiOff,
-  Bluetooth,
-  BluetoothConnected,
-  BluetoothOff,
-  Cpu as CpuIcon,
-  MemoryStick,
-  HardDrive,
-  HardDriveDownload,
-  HardDriveUpload,
-  Database,
-  DatabaseBackup,
-  ServerCog, 
-  ServerCrash,
-  ServerOff,
-  Terminal,
-  TerminalSquare,
-  Code,
-  Code2,
-  Brackets,
-  Braces,
-  Parentheses,
-  CurlyBraces,
-  FunctionSquare,
-  Variable,
-  Sigma,
-  Infinity as InfinityIcon,
-  Pi,
-  Copyright,
-  Asterisk,
-  Pilcrow,
-  Section,
-  List,
-  ListChecks,
-  ListOrdered,
-  ListTodo,
-  ListX,
-  ListMinus,
-  ListPlus,
-  ListRestart,
-  ListEnd,
-  ListStart,
-  ListTree,
-  ListFilter,
-  ListCollapse,
-  ListVideo,
-  ListMusic
+  Smartphone
 } from "lucide-react";
 
 import FileUploader from "@/app/components/FileUploader";
@@ -465,7 +193,7 @@ const PdfPageRenderer = ({
         await page.render(renderContext).promise;
         
         // Convert canvas to image URL
-        const imageUrl = canvas.toDataURL("image/png", 0.8);
+        const imageUrl = canvas.toDataURL("image/png", 1.0);
         
         if (isMounted.current) {
           setPageImage(imageUrl);
@@ -630,22 +358,34 @@ const PdfPageRenderer = ({
   );
 };
 
-// --- ZOOM MODAL COMPONENT WITH COMPLETE PAGE VISIBILITY ---
+// --- SIMPLE ZOOM MODAL WITHOUT SCROLLING ---
 interface ZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
   pageNumber: number;
   pdfData: PdfData | null;
   fileName: string;
+  rotation: number; // ✅ rotation prop जोड़ा
 }
 
-const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModalProps) => {
+const ZoomModal = ({ 
+  isOpen, 
+  onClose, 
+  pageNumber, 
+  pdfData, 
+  fileName,
+  rotation // ✅ rotation prop प्राप्त करें
+}: ZoomModalProps) => {
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [pageImage, setPageImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [currentRotation, setCurrentRotation] = useState(rotation); // ✅ rotation state
   const isMounted = useRef(true);
+
+  useEffect(() => {
+    // ✅ जब rotation prop बदले, तो state update करें
+    setCurrentRotation(rotation);
+  }, [rotation]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -656,7 +396,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       try {
         setLoading(true);
         
-        // Convert base64 back to Uint8Array for zoom
+        // Convert base64 back to Uint8Array
         const binaryString = atob(pdfData.base64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -667,34 +407,31 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(pageNumber);
         
-        // Calculate viewport to fit the screen while maintaining aspect ratio
-        const containerWidth = window.innerWidth * 0.9;
-        const containerHeight = window.innerHeight * 0.8;
-        
-        const pageViewport = page.getViewport({ scale: 1 });
-        const pageWidth = pageViewport.width;
-        const pageHeight = pageViewport.height;
-        
-        // Calculate scale to fit within container
-        const scaleX = containerWidth / pageWidth;
-        const scaleY = containerHeight / pageHeight;
-        const scale = Math.min(scaleX, scaleY, 2) * zoomLevel; // Max 2x zoom
-        
-        const viewport = page.getViewport({ scale });
+        // High quality rendering (3x scale for crisp zoom)
+        const viewport = page.getViewport({ 
+          scale: 3.0 // High scale for excellent quality
+        });
         
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
         
         if (!context) return;
         
+        // Set canvas size
         canvas.height = viewport.height;
         canvas.width = viewport.width;
         
+        // Set high quality rendering
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        
         await page.render({
           canvasContext: context,
-          viewport: viewport
+          viewport: viewport,
+          intent: 'print' // High quality rendering
         }).promise;
         
+        // Get image at maximum quality (1.0)
         const imageUrl = canvas.toDataURL("image/png", 1.0);
         
         if (isMounted.current) {
@@ -720,49 +457,67 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         URL.revokeObjectURL(pageImage);
       }
     };
-  }, [isOpen, pdfData, pageNumber, zoomLevel]);
+  }, [isOpen, pdfData, pageNumber]);
 
-  // Zoom को 25% से 200% तक रखने के लिए
+  // ✅ Rotation functions for zoom modal
+  const rotateClockwise = () => {
+    setCurrentRotation(prev => (prev + 90) % 360);
+  };
+
+  const rotateCounterClockwise = () => {
+    setCurrentRotation(prev => (prev - 90 + 360) % 360);
+  };
+
+  const resetRotation = () => {
+    setCurrentRotation(0);
+  };
+
+  const getRotationText = () => {
+    switch(currentRotation) {
+      case 0: return "0°";
+      case 90: return "90°";
+      case 180: return "180°";
+      case 270: return "270°";
+      default: return `${currentRotation}°`;
+    }
+  };
+
+  // Zoom levels (50% to 200%)
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.25, 2)); // Max 200%
+    setZoomLevel(prev => Math.min(prev + 0.1, 2.0)); // Max 200%
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.25, 0.25)); // Min 25%
-  };
-
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+    setZoomLevel(prev => Math.max(prev - 0.1, 0.5)); // Min 50%
   };
 
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClose();
-    setZoomLevel(1);
-    setIsFullscreen(false);
+    setZoomLevel(1); // Reset zoom on close
+    setCurrentRotation(rotation); // ✅ Reset to original rotation
   };
 
-  // Handle wheel zoom
-  const handleWheel = (e: React.WheelEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    if (e.deltaY < 0) {
-      // Zoom in
-      handleZoomIn();
+  // Prevent scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
     } else {
-      // Zoom out
-      handleZoomOut();
+      document.body.style.overflow = 'auto';
     }
-  };
+    
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isOpen]);
 
-  // Reset zoom and position on close
+  // Reset zoom on close
   useEffect(() => {
     if (!isOpen) {
       setZoomLevel(1);
-      setIsFullscreen(false);
+      setCurrentRotation(rotation);
     }
-  }, [isOpen]);
+  }, [isOpen, rotation]);
 
   if (!isOpen) return null;
 
@@ -771,98 +526,105 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
-        isFullscreen ? 'bg-black' : 'bg-black/90 backdrop-blur-sm'
-      }`}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
       onClick={handleClose}
     >
       {/* Close button */}
       <button
         onClick={handleClose}
-        className="absolute top-4 right-4 z-50 p-2 bg-black/70 rounded-full hover:bg-black/90 transition-colors"
+        className="absolute top-6 right-6 z-50 p-3 bg-black/80 hover:bg-black/90 rounded-full transition-colors shadow-lg"
       >
         <X className="w-6 h-6 text-white" />
       </button>
       
+      {/* ✅ Rotation controls in zoom modal */}
+      <div className="absolute top-6 left-6 z-50 flex gap-2">
+        <button
+          onClick={(e) => { e.stopPropagation(); rotateCounterClockwise(); }}
+          className="p-2 bg-black/80 hover:bg-black/90 rounded-full transition-colors"
+          title="Rotate left"
+        >
+          <RotateCcw className="w-5 h-5 text-white" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); rotateClockwise(); }}
+          className="p-2 bg-black/80 hover:bg-black/90 rounded-full transition-colors"
+          title="Rotate right"
+        >
+          <RotateCw className="w-5 h-5 text-white" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); resetRotation(); }}
+          className="p-2 bg-black/80 hover:bg-black/90 rounded-full transition-colors"
+          title="Reset rotation"
+        >
+          <RefreshCw className="w-5 h-5 text-white" />
+        </button>
+      </div>
+      
       {/* Zoom controls */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm z-50">
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-black/80 rounded-full px-6 py-3 z-50 shadow-xl">
         <button
           onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          disabled={zoomLevel <= 0.25}
+          className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
+          disabled={zoomLevel <= 0.5}
         >
           <ZoomOut className="w-5 h-5 text-white" />
         </button>
         
-        <span className="text-white text-sm font-medium min-w-[60px] text-center">
-          {Math.round(zoomLevel * 100)}%
-        </span>
+        <div className="flex flex-col items-center min-w-[100px]">
+          <span className="text-white text-lg font-medium">
+            {Math.round(zoomLevel * 100)}%
+          </span>
+          <div className="text-xs text-gray-300 mt-1">
+            Full Quality Image
+          </div>
+        </div>
         
         <button
           onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
-          disabled={zoomLevel >= 2}
+          className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
+          disabled={zoomLevel >= 2.0}
         >
           <ZoomIn className="w-5 h-5 text-white" />
         </button>
-        
-        <div className="h-6 w-px bg-white/30 mx-1"></div>
-        
-        <button
-          onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
-        >
-          {isFullscreen ? (
-            <Minimize2 className="w-5 h-5 text-white" />
-          ) : (
-            <Maximize2 className="w-5 h-5 text-white" />
-          )}
-        </button>
       </div>
       
-      {/* Page info */}
-      <div className="absolute top-4 left-4 z-50 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm">
+      {/* Page info with rotation indicator */}
+      <div className="absolute top-6 right-20 z-50 bg-black/80 rounded-full px-4 py-2 flex items-center gap-2">
         <span className="text-white text-sm font-medium">
           Page {pageNumber} • {fileName}
         </span>
+        <div className="w-px h-4 bg-white/30"></div>
+        <div className="flex items-center gap-1">
+          <RotateCw className="w-3 h-3 text-white" />
+          <span className="text-white text-sm font-medium">{getRotationText()}</span>
+        </div>
       </div>
       
-      {/* Image container - COMPLETE PAGE VISIBILITY */}
+      {/* Image container - No scrolling, centered */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className={`relative ${
-          isFullscreen 
-            ? 'w-screen h-screen' 
-            : 'max-w-[90vw] max-h-[80vh]'
-        }`}
+        className="relative w-[90vw] h-[80vh] flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
-        ref={containerRef}
-        onWheel={handleWheel}
       >
         {loading ? (
           <div className="flex items-center justify-center w-full h-full">
             <Loader2 className="w-12 h-12 animate-spin text-white" />
+            <span className="ml-3 text-white">Loading full quality image...</span>
           </div>
         ) : pageImage ? (
-          <div 
-            className={`w-full h-full flex items-center justify-center ${
-              isFullscreen ? 'p-4' : ''
-            }`}
-          >
+          <div className="w-full h-full flex items-center justify-center overflow-hidden">
             <motion.img
               src={pageImage}
               alt={`Zoomed view - Page ${pageNumber}`}
-              className={`${
-                isFullscreen 
-                  ? 'max-w-full max-h-full object-contain' 
-                  : 'max-w-full max-h-full object-contain'
-              }`}
+              className="max-w-full max-h-full object-contain rounded-lg"
               style={{
-                transform: `scale(${zoomLevel})`,
+                transform: `scale(${zoomLevel}) rotate(${currentRotation}deg)`, // ✅ rotation लागू करें
                 transformOrigin: 'center',
-                transition: 'transform 0.1s ease-out'
+                transition: 'transform 0.2s ease-out'
               }}
               draggable="false"
             />
@@ -870,46 +632,17 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         ) : null}
       </motion.div>
       
-      {/* Mobile gesture hints */}
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 sm:hidden z-50">
-        <div className="flex flex-col items-center gap-2 text-white/80 text-sm bg-black/50 backdrop-blur-sm px-4 py-3 rounded-xl">
+      {/* Instructions */}
+      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-center">
+        <div className="text-white/80 text-sm bg-black/70 backdrop-blur-sm px-4 py-2 rounded-xl">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-white/20 rounded-lg">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <span>Pinch to zoom (25%-200%)</span>
+            <span>Use buttons to zoom (50%-200%) and rotate</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-white/20 rounded-lg">
-              <div className="w-4 h-4 flex items-center justify-center">
-                <span className="text-xs">□</span>
-              </div>
-            </div>
-            <span>Full page view</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-white/20 rounded-lg">
-              <X className="w-4 h-4" />
-            </div>
-            <span>Tap outside to close</span>
+          <div className="text-xs text-gray-400 mt-1">
+            Click anywhere outside to close
           </div>
         </div>
       </div>
-      
-      {/* Fullscreen indicator */}
-      {isFullscreen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50"
-        >
-          <div className="px-3 py-1 bg-black/70 rounded-full backdrop-blur-sm">
-            <span className="text-xs text-white">Fullscreen Mode - Complete Page View</span>
-          </div>
-        </motion.div>
-      )}
     </motion.div>
   );
 };
@@ -948,10 +681,12 @@ export default function PdfRotatorTool() {
       isOpen: boolean;
       pageNumber: number;
       fileName: string;
+      rotation: number; // ✅ rotation जोड़ा
     }>({
       isOpen: false,
       pageNumber: 1,
-      fileName: ''
+      fileName: '',
+      rotation: 0 // ✅ डिफ़ॉल्ट rotation
     });
 
     // Pagination states
@@ -1064,6 +799,14 @@ export default function PdfRotatorTool() {
             
             setPageData(updatedPageData);
             
+            // ✅ Zoom modal में अगर यही page खुला है, तो उसका rotation भी update करें
+            if (zoomModal.isOpen && zoomModal.pageNumber === pageInfo.pageNumber) {
+                setZoomModal(prev => ({
+                    ...prev,
+                    rotation: newRotation
+                }));
+            }
+            
             // Show success message for mobile
             if (isMobile) {
               setDownloadSuccess(`✓ Page ${pageIndex + 1} rotated to ${newRotation}°`);
@@ -1096,6 +839,18 @@ export default function PdfRotatorTool() {
             }
 
             setPageData(updatedPageData);
+            
+            // ✅ अगर zoom modal खुला है, तो उसका rotation भी update करें
+            if (zoomModal.isOpen) {
+                const currentPageIndex = zoomModal.pageNumber - 1;
+                if (currentPageIndex >= 0 && currentPageIndex < updatedPageData.length) {
+                    setZoomModal(prev => ({
+                        ...prev,
+                        rotation: rotation
+                    }));
+                }
+            }
+            
             setDownloadSuccess(`✓ All ${updatedPageData.length} pages rotated to ${rotation}°!`);
             setTimeout(() => setDownloadSuccess(null), 3000);
 
@@ -1258,6 +1013,12 @@ export default function PdfRotatorTool() {
         setShowUploadInfo(false);
         setCurrentPage(1);
         setDownloadSuccess(null);
+        setZoomModal({
+            isOpen: false,
+            pageNumber: 1,
+            fileName: '',
+            rotation: 0
+        });
     };
 
     const handleReset = () => {
@@ -1269,13 +1030,24 @@ export default function PdfRotatorTool() {
         setShowUploadInfo(true);
         setCurrentPage(1);
         setDownloadSuccess(null);
+        setZoomModal({
+            isOpen: false,
+            pageNumber: 1,
+            fileName: '',
+            rotation: 0
+        });
     };
 
     const handlePageZoom = (pageNumber: number, fileName: string) => {
+        // ✅ Current page का rotation ढूंढें
+        const pageIndex = pageNumber - 1;
+        const currentRotation = pageData[pageIndex]?.rotation || 0;
+        
         setZoomModal({
             isOpen: true,
             pageNumber,
-            fileName
+            fileName,
+            rotation: currentRotation // ✅ rotation भेजें
         });
     };
 
@@ -1918,6 +1690,7 @@ export default function PdfRotatorTool() {
                         pageNumber={zoomModal.pageNumber}
                         pdfData={pdfData}
                         fileName={zoomModal.fileName}
+                        rotation={zoomModal.rotation} // ✅ rotation भेजें
                     />
 
                     {/* Enhanced Tools Section - Responsive */}
@@ -2071,11 +1844,11 @@ export default function PdfRotatorTool() {
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
-                                    <span>Pinch to zoom (25%-200%) in page preview</span>
+                                    <span>Click page to zoom (50%-200%)</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>
-                                    <span>Fullscreen mode shows complete page content</span>
+                                    <span>Full quality image at any zoom level</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-blue-600">•</span>

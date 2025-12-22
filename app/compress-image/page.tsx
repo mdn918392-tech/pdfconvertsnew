@@ -1,1633 +1,679 @@
-"use client"; 
-import { useState, useMemo, useEffect } from 'react';
+"use client";
+
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Download, 
-  ArrowLeft, 
-  Image as ImageIcon, 
-  Zap, 
-  Shield, 
-  Minimize2 as Compress, 
-  TrendingDown, 
-  Sparkles, 
-  CheckCircle, 
-  Settings, 
-  Eye, 
-  Maximize2, 
-  X,
-  FileText,
-  FileDown,
-  Grid,
-  Search,
-  ArrowRight,
-  Layers,
-  FileImage,
-  Trash2,
-  CheckSquare,
-  Square,
-  FlipHorizontal,
-  FlipVertical,
-  RotateCw
-} from 'lucide-react';
+import { Download, ArrowLeft, XCircle, CheckCircle, Image, Sparkles, Zap, Shield, Palette, Upload, Layers, Eye, Clock, Check, X } from 'lucide-react';
 import FileUploader from '../components/FileUploader';
 import ProgressBar from '../components/ProgressBar';
-// Import the PDF function
-import { downloadAsPdf, processImageForPdf } from '../../utils/imageUtils';
-import { compressImage, downloadFile } from '../../utils/imageUtils';
+import { convertPngToJpg, downloadFile } from '../../utils/imageUtils';
 
-// --- Smart filename generator ---
-const generateCompressedFilename = (originalName: string, quality: number, index?: number): string => {
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-  
-  // Clean original filename
-  const cleanName = originalName
-    .replace(/\.[^.]+$/, '') // Remove extension
-    .replace(/[^a-zA-Z0-9\s-_]/g, '')
-    .substring(0, 30)
-    .trim();
-  
-  // Get file extension
-  const extension = originalName.split('.').pop()?.toLowerCase() || 'jpg';
-  
-  if (index !== undefined) {
-    // Single file with index
-    return `${cleanName}_compressed_${quality}quality_${dateStr}.${extension}`;
-  } else {
-    // Default for multiple files
-    return `${cleanName}_compressed_${quality}quality_${dateStr}.${extension}`;
-  }
-};
+// --- Helper Functions ---
+const createObjectURL = (fileOrBlob: Blob | File) => URL.createObjectURL(fileOrBlob);
+const revokeObjectURL = (url: string) => URL.revokeObjectURL(url);
 
-// --- Interface for ImagePreview Component Props ---
-interface ImagePreviewProps {
+// --- Component Interface ---
+interface ConvertedFile {
+    blob: Blob;
+    name: string;
     originalFile: File;
-    compressedBlob: Blob | null;
-    index: number;
-    quality: number;
-    onPreview: (url: string, index: number, isCompressed: boolean, reversed: boolean) => void;
-    onRemove: (index: number) => void;
-    selected: boolean;
-    onToggleSelect: (index: number) => void;
-    showSelection: boolean;
-    reversed: boolean;
+    timestamp: number;
 }
 
-// Image Preview Component
-const ImagePreview = ({ 
-    originalFile, 
-    compressedBlob, 
-    index, 
-    quality, 
-    onPreview,
-    onRemove,
-    selected,
-    onToggleSelect,
-    showSelection,
-    reversed
-}: ImagePreviewProps) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const [imgError, setImgError] = useState(false);
-    const [localReversed, setLocalReversed] = useState(reversed);
-    
-    // Update localReversed when prop changes
-    useEffect(() => {
-        setLocalReversed(reversed);
-    }, [reversed]);
-    
-    const originalUrl = useMemo(() => {
-        try {
-            return URL.createObjectURL(originalFile);
-        } catch (error) {
-            console.error('Failed to create original URL:', error);
-            return '';
-        }
-    }, [originalFile]);
-    
-    const compressedUrl = useMemo(() => {
-        if (!compressedBlob) return null;
-        try {
-            return URL.createObjectURL(compressedBlob);
-        } catch (error) {
-            console.error('Failed to create compressed URL:', error);
-            return null;
-        }
-    }, [compressedBlob]);
+interface DownloadNotification {
+    id: string;
+    fileName: string;
+    fileCount: number;
+    timestamp: Date;
+}
 
-    // Cleanup URLs on unmount
-    useEffect(() => {
-        return () => {
-            if (originalUrl) URL.revokeObjectURL(originalUrl);
-            if (compressedUrl) URL.revokeObjectURL(compressedUrl);
-        };
-    }, [originalUrl, compressedUrl]);
+// --- Image Preview Component ---
+const ImagePreview = ({ file, onRemove, status, isDownloadable = false, filename = 'image.jpg', index }: {
+    file: Blob | File;
+    onRemove?: () => void;
+    status: string;
+    isDownloadable?: boolean;
+    filename: string;
+    index: number;
+}) => {
+    const url = useMemo(() => createObjectURL(file), [file]);
+    const [previewOpen, setPreviewOpen] = useState(false);
 
-    const originalSize = (originalFile.size / 1024).toFixed(1);
-    const compressedSize = compressedBlob ? (compressedBlob.size / 1024).toFixed(1) : null;
-    const savings = compressedBlob ? (((originalFile.size - compressedBlob.size) / originalFile.size) * 100).toFixed(1) : null;
+    // Clean up the object URL when the component unmounts
+    useMemo(() => {
+        return () => revokeObjectURL(url);
+    }, [url]);
 
-    // Fallback SVG for image errors
-    const fallbackSvg = (index: number) => {
-        const svgString = `<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="60" height="60" fill="#F3F4F6"/>
-            <path d="M30 20V30M30 40V30M20 30H40M40 30H20" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"/>
-            <rect x="10" y="10" width="40" height="40" stroke="#6B7280" stroke-width="1" stroke-dasharray="2 2"/>
-            <text x="30" y="32" text-anchor="middle" fill="#6B7280" font-size="10" font-family="Arial, sans-serif">Image ${index + 1}</text>
-        </svg>`;
-        return `data:image/svg+xml;base64,${btoa(svgString)}`;
-    };
+    const statusColor = status && status.includes('Converted') 
+        ? 'text-green-600 dark:text-green-400' 
+        : 'text-blue-600 dark:text-blue-400';
 
-    const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-        const target = e.currentTarget;
-        setImgError(true);
-        target.src = fallbackSvg(index);
-        target.classList.remove('object-cover', 'group-hover:scale-110');
-        target.classList.add('object-contain', 'p-4', 'bg-gray-100', 'dark:bg-gray-700');
-    };
-
-    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-        const target = e.currentTarget;
-        setImgError(false);
-        target.classList.remove('object-contain', 'p-4', 'bg-gray-100', 'dark:bg-gray-700');
-        target.classList.add('object-cover', 'group-hover:scale-110');
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="relative group"
-        >
-            <div className={`bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-3 border-2 ${
-                selected ? 'border-blue-500 dark:border-blue-500' : 'border-gray-200 dark:border-gray-700'
-            } shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden`}>
-                
-                {/* Selection Checkbox */}
-                {showSelection && (
-                    <div className="absolute top-2 left-2 z-20">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onToggleSelect(index);
-                            }}
-                            className="w-6 h-6 flex items-center justify-center bg-white dark:bg-gray-800 rounded-full shadow-md"
-                        >
-                            {selected ? (
-                                <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            ) : (
-                                <Square className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                            )}
-                        </button>
-                    </div>
-                )}
-                
-                {/* Image Number Badge */}
-                <div className={`absolute top-2 ${showSelection ? 'left-10' : 'left-2'} bg-gradient-to-r from-orange-500 to-pink-600 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10`}>
-                    #{index + 1}
-                </div>
-                
-                {/* Quality Badge */}
-                {compressedBlob && (
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
-                        {quality}%
-                    </div>
-                )}
-
-                {/* Image Container */}
-                <div 
-                    className="relative w-full h-32 mb-3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    onClick={() => {
-                        const urlToPreview = compressedUrl || originalUrl;
-                        if (urlToPreview) {
-                            onPreview(urlToPreview, index + 1, !!compressedBlob, localReversed);
-                        }
-                    }}
-                >
-                    <img 
-                        src={compressedUrl || originalUrl || fallbackSvg(index)} 
-                        alt={`Image ${index + 1}`} 
-                        className={`w-full h-full ${imgError ? 'object-contain p-4 bg-gray-100 dark:bg-gray-700' : 'object-cover group-hover:scale-110'} transition-transform duration-500`}
-                        style={{
-                            transform: localReversed ? 'scaleX(-1)' : 'none',
-                            transformOrigin: 'center'
-                        }}
-                        onError={handleImageError}
-                        onLoad={handleImageLoad}
-                    />
-                    
-                    {/* Hover Overlay */}
-                    <div className={`absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center transition-opacity duration-300 ${
-                        isHovered ? 'opacity-100' : 'opacity-0'
-                    }`}>
-                        <div className="flex flex-col items-center gap-1">
-                            <Eye className="w-5 h-5 text-white" />
-                            <span className="text-xs text-white font-medium">Preview</span>
-                        </div>
-                    </div>
-                    
-                    {/* Shine Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                    
-                    {/* Compressed Indicator */}
-                    {compressedBlob && (
-                        <div className="absolute bottom-2 left-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs px-2 py-0.5 rounded-full">
-                            ✓ Compressed
-                        </div>
-                    )}
-
-                    {/* Remove Button */}
-                    {!showSelection && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onRemove(index);
-                            }}
-                            className="absolute bottom-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full transition-colors z-10"
-                            title="Remove image"
-                        >
-                            <Trash2 className="w-3 h-3" />
-                        </button>
-                    )}
-
-                    {/* Flip Button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setLocalReversed(!localReversed);
-                        }}
-                        className="absolute top-2 left-2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full transition-colors z-10"
-                        title="Flip image horizontally"
-                    >
-                        <FlipHorizontal className="w-3 h-3" />
-                    </button>
-                </div>
-
-                {/* Image Info */}
-                <div className="space-y-2">
-                    <p className="text-sm font-semibold truncate text-gray-900 dark:text-white px-1" title={originalFile.name}>
-                        {originalFile.name}
-                    </p>
-                    
-                    <div className="flex justify-between items-center px-1">
-                        <div className={`text-xs ${compressedBlob ? 'text-gray-500 line-through' : 'text-gray-500 dark:text-gray-400'}`}>
-                            {originalSize} KB
-                        </div>
-                        
-                        {compressedBlob && (
-                            <div className="flex items-center gap-1">
-                                <div className="text-xs text-green-600 dark:text-green-400 font-semibold">
-                                    {compressedSize} KB
-                                </div>
-                                {savings && (
-                                    <div className="text-xs px-1 py-0.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full ml-1">
-                                        -{savings}%
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </motion.div>
-    );
-};
-
-export default function CompressImage() {
-    const [files, setFiles] = useState<File[]>([]);
-    const [quality, setQuality] = useState(80);
-    const [converting, setConverting] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [compressedBlobs, setCompressedBlobs] = useState<Blob[]>([]);
-    const [compressionStats, setCompressionStats] = useState<{ original: number; compressed: number } | null>(null);
-    const [showUploadInfo, setShowUploadInfo] = useState(true);
-    const [expandedView, setExpandedView] = useState(false);
-    const [previewModal, setPreviewModal] = useState<{ 
-        url: string | null, 
-        index: number | null,
-        isCompressed: boolean,
-        reversed: boolean
-    }>({ url: null, index: null, isCompressed: false, reversed: false });
-    const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
-    const [downloading, setDownloading] = useState(false);
-    const [compressionComplete, setCompressionComplete] = useState(false);
-    const [pdfSettings, setPdfSettings] = useState({
-        paperSize: 'AA' as 'AA' | 'A3' | 'Letter' | 'Legal',
-        orientation: 'portrait' as 'portrait' | 'landscape',
-        reverseOrder: false,
-        imagesPerPage: 1 as 1 | 2 | 4
-    });
-    const [showPdfOptions, setShowPdfOptions] = useState(false);
-    const [selectedImages, setSelectedImages] = useState<number[]>([]);
-    const [showSelection, setShowSelection] = useState(false);
-    const [reverseImages, setReverseImages] = useState(false);
-    const [compressionError, setCompressionError] = useState<string | null>(null);
-    const [imageReversal, setImageReversal] = useState<boolean[]>([]);
-
-    // Initialize image reversal array
-    useEffect(() => {
-        if (files.length > 0 && imageReversal.length !== files.length) {
-            setImageReversal(Array(files.length).fill(reverseImages));
-        }
-    }, [files.length, reverseImages]);
-
-    const handleConvert = async () => {
-        if (files.length === 0) return;
-
-        setConverting(true);
-        setProgress(0);
-        setCompressedBlobs([]);
-        setCompressionStats(null);
-        setShowUploadInfo(false);
-        setDownloadSuccess(null);
-        setCompressionComplete(false);
-        setSelectedImages([]);
-        setShowSelection(false);
-        setCompressionError(null);
-
-        try {
-            const blobs: Blob[] = [];
-            let totalOriginal = 0;
-            let totalCompressed = 0;
-
-            for (let i = 0; i < files.length; i++) {
-                setProgress(20 + (i / files.length) * 60);
-                try {
-                    const blob = await compressImage(files[i], quality / 100);
-                    console.log(`Compressed file ${i}:`, blob.size, blob.type);
-                    blobs.push(blob);
-                    totalOriginal += files[i].size;
-                    totalCompressed += blob.size;
-                } catch (error) {
-                    console.error(`Error compressing file ${i}:`, error);
-                    // Add original file as fallback
-                    blobs.push(files[i]);
-                    totalOriginal += files[i].size;
-                    totalCompressed += files[i].size;
-                }
-                await new Promise(resolve => setTimeout(resolve, 200));
-            }
-
-            setProgress(90);
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            setProgress(100);
-            setCompressedBlobs(blobs);
-            setCompressionStats({ original: totalOriginal, compressed: totalCompressed });
-            setCompressionComplete(true);
-            
-            // Show compression success message
-            const savingsPercent = ((1 - totalCompressed / totalOriginal) * 100).toFixed(1);
-            setDownloadSuccess(`✓ Successfully compressed ${files.length} images! (Saved ${savingsPercent}%)`);
-            setTimeout(() => setDownloadSuccess(null), 5000);
-        } catch (error) {
-            console.error('Compression error:', error);
-            setCompressionError("Failed to compress images. Please try again.");
-            setDownloadSuccess("✗ Failed to compress images. Please try again.");
-            setTimeout(() => setDownloadSuccess(null), 3000);
-        } finally {
-            setConverting(false);
-        }
-    };
-
-    const handleDownload = async () => {
-        if (compressedBlobs.length === 0) return;
-
-        setDownloading(true);
-        try {
-            for (let i = 0; i < compressedBlobs.length; i++) {
-                const filename = generateCompressedFilename(files[i].name, quality, i);
-                downloadFile(compressedBlobs[i], filename);
-                
-                // Small delay between downloads
-                if (i < compressedBlobs.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-            }
-            
-            // Show download success message
-            setDownloadSuccess(`✓ Downloaded ${compressedBlobs.length} images successfully!`);
-            setTimeout(() => setDownloadSuccess(null), 5000);
-        } catch (error) {
-            console.error('Download error:', error);
-            setDownloadSuccess("✗ Failed to download some images");
-            setTimeout(() => setDownloadSuccess(null), 3000);
-        } finally {
-            setDownloading(false);
-        }
-    };
-
-    const handleDownloadAsPdf = async () => {
-        if (compressedBlobs.length === 0) return;
-
-        setDownloading(true);
-        try {
-            // Prepare images data for PDF creation
-            let imagesData = await Promise.all(
-                compressedBlobs.map(async (blob, index) => {
-                    // Process image for PDF with reversal if needed
-                    const processedBlob = imageReversal[index] 
-                        ? await processImageForPdf(blob, { flipHorizontal: true })
-                        : blob;
-                    
-                    return {
-                        blob: processedBlob,
-                        name: files[index].name
-                    };
-                })
-            );
-
-            // Reverse the order if selected (this is just order, not image flipping)
-            if (pdfSettings.reverseOrder) {
-                imagesData = imagesData.reverse();
-            }
-
-            // Create PDF with settings
-            const pdfBlob = await downloadAsPdf(imagesData, pdfSettings);
-            
-            // Generate PDF filename
-            const now = new Date();
-            const dateStr = now.toISOString().split('T')[0];
-            const filename = `compressed_images_${files.length}files_${dateStr}.pdf`;
-            
-            // Download PDF
-            downloadFile(pdfBlob, filename);
-            
-            setDownloadSuccess(`✓ Downloaded all ${files.length} images as 1 PDF file!`);
-            setTimeout(() => setDownloadSuccess(null), 5000);
-        } catch (error) {
-            console.error('PDF creation error:', error);
-            setDownloadSuccess("✗ Failed to create PDF");
-            setTimeout(() => setDownloadSuccess(null), 3000);
-        } finally {
-            setDownloading(false);
-        }
-    };
-
-    const handleDownloadSelectedAsPdf = async () => {
-        if (selectedImages.length === 0) return;
-
-        setDownloading(true);
-        try {
-            // Prepare only selected images data for PDF creation
-            let imagesData = await Promise.all(
-                selectedImages.map(async index => {
-                    // Process image for PDF with reversal if needed
-                    const processedBlob = imageReversal[index] 
-                        ? await processImageForPdf(compressedBlobs[index], { flipHorizontal: true })
-                        : compressedBlobs[index];
-                    
-                    return {
-                        blob: processedBlob,
-                        name: files[index].name
-                    };
-                })
-            );
-            
-
-            // Reverse the order if selected
-            if (pdfSettings.reverseOrder) {
-                imagesData = imagesData.reverse();
-            }
-
-            // Create PDF with settings
-            const pdfBlob = await downloadAsPdf(imagesData, pdfSettings);
-            
-            // Generate PDF filename
-            const now = new Date();
-            const dateStr = now.toISOString().split('T')[0];
-            const filename = `selected_${selectedImages.length}_images_${dateStr}.pdf`;
-            
-            // Download PDF
-            downloadFile(pdfBlob, filename);
-            
-            setDownloadSuccess(`✓ Downloaded ${selectedImages.length} selected images as 1 PDF file!`);
-            setTimeout(() => setDownloadSuccess(null), 5000);
-        } catch (error) {
-            console.error('PDF creation error:', error);
-            setDownloadSuccess("✗ Failed to create PDF");
-            setTimeout(() => setDownloadSuccess(null), 3000);
-        } finally {
-            setDownloading(false);
-            setShowSelection(false);
-            setSelectedImages([]);
-        }
-    };
-
-    const handleDownloadSingle = async (index: number) => {
-        if (!compressedBlobs[index]) return;
-
-        try {
-            const filename = generateCompressedFilename(files[index].name, quality, index);
-            downloadFile(compressedBlobs[index], filename);
-            
-            setDownloadSuccess(`✓ Downloaded: ${filename}`);
-            setTimeout(() => setDownloadSuccess(null), 3000);
-        } catch (error) {
-            console.error('Single download error:', error);
-            setDownloadSuccess("✗ Failed to download image");
-            setTimeout(() => setDownloadSuccess(null), 3000);
-        }
-    };
-
-    const handleRemoveFile = (index: number) => {
-        setFiles(prev => prev.filter((_, i) => i !== index));
-        setCompressedBlobs(prev => prev.filter((_, i) => i !== index));
-        
-        // Remove from selected images if present
-        setSelectedImages(prev => prev.filter(i => i !== index));
-        
-        // Adjust indices for selected images after removal
-        setSelectedImages(prev => prev.map(i => i > index ? i - 1 : i));
-        
-        // Update reversal array
-        setImageReversal(prev => prev.filter((_, i) => i !== index));
-        
-        setDownloadSuccess(`✗ Removed image ${index + 1}`);
-        setTimeout(() => setDownloadSuccess(null), 3000);
-    };
-
-    const handleToggleSelect = (index: number) => {
-        if (selectedImages.includes(index)) {
-            setSelectedImages(prev => prev.filter(i => i !== index));
-        } else {
-            setSelectedImages(prev => [...prev, index]);
-        }
-    };
-
-    const handleSelectAll = () => {
-        if (selectedImages.length === files.length) {
-            setSelectedImages([]);
-        } else {
-            setSelectedImages(Array.from({ length: files.length }, (_, i) => i));
-        }
-    };
-
-    const handleRemoveSelected = () => {
-        if (selectedImages.length === 0) return;
-        
-        // Sort in descending order to avoid index issues
-        const sortedIndices = [...selectedImages].sort((a, b) => b - a);
-        
-        sortedIndices.forEach(index => {
-            setFiles(prev => prev.filter((_, i) => i !== index));
-            setCompressedBlobs(prev => prev.filter((_, i) => i !== index));
-            // Update reversal array
-            setImageReversal(prev => prev.filter((_, i) => i !== index));
-        });
-        
-        setSelectedImages([]);
-        setDownloadSuccess(`✗ Removed ${sortedIndices.length} selected images`);
-        setTimeout(() => setDownloadSuccess(null), 3000);
-    };
-
-    const formatFileSize = (bytes: number) => {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-    };
-
-    const getCompressionPercent = () => {
-        if (!compressionStats) return "0";
-        return ((1 - compressionStats.compressed / compressionStats.original) * 100).toFixed(1);
-    };
-
-    const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-
-    const qualityPresets = [
-        { value: 40, label: 'Low', color: 'from-red-500 to-orange-600', desc: 'Smallest size' },
-        { value: 60, label: 'Medium', color: 'from-yellow-500 to-amber-600', desc: 'Good balance' },
-        { value: 80, label: 'High', color: 'from-green-500 to-emerald-600', desc: 'Recommended' },
-        { value: 95, label: 'Max', color: 'from-blue-500 to-purple-600', desc: 'Best quality' },
-    ];
-
-    const handlePreviewClick = (url: string, index: number, isCompressed: boolean, reversed: boolean) => {
-        setPreviewModal({ url, index, isCompressed, reversed });
-    };
-
-    const handleFileSelect = (selectedFiles: File[]) => {
-        // Filter only image files
-        const imageFiles = selectedFiles.filter(file => 
-            file.type.startsWith('image/') && 
-            ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml'].includes(file.type.toLowerCase())
-        );
-        
-        if (imageFiles.length === 0) {
-            setDownloadSuccess("✗ Please select valid image files (JPG, PNG, WebP, GIF, BMP, SVG)");
-            setTimeout(() => setDownloadSuccess(null), 3000);
-            return;
-        }
-        
-        setFiles(imageFiles);
-        setCompressedBlobs([]);
-        setCompressionStats(null);
-        setDownloadSuccess(null);
-        setCompressionComplete(false);
-        setShowUploadInfo(false);
-        setSelectedImages([]);
-        setShowSelection(false);
-        setImageReversal(Array(imageFiles.length).fill(false));
-        setCompressionError(null);
-    };
-
-    const handleReset = () => {
-        setFiles([]);
-        setCompressedBlobs([]);
-        setCompressionStats(null);
-        setDownloadSuccess(null);
-        setCompressionComplete(false);
-        setShowUploadInfo(true);
-        setSelectedImages([]);
-        setShowSelection(false);
-        setReverseImages(false);
-        setImageReversal([]);
-        setCompressionError(null);
-    };
-
-    const toggleReverseImages = () => {
-        const newReversed = !reverseImages;
-        setReverseImages(newReversed);
-        setImageReversal(Array(files.length).fill(newReversed));
-    };
-
-    const toggleIndividualReverse = (index: number) => {
-        setImageReversal(prev => {
-            const newReversal = [...prev];
-            newReversal[index] = !newReversal[index];
-            return newReversal;
-        });
-    };
-
-    // Explore Tools Data
-    const exploreTools = [
-        {
-            name: "Image to PDF",
-            description: "Convert images to PDF documents",
-            icon: "📄",
-            color: "from-blue-500 to-cyan-500",
-            href: "/image-to-pdf"
-        },
-        {
-            name: "PDF Merger",
-            description: "Combine multiple PDF files",
-            icon: "🔗",
-            color: "from-green-500 to-emerald-500",
-            href: "/merge-pdf"
-        },
-        {
-            name: "PDF Splitter",
-            description: "Split PDF into multiple files",
-            icon: "✂️",
-            color: "from-purple-500 to-pink-500",
-            href: "/split-pdf"
-        },
-        {
-            name: "PDF Compressor",
-            description: "Reduce PDF file size",
-            icon: "🗜️",
-            color: "from-orange-500 to-red-500",
-            href: "/compress-pdf"
-        },
-        {
-            name: "PDF to Word",
-            description: "Convert PDF to editable Word",
-            icon: "📝",
-            color: "from-indigo-500 to-blue-500",
-            href: "/pdf-to-word"
-        },
-        {
-            name: "PDF to Image",
-            description: "Convert PDF pages to images",
-            icon: "🖼️",
-            color: "from-yellow-500 to-amber-500",
-            href: "/pdf-to-image"
-        }
-    ];
-
-    // Preview modal fallback SVG
-    const previewFallbackSvg = (index: number | null, isCompressed: boolean, reversed: boolean) => {
-        const svgString = `<svg width="300" height="200" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="300" height="200" fill="#F3F4F6"/>
-            <rect x="20" y="20" width="260" height="160" stroke="#6B7280" stroke-width="2" stroke-dasharray="4 4"/>
-            <path d="M150 70V100M150 130V100M100 100H200M200 100H100" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"/>
-            <text x="150" y="160" text-anchor="middle" fill="#6B7280" font-size="14" font-family="Arial, sans-serif">
-                Image ${index} - Failed to load
-            </text>
-            <text x="150" y="180" text-anchor="middle" fill="#9CA3AF" font-size="12" font-family="Arial, sans-serif">
-                ${isCompressed ? 'Compressed' : 'Original'} ${reversed ? '• Reversed' : ''}
-            </text>
-        </svg>`;
-        return `data:image/svg+xml;base64,${btoa(svgString)}`;
-    };
-
-    const handlePreviewImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-        const target = e.currentTarget;
-        target.src = previewFallbackSvg(previewModal.index, previewModal.isCompressed, previewModal.reversed);
-        target.classList.add('p-8', 'bg-gray-100', 'dark:bg-gray-700');
-    };
-
-    const handlePreviewImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-        const target = e.currentTarget;
-        target.classList.remove('p-8', 'bg-gray-100', 'dark:bg-gray-700');
+    const handleIndividualDownload = () => {
+        downloadFile(file as Blob, filename);
     };
 
     return (
         <>
-            {/* Success Message Overlay */}
+            {/* Image Preview Modal */}
             <AnimatePresence>
-                {downloadSuccess && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -50 }}
-                        className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
-                    >
-                        <div className={`p-4 rounded-xl shadow-2xl backdrop-blur-sm ${
-                            downloadSuccess.startsWith("✓") 
-                                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" 
-                                : "bg-gradient-to-r from-red-500 to-orange-600 text-white"
-                        }`}>
-                            <div className="flex items-center justify-center gap-3">
-                                {downloadSuccess.startsWith("✓") ? (
-                                    <CheckCircle className="w-5 h-5" />
-                                ) : (
-                                    <X className="w-5 h-5" />
-                                )}
-                                <span className="font-medium text-sm">{downloadSuccess}</span>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Error Message */}
-            {compressionError && (
-                <motion.div
-                    initial={{ opacity: 0, y: -50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
-                >
-                    <div className="p-4 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-xl shadow-2xl">
-                        <div className="flex items-center justify-center gap-3">
-                            <X className="w-5 h-5" />
-                            <span className="font-medium text-sm">{compressionError}</span>
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-
-            {/* Preview Modal */}
-            <AnimatePresence>
-                {previewModal.url && (
+                {previewOpen && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-                        onClick={() => setPreviewModal({ url: null, index: null, isCompressed: false, reversed: false })}
+                        onClick={() => setPreviewOpen(false)}
                     >
                         <motion.div
                             initial={{ scale: 0.9 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0.9 }}
-                            className="relative max-w-4xl w-full"
-                            onClick={(e) => e.stopPropagation()}
+                            className="relative max-w-4xl max-h-[90vh]"
                         >
-                            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-2">
-                                <img 
-                                    src={previewModal.url} 
-                                    alt={`Image ${previewModal.index}`}
-                                    className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
-                                    style={{
-                                        transform: previewModal.reversed ? 'scaleX(-1)' : 'none'
-                                    }}
-                                    onError={handlePreviewImageError}
-                                    onLoad={handlePreviewImageLoad}
-                                />
-                            </div>
-                            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-orange-600 to-pink-600 text-white px-4 py-2 rounded-full shadow-lg text-sm">
-                                Image {previewModal.index} • {previewModal.isCompressed ? 'Compressed' : 'Original'} {previewModal.reversed ? '• Reversed' : ''}
+                            <img 
+                                src={url} 
+                                alt={filename} 
+                                className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+                            />
+                            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full shadow-lg">
+                                {filename}
                             </div>
                             <button
-                                onClick={() => setPreviewModal({ url: null, index: null, isCompressed: false, reversed: false })}
-                                className="absolute -top-3 -right-3 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                                onClick={() => setPreviewOpen(false)}
+                                className="absolute -top-4 -right-4 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
                             >
-                                <X className="w-5 h-5" />
+                                <XCircle className="w-6 h-6" />
                             </button>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-orange-950/20 py-6 md:py-12 px-3 md:px-4">
-                <div className="container mx-auto max-w-7xl">
+            {/* Preview Card */}
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ y: -5, scale: 1.02 }}
+                className="relative group"
+            >
+                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                    {/* Image Number Badge */}
+                    <div className="absolute top-3 left-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+                        #{index + 1}
+                    </div>
+                    
+                    {/* Image Container */}
+                    <div 
+                        className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
+                        onClick={() => setPreviewOpen(true)}
+                    >
+                        <img 
+                            src={url} 
+                            alt={filename} 
+                            className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <Eye className="w-8 h-8 text-white" />
+                        </div>
+                        
+                        {/* Shine Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000" />
+                    </div>
+                    
+                    {/* File Info */}
+                    <div className="space-y-2">
+                        <p className="text-sm font-semibold truncate text-gray-900 dark:text-white" title={filename}>
+                            {filename}
+                        </p>
+                        
+                        <div className="flex items-center justify-between">
+                            <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusColor} bg-opacity-10 ${status.includes('Converted') ? 'bg-green-500' : 'bg-blue-500'}`}>
+                                {status}
+                            </span>
+                            
+                            {/* File Size (if available) */}
+                            {file.size && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {(file.size / 1024).toFixed(1)} KB
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        {/* Remove Button (For Input Files) */}
+                        {onRemove && (
+                            <motion.button 
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={onRemove}
+                                className="p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                                aria-label={`Remove ${filename}`}
+                            >
+                                <XCircle className="w-4 h-4" />
+                            </motion.button>
+                        )}
+
+                        {/* Download Button (For Output Files) */}
+                        {isDownloadable && (
+                            <motion.button 
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={handleIndividualDownload}
+                                className="p-1.5 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
+                                title={`Download ${filename}`}
+                            >
+                                <Download className="w-4 h-4" />
+                            </motion.button>
+                        )}
+                    </div>
+                </div>
+            </motion.div>
+        </>
+    );
+};
+
+// --- Download Notification Component ---
+const DownloadNotification = ({ id, fileName, fileCount, timestamp, onClose }: DownloadNotification & { onClose: () => void }) => {
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 50 }}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-xl shadow-lg mb-2"
+        >
+            <div className="flex items-start gap-3">
+                <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-sm mb-1">
+                        {fileCount > 1 ? `${fileCount} Files Downloaded! 🎉` : 'File Downloaded Successfully! 🎉'}
+                    </h4>
+                    {fileCount === 1 && (
+                        <p className="text-xs opacity-90 truncate mb-1">
+                            {fileName}
+                        </p>
+                    )}
+                    <p className="text-xs opacity-80 mb-2">
+                        {fileCount > 1 
+                            ? `${fileCount} PNG files converted to JPG` 
+                            : 'PNG successfully converted to JPG'}
+                    </p>
+                    <div className="flex items-center gap-1 text-xs opacity-80">
+                        <Clock className="w-3 h-3" />
+                        {timestamp.toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        })}
+                    </div>
+                </div>
+                <button
+                    onClick={onClose}
+                    className="p-1 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+            </div>
+        </motion.div>
+    );
+};
+
+// --- Main Component ---
+export default function PngToJpg() {
+    const [files, setFiles] = useState<File[]>([]);
+    const [converting, setConverting] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [jpgBlobs, setJpgBlobs] = useState<ConvertedFile[]>([]);
+    const [showFeatures, setShowFeatures] = useState(true);
+    const [downloadNotifications, setDownloadNotifications] = useState<DownloadNotification[]>([]);
+    const notificationsRef = useRef<HTMLDivElement>(null);
+
+    // Generate unique filename
+    const generateUniqueFileName = (baseName: string, index: number) => {
+        const timestamp = new Date().getTime();
+        const randomId = Math.random().toString(36).substring(2, 9);
+        const cleanBaseName = baseName.replace(/\.png$/i, '').replace(/\.[^/.]+$/, "");
+        const sequence = (index + 1).toString().padStart(3, '0');
+        return `${cleanBaseName}_converted_${sequence}_${timestamp}_${randomId}.jpg`;
+    };
+
+    // Auto-scroll notifications
+    useEffect(() => {
+        if (notificationsRef.current && downloadNotifications.length > 0) {
+            notificationsRef.current.scrollTop = notificationsRef.current.scrollHeight;
+        }
+    }, [downloadNotifications]);
+
+    const handleConvert = async () => {
+        if (files.length === 0) return;
+
+        setConverting(true);
+        setProgress(0);
+        setJpgBlobs([]);
+        setShowFeatures(false);
+
+        try {
+            const blobs: ConvertedFile[] = [];
+            for (let i = 0; i < files.length; i++) {
+                const uniqueFilename = generateUniqueFileName(files[i].name, i);
+                const blob = await convertPngToJpg(files[i]);
+                
+                blobs.push({
+                    blob: blob,
+                    name: uniqueFilename,
+                    originalFile: files[i],
+                    timestamp: Date.now()
+                });
+                
+                // Animate progress smoothly
+                setProgress(((i + 1) / files.length) * 100);
+                
+                // Small delay for smooth progress animation
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            setJpgBlobs(blobs);
+        } catch (error) {
+            console.error('Conversion error:', error);
+            alert('Failed to convert PNG to JPG. Please try again.');
+        } finally {
+            setConverting(false);
+        }
+    };
+
+    const handleDownload = () => {
+        // Downloads all converted files
+        jpgBlobs.forEach(item => {
+            downloadFile(item.blob, item.name);
+        });
+
+        // Add download notification
+        const notification: DownloadNotification = {
+            id: Math.random().toString(36).substring(7),
+            fileName: jpgBlobs.length === 1 ? jpgBlobs[0].name : 'Multiple files',
+            fileCount: jpgBlobs.length,
+            timestamp: new Date()
+        };
+        setDownloadNotifications(prev => [...prev, notification]);
+        
+        // Auto-remove notification after 5 seconds
+        setTimeout(() => {
+            setDownloadNotifications(prev => 
+                prev.filter(n => n.id !== notification.id)
+            );
+        }, 5000);
+    };
+
+    const handleSingleDownload = (blob: Blob, filename: string, index: number) => {
+        downloadFile(blob, filename);
+
+        // Add download notification
+        const notification: DownloadNotification = {
+            id: Math.random().toString(36).substring(7),
+            fileName: filename,
+            fileCount: 1,
+            timestamp: new Date()
+        };
+        setDownloadNotifications(prev => [...prev, notification]);
+        
+        // Auto-remove notification after 5 seconds
+        setTimeout(() => {
+            setDownloadNotifications(prev => 
+                prev.filter(n => n.id !== notification.id)
+            );
+        }, 5000);
+    };
+
+    const handleRemoveFile = (indexToRemove: number) => {
+        setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToRemove));
+        setJpgBlobs([]);
+        setShowFeatures(files.length === 1); // Show features when last file is removed
+    };
+
+    const handleFilesSelected = (newFiles: File[]) => {
+        setFiles(newFiles);
+        setJpgBlobs([]);
+        setShowFeatures(false);
+    };
+
+    const handleReset = () => {
+        setFiles([]);
+        setJpgBlobs([]);
+        setProgress(0);
+        setShowFeatures(true);
+    };
+
+    const hasFiles = files.length > 0;
+    const hasResults = jpgBlobs.length > 0;
+    const isReadyToConvert = hasFiles && !hasResults && !converting;
+    const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+
+    // Calculate total size of converted files
+    const convertedTotalSize = jpgBlobs.reduce((acc, item) => acc + item.blob.size, 0);
+    const sizeReduction = totalSize > 0 ? ((totalSize - convertedTotalSize) / totalSize * 100).toFixed(1) : '0';
+
+    return (
+        <>
+            {/* Download Success Notifications */}
+            <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
+                <div 
+                    ref={notificationsRef}
+                    className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                >
+                    <AnimatePresence>
+                        {downloadNotifications.map((notification) => (
+                            <DownloadNotification
+                                key={notification.id}
+                                {...notification}
+                                onClose={() => setDownloadNotifications(prev => 
+                                    prev.filter(n => n.id !== notification.id)
+                                )}
+                            />
+                        ))}
+                    </AnimatePresence>
+                </div>
+            </div>
+
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-6 sm:py-8 md:py-12">
+                <div className="container mx-auto px-3 sm:px-4 max-w-7xl">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                     >
-                        {/* Header Section */}
-                        <div className="mb-6 md:mb-12">
+                        {/* --- Header Section --- */}
+                        <div className="mb-6 sm:mb-8 md:mb-12">
                             <a
                                 href="/"
-                                className="inline-flex items-center gap-2 md:gap-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium mb-4 md:mb-6 text-sm md:text-base"
+                                className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium group mb-3 sm:mb-6"
                             >
-                                <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 group-hover:-translate-x-1 transition-transform" />
-                                <span>Back to Tools</span>
+                                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                                <span className="text-sm">Back to Tools</span>
                             </a>
 
-                            <div className="text-center mb-6 md:mb-8">
+                            <div className="text-center mb-4 sm:mb-6 md:mb-8">
                                 <motion.div 
                                     initial={{ scale: 0.5 }}
                                     animate={{ scale: 1 }}
-                                    className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-orange-500 to-pink-600 rounded-3xl mb-4 md:mb-6 shadow-2xl"
+                                    className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-gradient-to-br from-orange-500 to-pink-600 rounded-2xl sm:rounded-3xl mb-3 sm:mb-6 shadow-2xl"
                                 >
-                                    <Compress className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                                    <Image className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white" />
                                 </motion.div>
                                 
-                                <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-3 md:mb-4 bg-gradient-to-r from-orange-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-                                    Image Compressor
+                                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-orange-600 via-pink-600 to-orange-600 bg-clip-text text-transparent px-2">
+                                    PNG to JPG Converter
                                 </h1>
                                 
-                                <p className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                                    Reduce JPG/PNG file size while maintaining visual quality
-                                    <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-sm md:text-base">
-                                        Smart filename generation • Success feedback • PDF export • Image reversal
+                                <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
+                                    Convert your PNG images to high-quality JPG format with superior compression
+                                    <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
+                                        Preserve quality while reducing file size
                                     </span>
                                 </p>
                             </div>
                         </div>
 
-                        {/* Features Grid */}
+                        {/* --- Features Grid --- */}
                         <AnimatePresence>
-                            {showUploadInfo && (
+                            {showFeatures && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
                                     exit={{ opacity: 0, height: 0 }}
-                                    className="mb-8 md:mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
+                                    className="mb-6 sm:mb-8 md:mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
                                 >
-                                    <div className="bg-gradient-to-br from-orange-50 to-pink-50 dark:from-orange-950/30 dark:to-pink-950/30 p-4 md:p-6 rounded-2xl border-2 border-orange-200 dark:border-orange-800/50">
-                                        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                            <div className="p-1.5 md:p-2 bg-gradient-to-r from-orange-500 to-pink-600 rounded-xl">
-                                                <TrendingDown className="w-4 h-4 md:w-6 md:h-6 text-white" />
+                                    {[
+                                        {
+                                            icon: Zap,
+                                            title: "Fast Conversion",
+                                            desc: "Convert multiple PNG files to JPG format in seconds with our optimized engine",
+                                            gradient: "from-orange-500 to-pink-600",
+                                            bg: "from-orange-50 to-pink-50",
+                                            border: "border-orange-200"
+                                        },
+                                        {
+                                            icon: Palette,
+                                            title: "Quality Preserved",
+                                            desc: "Maintain image quality while significantly reducing file size with intelligent compression",
+                                            gradient: "from-blue-500 to-purple-600",
+                                            bg: "from-blue-50 to-purple-50",
+                                            border: "border-blue-200"
+                                        },
+                                        {
+                                            icon: Shield,
+                                            title: "Secure Processing",
+                                            desc: "All conversions happen locally in your browser. Your images never leave your device",
+                                            gradient: "from-green-500 to-emerald-600",
+                                            bg: "from-green-50 to-emerald-50",
+                                            border: "border-green-200"
+                                        }
+                                    ].map((feature, index) => (
+                                        <div 
+                                            key={index}
+                                            className={`bg-gradient-to-br ${feature.bg} dark:from-gray-800 dark:to-gray-900 p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl md:rounded-2xl border-2 ${feature.border} dark:border-gray-700`}
+                                        >
+                                            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+                                                <div className={`p-1.5 sm:p-2 bg-gradient-to-r ${feature.gradient} rounded-lg sm:rounded-xl`}>
+                                                    <feature.icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
+                                                </div>
+                                                <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white">
+                                                    {feature.title}
+                                                </h3>
                                             </div>
-                                            <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Smart Compression</h3>
+                                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                                {feature.desc}
+                                            </p>
                                         </div>
-                                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                            Reduce image size by up to 90% with minimal quality loss
-                                        </p>
-                                    </div>
-                                    
-                                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-4 md:p-6 rounded-2xl border-2 border-blue-200 dark:border-blue-800/50">
-                                        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                            <div className="p-1.5 md:p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl">
-                                                <FileDown className="w-4 h-4 md:w-6 md:h-6 text-white" />
-                                            </div>
-                                            <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Single PDF Export</h3>
-                                        </div>
-                                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                            Download all compressed images as one PDF file
-                                        </p>
-                                    </div>
-                                    
-                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 md:p-6 rounded-2xl border-2 border-green-200 dark:border-green-800/50">
-                                        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                            <div className="p-1.5 md:p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl">
-                                                <Settings className="w-4 h-4 md:w-6 md:h-6 text-white" />
-                                            </div>
-                                            <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Smart Filenames</h3>
-                                        </div>
-                                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                            Automatically generate descriptive filenames
-                                        </p>
-                                    </div>
-                                    
-                                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 p-4 md:p-6 rounded-2xl border-2 border-purple-200 dark:border-purple-800/50">
-                                        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                            <div className="p-1.5 md:p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl">
-                                                <Shield className="w-4 h-4 md:w-6 md:h-6 text-white" />
-                                            </div>
-                                            <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">Image Reversal</h3>
-                                        </div>
-                                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                            Flip images horizontally for mirror effects
-                                        </p>
-                                    </div>
+                                    ))}
                                 </motion.div>
                             )}
                         </AnimatePresence>
 
-                        {/* Main Card */}
-                        <div className="bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-xl md:shadow-2xl p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+                        {/* --- Main Converter Card --- */}
+                        <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
                             {/* Upload Section */}
-                            <div className="mb-6 md:mb-8">
-                                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
-                                    <div className="p-1.5 md:p-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-xl">
-                                        <ImageIcon className="w-4 h-4 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
+                            <div className="mb-4 sm:mb-6 md:mb-8">
+                                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
+                                    <div className="p-1.5 sm:p-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-xl">
+                                        <Upload className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                                            Upload Images
+                                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                                            Upload PNG Images
                                         </h2>
-                                        <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">
-                                            Select JPG/PNG images to compress
+                                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                                            Select PNG files to convert to JPG format
                                         </p>
                                     </div>
                                 </div>
 
-                                <FileUploader
-                                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/bmp,image/svg+xml"
-                                    multiple={true}
-                                    onFilesSelected={handleFileSelect}
-                                />
-
-                                {files.length > 0 && (
-                                    <div className="mt-3 md:mt-4 text-center">
-                                        <div className="inline-flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-full text-sm md:text-base">
-                                            <ImageIcon className="w-3 h-3 md:w-4 md:h-4 text-orange-600 dark:text-orange-400" />
-                                            <span className="font-medium text-orange-700 dark:text-orange-300">
-                                                {files.length} images • {formatFileSize(totalSize)}
-                                            </span>
+                                {!hasFiles ? (
+                                    <FileUploader
+                                        accept="image/png"
+                                        multiple={true}
+                                        onFilesSelected={handleFilesSelected}
+                                    />
+                                ) : (
+                                    <div className="text-center mb-3">
+                                        <div className="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-full">
+                                            <div className="flex items-center gap-1 sm:gap-2">
+                                                <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400" />
+                                                <span className="font-medium text-orange-700 dark:text-orange-300">
+                                                    {files.length} PNG files selected
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                                                <span>• {(totalSize / 1024 / 1024).toFixed(2)} MB total</span>
+                                            </div>
                                         </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            Files will be saved as: image_compressed_80quality_2024-01-15.jpg
-                                        </p>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Content Area */}
-                            {files.length > 0 && (
-                                <div className="space-y-6 md:space-y-8">
-                                    {/* Selection Controls */}
-                                    {compressedBlobs.length > 0 && (
-                                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800/30">
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
-                                                        <CheckSquare className="w-5 h-5 text-white" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm md:text-base">
-                                                            Image Selection Mode
-                                                        </h4>
-                                                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                                                            Select specific images to download as PDF
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    {!showSelection ? (
-                                                        <button
-                                                            onClick={() => setShowSelection(true)}
-                                                            className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-lg flex items-center gap-1"
-                                                        >
-                                                            <CheckSquare className="w-3 h-3" />
-                                                            Select Images
-                                                        </button>
-                                                    ) : (
-                                                        <>
-                                                            <button
-                                                                onClick={handleSelectAll}
-                                                                className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-medium rounded-lg flex items-center gap-1"
-                                                            >
-                                                                {selectedImages.length === files.length ? (
-                                                                    <>
-                                                                        <X className="w-3 h-3" />
-                                                                        Deselect All
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <CheckSquare className="w-3 h-3" />
-                                                                        Select All
-                                                                    </>
-                                                                )}
-                                                            </button>
-                                                            {selectedImages.length > 0 && (
-                                                                <button
-                                                                    onClick={handleRemoveSelected}
-                                                                    className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-orange-600 text-white text-sm font-medium rounded-lg flex items-center gap-1"
-                                                                >
-                                                                    <Trash2 className="w-3 h-3" />
-                                                                    Remove Selected
-                                                                </button>
-                                                            )}
-                                                            <button
-                                                                onClick={() => {
-                                                                    setShowSelection(false);
-                                                                    setSelectedImages([]);
-                                                                }}
-                                                                className="px-3 py-1.5 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-sm font-medium rounded-lg flex items-center gap-1"
-                                                            >
-                                                                <X className="w-3 h-3" />
-                                                                Cancel
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            
-                                            {showSelection && selectedImages.length > 0 && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700"
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm text-blue-700 dark:text-blue-300">
-                                                            {selectedImages.length} of {files.length} images selected
-                                                        </span>
-                                                        <button
-                                                            onClick={handleDownloadSelectedAsPdf}
-                                                            disabled={downloading}
-                                                            className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-medium rounded-lg flex items-center gap-1 disabled:opacity-50"
-                                                        >
-                                                            <FileDown className="w-3 h-3" />
-                                                            Download Selected as PDF
-                                                        </button>
-                                                    </div>
-                                                </motion.div>
-                                            )}
+                            {/* --- File Previews and Conversion Area --- */}
+                            {hasFiles && (
+                                <div className="space-y-4 sm:space-y-6 md:space-y-8">
+                                    {/* --- Input PNG Previews --- */}
+                                    <div className="space-y-3 sm:space-y-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                            <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                <Image className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+                                                Uploaded PNG Images
+                                            </h3>
+                                            <button
+                                                onClick={handleReset}
+                                                className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors"
+                                            >
+                                                Clear All
+                                            </button>
                                         </div>
-                                    )}
-
-                                    {/* Quality Controls */}
-                                    <div className="space-y-4 md:space-y-6">
-                                        <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 md:gap-3">
-                                            <Settings className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
-                                            Compression Settings
-                                        </h3>
-
-                                        {/* Quality Presets */}
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2 md:mb-3">
-                                                <label className="text-sm md:text-base font-semibold text-gray-700 dark:text-gray-300">
-                                                    Quality Presets
-                                                </label>
-                                                <span className="text-sm md:text-base text-orange-600 dark:text-orange-400 font-medium">
-                                                    Current: {quality}%
-                                                </span>
-                                            </div>
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
-                                                {qualityPresets.map((preset) => (
-                                                    <motion.button
-                                                        key={preset.value}
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        onClick={() => setQuality(preset.value)}
-                                                        className={`p-2 md:p-3 rounded-xl border-2 transition-all flex flex-col items-center ${
-                                                            quality === preset.value
-                                                                ? `border-orange-600 bg-gradient-to-r ${preset.color} text-white shadow-lg`
-                                                                : 'border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-orange-400 dark:hover:border-orange-500'
-                                                        }`}
-                                                    >
-                                                        <span className={`text-sm md:text-base font-medium ${quality === preset.value ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
-                                                            {preset.label}
-                                                        </span>
-                                                        <span className={`text-xs md:text-sm mt-0.5 ${quality === preset.value ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'}`}>
-                                                            {preset.desc}
-                                                        </span>
-                                                    </motion.button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Quality Slider */}
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1 md:mb-2">
-                                                <label className="text-sm md:text-base font-semibold text-gray-700 dark:text-gray-300">
-                                                    Fine Tune: <span className="text-orange-600 dark:text-orange-400">{quality}%</span>
-                                                </label>
-                                                <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
-                                                    {quality < 50 ? 'Smaller size' : quality < 80 ? 'Balanced' : 'Better quality'}
-                                                </span>
-                                            </div>
-                                            <div className="relative pt-2 md:pt-4">
-                                                <input
-                                                    type="range"
-                                                    min="10"
-                                                    max="100"
-                                                    value={quality}
-                                                    onChange={(e) => setQuality(Number(e.target.value))}
-                                                    className="w-full h-1.5 md:h-2 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 md:[&::-webkit-slider-thumb]:h-5 md:[&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-orange-600 [&::-webkit-slider-thumb]:shadow-lg"
+                                        
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700">
+                                            {files.map((file, index) => (
+                                                <ImagePreview 
+                                                    key={index} 
+                                                    file={file} 
+                                                    filename={file.name}
+                                                    onRemove={() => handleRemoveFile(index)}
+                                                    status="Ready to Convert"
+                                                    index={index}
                                                 />
-                                                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                                    <span>Small size</span>
-                                                    <span className="sm:hidden">
-                                                        {quality < 50 ? 'Small' : quality < 80 ? 'Medium' : 'High'}
-                                                    </span>
-                                                    <span>Best quality</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Reverse Images Control */}
-                                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-xl p-4 border-2 border-purple-200 dark:border-purple-800/30">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    <FlipHorizontal className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm md:text-base">
-                                                        Image Reversal
-                                                    </h4>
-                                                </div>
-                                                <button
-                                                    onClick={toggleReverseImages}
-                                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 ${
-                                                        reverseImages
-                                                            ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
-                                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                                    }`}
-                                                >
-                                                    <FlipHorizontal className="w-3 h-3" />
-                                                    {reverseImages ? 'Reverse All' : 'Reverse All'}
-                                                </button>
-                                            </div>
-                                            <p className="text-xs text-gray-600 dark:text-gray-400">
-                                                Flip images horizontally for mirror effects. This applies to previews and PDF downloads.
-                                            </p>
-                                        </div>
-
-                                        {/* PDF Export Options */}
-                                        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800/30">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    <FileDown className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm md:text-base">
-                                                        PDF Export Options
-                                                    </h4>
-                                                </div>
-                                                <button
-                                                    onClick={() => setShowPdfOptions(!showPdfOptions)}
-                                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm"
-                                                >
-                                                    {showPdfOptions ? 'Hide Options' : 'Show Options'}
-                                                </button>
-                                            </div>
-                                            
-                                            {showPdfOptions && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    className="space-y-3"
-                                                >
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                        {/* Images Per Page */}
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                                Images Per Page
-                                                            </label>
-                                                            <div className="flex gap-2">
-                                                                {[1, 2, 4].map((num) => (
-                                                                    <button
-                                                                        key={num}
-                                                                        onClick={() => setPdfSettings({...pdfSettings, imagesPerPage: num as 1 | 2 | 4})}
-                                                                        className={`px-3 py-1.5 rounded-lg text-sm ${pdfSettings.imagesPerPage === num 
-                                                                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
-                                                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
-                                                                    >
-                                                                        {num}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Orientation */}
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                                Orientation
-                                                            </label>
-                                                            <div className="flex gap-2">
-                                                                <button
-                                                                    onClick={() => setPdfSettings({...pdfSettings, orientation: 'portrait'})}
-                                                                    className={`px-3 py-1.5 rounded-lg text-sm ${pdfSettings.orientation === 'portrait' 
-                                                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
-                                                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
-                                                                >
-                                                                    Portrait
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => setPdfSettings({...pdfSettings, orientation: 'landscape'})}
-                                                                    className={`px-3 py-1.5 rounded-lg text-sm ${pdfSettings.orientation === 'landscape' 
-                                                                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
-                                                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
-                                                                >
-                                                                    Landscape
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            id="reverseOrder"
-                                                            checked={pdfSettings.reverseOrder}
-                                                            onChange={(e) => setPdfSettings({...pdfSettings, reverseOrder: e.target.checked})}
-                                                            className="rounded text-blue-600 focus:ring-blue-500"
-                                                        />
-                                                        <label htmlFor="reverseOrder" className="text-sm text-gray-700 dark:text-gray-300">
-                                                            Reverse order in PDF (just order, not image flipping)
-                                                        </label>
-                                                    </div>
-
-                                                    <p className="text-xs text-blue-600 dark:text-blue-400">
-                                                        All images will be combined into 1 PDF file with individual reversal settings
-                                                    </p>
-                                                </motion.div>
-                                            )}
+                                            ))}
                                         </div>
                                     </div>
 
-                                    {/* Image Previews */}
-                                    {files.length > 0 && (
-                                        <div className="space-y-3 md:space-y-4">
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 md:gap-4">
-                                                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 md:gap-3">
-                                                    <Eye className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
-                                                    Images ({files.length}) {reverseImages && '• Reversed'}
-                                                </h3>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={toggleReverseImages}
-                                                        className={`px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium rounded-xl transition-colors flex items-center gap-1 md:gap-2 ${
-                                                            reverseImages
-                                                                ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
-                                                                : 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-900/50'
-                                                        }`}
-                                                    >
-                                                        <FlipHorizontal className="w-3 h-3 md:w-4 md:h-4" />
-                                                        {reverseImages ? 'Restore All' : 'Reverse All'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setExpandedView(!expandedView)}
-                                                        className="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-xl transition-colors flex items-center gap-1 md:gap-2"
-                                                    >
-                                                        {expandedView ? <Maximize2 className="w-3 h-3 md:w-4 md:h-4" /> : <Eye className="w-3 h-3 md:w-4 md:h-4" />}
-                                                        {expandedView ? 'Compact' : 'Expand'}
-                                                    </button>
-                                                    <button
-                                                        onClick={handleReset}
-                                                        className="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-xl transition-colors flex items-center gap-1 md:gap-2"
-                                                    >
-                                                        <X className="w-3 h-3 md:w-4 md:h-4" />
-                                                        Clear All
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className={`grid gap-2 md:gap-4 p-2 md:p-4 bg-gradient-to-br from-gray-50 to-orange-50 dark:from-gray-800 dark:to-orange-950/20 rounded-2xl border-2 border-gray-200 dark:border-gray-700 max-h-[400px] md:max-h-[600px] overflow-y-auto ${
-                                                expandedView ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6'
-                                            }`}>
-                                                {files.map((file, index) => (
-                                                    <ImagePreview
-                                                        key={index}
-                                                        originalFile={file}
-                                                        compressedBlob={compressedBlobs[index] || null}
-                                                        index={index}
-                                                        quality={quality}
-                                                        onPreview={handlePreviewClick}
-                                                        onRemove={handleRemoveFile}
-                                                        selected={selectedImages.includes(index)}
-                                                        onToggleSelect={handleToggleSelect}
-                                                        showSelection={showSelection}
-                                                        reversed={imageReversal[index] || false}
-                                                    />
-                                                ))}
-                                            </div>
-                                            
-                                            {/* Single Download Buttons for each compressed image */}
-                                            {compressedBlobs.length > 0 && (
-                                                <div className="mt-4">
-                                                    <h4 className="text-sm md:text-base font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                                        Quick Download Options:
-                                                    </h4>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {compressedBlobs.map((blob, index) => (
-                                                            <motion.button
-                                                                key={index}
-                                                                whileHover={{ scale: 1.05 }}
-                                                                whileTap={{ scale: 0.95 }}
-                                                                onClick={() => handleDownloadSingle(index)}
-                                                                className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium rounded-lg flex items-center gap-1"
-                                                            >
-                                                                <Download className="w-3 h-3" />
-                                                                Image {index + 1}
-                                                            </motion.button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Action Buttons */}
-                                    <div className="space-y-3 md:space-y-4">
+                                    {/* --- Progress and Action Buttons --- */}
+                                    <div className="space-y-4 sm:space-y-6">
                                         {converting && (
-                                            <div className="space-y-3 md:space-y-4">
+                                            <div className="space-y-3 sm:space-y-4">
                                                 <ProgressBar 
                                                     progress={progress} 
-                                                    label={`Compressing ${files.length} images...`} 
+                                                    label={`Converting ${files.length} files...`} 
                                                 />
-                                                <div className="flex items-center justify-center gap-1 md:gap-2 text-orange-600 dark:text-orange-400">
-                                                    <Sparkles className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
-                                                    <span className="text-sm md:text-base font-medium">
-                                                        Optimizing at {quality}% quality...
+                                                <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
+                                                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
+                                                    <span className="text-xs sm:text-sm font-medium">
+                                                        Processing your images...
                                                     </span>
                                                 </div>
                                             </div>
                                         )}
 
-                                        {compressedBlobs.length === 0 && !converting && (
+                                        {isReadyToConvert && (
                                             <motion.button
-                                                initial={{ opacity: 0, y: 10 }}
+                                                initial={{ opacity: 0, y: 20 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={handleConvert}
-                                                className="w-full py-3 md:py-4 px-4 md:px-6 bg-gradient-to-r from-orange-600 to-pink-600 hover:from-orange-700 hover:to-pink-700 text-white font-bold rounded-xl md:rounded-2xl shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm md:text-lg flex items-center justify-center gap-2 md:gap-3"
+                                                className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                                             >
-                                                <Compress className="w-4 h-4 md:w-6 md:h-6" />
-                                                <span>Compress {files.length} Images</span>
-                                                <Zap className="w-3 h-3 md:w-5 md:h-5" />
+                                                <Image className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                                Convert {files.length} PNG to JPG
+                                                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                                             </motion.button>
                                         )}
                                     </div>
-
-                                    {/* Results Section */}
-                                    {compressedBlobs.length > 0 && compressionStats && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="space-y-4 md:space-y-8"
-                                        >
-                                            {/* Success Banner */}
-                                            <div className="p-4 md:p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl md:rounded-2xl border-2 border-green-200 dark:border-green-800/50">
-                                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4">
-                                                    <div className="flex items-center justify-center sm:justify-start">
-                                                        <div className="p-2 md:p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl">
-                                                            <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex-1 text-center sm:text-left">
-                                                        <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1">
-                                                            Compression Complete! 🎉
-                                                        </h3>
-                                                        <p className="text-green-700 dark:text-green-300 font-medium text-sm md:text-base">
-                                                            Saved {getCompressionPercent()}% • Quality: {quality}% {imageReversal.some(r => r) && '• Some images reversed'}
-                                                        </p>
-                                                        <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base mt-0.5 md:mt-1">
-                                                            Download individual files or combine all into 1 PDF
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center justify-center mt-2 sm:mt-0">
-                                                        <div className="px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl text-sm md:text-base">
-                                                            {files.length} Files
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Stats Cards */}
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
-                                                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-4 md:p-6 rounded-xl md:rounded-2xl border-2 border-blue-200 dark:border-blue-800/50">
-                                                    <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                                        <div className="p-1.5 md:p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg md:rounded-xl">
-                                                            <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                                                        </div>
-                                                        <h4 className="font-bold text-gray-900 dark:text-white text-sm md:text-base">Original Size</h4>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <div className="text-xl md:text-2xl lg:text-3xl font-black text-blue-600 dark:text-blue-400 mb-1 md:mb-2">
-                                                            {formatFileSize(compressionStats.original)}
-                                                        </div>
-                                                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                                            Before compression
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-gradient-to-br from-orange-50 to-pink-50 dark:from-orange-950/30 dark:to-pink-950/30 p-4 md:p-6 rounded-xl md:rounded-2xl border-2 border-orange-200 dark:border-orange-800/50">
-                                                    <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                                        <div className="p-1.5 md:p-2 bg-gradient-to-r from-orange-500 to-pink-600 rounded-lg md:rounded-xl">
-                                                            <TrendingDown className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                                                        </div>
-                                                        <h4 className="font-bold text-gray-900 dark:text-white text-sm md:text-base">Savings</h4>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <div className="text-xl md:text-2xl lg:text-3xl font-black text-orange-600 dark:text-orange-400 mb-1 md:mb-2">
-                                                            {getCompressionPercent()}%
-                                                        </div>
-                                                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                                            Size reduction
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-4 md:p-6 rounded-xl md:rounded-2xl border-2 border-green-200 dark:border-green-800/50">
-                                                    <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                                        <div className="p-1.5 md:p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg md:rounded-xl">
-                                                            <Compress className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                                                        </div>
-                                                        <h4 className="font-bold text-gray-900 dark:text-white text-sm md:text-base">Compressed Size</h4>
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <div className="text-xl md:text-2xl lg:text-3xl font-black text-green-600 dark:text-green-400 mb-1 md:mb-2">
-                                                            {formatFileSize(compressionStats.compressed)}
-                                                        </div>
-                                                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                                                            After compression
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Filename Preview */}
-                                            {files.length > 0 && (
-                                                <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-xl border-2 border-purple-200 dark:border-purple-800/30">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm md:text-base">Filenames will be:</h4>
-                                                    </div>
-                                                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                                                        {files.slice(0, 3).map((file, index) => (
-                                                            <div key={index} className="text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-2 rounded">
-                                                                {generateCompressedFilename(file.name, quality, index)}
-                                                            </div>
-                                                        ))}
-                                                        {files.length > 3 && (
-                                                            <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                                                                ...and {files.length - 3} more files
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Download Options */}
-                                            <div className="space-y-4">
-                                                <h4 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white text-center">
-                                                    Download Options
-                                                </h4>
-                                                
-                                                {/* Download Buttons - Side by Side */}
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                                    {/* Individual Images Download Button */}
-                                                    <motion.button
-                                                        whileHover={{ scale: 1.02 }}
-                                                        whileTap={{ scale: 0.98 }}
-                                                        onClick={handleDownload}
-                                                        disabled={downloading}
-                                                        className="w-full py-4 md:py-5 px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold md:font-extrabold rounded-xl md:rounded-2xl shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm md:text-base flex flex-col items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                                                    >
-                                                        {downloading ? (
-                                                            <>
-                                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                                                <span>Downloading...</span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <div className="flex items-center gap-2">
-                                                                    <Download className="w-5 h-5 md:w-6 md:h-6" />
-                                                                    <span className="text-lg md:text-xl">Download Images</span>
-                                                                </div>
-                                                                <div className="text-xs opacity-90">Individual files ({files.length} files)</div>
-                                                            </>
-                                                        )}
-                                                    </motion.button>
-
-                                                    {/* PDF Download Button */}
-                                                    <motion.button
-                                                        whileHover={{ scale: 1.02 }}
-                                                        whileTap={{ scale: 0.98 }}
-                                                        onClick={handleDownloadAsPdf}
-                                                        disabled={downloading}
-                                                        className="w-full py-4 md:py-5 px-4 md:px-6 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold md:font-extrabold rounded-xl md:rounded-2xl shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm md:text-base flex flex-col items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <FileDown className="w-5 h-5 md:w-6 md:h-6" />
-                                                            <span className="text-lg md:text-xl">Download as PDF</span>
-                                                        </div>
-                                                        <div className="text-xs opacity-90">All {files.length} images in 1 PDF file</div>
-                                                    </motion.button>
-                                                </div>
-                                            </div>
-
-                                            {/* Convert Another */}
-                                            <div className="text-center pt-4">
-                                                <button
-                                                    onClick={handleReset}
-                                                    className="inline-flex items-center gap-1 md:gap-2 px-4 py-2 md:px-6 md:py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-xl transition-colors text-sm md:text-base"
-                                                >
-                                                    <Compress className="w-3 h-3 md:w-4 md:h-4" />
-                                                    Compress More Images
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                    )}
                                 </div>
                             )}
                         </div>
-
-                        {/* Explore All Tools Section */}
-                        <div className="mt-8 md:mt-12 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-950/10 rounded-2xl md:rounded-3xl border-2 border-gray-200 dark:border-gray-800 p-4 md:p-6 lg:p-8">
-                            <div className="text-center mb-4 md:mb-6">
-                                <div className="inline-flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                    <div className="p-2 md:p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl">
-                                        <Grid className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                                    </div>
-                                    <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
-                                        Explore More Tools
-                                    </h2>
-                                </div>
-                                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                                    Discover more powerful tools to manipulate, convert, and optimize your documents
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                                {exploreTools.map((tool, index) => (
-                                    <motion.a
-                                        key={index}
-                                        href={tool.href}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: index * 0.1 }}
-                                        whileHover={{ scale: 1.02, y: -5 }}
-                                        className="group bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-3 md:p-4 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-lg hover:shadow-xl"
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <div className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-lg md:rounded-xl`}>
-                                                <span className="text-xl md:text-2xl">{tool.icon}</span>
-                                            </div>
-                                            <div className="flex-1">
-                                                <h3 className="font-bold text-gray-900 dark:text-white text-sm md:text-base mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                                    {tool.name}
-                                                </h3>
-                                                <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-2">
-                                                    {tool.description}
-                                                </p>
-                                                <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium">
-                                                    <span className="text-xs md:text-sm">Try Now</span>
-                                                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4 group-hover:translate-x-1 transition-transform" />
-                                                </div>
-                                            </div>
+                        
+                        {/* --- Results and Download Area --- */}
+                        {hasResults && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-green-200 dark:border-green-800/50 p-3 sm:p-4 md:p-6 lg:p-8 shadow-lg sm:shadow-xl md:shadow-2xl mb-6 md:mb-8"
+                            >
+                                {/* Success Header */}
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
+                                    <div className="flex items-center justify-center sm:justify-start">
+                                        <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg sm:rounded-xl shadow-lg">
+                                            <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
                                         </div>
-                                    </motion.a>
+                                    </div>
+                                    <div className="flex-1 text-center sm:text-left">
+                                        <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
+                                            Conversion Complete! 🎉
+                                        </h2>
+                                        <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
+                                            Successfully converted {files.length} PNG files to JPG format
+                                        </p>
+                                        <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
+                                            {sizeReduction}% average size reduction • All files are ready for download
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center justify-center mt-2 sm:mt-0">
+                                        <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
+                                            {jpgBlobs.length} Files
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* --- Output JPG Previews --- */}
+                                <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
+                                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                                        Converted JPG Images
+                                    </h3>
+                                    
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-green-100 dark:border-green-800/30">
+                                        {jpgBlobs.map((item, index) => (
+                                            <ImagePreview 
+                                                key={index} 
+                                                file={item.blob} 
+                                                filename={item.name}
+                                                status="Converted ✓"
+                                                isDownloadable={true}
+                                                index={index}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* --- Download All Button --- */}
+                                <div className="space-y-4 sm:space-y-6">
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={handleDownload}
+                                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                                    >
+                                        <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                        Download All {jpgBlobs.length} JPG Files
+                                        <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                                    </motion.button>
+                                    
+                                    <div className="text-center">
+                                        <button
+                                            onClick={handleReset}
+                                            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
+                                        >
+                                            <Image className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
+                                            Convert More Images
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* --- Stats Footer --- */}
+                        <div className="mt-4 sm:mt-8 md:mt-12 pt-3 sm:pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-800">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 text-center">
+                                {[
+                                    { value: files.length, label: 'Files Uploaded', color: 'text-orange-600' },
+                                    { value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`, label: 'Total Size', color: 'text-blue-600' },
+                                    { value: jpgBlobs.length, label: 'Files Converted', color: 'text-green-600' },
+                                    { value: `${sizeReduction}%`, label: 'Size Reduction', color: 'text-purple-600' }
+                                ].map((stat, index) => (
+                                    <div key={index}>
+                                        <div className={`text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-black ${stat.color} dark:${stat.color.replace('600', '400')} mb-0.5 sm:mb-1 md:mb-2`}>
+                                            {stat.value}
+                                        </div>
+                                        <div className="text-xs sm:text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                            {stat.label}
+                                        </div>
+                                    </div>
                                 ))}
-                            </div>
-
-                            <div className="text-center mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
-                                <a
-                                    href="/all-tools"
-                                    className="inline-flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all text-sm md:text-base"
-                                >
-                                    <Search className="w-4 h-4 md:w-5 md:h-5" />
-                                    View All Tools
-                                    <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
-                                </a>
-                            </div>
-                        </div>
-
-                        {/* Stats Footer */}
-                        <div className="mt-8 md:mt-12 pt-4 md:pt-8 border-t border-gray-200 dark:border-gray-800">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 lg:gap-6 text-center">
-                                <div>
-                                    <div className="text-lg md:text-2xl lg:text-3xl font-black text-orange-600 dark:text-orange-400 mb-1 md:mb-2">
-                                        {files.length}
-                                    </div>
-                                    <div className="text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium">
-                                        Images Uploaded
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-lg md:text-2xl lg:text-3xl font-black text-pink-600 dark:text-pink-400 mb-1 md:mb-2">
-                                        {formatFileSize(totalSize)}
-                                    </div>
-                                    <div className="text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium">
-                                        Total Size
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-lg md:text-2xl lg:text-3xl font-black text-blue-600 dark:text-blue-400 mb-1 md:mb-2">
-                                        {quality}%
-                                    </div>
-                                    <div className="text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium">
-                                        Quality Setting
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-lg md:text-2xl lg:text-3xl font-black text-green-600 dark:text-green-400 mb-1 md:mb-2">
-                                        {compressedBlobs.length > 0 ? '✓' : '—'}
-                                    </div>
-                                    <div className="text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium">
-                                        Compressed
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </motion.div>

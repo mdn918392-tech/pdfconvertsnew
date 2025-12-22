@@ -20,8 +20,6 @@ import {
   Clock,
   Shield,
   X,
-  Maximize2,
-  Minimize2,
   ZoomIn,
   ZoomOut,
   Loader2,
@@ -34,260 +32,13 @@ import {
   Rotate3D,
   Trash2,
   Split,
-  Smartphone,
-  Users,
-  Server,
-  Cloud,
-  Lock,
-  Cpu,
-  Battery,
-  Wifi,
-  Upload,
-  Share2,
-  Copy,
-  Scissors,
-  Type,
-  PaintBucket,
-  PenTool,
-  Crop,
-  Filter,
-  Layers as LayersIcon,
-  BookOpen,
-  Printer,
-  Mail,
-  MessageSquare,
-  Heart,
-  Star,
-  ThumbsUp,
-  Award,
-  Target,
-  TrendingUp,
-  HelpCircle,
-  Info,
-  AlertCircle,
-  Bell,
-  Search,
-  Menu,
-  MoreVertical,
-  Plus,
-  Minus,
-  Sliders,
-  ToggleLeft,
-  ToggleRight,
-  Sun,
-  Moon,
-  Volume2,
-  Video,
-  Music,
-  Camera,
-  Mic,
-  Headphones,
-  Gift,
-  Coffee,
-  Rocket,
-  Plane,
-  Car,
-  Bike,
-  Home,
-  Building,
-  MapPin,
-  Navigation,
-  Compass,
-  Globe2,
-  CloudRain,
-  CloudSnow,
-  Wind,
-  Thermometer,
-  Umbrella,
-  Droplets,
-  TreePine,
-  Mountain,
-  Flower2,
-  Leaf,
-  Bug,
-  Cat,
-  Dog,
-  Fish,
-  Bird,
-  Rabbit,
-  Turtle,
-  Octagon,
-  Hexagon,
-  Circle,
-  Square,
-  Triangle,
-  Pentagon,
-  AlertTriangle,
-  XCircle,
-  XOctagon,
-  XSquare,
-  CheckSquare,
-  CheckCircle2,
-  CircleCheck,
-  CircleX,
-  SquareCheck,
-  SquareX,
-  Ban,
-  StopCircle,
-  PauseCircle,
-  PlayCircle,
-  SkipBack,
-  SkipForward,
-  Rewind,
-  FastForward,
-  Play,
-  Pause,
-  Repeat,
-  Shuffle,
-  Volume,
-  VolumeX,
-  MicOff,
-  VideoOff,
-  CameraOff,
-  Phone,
-  PhoneOff,
-  PhoneCall,
-  PhoneForwarded,
-  PhoneIncoming,
-  PhoneOutgoing,
-  PhoneMissed,
-  Voicemail,
-  MessageCircle,
-  MessageSquareDashed,
-  MessageSquarePlus,
-  Send,
-  MailPlus,
-  MailOpen,
-  Inbox,
-  Archive,
-  ArchiveX,
-  Bookmark,
-  BookmarkPlus,
-  BookmarkMinus,
-  Tag,
-  Tags,
-  Hash,
-  AtSign,
-  Percent,
-  DollarSign,
-  Euro,
-  PoundSterling,
-  Bitcoin,
-  CreditCard,
-  Wallet,
-  Receipt,
-  Package,
-  ShoppingCart,
-  ShoppingBag,
-  Store,
-  Truck,
-  Factory,
-  Banknote,
-  Coins,
-  Gem,
-  Crown,
-  Trophy,
-  Medal,
-  Flag,
-  Map,
-  MapPinOff,
-  Navigation2,
-  Globe2 as Globe2Icon,
-  CloudOff,
-  CloudDrizzle,
-  CloudLightning,
-  CloudFog,
-  Sunrise,
-  Sunset,
-  MoonStar,
-  StarHalf,
-  ZapOff,
-  ThermometerSun,
-  ThermometerSnowflake,
-  UmbrellaOff,
-  Droplet,
-  DropletOff,
-  Waves,
-  Flame,
-  Snowflake,
-  CloudSun,
-  CloudMoon,
-  CloudSunRain,
-  CloudMoonRain,
-  CloudHail,
-  CloudRainWind,
-  ShieldCheck,
-  ShieldAlert,
-  ShieldOff,
-  ShieldQuestion,
-  ShieldX,
-  LockKeyhole,
-  LockOpen,
-  Key,
-  KeyRound,
-  KeySquare,
-  Fingerprint,
-  EyeOff,
-  QrCode,
-  Scan,
-  ScanFace,
-  ScanLine,
-  ScanText,
-  Barcode,
-  Radio,
-  RadioTower,
-  Satellite,
-  SatelliteDish,
-  Router,
-  WifiOff,
-  Bluetooth,
-  BluetoothConnected,
-  BluetoothOff,
-  Cpu as CpuIcon,
-  MemoryStick,
-  HardDrive,
-  HardDriveDownload,
-  HardDriveUpload,
-  Database,
-  DatabaseBackup,
-  ServerCog, 
-  ServerCrash,
-  ServerOff,
-  Terminal,
-  TerminalSquare,
-  Code,
-  Code2,
-  Brackets,
-  Braces,
-  Parentheses,
-  Variable,
-  Sigma,
-  Infinity,
-  Pi,
-  Copyright,
-  Asterisk,
-  Pilcrow,
-  Section,
-  List,
-  ListChecks,
-  ListOrdered,
-  ListTodo,
-  ListX,
-  ListMinus,
-  ListPlus,
-  ListRestart,
-  ListEnd,
-  ListStart,
-  ListTree,
-  ListFilter,
-  ListCollapse,
-  ListVideo,
-  ListMusic
+  Smartphone
 } from "lucide-react";
+
 import FileUploader from "@/app/components/FileUploader";
 import ProgressBar from "@/app/components/ProgressBar";
 import { downloadFile } from "../../utils/imageUtils";
-import { PDFDocument, PDFPage, PDFImage } from "pdf-lib";
+import { PDFDocument } from "pdf-lib";
 
 // Import pdfjs-dist with proper configuration
 import * as pdfjsLib from "pdfjs-dist";
@@ -301,12 +52,6 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   }
 }
 
-// Type declaration for pdf-lib with compress option
-declare module "pdf-lib" {
-  interface SaveOptions {
-    compress?: boolean;
-  }
-}
 // Page Info
 type PageData = {
     pageNumber: number;
@@ -556,7 +301,7 @@ const PdfPageRenderer = ({
   );
 };
 
-// --- ZOOM MODAL COMPONENT - IMPROVED FOR DESKTOP SCROLLING ---
+// --- SIMPLE ZOOM MODAL WITHOUT SCROLLING ---
 interface ZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -567,17 +312,9 @@ interface ZoomModalProps {
 
 const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModalProps) => {
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [pageImage, setPageImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const isMounted = useRef(true);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [startY, setStartY] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [scrollTop, setScrollTop] = useState(0);
 
   useEffect(() => {
     isMounted.current = true;
@@ -588,6 +325,7 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       try {
         setLoading(true);
         
+        // Convert base64 back to Uint8Array
         const binaryString = atob(pdfData.base64);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -598,23 +336,31 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(pageNumber);
         
-        const baseScale = 2;
-        const scale = baseScale * zoomLevel;
-        const viewport = page.getViewport({ scale });
+        // High quality rendering (3x scale for crisp zoom)
+        const viewport = page.getViewport({ 
+          scale: 3.0 // High scale for excellent quality
+        });
         
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
         
         if (!context) return;
         
+        // Set canvas size
         canvas.height = viewport.height;
         canvas.width = viewport.width;
         
+        // Set high quality rendering
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        
         await page.render({
           canvasContext: context,
-          viewport: viewport
+          viewport: viewport,
+          intent: 'print' // High quality rendering
         }).promise;
         
+        // Get image at maximum quality (1.0)
         const imageUrl = canvas.toDataURL("image/png", 1.0);
         
         if (isMounted.current) {
@@ -637,91 +383,42 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
     return () => {
       isMounted.current = false;
     };
-  }, [isOpen, pdfData, pageNumber, zoomLevel]);
+  }, [isOpen, pdfData, pageNumber]);
 
-  // Mouse event handlers for dragging
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!containerRef.current) return;
-    e.preventDefault();
-    setIsDragging(true);
-    setStartX(e.pageX - containerRef.current.offsetLeft);
-    setStartY(e.pageY - containerRef.current.offsetTop);
-    setScrollLeft(containerRef.current.scrollLeft);
-    setScrollTop(containerRef.current.scrollTop);
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grabbing';
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !containerRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - containerRef.current.offsetLeft;
-    const y = e.pageY - containerRef.current.offsetTop;
-    const walkX = (x - startX) * 2;
-    const walkY = (y - startY) * 2;
-    containerRef.current.scrollLeft = scrollLeft - walkX;
-    containerRef.current.scrollTop = scrollTop - walkY;
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grab';
-    }
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      if (e.deltaY < 0) {
-        handleZoomIn();
-      } else {
-        handleZoomOut();
-      }
-    }
-  };
-
+  // Zoom levels (50% to 200%)
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.5, 5));
+    setZoomLevel(prev => Math.min(prev + 0.1, 2.0)); // Max 200%
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.5, 0.5));
-  };
-
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+    setZoomLevel(prev => Math.max(prev - 0.1, 0.5)); // Min 50%
   };
 
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClose();
-    setZoomLevel(1);
-    setIsFullscreen(false);
+    setZoomLevel(1); // Reset zoom on close
   };
 
-  // Touch event handlers for mobile
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!containerRef.current) return;
-    const touch = e.touches[0];
-    setStartX(touch.pageX - containerRef.current.offsetLeft);
-    setStartY(touch.pageY - containerRef.current.offsetTop);
-    setScrollLeft(containerRef.current.scrollLeft);
-    setScrollTop(containerRef.current.scrollTop);
-  };
+  // Prevent scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isOpen]);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!containerRef.current) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const x = touch.pageX - containerRef.current.offsetLeft;
-    const y = touch.pageY - containerRef.current.offsetTop;
-    const walkX = (x - startX) * 2;
-    const walkY = (y - startY) * 2;
-    containerRef.current.scrollLeft = scrollLeft - walkX;
-    containerRef.current.scrollTop = scrollTop - walkY;
-  };
+  // Reset zoom on close
+  useEffect(() => {
+    if (!isOpen) {
+      setZoomLevel(1);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -730,19 +427,19 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
-        isFullscreen ? 'bg-black' : 'bg-black/95 backdrop-blur-sm'
-      }`}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
       onClick={handleClose}
     >
+      {/* Close button */}
       <button
         onClick={handleClose}
-        className="absolute top-4 right-4 z-50 p-3 bg-black/80 rounded-full hover:bg-black transition-colors shadow-lg"
+        className="absolute top-6 right-6 z-50 p-3 bg-black/80 hover:bg-black/90 rounded-full transition-colors shadow-lg"
       >
         <X className="w-6 h-6 text-white" />
       </button>
       
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm z-50 shadow-lg">
+      {/* Zoom controls */}
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-black/80 rounded-full px-6 py-3 z-50 shadow-xl">
         <button
           onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}
           className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
@@ -751,79 +448,72 @@ const ZoomModal = ({ isOpen, onClose, pageNumber, pdfData, fileName }: ZoomModal
           <ZoomOut className="w-5 h-5 text-white" />
         </button>
         
-        <span className="text-white text-sm font-medium min-w-[60px] text-center">
-          {Math.round(zoomLevel * 100)}%
-        </span>
+        <div className="flex flex-col items-center min-w-[100px]">
+          <span className="text-white text-lg font-medium">
+            {Math.round(zoomLevel * 100)}%
+          </span>
+          <div className="text-xs text-gray-300 mt-1">
+            Full Quality Image
+          </div>
+        </div>
         
         <button
           onClick={(e) => { e.stopPropagation(); handleZoomIn(); }}
           className="p-2 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
-          disabled={zoomLevel >= 5}
+          disabled={zoomLevel >= 2.0}
         >
           <ZoomIn className="w-5 h-5 text-white" />
         </button>
-        
-        <div className="h-6 w-px bg-white/30 mx-1"></div>
-        
-        <button
-          onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors"
-        >
-          {isFullscreen ? (
-            <Minimize2 className="w-5 h-5 text-white" />
-          ) : (
-            <Maximize2 className="w-5 h-5 text-white" />
-          )}
-        </button>
       </div>
       
-      <div className="absolute top-4 left-4 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg">
+      {/* Page info */}
+      <div className="absolute top-6 left-6 z-50 bg-black/80 rounded-full px-4 py-2">
         <span className="text-white text-sm font-medium">
           Page {pageNumber} • {fileName}
         </span>
       </div>
       
-      {/* Scroll instructions */}
-      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg">
-        <div className="flex items-center gap-2 text-white text-sm">
-          <span>Ctrl+Scroll to zoom • Drag to pan</span>
-        </div>
-      </div>
-      
+      {/* Image container - No scrolling, centered */}
       <motion.div
-        ref={containerRef}
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className={`relative ${isFullscreen ? 'w-full h-full' : 'w-[90vw] h-[80vh]'} overflow-auto`}
+        className="relative w-[90vw] h-[80vh] flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
         {loading ? (
           <div className="flex items-center justify-center w-full h-full">
             <Loader2 className="w-12 h-12 animate-spin text-white" />
+            <span className="ml-3 text-white">Loading full quality image...</span>
           </div>
         ) : pageImage ? (
-          <img
-            ref={imageRef}
-            src={pageImage}
-            alt={`Zoomed view - Page ${pageNumber}`}
-            className={`${isFullscreen ? 'min-w-full min-h-full' : 'min-w-[90vw] min-h-[80vh]'} object-contain transition-transform duration-300`}
-            style={{
-              transform: `scale(${zoomLevel})`,
-              transformOrigin: '0 0'
-            }}
-            draggable="false"
-          />
+          <div className="w-full h-full flex items-center justify-center overflow-hidden">
+            <motion.img
+              src={pageImage}
+              alt={`Zoomed view - Page ${pageNumber}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              style={{
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: 'center',
+                transition: 'transform 0.2s ease-out'
+              }}
+              draggable="false"
+            />
+          </div>
         ) : null}
       </motion.div>
+      
+      {/* Instructions */}
+      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-center">
+        <div className="text-white/80 text-sm bg-black/70 backdrop-blur-sm px-4 py-2 rounded-xl">
+          <div className="flex items-center gap-2">
+            <span>Use buttons to zoom (50%-200%)</span>
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            Click anywhere outside to close
+          </div>
+        </div>
+      </div>
     </motion.div>
   );
 };
@@ -841,32 +531,6 @@ const generatePdfFilename = (originalFilename: string): string => {
     .trim();
   
   return `${cleanName}_modified_${dateStr}_${timeStr}.pdf`;
-};
-
-// PDF Compression Function - FIXED WITH TYPE ASSERTION
-const compressPdf = async (pdfBytes: Uint8Array): Promise<Uint8Array> => {
-  try {
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    
-    // Optimize PDF settings with type assertion
-    const optimizedBytes = await pdfDoc.save({
-      useObjectStreams: true,
-      addDefaultPage: false,
-      updateFieldAppearances: false,
-      compress: true,
-    } as any); // Type assertion to fix TypeScript error
-    
-    // Check if compression actually reduced size
-    if (optimizedBytes.length >= pdfBytes.length) {
-      console.log("Compression didn't reduce size, returning original");
-      return pdfBytes;
-    }
-    
-    return optimizedBytes;
-  } catch (error) {
-    console.warn("PDF compression failed, returning original:", error);
-    return pdfBytes;
-  }
 };
 
 export default function PdfPageRemoverTool() {
@@ -895,7 +559,6 @@ export default function PdfPageRemoverTool() {
     const [downloadProgress, setDownloadProgress] = useState(0);
     const [originalFileSize, setOriginalFileSize] = useState<number>(0);
     const [estimatedFileSize, setEstimatedFileSize] = useState<number>(0);
-    const [optimizing, setOptimizing] = useState(false);
     const [compressionRatio, setCompressionRatio] = useState<number>(0);
 
     // Mobile detection and responsive items per page
@@ -916,7 +579,7 @@ export default function PdfPageRemoverTool() {
         } else if (width < 1024) {
           setItemsPerPage(12); // Tablet: 12 pages
         } else {
-          setItemsPerPage(10); // Desktop/Laptop: 20 pages
+          setItemsPerPage(20); // Desktop/Laptop: 20 pages
         }
       };
       
@@ -1075,101 +738,96 @@ export default function PdfPageRemoverTool() {
         setTimeout(() => setDownloadSuccess(null), 2000);
     };
 
-    // Download PDF with selected pages - WITH COMPRESSION FIXED
-    const handleDownloadModifiedPdf = async () => {
-        if (!pdfData || pageData.length === 0) {
-            alert("PDF not available.");
-            return;
-        }
+    // Download PDF with selected pages
+  const handleDownloadModifiedPdf = async () => {
+    if (!pdfData || pageData.length === 0) {
+        alert("PDF not available.");
+        return;
+    }
 
-        if (selectedPagesCount === 0) {
-            setDownloadSuccess("✗ Please select at least one page to keep");
-            setTimeout(() => setDownloadSuccess(null), 3000);
-            return;
-        }
+    if (selectedPagesCount === 0) {
+        setDownloadSuccess("✗ Please select at least one page to keep");
+        setTimeout(() => setDownloadSuccess(null), 3000);
+        return;
+    }
 
-        setDownloadingAll(true);
-        setDownloadProgress(0);
-        setOptimizing(false);
+    setDownloadingAll(true);
+    setDownloadProgress(0);
 
-        try {
-          setDownloadProgress(10);
+    try {
+      setDownloadProgress(10);
+      
+      const binaryString = atob(pdfData.base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      setDownloadProgress(30);
+      const pdfDoc = await PDFDocument.load(bytes);
+      const newPdf = await PDFDocument.create();
+
+      const selectedPageIndices = pageData
+          .filter(page => page.isSelected)
+          .map(page => page.pageNumber - 1);
+
+      setDownloadProgress(30);
+      for (let i = 0; i < selectedPageIndices.length; i++) {
+          const pageIndex = selectedPageIndices[i];
+          const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageIndex]);
+          newPdf.addPage(copiedPage);
           
-          const binaryString = atob(pdfData.base64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
+          const progress = 30 + Math.round(((i + 1) / selectedPageIndices.length) * 40);
+          setDownloadProgress(progress);
+          
+          if (selectedPagesCount > 10) {
+            await new Promise(resolve => setTimeout(resolve, 10));
           }
+      }
 
-          setDownloadProgress(10);
-          const pdfDoc = await PDFDocument.load(bytes);
-          const newPdf = await PDFDocument.create();
+      setDownloadProgress(80);
+      
+      // Save with compression
+      const pdfBytes = await newPdf.save({
+        useObjectStreams: true,
+        addDefaultPage: false,
+        updateFieldAppearances: false,
+      });
 
-          const selectedPageIndices = pageData
-              .filter(page => page.isSelected)
-              .map(page => page.pageNumber - 1);
+      setDownloadProgress(90);
+      // FIXED SECTION START
+      const uint8Array = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
+      
+      // Use "as any" to bypass the SharedArrayBuffer vs BlobPart type conflict
+      const blob = new Blob([uint8Array as any], {
+        type: "application/pdf",
+      });
+      // FIXED SECTION END
 
-          setDownloadProgress(30);
-          for (let i = 0; i < selectedPageIndices.length; i++) {
-              const pageIndex = selectedPageIndices[i];
-              const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageIndex]);
-              newPdf.addPage(copiedPage);
-              
-              const progress = 30 + Math.round(((i + 1) / selectedPageIndices.length) * 40);
-              setDownloadProgress(progress);
-              
-              if (selectedPagesCount > 10) {
-                await new Promise(resolve => setTimeout(resolve, 10));
-              }
-          }
+      setDownloadProgress(95);
+      const fileName = generatePdfFilename(files[0].name);
+      downloadFile(blob, fileName);
 
-          setOptimizing(true);
-          setDownloadProgress(80);
-          
-          // First save without compression
-          const pdfBytes = await newPdf.save({
-            useObjectStreams: true,
-            addDefaultPage: false,
-            updateFieldAppearances: false,
-          });
+      // Calculate actual size reduction
+      const originalSizeMB = (pdfData.fileSize / (1024 * 1024)).toFixed(2);
+      const newSizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+      const reduction = Math.round((1 - (blob.size / pdfData.fileSize)) * 100);
 
-          // Apply compression
-          setDownloadProgress(90);
-          const compressedBytes = await compressPdf(
-            pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes)
-          );
+      // Update compression ratio
+      setCompressionRatio(reduction);
+      
+      setDownloadSuccess(`✓ Downloaded! ${originalSizeMB}MB → ${newSizeMB}MB (${reduction}% smaller)`);
+      setTimeout(() => setDownloadSuccess(null), 5000);
 
-   // Convert to ArrayBuffer for Blob
-const buffer = new Uint8Array(compressedBytes).buffer;
-const blob = new Blob([buffer], {
-  type: "application/pdf",
-});
-
-          setDownloadProgress(95);
-          const fileName = generatePdfFilename(files[0].name);
-          downloadFile(blob, fileName);
-
-          // Calculate actual size reduction
-          const originalSizeMB = (pdfData.fileSize / (1024 * 1024)).toFixed(2);
-          const newSizeMB = (blob.size / (1024 * 1024)).toFixed(2);
-          const reduction = Math.round((1 - (blob.size / pdfData.fileSize)) * 100);
-
-          // Update compression ratio
-          setCompressionRatio(reduction);
-          
-          setDownloadSuccess(`✓ Downloaded! ${originalSizeMB}MB → ${newSizeMB}MB (${reduction}% smaller)`);
-          setTimeout(() => setDownloadSuccess(null), 5000);
-
-        } catch (error) {
-          console.error("Error downloading modified PDF:", error);
-          setDownloadSuccess("✗ Failed to generate PDF. Please try again.");
-          setTimeout(() => setDownloadSuccess(null), 3000);
-        } finally {
-          setDownloadingAll(false);
-          setDownloadProgress(0);
-          setOptimizing(false);
-        }
-    };
+    } catch (error) {
+      console.error("Error downloading modified PDF:", error);
+      setDownloadSuccess("✗ Failed to generate PDF. Please try again.");
+      setTimeout(() => setDownloadSuccess(null), 3000);
+    } finally {
+      setDownloadingAll(false);
+      setDownloadProgress(0);
+    }
+};
 
     // Download individual page as PDF
     const handleDownloadPage = async (pageIndex: number) => {
@@ -1197,13 +855,9 @@ const blob = new Blob([buffer], {
             const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageIndex]);
             newPdf.addPage(copiedPage);
 
-            // Apply compression to single page
-            const pdfBytes = await newPdf.save({
-              useObjectStreams: true,
-              compress: true,
-            } as any); // Type assertion to fix TypeScript error
-
-            const blob = new Blob([new Uint8Array(pdfBytes)], {
+            const pdfBytes = await newPdf.save();
+            const uint8Array = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
+            const blob = new Blob([uint8Array as any], {
                 type: "application/pdf",
             });
 
@@ -1296,291 +950,149 @@ const blob = new Blob([buffer], {
     // Items per page options - responsive
     const itemsPerPageOptions = isMobile ? [8, 12, 16] : 
                                isTablet ? [12, 16, 20] : 
-                               [10, 20, 30];
-
-    // Function to render pagination buttons with better UX
-    const renderPaginationButtons = () => {
-        const buttons = [];
-        const maxVisibleButtons = isMobile ? 3 : 5;
-        
-        let startPage = 1;
-        let endPage = totalPages;
-        
-        if (totalPages > maxVisibleButtons) {
-            if (currentPage <= Math.ceil(maxVisibleButtons / 2)) {
-                startPage = 1;
-                endPage = maxVisibleButtons;
-            } else if (currentPage >= totalPages - Math.floor(maxVisibleButtons / 2)) {
-                startPage = totalPages - maxVisibleButtons + 1;
-                endPage = totalPages;
-            } else {
-                startPage = currentPage - Math.floor(maxVisibleButtons / 2);
-                endPage = currentPage + Math.floor(maxVisibleButtons / 2);
-            }
-        }
-
-        
-        
-        // Previous button
-        buttons.push(
-            <button
-                key="prev"
-                onClick={prevPage}
-                disabled={currentPage === 1}
-                className="px-3 py-2 md:px-4 md:py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-base flex items-center gap-1"
-            >
-                <ChevronLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Prev</span>
-            </button>
-        );
-        
-        // First page button (if needed)
-        if (startPage > 1) {
-            buttons.push(
-                <button
-                    key={1}
-                    onClick={() => goToPage(1)}
-                    className={`px-3 py-2 md:px-4 md:py-2.5 rounded-xl font-bold transition-colors text-base ${
-                        currentPage === 1
-                            ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white'
-                            : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                >
-                    1
-                </button>
-            );
-            
-            if (startPage > 2) {
-                buttons.push(
-                    <span key="ellipsis-start" className="px-2 text-gray-500 dark:text-gray-400">
-                        ...
-                    </span>
-                );
-            }
-        }
-        
-        // Page number buttons
-        for (let i = startPage; i <= endPage; i++) {
-            buttons.push(
-                <button
-                    key={i}
-                    onClick={() => goToPage(i)}
-                    className={`px-3 py-2 md:px-4 md:py-2.5 rounded-xl font-bold transition-colors text-base min-w-[40px] ${
-                        currentPage === i
-                            ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white'
-                            : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                >
-                    {i}
-                </button>
-            );
-        }
-        
-        // Last page button (if needed)
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                buttons.push(
-                    <span key="ellipsis-end" className="px-2 text-gray-500 dark:text-gray-400">
-                        ...
-                    </span>
-                );
-            }
-            
-            buttons.push(
-                <button
-                    key={totalPages}
-                    onClick={() => goToPage(totalPages)}
-                    className={`px-3 py-2 md:px-4 md:py-2.5 rounded-xl font-bold transition-colors text-base ${
-                        currentPage === totalPages
-                            ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white'
-                            : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                >
-                    {totalPages}
-                </button>
-            );
-        }
-        
-        // Next button
-        buttons.push(
-            <button
-                key="next"
-                onClick={nextPage}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 md:px-4 md:py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-base flex items-center gap-1"
-            >
-                <span className="hidden sm:inline">Next</span>
-                <ChevronRightIcon className="w-4 h-4" />
-            </button>
-        );
-        
-        return buttons;
-    };
+                               [20, 30, 40];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-red-950/20 py-8 md:py-12 lg:py-16">
-            <div className="container mx-auto px-4 md:px-6 max-w-7xl">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-red-950/20 py-4 sm:py-8 md:py-12">
+            <div className="container mx-auto px-3 sm:px-4 max-w-6xl">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    {/* Success Message Overlay */}
+                    {/* Success Message Overlay - Mobile friendly */}
                     <AnimatePresence>
                         {downloadSuccess && (
                             <motion.div
                                 initial={{ opacity: 0, y: -50 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -50 }}
-                                className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
+                                className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
                             >
-                                <div className={`p-4 md:p-5 rounded-2xl shadow-2xl backdrop-blur-sm ${
+                                <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-2xl backdrop-blur-sm ${
                                     downloadSuccess.startsWith("✓") 
                                         ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" 
                                         : "bg-gradient-to-r from-red-500 to-orange-600 text-white"
                                 }`}>
-                                    <div className="flex items-center justify-center gap-3">
+                                    <div className="flex items-center justify-center gap-2 sm:gap-3">
                                         {downloadSuccess.startsWith("✓") ? (
-                                            <CheckCircle className="w-5 h-5 md:w-6 md:h-6" />
+                                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                                         ) : (
-                                            <X className="w-5 h-5 md:w-6 md:h-6" />
+                                            <X className="w-4 h-4 sm:w-5 sm:h-5" />
                                         )}
-                                        <span className="font-bold text-base md:text-lg">{downloadSuccess}</span>
+                                        <span className="font-medium text-sm sm:text-base">{downloadSuccess}</span>
                                     </div>
                                 </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    {/* Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 md:mb-12">
+                    {/* Header - Responsive */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
                         <a
                             href="/"
-                            className="inline-flex items-center gap-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium group"
+                            className="inline-flex items-center gap-2 sm:gap-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium"
                         >
-                            <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 group-hover:-translate-x-1 transition-transform" />
-                            <span className="text-base md:text-lg font-medium">Back to Tools</span>
+                            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
+                            <span className="text-sm sm:text-base">Back to Tools</span>
                         </a>
                         
-                        <div className="flex items-center gap-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-gray-800 dark:to-purple-950/30 px-4 py-2 md:px-5 md:py-2.5 rounded-full mt-2 md:mt-0">
-                            <Shield className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm md:text-base text-blue-700 dark:text-blue-300 font-medium">
-                                Secure & Private • No Uploads
+                        <div className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-gray-800 dark:to-purple-950/30 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full mt-2 md:mt-0">
+                            <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+                            <span className="text-xs sm:text-sm text-blue-700 dark:text-blue-300 font-medium">
+                                Secure & Private
                             </span>
                         </div>
                     </div>
 
-                    {/* Hero Section */}
-                    <div className="text-center mb-10 md:mb-14 lg:mb-16">
+                    {/* Hero Section - Responsive */}
+                    <div className="text-center mb-8 sm:mb-10 md:mb-12">
                         <motion.div 
                             initial={{ scale: 0.5 }}
                             animate={{ scale: 1 }}
-                            className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 bg-gradient-to-br from-red-500 to-orange-600 rounded-3xl md:rounded-[2rem] mb-6 md:mb-8 shadow-2xl"
+                            className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-500 to-orange-600 rounded-2xl sm:rounded-3xl mb-4 sm:mb-6 shadow-xl sm:shadow-2xl"
                         >
-                            <Trash2 className="w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 text-white" />
+                            <Trash2 className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                         </motion.div>
                         
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white mb-4 md:mb-6 bg-gradient-to-r from-red-600 via-orange-600 to-red-600 bg-clip-text text-transparent px-2">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-red-600 via-orange-600 to-red-600 bg-clip-text text-transparent px-2">
                             PDF Page Remover
                         </h1>
                         
-                        <p className="text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-400 max-w-4xl mx-auto leading-relaxed px-4">
+                        <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
                             Remove unwanted pages from your PDF documents instantly.
-                            <span className="block text-red-600 dark:text-red-400 font-bold mt-3 md:mt-4 text-xl md:text-2xl">
+                            <span className="block text-red-600 dark:text-red-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
                                 Select which pages to keep and download a clean PDF!
                             </span>
                         </p>
                     </div>
 
-                    {/* Main Card */}
-                    <div className="bg-white dark:bg-gray-900 rounded-3xl md:rounded-[2rem] border-2 border-gray-200 dark:border-gray-800 shadow-2xl p-5 md:p-8 lg:p-10 mb-10 md:mb-14">
+                    {/* Main Card - Responsive */}
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-xl sm:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 sm:mb-8">
                         {/* Upload Section */}
-                        <div className="mb-10 md:mb-14">
-                            <div className="flex items-center gap-4 md:gap-6 mb-6 md:mb-8">
-                                <div className="p-3 md:p-4 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 rounded-2xl">
-                                    <FolderOpen className="w-7 h-7 md:w-9 md:h-9 text-red-600 dark:text-red-400" />
+                        <div className="mb-6 sm:mb-8">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                                <div className="p-1.5 sm:p-2 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 rounded-lg sm:rounded-xl">
+                                    <FolderOpen className="w-4 h-4 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
-                                        Upload Your PDF
+                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                                        Upload PDF
                                     </h2>
-                                    <p className="text-base md:text-lg lg:text-xl text-gray-500 dark:text-gray-400 mt-1">
+                                    <p className="text-xs sm:text-sm md:text-base text-gray-500 dark:text-gray-400">
                                         Select your PDF file (auto-processed after upload)
                                     </p>
                                 </div>
                             </div>
 
-                            {/* Upload Area with file name display */}
-                            <div className="mb-6 md:mb-8">
-                                <FileUploader
-                                    accept="application/pdf"
-                                    multiple={false}
-                                    onFilesSelected={handleFilesSelected}
-                                />
+                            <FileUploader
+                                accept="application/pdf"
+                                multiple={false}
+                                onFilesSelected={handleFilesSelected}
+                            />
 
-                                {files.length > 0 && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="mt-4 p-4 md:p-5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-2xl border border-green-200 dark:border-green-800/50"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <File className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300 truncate">
-                                                    {files[0].name}
-                                                </p>
-                                                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                                    {(files[0].size / (1024 * 1024)).toFixed(2)} MB • Processing...
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </div>
-
-                            {/* Features Grid */}
+                            {/* Features Grid - Responsive */}
                             <AnimatePresence>
                                 {showUploadInfo && (
                                     <motion.div
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6"
+                                        className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4"
                                     >
-                                        <div className="p-5 md:p-7 lg:p-8 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 rounded-2xl md:rounded-3xl border border-red-200 dark:border-red-800/50">
-                                            <div className="flex items-center gap-4 md:gap-5 mb-4">
-                                                <Trash2 className="w-7 h-7 md:w-9 md:h-9 text-red-600 dark:text-red-400" />
-                                                <span className="text-xl md:text-2xl font-bold text-red-800 dark:text-red-300">
+                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-red-200 dark:border-red-800/50">
+                                            <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+                                                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-red-600 dark:text-red-400" />
+                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-red-800 dark:text-red-300">
                                                     Remove Pages
                                                 </span>
                                             </div>
-                                            <p className="text-base md:text-lg text-red-700/80 dark:text-red-400/80">
-                                                Select and remove specific pages from your PDF document
+                                            <p className="text-xs text-red-700/80 dark:text-red-400/80 mt-1 sm:mt-2">
+                                                Select and remove specific pages from PDF
                                             </p>
                                         </div>
-
-                                        <div className="p-5 md:p-7 lg:p-8 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 rounded-2xl md:rounded-3xl border border-orange-200 dark:border-orange-800/50">
-                                            <div className="flex items-center gap-4 md:gap-5 mb-4">
-                                                <Grid3x3 className="w-7 h-7 md:w-9 md:h-9 text-orange-600 dark:text-orange-400" />
-                                                <span className="text-xl md:text-2xl font-bold text-orange-800 dark:text-orange-300">
-                                                    Smart Compression
+                                        
+                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-orange-200 dark:border-orange-800/50">
+                                            <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+                                                <Grid3x3 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-400" />
+                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-orange-800 dark:text-orange-300">
+                                                    Smart Preview
                                                 </span>
                                             </div>
-                                            <p className="text-base md:text-lg text-orange-700/80 dark:text-orange-400/80">
-                                                Up to {compressionRatio}% size reduction with intelligent optimization
+                                            <p className="text-xs text-orange-700/80 dark:text-orange-400/80 mt-1 sm:mt-2">
+                                                Click any page to zoom in full quality
                                             </p>
                                         </div>
-
-                                        <div className="p-5 md:p-7 lg:p-8 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-900/20 rounded-2xl md:rounded-3xl border border-green-200 dark:border-green-800/50">
-                                            <div className="flex items-center gap-4 md:gap-5 mb-4">
-                                                <Clock className="w-7 h-7 md:w-9 md:h-9 text-green-600 dark:text-green-400" />
-                                                <span className="text-xl md:text-2xl font-bold text-green-800 dark:text-green-300">
-                                                    Instant Processing
+                                        
+                                        <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-900/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-green-200 dark:border-green-800/50">
+                                            <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+                                                <Clock className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
+                                                <span className="text-xs sm:text-sm md:text-base font-semibold text-green-800 dark:text-green-300">
+                                                    Auto Processing
                                                 </span>
                                             </div>
-                                            <p className="text-base md:text-lg text-green-700/80 dark:text-green-400/80">
-                                                Automatically loads after upload with preview
+                                            <p className="text-xs text-green-700/80 dark:text-green-400/80 mt-1 sm:mt-2">
+                                                Automatically loads after upload
                                             </p>
                                         </div>
                                     </motion.div>
@@ -1590,52 +1102,7 @@ const blob = new Blob([buffer], {
 
                         {/* Content Area */}
                         {files.length > 0 && (
-                            <div className="space-y-6 md:space-y-10">
-                                {/* File Size Info */}
-                                {originalFileSize > 0 && (
-                                    <div className="p-5 md:p-6 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-2xl border-2 border-blue-200 dark:border-blue-800/30">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <File className="w-6 h-6 text-blue-600" />
-                                                <div>
-                                                    <span className="text-lg font-bold text-blue-700 dark:text-blue-300">
-                                                        File Size Analysis
-                                                    </span>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                        See how much space you'll save
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4 md:gap-6">
-                                                <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-xl">
-                                                    <div className="text-sm text-gray-500 dark:text-gray-400">Original</div>
-                                                    <div className="text-lg font-bold text-gray-700 dark:text-gray-300">
-                                                        {(originalFileSize / (1024 * 1024)).toFixed(2)} MB
-                                                    </div>
-                                                </div>
-                                                <div className="text-center p-3 bg-green-50 dark:bg-green-950/30 rounded-xl">
-                                                    <div className="text-sm text-gray-500 dark:text-gray-400">Estimated</div>
-                                                    <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                                                        {(estimatedFileSize / (1024 * 1024)).toFixed(2)} MB
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="mt-4">
-                                            <div className="flex justify-between text-base text-gray-600 dark:text-gray-400 mb-2">
-                                                <span className="font-medium">Expected reduction:</span>
-                                                <span className="font-bold text-red-600 dark:text-red-400">{compressionRatio}% smaller</span>
-                                            </div>
-                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                                                <div 
-                                                    className="h-3 rounded-full bg-gradient-to-r from-blue-500 via-green-500 to-red-500"
-                                                    style={{ width: `${100 - compressionRatio}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
+                            <div className="space-y-4 sm:space-y-6 md:space-y-8">
                                 {/* Processing State */}
                                 <AnimatePresence mode="wait">
                                     {processing && !processed && (
@@ -1644,13 +1111,13 @@ const blob = new Blob([buffer], {
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: -20 }}
-                                            className="space-y-6 md:space-y-8"
+                                            className="space-y-3 sm:space-y-4"
                                         >
-                                            <div className="text-center p-8 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-2xl border border-red-200 dark:border-red-800/30">
-                                                <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                                                    Loading PDF Document 📄
+                                            <div className="text-center">
+                                                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
+                                                    Loading PDF 📄
                                                 </h3>
-                                                <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400">
+                                                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400">
                                                     Processing {pageData.length} pages...
                                                 </p>
                                             </div>
@@ -1667,9 +1134,9 @@ const blob = new Blob([buffer], {
                                             />
                                             
                                             <div className="flex justify-center">
-                                                <div className="inline-flex items-center gap-3 px-6 py-3 bg-red-50 dark:bg-red-950/30 rounded-full">
-                                                    <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-red-600 dark:text-red-400 animate-pulse" />
-                                                    <span className="text-base md:text-lg text-red-700 dark:text-red-300 font-medium">
+                                                <div className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 bg-red-50 dark:bg-red-950/30 rounded-full">
+                                                    <Sparkles className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 text-red-600 dark:text-red-400 animate-pulse" />
+                                                    <span className="text-xs sm:text-sm md:text-base text-red-700 dark:text-red-300">
                                                         Preparing page selection editor
                                                     </span>
                                                 </div>
@@ -1683,114 +1150,133 @@ const blob = new Blob([buffer], {
                                             key="results"
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            className="space-y-8 md:space-y-12"
+                                            className="space-y-4 sm:space-y-6 md:space-y-8"
                                         >
-                                            {/* Selection Summary Banner */}
-                                            <div className="p-6 md:p-8 lg:p-10 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-2xl md:rounded-3xl border-2 border-green-200 dark:border-green-800/50">
-                                                <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
-                                                    <div className="flex items-center justify-center md:justify-start">
-                                                        <div className="p-3 md:p-4 bg-green-100 dark:bg-green-900/50 rounded-2xl">
-                                                            <CheckCircle className="w-9 h-9 md:w-12 md:h-12 text-green-600 dark:text-green-400" />
+                                            {/* Success Banner */}
+                                            <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl sm:rounded-2xl border-2 border-green-200 dark:border-green-800/50">
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 md:gap-4">
+                                                    <div className="flex items-center justify-center sm:justify-start">
+                                                        <div className="p-1.5 sm:p-2 md:p-3 bg-green-100 dark:bg-green-900/50 rounded-lg sm:rounded-xl">
+                                                            <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8 text-green-600 dark:text-green-400" />
                                                         </div>
                                                     </div>
-                                                    <div className="flex-1 text-center md:text-left">
-                                                        <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                                                    <div className="flex-1 text-center sm:text-left">
+                                                        <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1">
                                                             PDF Loaded Successfully! 🎉
                                                         </h3>
-                                                        <p className="text-green-700 dark:text-green-300 font-bold text-lg md:text-xl mb-2">
+                                                        <p className="text-green-700 dark:text-green-300 font-medium text-xs sm:text-sm md:text-base">
                                                             {selectedPagesCount} of {pageData.length} pages selected
                                                         </p>
-                                                        {originalFileSize > 0 && (
-                                                            <p className="text-gray-600 dark:text-gray-400 text-base md:text-lg mb-3">
-                                                                • Estimated size: {(estimatedFileSize / (1024 * 1024)).toFixed(2)}MB
-                                                                • {compressionRatio}% size reduction
-                                                            </p>
-                                                        )}
-                                                        <p className="text-gray-600 dark:text-gray-400 text-base">
+                                                        <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-1">
                                                             Click on pages to select/deselect them
                                                         </p>
                                                     </div>
-                                                    <div className="flex items-center justify-center gap-4">
-                                                        <div className="px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl md:rounded-2xl text-lg md:text-xl">
+                                                    <div className="flex items-center justify-center">
+                                                        <div className="px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
                                                             {selectedPagesCount} Kept
-                                                        </div>
-                                                        <div className="px-4 py-2 md:px-6 md:py-3 bg-gradient-to-r from-red-500 to-orange-600 text-white font-bold rounded-xl md:rounded-2xl text-lg md:text-xl">
-                                                            {pageData.length - selectedPagesCount} Removed
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Batch Selection Controls */}
-                                            <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-2xl md:rounded-3xl p-6 md:p-8 border-2 border-red-200 dark:border-red-800/30">
-                                                <h4 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-                                                    <Grid3x3 className="w-7 h-7 md:w-9 md:h-9 text-red-600" />
-                                                    Batch Page Selection
+                                            {/* File Size Info */}
+                                            {originalFileSize > 0 && (
+                                                <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">
+                                                            Original Size:
+                                                        </span>
+                                                        <span className="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-300">
+                                                            {(originalFileSize / (1024 * 1024)).toFixed(2)} MB
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">
+                                                            Estimated New Size:
+                                                        </span>
+                                                        <span className="text-xs sm:text-sm font-bold text-green-600 dark:text-green-400">
+                                                            {(estimatedFileSize / (1024 * 1024)).toFixed(2)} MB
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                                                        <div 
+                                                            className="h-1.5 rounded-full bg-gradient-to-r from-blue-500 via-green-500 to-red-500"
+                                                            style={{ width: `${100 - compressionRatio}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                                        Expected reduction: {compressionRatio}%
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Batch Selection Controls - Responsive */}
+                                            <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-red-200 dark:border-red-800/30">
+                                                <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2">
+                                                    <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                                                    Batch Selection
                                                 </h4>
                                                 
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
                                                     <button
                                                         onClick={selectAllPages}
                                                         disabled={processing}
-                                                        className="py-3 px-4 md:py-4 md:px-6 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-base md:text-lg"
+                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                                                     >
-                                                        <Check className="w-4 h-4 md:w-5 md:h-5" />
-                                                        <span>Select All</span>
+                                                        <Check className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                        <span className="truncate">Select All</span>
                                                     </button>
                                                     <button
                                                         onClick={removeAllPages}
                                                         disabled={processing}
-                                                        className="py-3 px-4 md:py-4 md:px-6 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-base md:text-lg"
+                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                                                     >
-                                                        <X className="w-4 h-4 md:w-5 md:h-5" />
-                                                        <span>Remove All</span>
+                                                        <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                        <span className="truncate">Remove All</span>
                                                     </button>
                                                     <button
                                                         onClick={selectEvenPages}
                                                         disabled={processing}
-                                                        className="py-3 px-4 md:py-4 md:px-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-base md:text-lg"
+                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                                                     >
-                                                        <span className="text-lg font-bold">2</span>
-                                                        <span>Even Pages</span>
+                                                        <span className="text-sm font-bold">2</span>
+                                                        <span className="truncate">Even Pages</span>
                                                     </button>
                                                     <button
                                                         onClick={selectOddPages}
                                                         disabled={processing}
-                                                        className="py-3 px-4 md:py-4 md:px-6 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 text-base md:text-lg"
+                                                        className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
                                                     >
-                                                        <span className="text-lg font-bold">1</span>
-                                                        <span>Odd Pages</span>
+                                                        <span className="text-sm font-bold">1</span>
+                                                        <span className="truncate">Odd Pages</span>
                                                     </button>
                                                 </div>
                                                 
-                                                <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 text-center">
+                                                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 text-center">
                                                     Quick selection options for {pageData.length} pages
                                                 </p>
                                             </div>
 
-                                            {/* Page Grid - Optimized for many pages */}
-                                            <div id="page-grid">
-                                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-3">
+                                            {/* Pagination Controls - Responsive */}
+                                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
+                                                <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
                                                     <div>
-                                                        <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                                                            <Grid3x3 className="w-7 h-7 md:w-9 md:h-9 text-red-500" />
-                                                            Pages Preview
-                                                        </h3>
-                                                        <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 mt-1">
+                                                        <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
                                                             Showing {startIndex + 1}-{endIndex} of {pageData.length} pages
-                                                            <span className="block md:inline md:ml-2">
-                                                                ({selectedPagesCount} selected • {pageData.length - selectedPagesCount} to remove)
-                                                            </span>
+                                                        </h4>
+                                                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                                            Navigate through pages using pagination
                                                         </p>
                                                     </div>
-                                                    <div className="flex items-center gap-3 mt-2 md:mt-0">
-                                                        <label className="text-base md:text-lg text-gray-700 dark:text-gray-300 font-medium">
-                                                            Pages per view:
+                                                    
+                                                    <div className="flex items-center gap-2 sm:gap-3">
+                                                        <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                                            Items per page:
                                                         </label>
                                                         <select
                                                             value={itemsPerPage}
                                                             onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                                                            className="px-3 py-1.5 md:px-4 md:py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-sm md:text-base"
+                                                            className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm"
                                                         >
                                                             {itemsPerPageOptions.map(option => (
                                                                 <option key={option} value={option}>
@@ -1801,12 +1287,99 @@ const blob = new Blob([buffer], {
                                                     </div>
                                                 </div>
 
+                                                {/* Pagination Buttons */}
+                                                <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
+                                                    <button
+                                                        onClick={prevPage}
+                                                        disabled={currentPage === 1}
+                                                        className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+                                                    >
+                                                        <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                    </button>
+                                                    
+                                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                        let pageNum;
+                                                        if (totalPages <= 5) {
+                                                            pageNum = i + 1;
+                                                        } else if (currentPage <= 3) {
+                                                            pageNum = i + 1;
+                                                        } else if (currentPage >= totalPages - 2) {
+                                                            pageNum = totalPages - 4 + i;
+                                                        } else {
+                                                            pageNum = currentPage - 2 + i;
+                                                        }
+                                                        
+                                                        return (
+                                                            <button
+                                                                key={pageNum}
+                                                                onClick={() => goToPage(pageNum)}
+                                                                className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
+                                                                    currentPage === pageNum
+                                                                        ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white'
+                                                                        : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                                }`}
+                                                            >
+                                                                {pageNum}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                    
+                                                    <button
+                                                        onClick={nextPage}
+                                                        disabled={currentPage === totalPages}
+                                                        className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+                                                    >
+                                                        <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Download Progress */}
+                                            {downloadingAll && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.9 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className="p-3 sm:p-4 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-xl border-2 border-red-200 dark:border-red-800/30"
+                                                >
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-red-700 dark:text-red-300 text-xs sm:text-sm">
+                                                            Downloading {downloadProgress}% complete
+                                                        </span>
+                                                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                            {Math.round(downloadProgress / 100 * selectedPagesCount)} of {selectedPagesCount} pages
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 sm:h-2">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${downloadProgress}%` }}
+                                                            className="h-1.5 sm:h-2 rounded-full bg-gradient-to-r from-red-500 to-orange-600"
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
+                                                        Please wait while modified PDF is being generated...
+                                                    </p>
+                                                </motion.div>
+                                            )}
+
+                                            {/* Page Grid */}
+                                            <div id="page-grid">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 md:mb-6 gap-1 sm:gap-2">
+                                                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-1 sm:gap-2 md:gap-3">
+                                                        <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-500" />
+                                                        Pages (Page {currentPage} of {totalPages})
+                                                    </h3>
+                                                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
+                                                        {isMobile ? "Tap to select/deselect" : "Click to select/deselect"} • Click to zoom
+                                                    </span>
+                                                </div>
+
                                                 <div className={`grid ${
                                                     itemsPerPage <= 8 ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4' :
                                                     itemsPerPage <= 12 ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4' :
                                                     itemsPerPage <= 16 ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5' :
-                                                    'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
-                                                } gap-4 md:gap-5`}>
+                                                    'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                                                } gap-3 sm:gap-4 md:gap-6`}>
                                                     {currentPageData.map((page, index) => {
                                                         const actualIndex = startIndex + index;
                                                         return (
@@ -1815,15 +1388,15 @@ const blob = new Blob([buffer], {
                                                                 initial={{ opacity: 0, scale: 0.9 }}
                                                                 animate={{ opacity: 1, scale: 1 }}
                                                                 transition={{ delay: index * 0.02 }}
-                                                                whileHover={{ y: -4 }}
+                                                                whileHover={{ y: -2 }}
                                                                 className="group"
                                                             >
-                                                                <div className={`bg-gradient-to-br rounded-2xl border-2 p-4 md:p-5 shadow-lg hover:shadow-xl transition-all duration-300 ${
+                                                                <div className={`bg-gradient-to-br rounded-xl sm:rounded-2xl border-2 p-3 sm:p-4 md:p-5 shadow-lg hover:shadow-xl transition-all duration-300 ${
                                                                     page.isSelected
                                                                         ? 'from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border-green-500 dark:border-green-600'
                                                                         : 'from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 border-red-500 dark:border-red-600'
                                                                 }`}>
-                                                                    <div className="flex flex-col items-center text-center space-y-3 md:space-y-4">
+                                                                    <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3 md:space-y-4">
                                                                         <PdfPageRenderer 
                                                                             pageNumber={page.pageNumber}
                                                                             pdfData={pdfData}
@@ -1834,10 +1407,10 @@ const blob = new Blob([buffer], {
                                                                         />
                                                                         
                                                                         <div className="w-full">
-                                                                            <h4 className="font-bold text-lg md:text-xl text-gray-900 dark:text-white">
+                                                                            <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg mb-1">
                                                                                 Page {page.pageNumber}
                                                                             </h4>
-                                                                            <p className={`text-base md:text-lg font-medium mb-2 ${
+                                                                            <p className={`text-xs sm:text-sm md:text-base font-medium mb-2 ${
                                                                                 page.isSelected 
                                                                                     ? 'text-green-600 dark:text-green-400' 
                                                                                     : 'text-red-600 dark:text-red-400'
@@ -1845,10 +1418,10 @@ const blob = new Blob([buffer], {
                                                                                 {page.isSelected ? '✓ Keep' : '✗ Remove'}
                                                                             </p>
                                                                             
-                                                                            <div className="grid grid-cols-2 gap-2">
+                                                                            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                                                                                 <button
                                                                                     onClick={() => togglePageSelection(actualIndex)}
-                                                                                    className={`py-2 px-3 font-bold rounded-lg text-base transition-all ${
+                                                                                    className={`py-1.5 sm:py-2 px-2 sm:px-3 font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm transition-all ${
                                                                                         page.isSelected
                                                                                             ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
                                                                                             : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
@@ -1859,7 +1432,7 @@ const blob = new Blob([buffer], {
                                                                                 
                                                                                 <button
                                                                                     onClick={() => handleDownloadPage(actualIndex)}
-                                                                                    className="py-2 px-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg text-base transition-all"
+                                                                                    className="py-1.5 sm:py-2 px-2 sm:px-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm transition-all"
                                                                                 >
                                                                                     Download
                                                                                 </button>
@@ -1873,127 +1446,52 @@ const blob = new Blob([buffer], {
                                                 </div>
                                             </div>
 
-                                            {/* Bottom Pagination Controls */}
-                                            {pageData.length > itemsPerPage && (
-                                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-2xl md:rounded-3xl p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
-                                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-                                                        <div className="text-center sm:text-left">
-                                                            <h4 className="font-bold text-lg md:text-xl text-gray-900 dark:text-white">
-                                                                Page {currentPage} of {totalPages}
-                                                            </h4>
-                                                            <p className="text-base text-gray-600 dark:text-gray-400 mt-1">
-                                                                Showing {itemsPerPage} pages per view
-                                                            </p>
-                                                        </div>
-                                                        
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-base text-gray-700 dark:text-gray-300 font-medium">
-                                                                Go to page:
-                                                            </span>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                max={totalPages}
-                                                                value={currentPage}
-                                                                onChange={(e) => {
-                                                                    const page = Math.min(Math.max(1, parseInt(e.target.value) || 1), totalPages);
-                                                                    goToPage(page);
-                                                                }}
-                                                                className="w-16 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-center text-base"
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Pagination Buttons - Bottom */}
-                                                    <div className="flex flex-wrap items-center justify-center gap-2">
-                                                        {renderPaginationButtons()}
-                                                    </div>
-                                                    
-                                                    <div className="text-center mt-4">
-                                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                            {isMobile ? "Mobile: 8 pages per view" : isTablet ? "Tablet: 12 pages per view" : "Desktop: 20 pages per view"}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Download Progress */}
-                                            {(downloadingAll || optimizing) && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, scale: 0.9 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    className="p-6 md:p-8 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-2xl border-2 border-red-200 dark:border-red-800/30"
-                                                >
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <span className="font-bold text-red-700 dark:text-red-300 text-lg">
-                                                            {optimizing ? "Optimizing PDF..." : `Downloading ${downloadProgress}% complete`}
-                                                        </span>
-                                                        <span className="text-base text-gray-600 dark:text-gray-400">
-                                                            {Math.round(downloadProgress / 100 * selectedPagesCount)} of {selectedPagesCount} pages
-                                                        </span>
-                                                    </div>
-                                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${downloadProgress}%` }}
-                                                            className="h-3 rounded-full bg-gradient-to-r from-red-500 to-orange-600"
-                                                        />
-                                                    </div>
-                                                    <p className="text-base text-gray-600 dark:text-gray-400 mt-3">
-                                                        {optimizing ? 
-                                                            "Compressing PDF for smaller file size..." : 
-                                                            "Please wait while modified PDF is being generated..."
-                                                        }
-                                                    </p>
-                                                </motion.div>
-                                            )}
-
-                                            {/* Download Button Section */}
-                                            <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 rounded-2xl md:rounded-3xl p-8 md:p-10 border-2 border-red-200 dark:border-red-800/50">
-                                                <div className="text-center mb-8">
-                                                    <h4 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-4">
+                                            {/* Download Button Section - Responsive */}
+                                            <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border-2 border-red-200 dark:border-red-800/50">
+                                                <div className="text-center mb-3 sm:mb-4 md:mb-6">
+                                                    <h4 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
                                                         Download Modified PDF
                                                     </h4>
-                                                    <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-6">
-                                                        Download PDF with only selected pages (automatically compressed for smaller file size)
+                                                    <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">
+                                                        Download PDF with only selected pages
                                                     </p>
                                                     
                                                     {originalFileSize > 0 && (
-                                                        <div className="mb-6 p-4 md:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                                                        <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                                                             <div className="flex justify-between items-center mb-2">
-                                                                <span className="text-base md:text-lg text-gray-600 dark:text-gray-400">
+                                                                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                                                                     Original size:
                                                                 </span>
-                                                                <span className="text-lg font-bold text-gray-700 dark:text-gray-300">
+                                                                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
                                                                     {(originalFileSize / (1024 * 1024)).toFixed(2)} MB
                                                                 </span>
                                                             </div>
                                                             <div className="flex justify-between items-center mb-2">
-                                                                <span className="text-base md:text-lg text-green-600 dark:text-green-400">
+                                                                <span className="text-xs sm:text-sm text-green-600 dark:text-green-400">
                                                                     Estimated new size:
                                                                 </span>
-                                                                <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                                                                <span className="text-sm font-bold text-green-600 dark:text-green-400">
                                                                     {(estimatedFileSize / (1024 * 1024)).toFixed(2)} MB
                                                                 </span>
                                                             </div>
                                                             <div className="flex justify-between items-center">
-                                                                <span className="text-base md:text-lg text-red-600 dark:text-red-400">
+                                                                <span className="text-xs sm:text-sm text-red-600 dark:text-red-400">
                                                                     Expected reduction:
                                                                 </span>
-                                                                <span className="text-lg font-bold text-red-600 dark:text-red-400">
+                                                                <span className="text-sm font-bold text-red-600 dark:text-red-400">
                                                                     {compressionRatio}%
                                                                 </span>
                                                             </div>
                                                         </div>
                                                     )}
                                                     
-                                                    <div className="space-y-4 md:space-y-6">
+                                                    <div className="space-y-3 sm:space-y-4">
                                                         <motion.button
-                                                            whileHover={{ scale: 1.03 }}
-                                                            whileTap={{ scale: 0.97 }}
+                                                            whileHover={{ scale: 1.02 }}
+                                                            whileTap={{ scale: 0.98 }}
                                                             onClick={handleDownloadModifiedPdf}
                                                             disabled={downloadingAll || selectedPagesCount === 0}
-                                                            className={`w-full py-4 md:py-5 px-6 md:px-8 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-lg md:text-xl flex items-center justify-center gap-3 md:gap-4 ${
+                                                            className={`w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 text-white font-bold rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 ${
                                                                 selectedPagesCount === 0
                                                                     ? 'bg-gradient-to-r from-gray-500 to-gray-600'
                                                                     : 'bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700'
@@ -2001,37 +1499,37 @@ const blob = new Blob([buffer], {
                                                         >
                                                             {downloadingAll ? (
                                                                 <>
-                                                                    <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
-                                                                    <span>{optimizing ? "Compressing..." : "Processing..."}</span>
+                                                                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                                                                    <span>Processing...</span>
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <Download className="w-5 h-5 md:w-6 md:h-6" />
+                                                                    <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                                                                     <span>Download PDF ({selectedPagesCount} pages)</span>
                                                                 </>
                                                             )}
                                                         </motion.button>
                                                     </div>
                                                     
-                                                    <p className="text-base md:text-lg text-blue-600 dark:text-blue-400 font-medium mt-4">
+                                                    <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium mt-2 sm:mt-3">
                                                         {selectedPagesCount === 0 
                                                             ? "Select at least one page to download"
-                                                            : "Ready to download compressed PDF"
+                                                            : "Ready to download modified PDF"
                                                         }
                                                     </p>
                                                 </div>
                                             </div>
 
                                             {/* Reset & Another PDF */}
-                                            <div className="text-center space-y-4">
+                                            <div className="text-center space-y-2 sm:space-y-3">
                                                 <button
                                                     onClick={handleReset}
-                                                    className="inline-flex items-center gap-3 px-6 py-3 md:px-8 md:py-4 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-xl transition-colors text-base md:text-lg"
+                                                    className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
                                                 >
-                                                    <FolderOpen className="w-5 h-5 md:w-6 md:h-6" />
+                                                    <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                                                     Remove Pages from Another PDF
                                                 </button>
-                                                <p className="text-base md:text-lg text-gray-500 dark:text-gray-400">
+                                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                                     All processing happens in your browser • No files are uploaded
                                                 </p>
                                             </div>
@@ -2051,18 +1549,18 @@ const blob = new Blob([buffer], {
                         fileName={zoomModal.fileName}
                     />
 
-                    {/* Enhanced Tools Section */}
+                    {/* Enhanced Tools Section - Responsive */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="mt-10 md:mt-14 lg:mt-16 p-6 md:p-8 lg:p-10 bg-gradient-to-r from-white to-orange-50/50 dark:from-gray-900 dark:to-orange-950/20 rounded-2xl md:rounded-3xl border-2 border-orange-300/50 dark:border-orange-800/50 shadow-xl backdrop-blur-sm"
+                        className="mt-6 sm:mt-8 md:mt-12 p-3 sm:p-4 md:p-6 lg:p-8 bg-gradient-to-r from-white to-orange-50/50 dark:from-gray-900 dark:to-orange-950/20 rounded-xl sm:rounded-2xl md:rounded-3xl border-2 border-orange-300/50 dark:border-orange-800/50 shadow-lg sm:shadow-xl md:shadow-2xl backdrop-blur-sm"
                     >
-                        <h3 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 dark:text-white mb-6 md:mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-orange-600">
+                        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-extrabold text-gray-900 dark:text-white mb-3 sm:mb-4 md:mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-orange-600 px-2">
                             Explore All PDF Tools 🚀
                         </h3>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                             {toolKeywords.map((tool, index) => (
                                 <motion.div
                                     key={tool.label}
@@ -2072,59 +1570,149 @@ const blob = new Blob([buffer], {
                                     whileHover={{ 
                                         scale: 1.02, 
                                         boxShadow: "0 10px 30px rgba(255, 80, 80, 0.25)",
-                                        y: -3
+                                        y: -4
                                     }}
                                     whileTap={{ scale: 0.98 }}
                                     className="w-full"
                                 >
                                     <a
                                         href={tool.url}
-                                        className="flex items-center w-full p-4 md:p-5 
+                                        className="flex items-center justify-start w-full p-3 sm:p-4 md:p-5 
                                                  bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900
                                                  border border-gray-200 dark:border-gray-700 
-                                                 rounded-xl hover:rounded-2xl
-                                                 hover:border-orange-400 dark:hover:border-orange-500
+                                                 rounded-lg sm:rounded-2xl hover:border-orange-400 dark:hover:border-orange-500
                                                  transition-all duration-300 group
-                                                 shadow-sm hover:shadow-lg"
+                                                 shadow-sm hover:shadow-xl"
                                     >
                                         {/* Icon */}
-                                        <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12
+                                        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 
                                                       flex items-center justify-center 
                                                       bg-gradient-to-br from-red-500 to-orange-600 
-                                                      rounded-xl mr-3 md:mr-4
+                                                      rounded-lg sm:rounded-xl mr-2 sm:mr-3 md:mr-4
                                                       group-hover:scale-110 transition-transform duration-300">
-                                            <span className="text-lg md:text-xl">
+                                            <span className="text-base sm:text-lg md:text-xl">
                                                 {getToolIcon(tool.label)}
                                             </span>
                                         </div>
                                         
                                         {/* Text */}
                                         <div className="flex-1 min-w-0">
-                                            <span className="text-base md:text-lg font-bold text-gray-800 dark:text-gray-200 
+                                            <span className="text-sm sm:text-base md:text-lg 
+                                                           font-semibold text-gray-800 dark:text-gray-200 
                                                            group-hover:text-orange-600 dark:group-hover:text-orange-400 
                                                            transition-colors duration-300 block truncate">
                                                 {tool.label}
                                             </span>
-
-                                            <span className="text-sm md:text-base text-gray-500 dark:text-gray-400 
+                                            <span className="text-sm sm:text-base text-gray-500 dark:text-gray-400 
                                                            mt-1 block line-clamp-2">
                                                 {getToolDescription(tool.label)}
                                             </span>
                                         </div>
                                         
                                         {/* Arrow */}
-                                        <div className="flex-shrink-0 ml-2">
-                                            <ChevronRight className="w-4 h-4 md:w-5 md:h-5 
-                                              text-gray-400 group-hover:text-orange-500 
-                                              group-hover:translate-x-1 transition-all duration-300" />
+                                        <div className="flex-shrink-0 ml-1 sm:ml-2">
+                                            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400 
+                                                          group-hover:text-orange-500 
+                                                          group-hover:translate-x-1 transition-all duration-300" 
+                                                 fill="none" 
+                                                 stroke="currentColor" 
+                                                 viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" 
+                                                      strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
                                         </div>
                                     </a>
                                 </motion.div>
                             ))}
                         </div>
+
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                            className="mt-4 sm:mt-6 md:mt-8 text-center"
+                        >
+                            <button className="px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 bg-gradient-to-r from-red-600 to-orange-600 
+                                             text-white font-medium rounded-full sm:rounded-xl md:rounded-2xl
+                                             hover:from-red-700 hover:to-orange-700
+                                             active:scale-95 transition-all duration-300
+                                             shadow-lg hover:shadow-xl
+                                             text-xs sm:text-sm md:text-base">
+                                View All Tools ({toolKeywords.length}+)
+                            </button>
+                        </motion.div>
                     </motion.div>
 
-                    
+                    {/* Info Footer - Responsive */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-center mt-6 sm:mt-8 md:mt-12">
+                        <div className="p-2 sm:p-3 md:p-4">
+                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
+                                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-600 dark:text-red-400" />
+                            </div>
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">
+                                Smart Removal
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                Select specific pages to remove or keep
+                            </p>
+                        </div>
+                        
+                        <div className="p-2 sm:p-3 md:p-4">
+                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
+                                <Shield className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
+                            </div>
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">
+                                Batch Selection
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                Select all, even, odd, or deselect all pages at once
+                            </p>
+                        </div>
+                        
+                        <div className="p-2 sm:p-3 md:p-4">
+                            <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 rounded-lg sm:rounded-xl md:rounded-2xl mb-1.5 sm:mb-2 md:mb-3">
+                                <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
+                            </div>
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-xs sm:text-sm md:text-base">
+                                Size Optimization
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                                Download smaller PDF with only selected pages
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Mobile Tips Banner */}
+                    {isMobile && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-4 p-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 rounded-xl border-2 border-red-200 dark:border-red-800/30"
+                        >
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                                <Smartphone className="w-4 h-4 text-red-600" />
+                                Mobile Tips
+                            </h4>
+                            <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                                <li className="flex items-start gap-2">
+                                    <span className="text-red-600">•</span>
+                                    <span>Tap page thumbnails to select/deselect</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-red-600">•</span>
+                                    <span>Click page to zoom (50%-200%)</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-red-600">•</span>
+                                    <span>Full quality image at any zoom level</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-red-600">•</span>
+                                    <span>Use batch selection for multiple pages</span>
+                                </li>
+                            </ul>
+                        </motion.div>
+                    )}
                 </motion.div>
             </div>
         </div>
