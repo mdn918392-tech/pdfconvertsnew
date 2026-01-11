@@ -1,5 +1,3 @@
-"use client";
-
 export default function HowToSchema() {
   const data = {
     "@context": "https://schema.org",
@@ -29,7 +27,9 @@ export default function HowToSchema() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(data),
+      }}
     />
   );
 }

@@ -1,43 +1,35 @@
-"use client";
-import { useEffect } from "react";
-
 export default function BreadcrumbSchema() {
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.type = "application/ld+json";
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://yourdomain.com",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "PDF Tools",
+        item: "https://yourdomain.com/tools",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: "PDF to JPG",
+        item: "https://yourdomain.com/pdf-to-jpg",
+      },
+    ],
+  };
 
-    script.innerHTML = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        {
-          "@type": "ListItem",
-          position: 1,
-          name: "Home",
-          item: "https://yourdomain.com",
-        },
-        {
-          "@type": "ListItem",
-          position: 2,
-          name: "PDF Tools",
-          item: "https://yourdomain.com/tools",
-        },
-        {
-          "@type": "ListItem",
-          position: 3,
-          name: "PDF to JPG",
-          item: "https://yourdomain.com/pdf-to-jpg",
-        },
-      ],
-    });
-
-    document.head.appendChild(script);
-
-    // ✅ FIXED CLEANUP FUNCTION
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
-
-  return null;
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(data),
+      }}
+    />
+  );
 }

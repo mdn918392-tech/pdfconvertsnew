@@ -38,25 +38,14 @@ export default function Footer() {
           </h3>
           <ul className="space-y-3 text-gray-700 dark:text-gray-300">
             <li><a href="/" className="hover:text-blue-600">Home</a></li>
-            <li><a href="/tools" className="hover:text-blue-600">All Tools</a></li>
+          
             <li><a href="/about" className="hover:text-blue-600">About</a></li>
             <li><a href="/privacy" className="hover:text-blue-600">Privacy Policy</a></li>
-            <li><a href="/contact" className="hover:text-blue-600">Contact</a></li>
+            
           </ul>
         </div>
 
-        {/* Contact Info */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Contact Us
-          </h3>
-          <p className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-            <Mail className="w-5 h-5" /> support@pdftoolspro.com
-          </p>
-          <p className="flex items-center gap-3 mt-3 text-gray-700 dark:text-gray-300">
-            <Phone className="w-5 h-5" /> +91 9876543210
-          </p>
-        </div>
+       
 
       </div>
 

@@ -1,5 +1,3 @@
-"use client";
-
 export default function PNGtoJPGHowToSchema() {
   const data = {
     "@context": "https://schema.org",
@@ -11,19 +9,19 @@ export default function PNGtoJPGHowToSchema() {
       {
         "@type": "HowToStep",
         name: "Upload PNG image",
-        text: "Select and upload your PNG image using the upload button."
+        text: "Select and upload your PNG image using the upload button.",
       },
       {
         "@type": "HowToStep",
         name: "Convert to JPG",
-        text: "Click the convert button to start converting your PNG image into JPG."
+        text: "Click the convert button to start converting your PNG image into JPG.",
       },
       {
         "@type": "HowToStep",
         name: "Download JPG image",
-        text: "Download your converted JPG image instantly to your device."
-      }
-    ]
+        text: "Download your converted JPG image instantly to your device.",
+      },
+    ],
   };
 
   return (

@@ -1,5 +1,3 @@
-"use client";
-
 export default function HowToSchema() {
   const data = {
     "@context": "https://schema.org",
@@ -10,8 +8,8 @@ export default function HowToSchema() {
     step: [
       {
         "@type": "HowToStep",
-        name: "Upload JPG images,png image",
-        text: "Select and upload the JPG images you want to convert using the upload button.",
+        name: "Upload JPG or PNG images",
+        text: "Select and upload the JPG or PNG images you want to convert using the upload button.",
       },
       {
         "@type": "HowToStep",
@@ -29,7 +27,9 @@ export default function HowToSchema() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(data),
+      }}
     />
   );
 }

@@ -22,4 +22,13 @@ export interface Tool {
   icon: string;
   path: string;
   category: "pdf" | "image" | "convert";
+
+
+
+
+  
+  
+  color: string;
+  href: string;
+ 
 }

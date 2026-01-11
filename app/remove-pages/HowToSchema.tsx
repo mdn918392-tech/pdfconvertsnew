@@ -1,5 +1,3 @@
-"use client";
-
 export default function HowToSchema() {
   const data = {
     "@context": "https://schema.org",

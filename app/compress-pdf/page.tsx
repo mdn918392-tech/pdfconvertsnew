@@ -1,11 +1,27 @@
 "use client"; 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, ArrowLeft, FileText, Zap, Shield, CheckCircle, X, Sparkles, FileDown, FileUp, Percent, Gauge } from 'lucide-react';
+import { Download, ArrowLeft, FileText, Zap, Shield, CheckCircle, X, Sparkles, CloudOff, FileDown, FileUp, Percent, ArrowRight, Grid } from 'lucide-react';
 import FileUploader from '../components/FileUploader';
 import ProgressBar from '../components/ProgressBar';
 import { compressPdf } from '../../utils/pdfUtils';
 import { downloadFile } from '../../utils/imageUtils';
+import BreadcrumbSchema from "./BreadcrumbSchema";
+import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
+import Link from 'next/link';
+
+// Define Tool type
+type Tool = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  color: string;
+  href: string;
+  path: string;
+};
 
 // Smart filename generator
 const generateCompressedFilename = (originalName: string): string => {
@@ -32,6 +48,121 @@ export default function CompressPdf() {
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [showUploadInfo, setShowUploadInfo] = useState(true);
   const [downloading, setDownloading] = useState(false);
+
+
+const tool = {
+  id: "compress-pdf",
+  name: "Compress PDF",
+  description: "Reduce PDF file size",
+  category: "pdf",
+  icon: "🗜️",
+  color: "from-yellow-500 to-amber-500",
+  href: "/compress-pdf",
+  path: "/tools/compress-pdf",
+};
+  // Explore All Tools Data
+  const exploreTools: Tool[] = [
+    { 
+      id: "word-to-pdf",
+      name: "Word to PDF", 
+      description: "Convert Word to PDF", 
+      category: "pdf", 
+      icon: "📄", 
+      color: "from-blue-500 to-cyan-500", 
+      href: "/word-to-pdf",
+      path: "/tools/word-to-pdf"
+    },
+    { 
+      id: "split-pdf",
+      name: "Split PDF", 
+      description: "Split PDF into separate pages", 
+      category: "pdf", 
+      icon: "✂️", 
+      color: "from-orange-500 to-red-500", 
+      href: "/split-pdf",
+      path: "/tools/split-pdf"
+    },
+    { 
+      id: "rotate-pdf",
+      name: "Rotate PDF", 
+      description: "Rotate PDF pages", 
+      category: "pdf", 
+      icon: "🔄", 
+      color: "from-teal-500 to-cyan-500", 
+      href: "/rotate-pdf",
+      path: "/tools/rotate-pdf"
+    },
+    { 
+      id: "jpg-to-pdf",
+      name: "JPG to PDF", 
+      description: "Convert JPG images to PDF documents", 
+      category: "pdf", 
+      icon: "🖼️", 
+      color: "from-green-500 to-emerald-500", 
+      href: "/jpg-to-pdf",
+      path: "/tools/jpg-to-pdf"
+    },
+    { 
+      id: "png-to-jpg",
+      name: "PNG to JPG", 
+      description: "Convert PNG images to JPG format", 
+      category: "image", 
+      icon: "🔄", 
+      color: "from-emerald-500 to-green-500", 
+      href: "/png-to-jpg",
+      path: "/tools/png-to-jpg"
+    },
+    { 
+      id: "pdf-to-jpg",
+      name: "PDF to JPG", 
+      description: "Convert PDF pages to JPG images", 
+      category: "pdf", 
+      icon: "🖼️", 
+      color: "from-purple-500 to-pink-500", 
+      href: "/pdf-to-jpg",
+      path: "/tools/pdf-to-jpg"
+    },
+    { 
+      id: "extract-pages",
+      name: "Extract Pages", 
+      description: "Extract specific pages from PDF", 
+      category: "pdf", 
+      icon: "📑", 
+      color: "from-indigo-500 to-blue-500", 
+      href: "/extract-pages",
+      path: "/tools/extract-pages"
+    },
+    { 
+      id: "compress-image",
+      name: "Compress Image", 
+      description: "Reduce JPG/PNG file size", 
+      category: "image", 
+      icon: "📉", 
+      color: "from-blue-500 to-cyan-500", 
+      href: "/compress-image",
+      path: "/tools/compress-image"
+    },
+    { 
+      id: "merge-pdf",
+      name: "Merge PDF", 
+      description: "Combine multiple PDF files into one", 
+      category: "pdf", 
+      icon: "🔗", 
+      color: "from-violet-500 to-purple-500", 
+      href: "/merge-pdf",
+      path: "/tools/merge-pdf"
+    },
+    { 
+      id: "remove-pages",
+      name: "Remove Pages", 
+      description: "Delete specific pages from PDF", 
+      category: "pdf", 
+      icon: "🗑️", 
+      color: "from-rose-500 to-pink-500", 
+      href: "/remove-pages",
+      path: "/tools/remove-pages"
+    },
+  ];
 
   useEffect(() => {
     if (downloadSuccess) {
@@ -180,13 +311,19 @@ export default function CompressPdf() {
               </a>
 
               <div className="text-center mb-6 md:mb-8">
-                <motion.div 
-                  initial={{ scale: 0.5 }}
-                  animate={{ scale: 1 }}
-                  className="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl md:rounded-3xl mb-3 md:mb-4 shadow-xl"
-                >
-                  <FileText className="w-7 h-7 md:w-9 md:h-9 text-white" />
-                </motion.div>
+  <motion.div
+  initial={{ scale: 0.5 }}
+  animate={{ scale: 1 }}
+  className={`inline-flex items-center justify-center
+    w-14 h-14 md:w-16 md:h-16
+    bg-gradient-to-br ${tool.color}
+    rounded-2xl md:rounded-3xl
+    mb-3 md:mb-4 shadow-xl`}
+>
+  <span className="text-2xl md:text-3xl text-white select-none">
+    {tool.icon}
+  </span>
+</motion.div>
                 
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-2 md:mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
                   PDF Compressor
@@ -461,6 +598,59 @@ export default function CompressPdf() {
               )}
             </div>
 
+            {/* Explore All Tools Section */}
+            <div className="mb-6 md:mb-8">
+              <div className="flex items-center justify-between mb-6 md:mb-8">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                    Explore All Tools
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+                    40+ specialized PDF, image, and document tools
+                  </p>
+                </div>
+                <Link 
+                  href="/"
+                  className="inline-flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl transition-all text-sm"
+                >
+                  <Grid className="w-4 h-4" />
+                  <span>View All</span>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                {exploreTools.slice(0, 8).map((tool, index) => (
+                  <motion.a
+                    key={tool.id}
+                    href={tool.href}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ scale: 1.03, y: -5 }}
+                    className="group bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-4 md:p-5 hover:border-blue-300 dark:hover:border-cyan-700 transition-all shadow-lg hover:shadow-2xl"
+                  >
+                    <div className="flex items-start gap-3 md:gap-4">
+                      <div className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-lg md:rounded-xl shadow-lg`}>
+                        <span className="text-xl md:text-2xl">{tool.icon}</span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 md:mb-2 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
+                          {tool.name}
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-3 md:mb-4">
+                          {tool.description}
+                        </p>
+                        <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 font-medium text-xs md:text-sm">
+                          <span>Use Tool</span>
+                          <ArrowRight className="w-3 h-3 md:w-4 md:h-4 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.a>
+                ))}
+              </div>
+            </div>
+
             {/* Stats Footer */}
             <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-800">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-center">
@@ -499,6 +689,11 @@ export default function CompressPdf() {
               </div>
             </div>
           </motion.div>
+
+          {/* Schema Components */}
+          <HowToSchema />
+          <FAQSchema />
+          <BreadcrumbSchema />
         </div>
       </div>
     </>
