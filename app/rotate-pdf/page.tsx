@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Head from 'next/head';
 import {
   Download,
   ArrowRight,
@@ -41,6 +42,7 @@ import FileUploader from "@/app/components/FileUploader";
 import ProgressBar from "@/app/components/ProgressBar";
 import { downloadFile } from "../../utils/imageUtils";
 import { PDFDocument, degrees } from "pdf-lib";
+import ArticleSchema from "./ArticleSchema";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 
 import HowToSchema from "./HowToSchema";
@@ -1274,6 +1276,13 @@ export default function PdfRotatorTool() {
   const itemsPerPageOptions = isMobile ? [4, 6, 8] : [6, 9, 12];
 
   return (
+  <>
+  <Head>
+   <ArticleSchema />
+      <HowToSchema />
+      <FAQSchema />
+      <BreadcrumbSchema />
+      </Head>
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-4 sm:py-8 md:py-12">
       <div className="container mx-auto px-3 sm:px-4 max-w-6xl">
         <motion.div
@@ -1685,9 +1694,7 @@ export default function PdfRotatorTool() {
                         </div>
                       </div>
 
-                      <HowToSchema />
-                      <FAQSchema />
-                      <BreadcrumbSchema />
+                     
 
                       {/* Download All Progress */}
                       {downloadingAll && (
@@ -2059,5 +2066,6 @@ export default function PdfRotatorTool() {
         </motion.div>
       </div>
     </div>
+    </>
   );
 }

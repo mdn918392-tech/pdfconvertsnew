@@ -13,7 +13,24 @@ export default function CompressImageStructuredData() {
       "online image compression",
       "free image compressor",
     ],
-    url: "https://yourdomain.com/tools/compress-image",
+    url: "https://pdfswift.online/compress-image",
+    step: [
+      {
+        "@type": "HowToStep",
+        name: "Upload image",
+        text: "Upload the image you want to compress."
+      },
+      {
+        "@type": "HowToStep",
+        name: "Compress image",
+        text: "The image is compressed automatically without losing quality."
+      },
+      {
+        "@type": "HowToStep",
+        name: "Download image",
+        text: "Download the compressed image instantly."
+      }
+    ]
   };
 
   return (

@@ -9,6 +9,7 @@ import { downloadFile } from '../../utils/imageUtils';
 import BreadcrumbSchema from "./BreadcrumbSchema";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
+import ArticleSchema from "./ArticleSchema";
 import Link from 'next/link';
 
 // Define Tool type
@@ -62,16 +63,7 @@ const tool = {
 };
   // Explore All Tools Data
   const exploreTools: Tool[] = [
-    { 
-      id: "word-to-pdf",
-      name: "Word to PDF", 
-      description: "Convert Word to PDF", 
-      category: "pdf", 
-      icon: "📄", 
-      color: "from-blue-500 to-cyan-500", 
-      href: "/word-to-pdf",
-      path: "/tools/word-to-pdf"
-    },
+    
     { 
       id: "split-pdf",
       name: "Split PDF", 
@@ -266,6 +258,7 @@ const tool = {
 
   return (
     <>
+     <ArticleSchema/>
       {/* Success Message Overlay */}
       <AnimatePresence>
         {downloadSuccess && (

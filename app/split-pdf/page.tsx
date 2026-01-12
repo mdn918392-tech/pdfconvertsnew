@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
 
 import {
@@ -315,6 +316,7 @@ import ProgressBar from "@/app/components/ProgressBar";
 import { downloadFile } from "../../utils/imageUtils";
 import { PDFDocument, degrees } from "pdf-lib";
 import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
 
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
@@ -2037,6 +2039,14 @@ export default function PdfSplitRotatorTool() {
   const selectedCount = pageData.filter((page) => page.selected).length;
 
   return (
+  <>
+   <Head>
+   <ArticleSchema />
+      <HowToSchema />
+      <FAQSchema />
+      <BreadcrumbSchema />
+       </Head>
+
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-4 sm:py-8 md:py-12">
       <div className="container mx-auto px-3 sm:px-4 max-w-6xl">
         <motion.div
@@ -2194,9 +2204,7 @@ export default function PdfSplitRotatorTool() {
               </AnimatePresence>
             </div>
 
-            <HowToSchema />
-            <FAQSchema />
-            <BreadcrumbSchema />
+          
 
             {/* Content Area */}
             {files.length > 0 && (
@@ -2845,5 +2853,6 @@ export default function PdfSplitRotatorTool() {
         </motion.div>
       </div>
     </div>
+    </>
   );
 }

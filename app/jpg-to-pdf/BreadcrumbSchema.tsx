@@ -7,19 +7,14 @@ export default function BreadcrumbSchema() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://yourdomain.com",
+        item: "https://pdfswift.online",
       },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "PDF Tools",
-        item: "https://yourdomain.com/tools",
-      },
+    
       {
         "@type": "ListItem",
         position: 3,
         name: "JPG to PDF",
-        item: "https://yourdomain.com/tools/jpg-to-pdf",
+        item: "https://pdfswift.online/jpg-to-pdf",
       },
     ],
   };

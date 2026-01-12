@@ -2,6 +2,10 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+
+import Head from 'next/head';
+
 import Link from "next/link";
 import {
   Download,
@@ -42,7 +46,7 @@ import { downloadFile } from "../../utils/imageUtils";
 
 import type { PaperSize, Orientation } from "../../types";
 import BreadcrumbSchema from "./BreadcrumbSchema";
-
+import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
 
@@ -1162,6 +1166,13 @@ export default function JpgToPdf() {
 
   return (
     <>
+     <Head>
+    <ArticleSchema/>
+     <HowToSchema />
+                  <FAQSchema />
+                  <BreadcrumbSchema />
+                  </Head>
+
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
         <div
           ref={notificationsRef}
@@ -2093,9 +2104,7 @@ export default function JpgToPdf() {
                       </div>
                     </div>
                   </div>
-                  <HowToSchema />
-                  <FAQSchema />
-                  <BreadcrumbSchema />
+                 
 
                   {/* Convert/Progress/Download Buttons */}
                   <AnimatePresence mode="wait">

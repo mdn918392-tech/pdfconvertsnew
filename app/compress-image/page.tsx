@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
+import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Download,
@@ -28,6 +29,8 @@ import { convertPngToJpg, downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
+import ArticleSchema from "./ArticleSchema";
+
 
 const tool = {
   id: "compress-image",
@@ -54,16 +57,7 @@ type Tool = {
 
 // Explore All Tools Data
 const exploreTools: Tool[] = [
-  {
-    id: "word-to-pdf",
-    name: "Word to PDF",
-    description: "Convert Word to PDF",
-    category: "pdf",
-    icon: "📄",
-    color: "from-blue-500 to-cyan-500",
-    href: "/word-to-pdf",
-    path: "/tools/word-to-pdf",
-  },
+  
   {
     id: "split-pdf",
     name: "Split PDF",
@@ -541,6 +535,12 @@ export default function PngToJpg() {
 
   return (
     <>
+     <Head>
+           <ArticleSchema/>
+     <HowToSchema />
+            <FAQSchema />
+            <BreadcrumbSchema />
+             </Head>
       {/* Download Success Notifications */}
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
         <div
@@ -859,9 +859,7 @@ export default function PngToJpg() {
               </motion.div>
             )}
 
-            <HowToSchema />
-            <FAQSchema />
-            <BreadcrumbSchema />
+           
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">

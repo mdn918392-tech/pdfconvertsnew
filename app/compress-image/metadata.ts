@@ -2,7 +2,9 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Compress Images Online - Fast & Free",
-  description: "Compress image files online quickly and efficiently. Reduce image size without losing quality in one click.",
+  description:
+    "Compress image files online quickly and efficiently. Reduce image size without losing quality in one click.",
+
   keywords: [
     "compress image",
     "reduce image size",
@@ -11,20 +13,29 @@ export const metadata: Metadata = {
     "online image compression",
     "free image compressor",
   ],
+
   authors: [
-    { name: "Your Name or Company", url: "https://yourwebsite.com" }
+    { name: "pdfswift", url: "https://pdfswift.online" }
   ],
-  creator: "Your Name or Company",
-  publisher: "Your Company",
+  creator: "pdfswift",
+  publisher: "pdfswift",
+
   robots: "index, follow",
+
+  /** ✅ Canonical URL */
+  alternates: {
+    canonical: "https://pdfswift.online/compress-image",
+  },
+
   openGraph: {
     title: "Compress Images Online - Fast & Free",
-    description: "Compress image files online quickly and efficiently. Fast, simple, and free!",
-    url: "https://yourwebsite.com/compress-image",
-    siteName: "Image Tools Pro",
+    description:
+      "Compress image files online quickly and efficiently. Fast, simple, and free!",
+    url: "https://pdfswift.online/compress-image",
+    siteName: "pdfswift",
     images: [
       {
-        url: "/og-compress-image.png", // OG image specific for Compress Image
+        url: "/og-compress-image.png",
         width: 1200,
         height: 630,
         alt: "Compress Images Online",
@@ -33,17 +44,20 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
+
   twitter: {
     card: "summary_large_image",
     title: "Compress Images Online - Fast & Free",
     description: "Compress image files online quickly and efficiently.",
     images: ["/og-compress-image.png"],
-    creator: "@YourTwitterHandle",
+    creator: "@pdfswift", // optional
   },
+
   icons: {
     icon: "/icons/icon-192.png",
     shortcut: "/icons/icon-192.png",
     apple: "/icons/icon-192.png",
   },
+
   manifest: "/manifest.json",
 };

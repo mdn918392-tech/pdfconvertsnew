@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
 
-import SitelinkSearchSchema from "./SitelinkSearchSchema";
+import ArticleSchema from "./ArticleSchema";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 
 import HowToSchema from "./HowToSchema";
@@ -1479,6 +1480,15 @@ export default function PdfToImageConverterWithRotation() {
   const itemsPerPageOptions = [10, 20, 30, 50];
 
   return (
+  <>
+   <Head>
+  <ArticleSchema/>
+
+
+ <BreadcrumbSchema />
+      <FAQSchema />
+      <HowToSchema />
+       </Head>
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-8 md:py-12">
       <div className="container mx-auto px-4 max-w-6xl">
         <motion.div
@@ -2328,5 +2338,6 @@ export default function PdfToImageConverterWithRotation() {
         </motion.div>
       </div>
     </div>
+    </>
   );
 }

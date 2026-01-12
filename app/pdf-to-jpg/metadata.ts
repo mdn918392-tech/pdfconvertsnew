@@ -12,17 +12,17 @@ export const pdfToJpgMetadata: Metadata = {
     "extract images from pdf",
   ],
   alternates: {
-    canonical: "https://yourdomain.com/pdf-to-jpg",
+    canonical: "https://pdfswift.online/pdf-to-jpg",
   },
   openGraph: {
     title: "PDF to JPG Converter - Fast & Free",
     description:
       "Convert your PDF pages to JPG images instantly. No sign-up required.",
-    url: "https://yourdomain.com/pdf-to-jpg",
+    url: "https://pdfswift.online/pdf-to-jpg",
     siteName: "PDF Tools",
     images: [
       {
-        url: "https://yourdomain.com/opengraph-pdf-to-jpg.png",
+        url: "https://pdfswift.online/opengraph-pdf-to-jpg.png",
         width: 1200,
         height: 630,
         alt: "PDF to JPG Converter",
@@ -34,7 +34,7 @@ export const pdfToJpgMetadata: Metadata = {
     card: "summary_large_image",
     title: "PDF to JPG Converter",
     description: "Instant PDF to JPG conversion online. Free forever.",
-    images: ["https://yourdomain.com/opengraph-pdf-to-jpg.png"],
+    images: ["https://pdfswift.online/opengraph-pdf-to-jpg.png"],
   },
   robots: {
     index: true,

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Head from 'next/head';
+
 import Link from "next/link";
 import {
   Download,
@@ -29,12 +31,12 @@ import ProgressBar from "@/app/components/ProgressBar";
 import { mergePdfs, reversePdfOrder } from "../../utils/pdfUtils";
 import { downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
-
+import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
 
 // Smart filename generator for merged PDFs
-const generateMergedPdfFilename = (files: File[]): string => {
+ const generateMergedPdfFilename = (files: File[]): string => {
   const now = new Date();
   const dateStr = now.toISOString().split("T")[0];
   const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
@@ -399,6 +401,13 @@ export default function MergePdf() {
   ];
 
   return (
+  <>
+  <Head>
+           <HowToSchema />
+          <FAQSchema />
+          <BreadcrumbSchema />
+            <ArticleSchema />
+             </Head>
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950/20 py-8 md:py-12">
       <div className="container mx-auto px-4 max-w-6xl">
         <motion.div
@@ -1093,5 +1102,7 @@ export default function MergePdf() {
         </motion.div>
       </div>
     </div>
-  );
+    </>
+   );
+  
 }

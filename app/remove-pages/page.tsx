@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Head from 'next/head';
 
 import {
   Download,
@@ -43,6 +44,7 @@ import ProgressBar from "@/app/components/ProgressBar";
 import { downloadFile } from "../../utils/imageUtils";
 import { PDFDocument } from "pdf-lib";
 import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
 
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
@@ -1128,6 +1130,13 @@ export default function PdfPageRemoverTool() {
     : [20, 30, 40];
 
   return (
+  <>
+  <Head>
+   <ArticleSchema />
+      <HowToSchema />
+      <FAQSchema />
+      <BreadcrumbSchema />
+      </Head>
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-red-950/20 py-4 sm:py-8 md:py-12">
       <div className="container mx-auto px-3 sm:px-4 max-w-6xl">
         <motion.div
@@ -1667,9 +1676,7 @@ export default function PdfPageRemoverTool() {
                         </div>
                       </div>
 
-                      <HowToSchema />
-                      <FAQSchema />
-                      <BreadcrumbSchema />
+                     
 
                       {/* Download Button Section - Responsive */}
                       <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border-2 border-red-200 dark:border-red-800/50">
@@ -1914,5 +1921,6 @@ export default function PdfPageRemoverTool() {
         </motion.div>
       </div>
     </div>
+    </>
   );
 }

@@ -7,20 +7,15 @@ export default function PNGtoJPGBreadcrumbSchema() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://yourdomain.com",
+        item: "https://pdfswift.online",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Image Tools",
-        item: "https://yourdomain.com/image-tools",
+        item: "https://pdfswift.online/png-to-jpg",
       },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: "PNG to JPG",
-        item: "https://yourdomain.com/png-to-jpg",
-      },
+     
     ],
   };
 

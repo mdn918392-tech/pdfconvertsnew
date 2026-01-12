@@ -3,7 +3,8 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Remove PDF Pages - Fast & Free Online Tool",
   description:
-    "Remove unwanted pages from your PDF instantly. Free, fast, secure PDF page remover with no watermark.",
+    "Remove unwanted pages from your PDF instantly. Free, fast, and secure PDF page remover with no watermark.",
+
   keywords: [
     "remove pdf pages",
     "delete pdf pages",
@@ -13,21 +14,29 @@ export const metadata: Metadata = {
     "cut pdf pages",
     "online pdf editor",
   ],
+
   authors: [
-    { name: "Your Name or Company", url: "https://yourwebsite.com" }
+    { name: "pdfswift", url: "https://pdfswift.online" }
   ],
-  creator: "Your Name or Company",
-  publisher: "Your Company",
+  creator: "pdfswift",
+  publisher: "pdfswift",
+
   robots: "index, follow",
+
+  /** ✅ Canonical URL (important) */
+  alternates: {
+    canonical: "https://pdfswift.online/remove-pages",
+  },
+
   openGraph: {
     title: "Remove PDF Pages - Fast & Free Online Tool",
     description:
       "Delete or remove unwanted pages from any PDF file instantly and for free.",
-    url: "https://yourwebsite.com/remove-pdf-pages",
-    siteName: "PDF Tools Pro",
+    url: "https://pdfswift.online/remove-pages",
+    siteName: "pdfswift",
     images: [
       {
-        url: "/og-remove-pages.png", // Create a separate OG image for this tool
+        url: "/og-remove-pages.png",
         width: 1200,
         height: 630,
         alt: "Remove PDF Pages Tool",
@@ -36,18 +45,21 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
+
   twitter: {
     card: "summary_large_image",
     title: "Remove PDF Pages - Fast & Free",
     description:
       "Delete pages from your PDF instantly with this free online tool.",
     images: ["/og-remove-pages.png"],
-    creator: "@YourTwitterHandle",
+    creator: "@pdfswift", // optional, agar handle nahi hai to hata sakte ho
   },
+
   icons: {
     icon: "/icons/icon-192.png",
     shortcut: "/icons/icon-192.png",
     apple: "/icons/icon-192.png",
   },
+
   manifest: "/manifest.json",
 };

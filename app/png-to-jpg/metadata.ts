@@ -1,3 +1,5 @@
+
+
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,21 +17,26 @@ export const metadata: Metadata = {
     "photo converter"
   ],
   authors: [
-    { name: "Your Name or Company", url: "https://yourwebsite.com" }
+    { name: "pdfswift", url: "https://pdfswift.online" }
   ],
-  creator: "Your Name or Company",
-  publisher: "Your Company",
+  creator: "pdfswift",
+  publisher: "pdfswift",
   robots: "index, follow",
+
+  /** ✅ Canonical URL */
+  alternates: {
+    canonical: "https://pdfswift.online/png-to-jpg",
+  },
 
   openGraph: {
     title: "PNG to JPG Converter - Fast & Free",
     description:
       "Convert PNG images to JPG format instantly. Fast, simple, and 100% free image converter.",
-    url: "https://yourwebsite.com/png-to-jpg",
-    siteName: "Image Tools Pro",
+    url: "https://pdfswift.online/png-to-jpg",
+    siteName: "pdfswift",
     images: [
       {
-        url: "/og-png-to-jpg.png", 
+        url: "/og-png-to-jpg.png",
         width: 1200,
         height: 630,
         alt: "PNG to JPG Converter",

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
+import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Download,
@@ -27,6 +28,7 @@ import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
 import { convertPngToJpg, downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
 
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
@@ -562,6 +564,12 @@ export default function PngToJpg() {
 
   return (
     <>
+    <Head>
+      <ArticleSchema />
+      <HowToSchema />
+      <FAQSchema />
+      <BreadcrumbSchema />
+        </Head>
       {/* Download Success Notifications */}
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
         <div
@@ -749,10 +757,6 @@ export default function PngToJpg() {
                   </div>
                 )}
               </div>
-
-              <HowToSchema />
-              <FAQSchema />
-              <BreadcrumbSchema />
 
               {/* --- File Previews and Conversion Area --- */}
               {hasFiles && (

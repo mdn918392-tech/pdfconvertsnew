@@ -2,7 +2,9 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Compress PDF Online - Fast & Free",
-  description: "Compress PDF files online quickly and efficiently. Reduce PDF size without losing quality in one click.",
+  description:
+    "Compress PDF files online quickly and efficiently. Reduce PDF size without losing quality in one click.",
+
   keywords: [
     "compress PDF",
     "reduce PDF size",
@@ -12,20 +14,29 @@ export const metadata: Metadata = {
     "PDF compression",
     "free PDF compressor",
   ],
+
   authors: [
-    { name: "Your Name or Company", url: "https://yourwebsite.com" }
+    { name: "pdfswift", url: "https://pdfswift.online" }
   ],
-  creator: "Your Name or Company",
-  publisher: "Your Company",
+  creator: "pdfswift",
+  publisher: "pdfswift",
+
   robots: "index, follow",
+
+  /** ✅ Canonical URL */
+  alternates: {
+    canonical: "https://pdfswift.online/compress-pdf",
+  },
+
   openGraph: {
     title: "Compress PDF Online - Fast & Free",
-    description: "Compress PDF files online quickly and efficiently. Fast, simple, and free!",
-    url: "https://yourwebsite.com/compress-pdf",
-    siteName: "PDF Tools Pro",
+    description:
+      "Compress PDF files online quickly and efficiently. Fast, simple, and free!",
+    url: "https://pdfswift.online/compress-pdf",
+    siteName: "pdfswift",
     images: [
       {
-        url: "/og-compress-pdf.png", // OG image specific for Compress PDF
+        url: "/og-compress-pdf.png",
         width: 1200,
         height: 630,
         alt: "Compress PDF Online",
@@ -34,17 +45,20 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
+
   twitter: {
     card: "summary_large_image",
     title: "Compress PDF Online - Fast & Free",
     description: "Compress PDF files online quickly and efficiently.",
     images: ["/og-compress-pdf.png"],
-    creator: "@YourTwitterHandle",
+    creator: "@pdfswift", // optional
   },
+
   icons: {
     icon: "/icons/icon-192.png",
     shortcut: "/icons/icon-192.png",
     apple: "/icons/icon-192.png",
   },
+
   manifest: "/manifest.json",
 };

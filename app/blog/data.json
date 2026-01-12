@@ -1,16 +1,37 @@
-[    
+[
   {
-    "title": "How to Convert JPG to PDF",
+    "id": "how-to-convert-jpg-to-pdf",
+    "title": "How to Convert JPG to PDF Online",
+    "date":"Jan 12 2026",
+    "description": "Step by step guide to convert JPG images to PDF format.",
     "slug": "how-to-convert-jpg-to-pdf",
-    "description": "Step by step guide to convert JPG images to PDF online.",
-    "date": "December 7, 2025",
-    "image": "https://i.ibb.co/0ykjSxsF/Gemini-Generated-Image-f81m1if81m1if81m.png"
-  },
-  {
-    "title": "How to Merge PDF Online",
-    "slug": "how-to-merge-pdf-online",
-    "description": "Easily merge multiple PDF files into one online.",
-    "date": "December 6, 2025",
-    "image": "/images/merge-pdf.jpg"
+         "image": "https://i.ibb.co/0ykjSxsF/Gemini-Generated-Image-f81m1if81m1if81m.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "How to Convert JPG to PDF", "url": "/blog/how-to-convert-jpg-to-pdf" }
+    ],
+    "howto": {
+      "steps": [
+        "Open your JPG image.",
+        "Click on convert to PDF.",
+        "Download the PDF."
+      ],
+      "estimatedTime": "PT1M",
+      "totalTime": "PT1M",
+      "supply": ["JPG image"],
+      "tool": ["Online JPG to PDF converter"]
+    },
+    "faq": [
+      {
+        "question": "Can I convert multiple JPGs at once?",
+        "answer": "Yes, you can select multiple JPGs and convert them to a single PDF."
+      },
+      {
+        "question": "Is it free to convert JPG to PDF?",
+        "answer": "Yes, the tool we recommend is completely free for basic use."
+      }
+    ]
   }
 ]
+
