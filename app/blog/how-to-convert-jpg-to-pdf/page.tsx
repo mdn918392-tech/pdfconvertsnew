@@ -55,31 +55,54 @@ export default function JPGtoPDFBlog() {
     return isoTime.replace('PT', '').replace('M', ' minutes');
   };
 
+
+  const howToSchema = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: "How to Convert JPG to PDF Online",
+  description: "Step-by-step guide to convert JPG images to PDF format.",
+  totalTime: howto?.estimatedTime || "PT5M",
+  supply: howto?.supply?.map((item) => ({
+    "@type": "HowToSupply",
+    name: item,
+  })),
+  tool: howto?.tool?.map((item) => ({
+    "@type": "HowToTool",
+    name: item,
+  })),
+  step: howto?.steps?.map((step, index) => ({
+    "@type": "HowToStep",
+    position: index + 1,
+    text: step,
+  })),
+};
+
+
   // Structured Data JSON-LD
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "How to Convert JPG to PDF Online - Complete 2024 Guide",
     "description": "Step-by-step guide to convert JPG images to PDF format. Learn online methods, offline software options, best practices for image quality, and security tips for document conversion.",
-    "image": "https://yourdomain.com/images/jpg-to-pdf-conversion-guide.jpg",
+    "image": "https://pdfswift.online/blog/how-to-convert-jpg-to-pdf",
     "author": {
       "@type": "Organization",
       "name": "Your Domain",
-      "url": "https://yourdomain.com"
+      "url": "https://pdfswift.online"
     },
     "publisher": {
       "@type": "Organization",
-      "name": "Your Domain",
+      "name": "pdfswift",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://yourdomain.com/logo.png"
+        "url": "https://pdfswift.online/favicon.png"
       }
     },
     "datePublished": "2024-01-12",
     "dateModified": "2024-01-12",
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": "https://yourdomain.com/blog/how-to-convert-jpg-to-pdf"
+      "@id": "https://pdfswift.online/blog/how-to-convert-jpg-to-pdf"
     },
     "articleSection": "Technology, How-To",
     "keywords": "convert jpg to pdf, jpg to pdf online, image to pdf, free pdf converter, jpg to pdf converter online",
@@ -109,19 +132,19 @@ export default function JPGtoPDFBlog() {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://yourdomain.com"
+        "item": "https://pdfswift.online"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Blog",
-        "item": "https://yourdomain.com/blog"
+        "item": "https://pdfswift.online/blog"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": "How to Convert JPG to PDF",
-        "item": "https://yourdomain.com/blog/how-to-convert-jpg-to-pdf"
+        "item": "https://pdfswift.online/blog/how-to-convert-jpg-to-pdf"
       }
     ]
   };

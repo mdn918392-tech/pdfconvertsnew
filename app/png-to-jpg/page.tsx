@@ -403,7 +403,6 @@ export default function PngToJpg() {
   const [downloadNotifications, setDownloadNotifications] = useState<
     DownloadNotification[]
   >([]);
-  const [showFileUploader, setShowFileUploader] = useState(true); // New state to control FileUploader visibility
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   // Generate unique filename
@@ -424,13 +423,6 @@ export default function PngToJpg() {
         notificationsRef.current.scrollHeight;
     }
   }, [downloadNotifications]);
-
-  // Hide FileUploader when files are uploaded
-  useEffect(() => {
-    if (files.length > 0) {
-      setShowFileUploader(false);
-    }
-  }, [files]);
 
   const handleConvert = async () => {
     if (files.length === 0) return;
@@ -520,12 +512,6 @@ export default function PngToJpg() {
       prevFiles.filter((_, index) => index !== indexToRemove)
     );
     setJpgBlobs([]);
-
-    // Show FileUploader if all files are removed
-    if (files.length === 1) {
-      setShowFileUploader(true);
-      setShowFeatures(true);
-    }
   };
 
   const handleFilesSelected = (newFiles: File[]) => {
@@ -539,12 +525,7 @@ export default function PngToJpg() {
     setFiles([]);
     setJpgBlobs([]);
     setProgress(0);
-    setShowFileUploader(true); // Show FileUploader on reset
     setShowFeatures(true);
-  };
-
-  const handleAddMoreFiles = () => {
-    setShowFileUploader(true);
   };
 
   const hasFiles = files.length > 0;
@@ -714,15 +695,14 @@ export default function PngToJpg() {
                   </div>
                 </div>
 
-                {showFileUploader && (
-                  <div className="mb-6">
-                    <FileUploader
-                      accept="image/png"
-                      multiple={true}
-                      onFilesSelected={handleFilesSelected}
-                    />
-                  </div>
-                )}
+                {/* FileUploader हमेशा दिखेगा */}
+                <div className="mb-6">
+                  <FileUploader
+                    accept="image/png"
+                    multiple={true}
+                    onFilesSelected={handleFilesSelected}
+                  />
+                </div>
 
                 {hasFiles && (
                   <div className="text-center mb-6">
@@ -739,21 +719,6 @@ export default function PngToJpg() {
                         </span>
                       </div>
                     </div>
-
-                    {/* Add More Files Button */}
-                    {!showFileUploader && !hasResults && (
-                      <motion.button
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleAddMoreFiles}
-                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transition-all"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add More Files
-                      </motion.button>
-                    )}
                   </div>
                 )}
               </div>

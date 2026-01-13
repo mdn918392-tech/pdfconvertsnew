@@ -1,14 +1,14 @@
 "use client"; // ⚠️ Required for client-side interactivity
 
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { Upload, X, File as FileIcon } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface FileUploaderProps {
   accept: string;
   multiple?: boolean;
-  onFilesSelected: (files: File[]) => void; // ✅ Changed from FileWithPreview[] to File[]
-  maxSize?: number; // Size in MB
+  onFilesSelected: (files: File[]) => void;
+  maxSize?: number; // Default size in MB
 }
 
 export default function FileUploader({
@@ -17,13 +17,30 @@ export default function FileUploader({
   onFilesSelected,
   maxSize = 1024,
 }: FileUploaderProps) {
-  const [files, setFiles] = useState<File[]>([]); // ✅ Changed from FileWithPreview[] to File[]
   const [isDragging, setIsDragging] = useState(false);
+  const [deviceMaxSize, setDeviceMaxSize] = useState(maxSize);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Remove the useEffect that was causing infinite loop
-  // No more preview URL creation in FileUploader
-  
+  // Device detection - runs only on client side
+  useEffect(() => {
+    const checkDevice = () => {
+      const isMobileDevice = window.innerWidth <= 768; // Mobile detection
+      const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+      
+      // Phone के लिए 35MB, laptop/desktop के लिए 100MB
+      const calculatedMaxSize = (isMobileDevice || isMobileUserAgent) ? 35 : 100;
+      setDeviceMaxSize(calculatedMaxSize);
+    };
+
+    checkDevice();
+    
+    // Optional: Listen to window resize for responsiveness
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
   //
   // 3️⃣ HANDLE FILE SELECTION
   //
@@ -32,11 +49,12 @@ export default function FileUploader({
       if (!newFilesList) return;
 
       const fileArray = Array.from(newFilesList);
+      const currentMaxSize = deviceMaxSize;
 
       const validNewFiles: File[] = fileArray.filter((file) => {
         const sizeMB = file.size / 1024 / 1024;
-        if (sizeMB > maxSize) {
-          alert(`File "${file.name}" exceeds maximum size of ${maxSize}MB.`);
+        if (sizeMB > currentMaxSize) {
+          alert(`File "${file.name}" exceeds maximum size of ${currentMaxSize}MB.`);
           return false;
         }
         return true;
@@ -53,7 +71,7 @@ export default function FileUploader({
 
       if (inputRef.current) inputRef.current.value = "";
     },
-    [multiple, maxSize, onFilesSelected]
+    [multiple, onFilesSelected, deviceMaxSize]
   );
 
   //
@@ -96,7 +114,7 @@ export default function FileUploader({
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {multiple ? "Multiple files supported" : "Single file only"} • Max{" "}
-          {maxSize}MB per file
+          {deviceMaxSize}MB per file
         </p>
 
         <input

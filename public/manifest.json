@@ -1,6 +1,6 @@
 {
-    "name": "All-in-One PDF Tools",
-    "short_name": "PDF Tools",
+    "name": "PDF Swift",
+    "short_name": "PDFswift",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",

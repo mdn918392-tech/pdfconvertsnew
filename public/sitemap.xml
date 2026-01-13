@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+
+
+<url>
+  <loc>https://www.pdfswift.online/</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>1.00</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/about</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/jpg-to-pdf</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/pdf-to-jpg</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/merge-pdf</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/split-pdf</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/compress-pdf</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/extract-pages</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/remove-pages</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/rotate-pdf</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/png-to-jpg</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://www.pdfswift.online/compress-image</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+
+<!-- blog -->
+<url>
+  <loc>https://www.pdfswift.online/blog</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+
+<url>
+  <loc>https://www.pdfswift.online/blog/how-to-convert-jpg-to-pdf</loc>
+  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+
+
+
+</urlset>
