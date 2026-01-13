@@ -8,9 +8,7 @@ export default function AboutPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-6">
-            <FileText className="w-8 h-8 text-white" />
-          </div>
+          
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             About <span className="text-blue-600">PDFSwift</span>
           </h1>
@@ -125,18 +123,7 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Footer Note */}
-        <div className="mt-16 pt-8 border-t border-gray-200 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <Heart className="w-5 h-5 text-red-500 mr-2" />
-            <span className="text-gray-700">Made with care for the global community</span>
-          </div>
-          <p className="text-gray-500">
-            PDFSwift is proudly developed and maintained by a dedicated team passionate about
-            simplifying document management for everyone.
-          </p>
-          <p className="text-gray-500 mt-2">© {new Date().getFullYear()} PDFSwift. All rights reserved.</p>
-        </div>
+       
       </div>
     </div>
   );

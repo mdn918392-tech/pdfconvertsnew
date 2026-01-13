@@ -94,16 +94,7 @@ const tool = {
 
 // Explore All Tools Data
 const exploreTools: Tool[] = [
-  {
-    id: "word-to-pdf",
-    name: "Word to PDF",
-    description: "Convert Word to PDF",
-    category: "pdf",
-    icon: "📄",
-    color: "from-blue-500 to-cyan-500",
-    href: "/word-to-pdf",
-    path: "/tools/word-to-pdf",
-  },
+  
   {
     id: "split-pdf",
     name: "Split PDF",

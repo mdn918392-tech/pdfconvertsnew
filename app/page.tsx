@@ -7,7 +7,6 @@ import {
   Zap,
   Shield,
   CloudOff,
-  Sparkles,
   FileText,
   Image as ImageIcon,
 } from "lucide-react";
@@ -17,7 +16,6 @@ import type { Tool } from "./types";
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
 
-  // Add missing image tools to your existing tools data
   const extendedTools: Tool[] = [
     // PDF Tools
     {
@@ -122,38 +120,27 @@ export default function Home() {
       href: "/compress-image",
       path: "/tools/compress-image",
     },
-
-    // Conversion Tools
   ];
 
-  // Remove the type assertion since extendedTools is already typed as Tool[]
   const cleanTools = extendedTools.filter((t) => t != null);
 
+  // सिर्फ pdf और image कैटेगरी रखें
   const categories = {
-    convert: cleanTools.filter((t) => t.category === "convert"),
     pdf: cleanTools.filter((t) => t.category === "pdf"),
     image: cleanTools.filter((t) => t.category === "image"),
   };
 
-  const allTools = [
-    ...categories.convert,
-    ...categories.pdf,
-    ...categories.image,
-  ];
+  // सभी टूल्स को combine करें
+  const allTools = [...categories.pdf, ...categories.image];
 
   const filteredTools =
     activeCategory === "all"
       ? allTools
       : categories[activeCategory as keyof typeof categories] || [];
 
+  // सिर्फ all, pdf, और image टैब रखें
   const categoryTabs = [
     { id: "all", label: "All Tools", icon: "grid", count: allTools.length },
-    {
-      id: "convert",
-      label: "Convert",
-      icon: "convert",
-      count: categories.convert.length,
-    },
     {
       id: "pdf",
       label: "PDF Tools",
@@ -201,7 +188,7 @@ export default function Home() {
     },
   ];
 
-  // Category-based featured tools
+  // सिर्फ pdf और image के लिए featured tools
   const featuredTools = {
     pdf: [
       {
@@ -263,36 +250,6 @@ export default function Home() {
         href: "/image-converter",
       },
     ],
-    convert: [
-      {
-        name: "Word to PDF",
-        description: "Convert DOC/DOCX to PDF",
-        icon: "📄",
-        color: "from-blue-600 to-indigo-600",
-        href: "/word-to-pdf",
-      },
-      {
-        name: "Excel to PDF",
-        description: "Convert XLS/XLSX to PDF",
-        icon: "📊",
-        color: "from-green-600 to-emerald-600",
-        href: "/excel-to-pdf",
-      },
-      {
-        name: "PPT to PDF",
-        description: "Convert PowerPoint to PDF",
-        icon: "📽️",
-        color: "from-purple-600 to-pink-600",
-        href: "/ppt-to-pdf",
-      },
-      {
-        name: "HTML to PDF",
-        description: "Convert web pages to PDF",
-        icon: "🌐",
-        color: "from-orange-600 to-red-600",
-        href: "/html-to-pdf",
-      },
-    ],
   };
 
   const features = [
@@ -330,44 +287,42 @@ export default function Home() {
       <div className="container relative mx-auto px-4 py-8 sm:py-12">
         {/* Hero Section with PDFSwift Brand */}
         <motion.div
-  initial={{ opacity: 0, y: 30 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // Custom cubic-bezier for smoother feel
-  className="relative text-center mb-16 sm:mb-24 max-w-5xl mx-auto px-6"
->
-  {/* Modern Badge - Adds context immediately */}
-  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 mb-8">
-    <span className="relative flex h-2 w-2">
-      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-    </span>
-    <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-      Privacy-First Processing
-    </span>
-  </div>
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="relative text-center mb-16 sm:mb-24 max-w-5xl mx-auto px-6"
+        >
+          {/* Modern Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 mb-8">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              Privacy-First Processing
+            </span>
+          </div>
 
-  {/* Main Heading */}
-  <h1 className="text-6xl sm:text-8xl font-[900] tracking-tight mb-6">
-    <span className="bg-gradient-to-br from-gray-900 via-blue-700 to-violet-800 dark:from-white dark:via-blue-400 dark:to-violet-400 bg-clip-text text-transparent">
-      PDFSwift
-    </span>
-  </h1>
+          {/* Main Heading */}
+          <h1 className="text-6xl sm:text-8xl font-[900] tracking-tight mb-6">
+            <span className="bg-gradient-to-br from-gray-900 via-blue-700 to-violet-800 dark:from-white dark:via-blue-400 dark:to-violet-400 bg-clip-text text-transparent">
+              PDFSwift
+            </span>
+          </h1>
 
-  {/* Refined Description */}
-  <div className="max-w-3xl mx-auto space-y-6">
-    <h2 className="text-2xl sm:text-3xl font-semibold text-gray-800 dark:text-gray-100 tracking-tight">
-      Professional document tools, <span className="italic">simplified.</span>
-    </h2>
-    
-    <h3 className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
-      Edit, convert, and optimize your files directly in your browser. 
-      <span className="font-medium text-gray-900 dark:text-gray-200"> No uploads required, no data stored. </span> 
-      Your privacy is our default setting.
-    </h3>
-  </div>
+          {/* Refined Description */}
+          <div className="max-w-3xl mx-auto space-y-6">
+            
+            
+           <h2 className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
+ PDFSwift is a free online PDF tool to convert, compress, merge, split, rotate, and edit PDF files safely.  
+We keep your files private — 100% secure by default.
+<br />
+  Your privacy is our default setting.
+</h2>
 
-  
-</motion.div>
+          </div>
+        </motion.div>
 
         {/* Stats Section */}
         <motion.div
@@ -435,7 +390,6 @@ export default function Home() {
                   {tab.id === "all" && <Grid className="w-5 h-5" />}
                   {tab.id === "pdf" && <FileText className="w-5 h-5" />}
                   {tab.id === "image" && <ImageIcon className="w-5 h-5" />}
-                  {tab.id === "convert" && <ArrowRight className="w-5 h-5" />}
                 </span>
                 <span>{tab.label}</span>
                 <span

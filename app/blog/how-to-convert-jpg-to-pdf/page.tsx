@@ -165,10 +165,7 @@ export default function JPGtoPDFBlog() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
 
-      {/* Skip to main content for accessibility */}
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded-lg z-50">
-        Skip to main content
-      </a>
+      
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
         {/* Breadcrumb Navigation */}
@@ -229,19 +226,7 @@ export default function JPGtoPDFBlog() {
               </div>
             </div>
 
-            {/* Social Sharing */}
-            <div className="flex items-center justify-center gap-4 mb-8">
-              <span className="text-gray-600 dark:text-gray-400">Share:</span>
-              <button aria-label="Share on Twitter" className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                <Share2 className="w-5 h-5" />
-              </button>
-              <button aria-label="Share on Facebook" className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                <Share2 className="w-5 h-5" />
-              </button>
-              <button aria-label="Copy link" className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-                <Share2 className="w-5 h-5" />
-              </button>
-            </div>
+           
           </div>
 
           {/* Hero Image/Illustration */}

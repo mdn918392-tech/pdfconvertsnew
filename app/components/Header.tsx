@@ -1,24 +1,17 @@
 "use client";
 
-import { Moon, Sun, FileText, Menu, X, ChevronDown } from "lucide-react";
+import { FileText, Menu, X, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState("light");
   const [toolsOpen, setToolsOpen] = useState(false);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    document.documentElement.classList.toggle("dark");
-  };
 
   // Clear timeout on unmount
   useEffect(() => {
@@ -42,7 +35,7 @@ export default function Header() {
     }, 300); // 300ms delay before closing
   };
 
-  // टूल्स डेटा - image.png के अनुसार
+  // टूल्स डेटा
   const tools = [
     { name: "JPG to PDF", href: "jpg-to-pdf" },
     { name: "PDF to JPG", href: "pdf-to-jpg" },
@@ -57,11 +50,10 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         {/* LOGO */}
         <a href="/" className="flex items-center gap-3">
-          {/* Option 1: Use Image component with width and height */}
           <div className="relative z-50 w-12 h-12">
             <div className="w-15 h-15 mb-5">
               <Image
@@ -75,10 +67,10 @@ export default function Header() {
           </div>
 
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-bold text-gray-900">
               PDFSwift
             </h2>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
+            <p className="text-xs text-gray-600">
               Fast & Smart PDF Tools
             </p>
           </div>
@@ -88,7 +80,7 @@ export default function Header() {
         <nav className="hidden md:flex gap-8 items-center">
           <a
             href="/"
-            className="text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors duration-200"
+            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
           >
             Home
           </a>
@@ -100,7 +92,7 @@ export default function Header() {
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
-            <button className="flex items-center gap-1 text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors duration-200">
+            <button className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition-colors duration-200">
               Tools
               <ChevronDown
                 className={`w-4 h-4 transition-transform duration-200 ${
@@ -115,7 +107,7 @@ export default function Header() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50"
+                className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
               >
@@ -127,7 +119,7 @@ export default function Header() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.03 }}
-                      className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 rounded-md transition-colors duration-150"
+                      className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors duration-150"
                       onClick={() => setToolsOpen(false)}
                     >
                       {tool.name}
@@ -140,7 +132,7 @@ export default function Header() {
 
           <a
             href="/about"
-            className="text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors duration-200"
+            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
           >
             About
           </a>
@@ -148,24 +140,10 @@ export default function Header() {
 
         {/* RIGHT BUTTONS */}
         <div className="flex items-center gap-4">
-          {/* Dark Mode Toggle */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={toggleTheme}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
-          >
-            {theme === "light" ? (
-              <Moon className="w-5 h-5 text-gray-900" />
-            ) : (
-              <Sun className="w-5 h-5 text-yellow-400" />
-            )}
-          </motion.button>
-
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setOpen(!open)}
-            className="md:hidden p-2 bg-gray-100 dark:bg-gray-800 rounded-lg transition-colors duration-200"
+            className="md:hidden p-2 bg-gray-100 rounded-lg transition-colors duration-200"
           >
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -179,9 +157,9 @@ export default function Header() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
-          className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-sm"
+          className="md:hidden bg-white border-t border-gray-200 shadow-sm"
         >
-          <nav className="flex flex-col p-4 space-y-3 text-gray-700 dark:text-gray-300">
+          <nav className="flex flex-col p-4 space-y-3 text-gray-700">
             <a
               href="/"
               className="py-2 hover:text-blue-600 transition-colors duration-200"
@@ -191,7 +169,7 @@ export default function Header() {
             </a>
 
             {/* Mobile Tools Dropdown */}
-            <div className="border-b border-gray-100 dark:border-gray-800 pb-3">
+            <div className="border-b border-gray-100 pb-3">
               <button
                 onClick={() => setMobileToolsOpen(!mobileToolsOpen)}
                 className="flex items-center justify-between w-full py-2 hover:text-blue-600 transition-colors duration-200"
@@ -235,13 +213,6 @@ export default function Header() {
               onClick={() => setOpen(false)}
             >
               About
-            </a>
-            <a
-              href="/contact"
-              className="py-2 hover:text-blue-600 transition-colors duration-200"
-              onClick={() => setOpen(false)}
-            >
-              Contact
             </a>
           </nav>
         </motion.div>

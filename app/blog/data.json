@@ -32,6 +32,48 @@
         "answer": "Yes, the tool we recommend is completely free for basic use."
       }
     ]
+  },
+  {
+    "id": "how-to-convert-pdf-to-jpg",
+    "title": "How to Convert PDF to JPG on Mobile and PC",
+    "date": "Jan 14 2026",
+    "description": "Step by step guide to convert PDF files into JPG images on mobile and PC easily.",
+    "slug": "how-to-convert-pdf-to-jpg",
+    "image": "https://i.ibb.co/hR3PfDVh/pdftojpg.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "How to Convert PDF to JPG", "url": "/blog/how-to-convert-pdf-to-jpg" }
+    ],
+    "howto": {
+      "steps": [
+        "Open the PDF to JPG converter tool.",
+        "Upload your PDF file.",
+        "Select JPG as output format.",
+        "Click on convert.",
+        "Download the converted JPG images."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["PDF file"],
+      "tool": ["Online PDF to JPG converter"]
+    },
+    "faq": [
+      {
+        "question": "Can I convert PDF to JPG on mobile?",
+        "answer": "Yes, you can easily convert PDF to JPG on both Android and iPhone using an online converter."
+      },
+      {
+        "question": "Will each PDF page be saved as a separate JPG?",
+        "answer": "Yes, every page of the PDF is converted into a separate JPG image."
+      },
+      {
+        "question": "Is PDF to JPG conversion free?",
+        "answer": "Yes, most online PDF to JPG tools offer free conversion for basic usage."
+      }
+    ]
   }
+  
+  
 ]
 
