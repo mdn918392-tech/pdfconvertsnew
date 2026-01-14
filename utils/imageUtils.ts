@@ -160,6 +160,43 @@ export async function pdfToImages(file: File): Promise<Blob[]> {
   return output;
 }
 
+
+// utils/imageUtils.ts में नया फ़ंक्शन जोड़ें
+
+// ZIP डाउनलोड फ़ंक्शन
+export const downloadAsZip = async (
+  files: Array<{ name: string; blob: Blob }>,
+  zipFileName: string = "converted_images.zip"
+): Promise<void> => {
+  try {
+    // JSZip इंस्टॉल करना पड़ेगा
+    const JSZip = (await import("jszip")).default;
+    const zip = new JSZip();
+
+    // सभी फाइलें ZIP में जोड़ें
+    files.forEach((file, index) => {
+      zip.file(file.name, file.blob);
+    });
+
+    // ZIP फाइल जेनरेट करें
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+
+    // डाउनलोड लिंक बनाएं
+    const url = URL.createObjectURL(zipBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = zipFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error creating ZIP file:", error);
+    throw new Error("Failed to create ZIP file");
+  }
+};
 // --------------------------------------------------
 
 /**
