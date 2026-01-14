@@ -4,11 +4,21 @@ import PNGtoJPGFAQSchema from "./FAQSchema";
 import PNGtoJPGBreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
-  title: "PNG to JPG Converter – Fast & Free",
+  title: "PNG to JPG Converter Online – Fast, Free & Secure",
   description:
-    "Convert PNG images to JPG format instantly with high quality and secure processing.",
-  keywords:
-    "PNG to JPG, image converter, PNG converter, JPG converter, free image tool, convert PNG to JPG",
+    "Convert PNG images to JPG format instantly with high quality and secure processing using PDFSwift. Easily reduce image file size, maintain visual clarity, and download optimized JPG images in seconds. Our browser-based PNG to JPG converter works on all devices, requires no signup, and keeps your files completely private.",
+ keywords: [
+  "PNG to JPG converter online",
+  "convert PNG to JPG",
+  "PNG to JPG image converter",
+  "online PNG to JPG tool",
+  "free PNG to JPG converter",
+  "image converter PNG to JPG",
+  "high quality PNG to JPG",
+  "secure image converter",
+  "browser based image converter"
+]
+
 };
 
 // ✅ viewport must be exported separately

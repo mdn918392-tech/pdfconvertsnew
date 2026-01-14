@@ -34,21 +34,27 @@ export const metadata: Metadata = {
 
 
   title: {
-    default: "PDFSwift Free Online PDF Editor & Converter",
+    default: "PDFSwift – Free Online PDF Tools to Edit, Convert & Compress",
     template: "%s | PDFSwift",
   },
   description:
-    "PDFSwift is a free online PDF tool to convert, compress, merge, split, rotate and edit PDF files securely without signup.",
+    "PDFSwift is a powerful, free online PDF tool designed to help you convert, compress, merge, split, rotate, and edit PDF files quickly and securely — without any signup or installation required.",
   keywords: [
+
+  "PDF converter",
+  "merge PDF online",
+  "split PDF online",
+  "compress PDF online",
+  "JPG to PDF converter",
+  "PDF to JPG converter",
+  "online PDF tools",
+  "free PDF tools",
     "PDF editor online",
-    "PDF converter",
-    "merge PDF",
-    "split PDF",
-    "compress PDF",
-    "JPG to PDF",
-    "PDF to JPG",
-    "online PDF tools",
-  ],
+  "secure PDF editor",
+  "browser based PDF tools",
+  "edit PDF without signup"
+],
+
   authors: [{ name: "PDFSwift Team" }],
   creator: "PDFSwift",
   publisher: "PDFSwift",
@@ -74,7 +80,7 @@ export const metadata: Metadata = {
     url: "https://pdfswift.online",
     title: "PDFSwift – Free Online PDF Editor & Converter",
     description:
-      "Convert, compress, merge, split and edit PDFs online for free with PDFSwift.",
+      "Convert, compress, merge, split, and edit PDFs online for free with PDFSwift — fast, secure, and no signup required.",
     siteName: "PDFSwift",
     images: [
       {

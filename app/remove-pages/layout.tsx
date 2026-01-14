@@ -5,11 +5,20 @@ import FAQSchema from "./FAQSchema";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
-  title: "PDF to JPG Converter - Fast & Free",
+  title: "Remove Pages from PDF Online – Delete PDF Pages Free",
   description:
-    "Convert PDF pages to JPG images instantly with high quality.",
-  keywords:
-    "PDF to JPG, PDF converter, extract images, pdf to image, free PDF tool, convert PDF",
+    "Remove unwanted pages from PDF files online quickly and securely. Delete specific PDF pages and download a new PDF instantly using a free, browser-based tool — no signup required.",
+  keywords: [
+  "remove pages from PDF online",
+  "delete PDF pages",
+  "PDF page remover",
+  "remove unwanted pages from PDF",
+  "free PDF page remover",
+  "edit PDF pages online",
+  "browser based PDF tool",
+  "secure PDF editor"
+]
+
 };
 
 // ✅ viewport must be exported separately

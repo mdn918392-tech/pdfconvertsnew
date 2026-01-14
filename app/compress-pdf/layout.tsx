@@ -4,11 +4,20 @@ import FAQSchema from "./FAQSchema";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
-  title: "Compress PDF Files - Free Online Tool",
+  title: "Compress PDF Files Online for Free – Reduce PDF Size Instantly",
   description:
-    "Compress PDF files online quickly and securely. Reduce the file size of PDFs without losing quality.",
-  keywords:
-    "Compress PDF, reduce PDF size, online PDF compressor, free PDF tool, shrink PDF",
+    "Compress PDF files online quickly and securely with PDFSwift. Reduce PDF file size without losing quality using fast, browser-based compression. Your files stay private, no signup or installation required, and everything works instantly on desktop and mobile.",
+keywords: [
+  "compress PDF online",
+  "reduce PDF size",
+  "online PDF compressor",
+  "free PDF compressor",
+  "shrink PDF file",
+  "compress PDF without quality loss",
+  "secure PDF compression",
+  "browser based PDF tool"
+]
+
 };
 
 // ✅ viewport must be exported separately

@@ -245,18 +245,7 @@ export default function PrivacyPolicy() {
               </div>
             </section>
 
-            {/* Contact Information */}
-            <section id="contact" className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-              <h2 className="text-2xl font-bold text-white mb-4">
-                Contact Information
-              </h2>
-              <p className="text-gray-400 mb-2">
-                For privacy-related inquiries, please contact:
-              </p>
-              <p className="text-gray-400">
-                Email: <a href="mailto:privacy@pdfswift.app" className="text-blue-400 hover:underline">privacy@pdfswift.app</a>
-              </p>
-            </section>
+         
 
             {/* FAQ Section for SEO */}
             <section id="faq" className="bg-gray-900/30 rounded-xl p-8">

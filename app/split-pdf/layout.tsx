@@ -4,11 +4,22 @@ import FAQSchema from "./FAQSchema";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 
 export const metadata: Metadata = {
-  title: "Split PDF Tool - Free Online PDF Splitter",
+  title: "Split PDF Files Online for Free – Separate Pages Instantly",
   description:
-    "Split PDF files online easily and securely. Extract specific pages or split entire PDF files instantly.",
-  keywords:
-    "Split PDF, PDF splitter, online PDF tool, free PDF split, extract PDF pages",
+    "Split PDF files online for free quickly and securely. Separate specific pages or page ranges and download a new PDF instantly using a browser-based tool — no signup required.",
+  keywords: [
+  "split PDF files online",
+  "split PDF online",
+  "separate PDF pages",
+  "extract pages from PDF",
+  "split PDF by pages",
+  "free PDF splitter",
+  "online PDF splitter",
+  "split PDF page range",
+  "secure PDF splitting tool",
+  "browser based PDF tool"
+]
+
 };
 
 // ✅ viewport must be exported separately
