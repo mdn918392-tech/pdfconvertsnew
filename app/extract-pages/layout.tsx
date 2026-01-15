@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
-import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
   title: "Extract Pages from PDF - Free Online Tool",
@@ -37,7 +37,7 @@ export default function ExtractPDFLayout({
     <>
       <HowToSchema />
       <FAQSchema />
-      <BreadcrumbSchema />
+      <ArticleSchema />
       
       <main>{children}</main>
     </>

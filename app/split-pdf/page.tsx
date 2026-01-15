@@ -2032,9 +2032,7 @@ export default function PdfSplitRotatorTool() {
   return (
   <>
    <Head>
-   <ArticleSchema />
-      <HowToSchema />
-      <FAQSchema />
+   
       <BreadcrumbSchema />
        </Head>
 

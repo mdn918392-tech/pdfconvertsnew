@@ -1166,12 +1166,10 @@ export default function JpgToPdf() {
 
   return (
     <>
-     <Head>
-    <ArticleSchema/>
-     <HowToSchema />
-                  <FAQSchema />
+     
+    
                   <BreadcrumbSchema />
-                  </Head>
+                  
 
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
         <div

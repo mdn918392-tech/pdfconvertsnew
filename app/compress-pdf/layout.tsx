@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
-import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
   title: "Compress PDF Files Online for Free – Reduce PDF Size Instantly",
@@ -36,7 +36,7 @@ export default function CompressPDFLayout({
     <>
       <HowToSchema />
       <FAQSchema />
-      <BreadcrumbSchema />
+      <ArticleSchema/>
       
       <main>{children}</main>
     </>

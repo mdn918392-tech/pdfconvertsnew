@@ -619,9 +619,7 @@ export default function PngToJpg() {
   return (
     <>
       <Head>
-        <ArticleSchema />
-        <HowToSchema />
-        <FAQSchema />
+        
         <BreadcrumbSchema />
       </Head>
       

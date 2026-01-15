@@ -1,16 +1,29 @@
-"use client"; 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Download, ArrowLeft, FileText, Zap, Shield, CheckCircle, X, Sparkles, CloudOff, FileDown, FileUp, Percent, ArrowRight, Grid } from 'lucide-react';
-import FileUploader from '../components/FileUploader';
-import ProgressBar from '../components/ProgressBar';
-import { compressPdf } from '../../utils/pdfUtils';
-import { downloadFile } from '../../utils/imageUtils';
+"use client";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Download,
+  ArrowLeft,
+  FileText,
+  Zap,
+  Shield,
+  CheckCircle,
+  X,
+  Sparkles,
+  CloudOff,
+  FileDown,
+  FileUp,
+  Percent,
+  ArrowRight,
+  Grid,
+} from "lucide-react";
+import FileUploader from "../components/FileUploader";
+import ProgressBar from "../components/ProgressBar";
+import { compressPdf } from "../../utils/pdfUtils";
+import { downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
-import HowToSchema from "./HowToSchema";
-import FAQSchema from "./FAQSchema";
-import ArticleSchema from "./ArticleSchema";
-import Link from 'next/link';
+
+import Link from "next/link";
 
 // Define Tool type
 type Tool = {
@@ -27,16 +40,16 @@ type Tool = {
 // Smart filename generator
 const generateCompressedFilename = (originalName: string): string => {
   const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-  const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-  
+  const dateStr = now.toISOString().split("T")[0];
+  const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+
   // Clean original filename
   const cleanName = originalName
-    .replace(/\.pdf$/i, '') // Remove .pdf extension
-    .replace(/[^a-zA-Z0-9\s-_]/g, '')
+    .replace(/\.pdf$/i, "") // Remove .pdf extension
+    .replace(/[^a-zA-Z0-9\s-_]/g, "")
     .substring(0, 30)
     .trim();
-  
+
   return `${cleanName}_compressed_${dateStr}_${timeStr}.pdf`;
 };
 
@@ -45,114 +58,115 @@ export default function CompressPdf() {
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-  const [compressionStats, setCompressionStats] = useState<{ original: number; compressed: number } | null>(null);
+  const [compressionStats, setCompressionStats] = useState<{
+    original: number;
+    compressed: number;
+  } | null>(null);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [showUploadInfo, setShowUploadInfo] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
-
-const tool = {
-  id: "compress-pdf",
-  name: "Compress PDF",
-  description: "Reduce PDF file size",
-  category: "pdf",
-  icon: "🗜️",
-  color: "from-yellow-500 to-amber-500",
-  href: "/compress-pdf",
-  path: "/tools/compress-pdf",
-};
+  const tool = {
+    id: "compress-pdf",
+    name: "Compress PDF",
+    description: "Reduce PDF file size",
+    category: "pdf",
+    icon: "🗜️",
+    color: "from-yellow-500 to-amber-500",
+    href: "/compress-pdf",
+    path: "/tools/compress-pdf",
+  };
   // Explore All Tools Data
   const exploreTools: Tool[] = [
-    
-    { 
+    {
       id: "split-pdf",
-      name: "Split PDF", 
-      description: "Split PDF into separate pages", 
-      category: "pdf", 
-      icon: "✂️", 
-      color: "from-orange-500 to-red-500", 
+      name: "Split PDF",
+      description: "Split PDF into separate pages",
+      category: "pdf",
+      icon: "✂️",
+      color: "from-orange-500 to-red-500",
       href: "/split-pdf",
-      path: "/tools/split-pdf"
+      path: "/tools/split-pdf",
     },
-    { 
+    {
       id: "rotate-pdf",
-      name: "Rotate PDF", 
-      description: "Rotate PDF pages", 
-      category: "pdf", 
-      icon: "🔄", 
-      color: "from-teal-500 to-cyan-500", 
+      name: "Rotate PDF",
+      description: "Rotate PDF pages",
+      category: "pdf",
+      icon: "🔄",
+      color: "from-teal-500 to-cyan-500",
       href: "/rotate-pdf",
-      path: "/tools/rotate-pdf"
+      path: "/tools/rotate-pdf",
     },
-    { 
+    {
       id: "jpg-to-pdf",
-      name: "JPG to PDF", 
-      description: "Convert JPG images to PDF documents", 
-      category: "pdf", 
-      icon: "🖼️", 
-      color: "from-green-500 to-emerald-500", 
+      name: "JPG to PDF",
+      description: "Convert JPG images to PDF documents",
+      category: "pdf",
+      icon: "🖼️",
+      color: "from-green-500 to-emerald-500",
       href: "/jpg-to-pdf",
-      path: "/tools/jpg-to-pdf"
+      path: "/tools/jpg-to-pdf",
     },
-    { 
+    {
       id: "png-to-jpg",
-      name: "PNG to JPG", 
-      description: "Convert PNG images to JPG format", 
-      category: "image", 
-      icon: "🔄", 
-      color: "from-emerald-500 to-green-500", 
+      name: "PNG to JPG",
+      description: "Convert PNG images to JPG format",
+      category: "image",
+      icon: "🔄",
+      color: "from-emerald-500 to-green-500",
       href: "/png-to-jpg",
-      path: "/tools/png-to-jpg"
+      path: "/tools/png-to-jpg",
     },
-    { 
+    {
       id: "pdf-to-jpg",
-      name: "PDF to JPG", 
-      description: "Convert PDF pages to JPG images", 
-      category: "pdf", 
-      icon: "🖼️", 
-      color: "from-purple-500 to-pink-500", 
+      name: "PDF to JPG",
+      description: "Convert PDF pages to JPG images",
+      category: "pdf",
+      icon: "🖼️",
+      color: "from-purple-500 to-pink-500",
       href: "/pdf-to-jpg",
-      path: "/tools/pdf-to-jpg"
+      path: "/tools/pdf-to-jpg",
     },
-    { 
+    {
       id: "extract-pages",
-      name: "Extract Pages", 
-      description: "Extract specific pages from PDF", 
-      category: "pdf", 
-      icon: "📑", 
-      color: "from-indigo-500 to-blue-500", 
+      name: "Extract Pages",
+      description: "Extract specific pages from PDF",
+      category: "pdf",
+      icon: "📑",
+      color: "from-indigo-500 to-blue-500",
       href: "/extract-pages",
-      path: "/tools/extract-pages"
+      path: "/tools/extract-pages",
     },
-    { 
+    {
       id: "compress-image",
-      name: "Compress Image", 
-      description: "Reduce JPG/PNG file size", 
-      category: "image", 
-      icon: "📉", 
-      color: "from-blue-500 to-cyan-500", 
+      name: "Compress Image",
+      description: "Reduce JPG/PNG file size",
+      category: "image",
+      icon: "📉",
+      color: "from-blue-500 to-cyan-500",
       href: "/compress-image",
-      path: "/tools/compress-image"
+      path: "/tools/compress-image",
     },
-    { 
+    {
       id: "merge-pdf",
-      name: "Merge PDF", 
-      description: "Combine multiple PDF files into one", 
-      category: "pdf", 
-      icon: "🔗", 
-      color: "from-violet-500 to-purple-500", 
+      name: "Merge PDF",
+      description: "Combine multiple PDF files into one",
+      category: "pdf",
+      icon: "🔗",
+      color: "from-violet-500 to-purple-500",
       href: "/merge-pdf",
-      path: "/tools/merge-pdf"
+      path: "/tools/merge-pdf",
     },
-    { 
+    {
       id: "remove-pages",
-      name: "Remove Pages", 
-      description: "Delete specific pages from PDF", 
-      category: "pdf", 
-      icon: "🗑️", 
-      color: "from-rose-500 to-pink-500", 
+      name: "Remove Pages",
+      description: "Delete specific pages from PDF",
+      category: "pdf",
+      icon: "🗑️",
+      color: "from-rose-500 to-pink-500",
       href: "/remove-pages",
-      path: "/tools/remove-pages"
+      path: "/tools/remove-pages",
     },
   ];
 
@@ -177,24 +191,26 @@ const tool = {
 
     try {
       setProgress(10);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
       setProgress(30);
       const blob = await compressPdf(files[0]);
-      
+
       setProgress(80);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       setProgress(100);
       setPdfBlob(blob);
       setCompressionStats({
         original: files[0].size,
         compressed: blob.size,
       });
-      
-      setDownloadSuccess(`✓ Successfully compressed PDF! (Saved ${getCompressionPercent()}%)`);
+
+      setDownloadSuccess(
+        `✓ Successfully compressed PDF! (Saved ${getCompressionPercent()}%)`
+      );
     } catch (error) {
-      console.error('Compression error:', error);
+      console.error("Compression error:", error);
       setDownloadSuccess("✗ Failed to compress PDF. Please try again.");
     } finally {
       setConverting(false);
@@ -207,15 +223,15 @@ const tool = {
       try {
         const filename = generateCompressedFilename(files[0].name);
         downloadFile(pdfBlob, filename);
-        
+
         setDownloadSuccess(`✓ Downloaded: ${filename}`);
-        
+
         // Reset after a delay
         setTimeout(() => {
           setDownloading(false);
         }, 1000);
       } catch (error) {
-        console.error('Download error:', error);
+        console.error("Download error:", error);
         setDownloadSuccess("✗ Failed to download PDF");
         setDownloading(false);
       }
@@ -223,14 +239,17 @@ const tool = {
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB";
   };
 
   const getCompressionPercent = () => {
-    if (!compressionStats) return '0';
-    return ((1 - compressionStats.compressed / compressionStats.original) * 100).toFixed(1);
+    if (!compressionStats) return "0";
+    return (
+      (1 - compressionStats.compressed / compressionStats.original) *
+      100
+    ).toFixed(1);
   };
 
   const handleFileSelect = (selectedFiles: File[]) => {
@@ -250,15 +269,16 @@ const tool = {
   };
 
   const getFileIconColor = () => {
-    if (pdfBlob) return 'from-green-500 to-emerald-600';
-    if (converting) return 'from-blue-500 to-cyan-600';
-    if (files.length > 0) return 'from-orange-500 to-pink-600';
-    return 'from-gray-500 to-gray-600';
+    if (pdfBlob) return "from-green-500 to-emerald-600";
+    if (converting) return "from-blue-500 to-cyan-600";
+    if (files.length > 0) return "from-orange-500 to-pink-600";
+    return "from-gray-500 to-gray-600";
   };
 
   return (
     <>
-     <ArticleSchema/>
+      
+      <BreadcrumbSchema />
       {/* Success Message Overlay */}
       <AnimatePresence>
         {downloadSuccess && (
@@ -268,11 +288,13 @@ const tool = {
             exit={{ opacity: 0, y: -50 }}
             className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
           >
-            <div className={`p-4 rounded-xl shadow-2xl backdrop-blur-sm ${
-              downloadSuccess.startsWith("✓") 
-                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" 
-                : "bg-gradient-to-r from-red-500 to-orange-600 text-white"
-            }`}>
+            <div
+              className={`p-4 rounded-xl shadow-2xl backdrop-blur-sm ${
+                downloadSuccess.startsWith("✓")
+                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+                  : "bg-gradient-to-r from-red-500 to-orange-600 text-white"
+              }`}
+            >
               <div className="flex items-center justify-center gap-3">
                 {downloadSuccess.startsWith("✓") ? (
                   <CheckCircle className="w-5 h-5" />
@@ -304,24 +326,24 @@ const tool = {
               </a>
 
               <div className="text-center mb-6 md:mb-8">
-  <motion.div
-  initial={{ scale: 0.5 }}
-  animate={{ scale: 1 }}
-  className={`inline-flex items-center justify-center
+                <motion.div
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  className={`inline-flex items-center justify-center
     w-14 h-14 md:w-16 md:h-16
     bg-gradient-to-br ${tool.color}
     rounded-2xl md:rounded-3xl
     mb-3 md:mb-4 shadow-xl`}
->
-  <span className="text-2xl md:text-3xl text-white select-none">
-    {tool.icon}
-  </span>
-</motion.div>
-                
+                >
+                  <span className="text-2xl md:text-3xl text-white select-none">
+                    {tool.icon}
+                  </span>
+                </motion.div>
+
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-2 md:mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
                   PDF Compressor
                 </h1>
-                
+
                 <p className="text-sm md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed px-2">
                   Reduce PDF file size while maintaining document quality
                   <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 text-xs md:text-sm">
@@ -336,7 +358,7 @@ const tool = {
               {showUploadInfo && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
+                  animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   className="mb-6 md:mb-8 grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4"
                 >
@@ -345,31 +367,37 @@ const tool = {
                       <div className="p-1.5 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
                         <Zap className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
-                      <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white">Fast Compression</h3>
+                      <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white">
+                        Fast Compression
+                      </h3>
                     </div>
                     <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                       Reduce PDF size in seconds
                     </p>
                   </div>
-                  
+
                   <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 p-3 md:p-4 rounded-xl border-2 border-purple-200 dark:border-purple-800/50">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="p-1.5 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg">
                         <FileDown className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
-                      <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white">Smart Names</h3>
+                      <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white">
+                        Smart Names
+                      </h3>
                     </div>
                     <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                       Automatic descriptive filenames
                     </p>
                   </div>
-                  
+
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-3 md:p-4 rounded-xl border-2 border-green-200 dark:border-green-800/50">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="p-1.5 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg">
                         <Shield className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
-                      <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white">Secure</h3>
+                      <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white">
+                        Secure
+                      </h3>
                     </div>
                     <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                       Processed locally in your browser
@@ -384,7 +412,9 @@ const tool = {
               {/* Upload Section */}
               <div className="mb-6 md:mb-8">
                 <div className="flex items-center gap-2 md:gap-3 mb-4">
-                  <div className={`p-1.5 md:p-2 bg-gradient-to-r ${getFileIconColor()} rounded-xl`}>
+                  <div
+                    className={`p-1.5 md:p-2 bg-gradient-to-r ${getFileIconColor()} rounded-xl`}
+                  >
                     <FileUp className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </div>
                   <div>
@@ -412,7 +442,8 @@ const tool = {
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Will be saved as: {files[0].name.replace('.pdf', '')}_compressed_YYYY-MM-DD.pdf
+                      Will be saved as: {files[0].name.replace(".pdf", "")}
+                      _compressed_YYYY-MM-DD.pdf
                     </p>
                   </div>
                 )}
@@ -425,9 +456,9 @@ const tool = {
                   <div className="space-y-3 md:space-y-4">
                     {converting && (
                       <div className="space-y-3 md:space-y-4">
-                        <ProgressBar 
-                          progress={progress} 
-                          label={`Compressing ${files[0].name}...`} 
+                        <ProgressBar
+                          progress={progress}
+                          label={`Compressing ${files[0].name}...`}
                         />
                         <div className="flex items-center justify-center gap-1 md:gap-2 text-blue-600 dark:text-blue-400">
                           <Sparkles className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
@@ -495,7 +526,9 @@ const tool = {
                             <div className="p-1.5 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg">
                               <FileUp className="w-3 h-3 md:w-4 md:h-4 text-white" />
                             </div>
-                            <h4 className="font-bold text-gray-900 dark:text-white text-sm">Original Size</h4>
+                            <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+                              Original Size
+                            </h4>
                           </div>
                           <div className="text-center">
                             <div className="text-xl md:text-2xl font-black text-blue-600 dark:text-blue-400 mb-1 md:mb-2">
@@ -512,7 +545,9 @@ const tool = {
                             <div className="p-1.5 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg">
                               <Percent className="w-3 h-3 md:w-4 md:h-4 text-white" />
                             </div>
-                            <h4 className="font-bold text-gray-900 dark:text-white text-sm">Savings</h4>
+                            <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+                              Savings
+                            </h4>
                           </div>
                           <div className="text-center">
                             <div className="text-xl md:text-2xl font-black text-purple-600 dark:text-purple-400 mb-1 md:mb-2">
@@ -529,7 +564,9 @@ const tool = {
                             <div className="p-1.5 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg">
                               <FileDown className="w-3 h-3 md:w-4 md:h-4 text-white" />
                             </div>
-                            <h4 className="font-bold text-gray-900 dark:text-white text-sm">Compressed Size</h4>
+                            <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+                              Compressed Size
+                            </h4>
                           </div>
                           <div className="text-center">
                             <div className="text-xl md:text-2xl font-black text-green-600 dark:text-green-400 mb-1 md:mb-2">
@@ -546,7 +583,9 @@ const tool = {
                       <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30">
                         <div className="flex items-center gap-2 mb-2">
                           <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          <h4 className="font-semibold text-gray-900 dark:text-white">Download Filename:</h4>
+                          <h4 className="font-semibold text-gray-900 dark:text-white">
+                            Download Filename:
+                          </h4>
                         </div>
                         <div className="text-sm md:text-base text-blue-700 dark:text-blue-300 bg-white dark:bg-gray-800 p-3 rounded-lg font-mono break-all">
                           {generateCompressedFilename(files[0].name)}
@@ -602,7 +641,7 @@ const tool = {
                     40+ specialized PDF, image, and document tools
                   </p>
                 </div>
-                <Link 
+                <Link
                   href="/"
                   className="inline-flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl transition-all text-sm"
                 >
@@ -623,7 +662,9 @@ const tool = {
                     className="group bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-4 md:p-5 hover:border-blue-300 dark:hover:border-cyan-700 transition-all shadow-lg hover:shadow-2xl"
                   >
                     <div className="flex items-start gap-3 md:gap-4">
-                      <div className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-lg md:rounded-xl shadow-lg`}>
+                      <div
+                        className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-lg md:rounded-xl shadow-lg`}
+                      >
                         <span className="text-xl md:text-2xl">{tool.icon}</span>
                       </div>
                       <div className="flex-1">
@@ -657,7 +698,7 @@ const tool = {
                 </div>
                 <div>
                   <div className="text-lg md:text-xl lg:text-2xl font-black text-purple-600 dark:text-purple-400 mb-1">
-                    {files.length > 0 ? formatFileSize(files[0].size) : '0 MB'}
+                    {files.length > 0 ? formatFileSize(files[0].size) : "0 MB"}
                   </div>
                   <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
                     File Size
@@ -665,7 +706,7 @@ const tool = {
                 </div>
                 <div>
                   <div className="text-lg md:text-xl lg:text-2xl font-black text-green-600 dark:text-green-400 mb-1">
-                    {pdfBlob ? '✓' : '—'}
+                    {pdfBlob ? "✓" : "—"}
                   </div>
                   <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
                     Compressed
@@ -673,7 +714,7 @@ const tool = {
                 </div>
                 <div>
                   <div className="text-lg md:text-xl lg:text-2xl font-black text-orange-600 dark:text-orange-400 mb-1">
-                    {pdfBlob ? `${getCompressionPercent()}%` : '0%'}
+                    {pdfBlob ? `${getCompressionPercent()}%` : "0%"}
                   </div>
                   <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
                     Savings
@@ -682,11 +723,6 @@ const tool = {
               </div>
             </div>
           </motion.div>
-
-          {/* Schema Components */}
-          <HowToSchema />
-          <FAQSchema />
-          <BreadcrumbSchema />
         </div>
       </div>
     </>

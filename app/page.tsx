@@ -9,12 +9,15 @@ import {
   CloudOff,
   FileText,
   Image as ImageIcon,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useState } from "react";
 import type { Tool } from "./types";
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   const extendedTools: Tool[] = [
     // PDF Tools
@@ -188,70 +191,6 @@ export default function Home() {
     },
   ];
 
-  // सिर्फ pdf और image के लिए featured tools
-  const featuredTools = {
-    pdf: [
-      {
-        name: "Merge PDF",
-        description: "Combine multiple PDFs instantly",
-        icon: "🔗",
-        color: "from-blue-500 to-cyan-500",
-        href: "/merge-pdf",
-      },
-      {
-        name: "Split PDF",
-        description: "Extract pages with precision",
-        icon: "✂️",
-        color: "from-green-500 to-emerald-500",
-        href: "/split-pdf",
-      },
-      {
-        name: "Compress PDF",
-        description: "Reduce size without quality loss",
-        icon: "🗜️",
-        color: "from-purple-500 to-pink-500",
-        href: "/compress-pdf",
-      },
-      {
-        name: "PDF to Word",
-        description: "Convert with perfect formatting",
-        icon: "📝",
-        color: "from-orange-500 to-red-500",
-        href: "/pdf-to-word",
-      },
-    ],
-    image: [
-      {
-        name: "Compress Image",
-        description: "Reduce image size smartly",
-        icon: "📉",
-        color: "from-indigo-500 to-blue-500",
-        href: "/compress-image",
-      },
-      {
-        name: "Resize Image",
-        description: "Change dimensions accurately",
-        icon: "📐",
-        color: "from-emerald-500 to-teal-500",
-        href: "/resize-image",
-      },
-      {
-        name: "Background Remover",
-        description: "Remove backgrounds automatically",
-        icon: "🧹",
-        color: "from-rose-500 to-pink-500",
-        href: "/remove-background",
-      },
-      {
-        name: "Image Converter",
-        description: "Convert between all formats",
-        icon: "🔄",
-        color: "from-amber-500 to-orange-500",
-        href: "/image-converter",
-      },
-    ],
-  };
-
   const features = [
     {
       icon: <Shield className="w-6 h-6" />,
@@ -276,8 +215,66 @@ export default function Home() {
     },
   ];
 
+  // FAQ Data with Schema Structure
+  const faqs = [
+    {
+      question: "Is PDFSwift really free?",
+      answer: "Yes, PDFSwift is completely free with no hidden costs, no subscription fees, and no usage limits. All features are available at no cost.",
+      schemaAnswer: "Yes, PDFSwift is completely free with no hidden costs, no subscription fees, and no usage limits. All features are available at no cost."
+    },
+    {
+      question: "Are my files secure?",
+      answer: "Absolutely. All file processing happens 100% in your browser. We never upload your files to any server. Your data stays on your device with military-grade encryption.",
+      schemaAnswer: "All file processing happens 100% in your browser. We never upload your files to any server. Your data stays on your device with military-grade encryption."
+    },
+    {
+      question: "What file formats are supported?",
+      answer: "PDFSwift supports PDF, JPG, PNG, and other common document formats. We're constantly adding support for more file types based on user feedback.",
+      schemaAnswer: "PDFSwift supports PDF, JPG, PNG, and other common document formats. We're constantly adding support for more file types."
+    },
+    {
+      question: "Is there a file size limit?",
+      answer: "No, there's no file size limit. However, very large files may take longer to process depending on your device's capabilities.",
+      schemaAnswer: "No, there's no file size limit. However, very large files may take longer to process depending on your device's capabilities."
+    },
+    {
+      question: "Do I need to create an account?",
+      answer: "No account required. PDFSwift works instantly without any sign-up or registration. Just open the tool and start using it.",
+      schemaAnswer: "No account required. PDFSwift works instantly without any sign-up or registration. Just open the tool and start using it."
+    },
+    {
+      question: "Can I use PDFSwift on mobile?",
+      answer: "Yes, PDFSwift is fully responsive and works perfectly on all devices including smartphones, tablets, and desktops.",
+      schemaAnswer: "Yes, PDFSwift is fully responsive and works perfectly on all devices including smartphones, tablets, and desktops."
+    }
+  ];
+
+  // Schema.org FAQ Structured Data
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.schemaAnswer
+      }
+    }))
+  };
+
+  const toggleFaq = (index: number) => {
+    setOpenFaqIndex(openFaqIndex === index ? null : index);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      {/* Schema.org Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-300/20 to-cyan-300/20 dark:from-blue-900/10 dark:to-cyan-900/10 rounded-full blur-3xl" />
@@ -312,15 +309,12 @@ export default function Home() {
 
           {/* Refined Description */}
           <div className="max-w-3xl mx-auto space-y-6">
-            
-            
-           <h2 className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
- PDFSwift is a free online PDF tool to convert, compress, merge, split, rotate, and edit PDF files safely.  
-We keep your files private — 100% secure by default.
-<br />
-  Your privacy is our default setting.
-</h2>
-
+            <h2 className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
+              PDFSwift is a free online PDF tool to convert, compress, merge, split, rotate, and edit PDF files safely.  
+              We keep your files private — 100% secure by default.
+              <br />
+              Your privacy is our default setting.
+            </h2>
           </div>
         </motion.div>
 
@@ -484,6 +478,45 @@ We keep your files private — 100% secure by default.
             ))}
           </div>
         </motion.div>
+
+        {/* FAQ Section */}
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.5 }}
+  className="mb-16"
+  id="faq"
+>
+  <div className="text-center mb-12">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Frequently Asked Questions
+    </h2>
+    <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      Get answers to common questions about PDFSwift
+    </p>
+  </div>
+
+  <div className="max-w-3xl mx-auto space-y-4">
+    {faqs.map((faq, index) => (
+      <motion.div
+        key={index}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-100 dark:border-gray-700 p-6"
+      >
+        <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-3">
+          {faq.question}
+        </h3>
+
+        <p className="text-gray-600 dark:text-gray-400">
+          {faq.answer}
+        </p>
+      </motion.div>
+    ))}
+  </div>
+</motion.div>
+
       </div>
     </div>
   );

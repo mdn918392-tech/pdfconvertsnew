@@ -152,6 +152,46 @@
         "answer": "Yes, many online PDF extractors allow you to extract pages for free without watermarks."
       }
     ]
+  },
+  {
+    "id": "how-to-split-pdf",
+    "title": "How to Split PDF Pages Online on Mobile and PC (Step-by-Step Guide)",
+    "date": "Jan 16 2026",
+    "description": "Learn how to split PDF pages, extract specific pages, or divide a PDF into multiple files on mobile and PC using free and secure tools.",
+    "slug": "how-to-split-pdf",
+    "image": "https://i.ibb.co/DPytB0jM/Screenshot-2026-01-15-221306.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "How to Split PDF Pages", "url": "/blog/how-to-split-pdf" }
+    ],
+    "howto": {
+      "steps": [
+        "Open the online Split PDF tool.",
+        "Upload your PDF file from your device.",
+        "Choose how you want to split the PDF (page range, extract pages, or single pages).",
+        "Click on the Split PDF button.",
+        "Download the separated PDF files."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["PDF file"],
+      "tool": ["Online PDF split tool"]
+    },
+    "faq": [
+      {
+        "question": "Can I split PDF pages on mobile devices?",
+        "answer": "Yes, you can split PDF pages on Android and iPhone using an online PDF splitter without installing any app."
+      },
+      {
+        "question": "Can I extract specific pages from a PDF?",
+        "answer": "Yes, PDF split tools allow you to extract selected pages and save them as a new PDF file."
+      },
+      {
+        "question": "Is splitting PDF files free?",
+        "answer": "Yes, many online PDF split tools allow you to split PDF files for free without watermarks."
+      }
+    ]
   }
   
   

@@ -44,10 +44,9 @@ import ProgressBar from "@/app/components/ProgressBar";
 import { downloadFile } from "../../utils/imageUtils";
 import { PDFDocument } from "pdf-lib";
 import BreadcrumbSchema from "./BreadcrumbSchema";
-import ArticleSchema from "./ArticleSchema";
 
-import HowToSchema from "./HowToSchema";
-import FAQSchema from "./FAQSchema";
+
+
 
 // Import pdfjs-dist with proper configuration
 import * as pdfjsLib from "pdfjs-dist";
@@ -1123,9 +1122,7 @@ export default function PdfPageRemoverTool() {
   return (
   <>
   <Head>
-   <ArticleSchema />
-      <HowToSchema />
-      <FAQSchema />
+   
       <BreadcrumbSchema />
       </Head>
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-red-950/20 py-4 sm:py-8 md:py-12">
