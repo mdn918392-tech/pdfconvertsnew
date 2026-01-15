@@ -112,7 +112,48 @@
         "answer": "Yes, many online tools allow free PDF merging without watermarks."
       }
     ]
+  },
+  {
+    "id": "how-to-extract-pdf-pages",
+    "title": "How to Extract Pages from PDF Files in 2026",
+    "date": "Jan 15 2026",
+    "description": "Step by step guide to extract specific pages from a PDF file on mobile and PC easily.",
+    "slug": "how-to-extract-pdf-pages",
+    "image": "https://i.ibb.co/qYL4yjSz/how-to-extractpage.jpg",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "How to Extract PDF Pages", "url": "/blog/how-to-extract-pdf-pages" }
+    ],
+    "howto": {
+      "steps": [
+        "Open the Extract PDF tool.",
+        "Upload the PDF file you want to extract pages from.",
+        "Select the specific pages or page range.",
+        "Click on the extract button.",
+        "Download the extracted PDF pages."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["PDF file"],
+      "tool": ["Online PDF page extractor"]
+    },
+    "faq": [
+      {
+        "question": "Can I extract PDF pages on mobile?",
+        "answer": "Yes, you can extract PDF pages on Android and iPhone using an online PDF page extractor."
+      },
+      {
+        "question": "Is it safe to extract PDF pages online?",
+        "answer": "Yes, secure PDF tools use HTTPS encryption and automatically delete uploaded files after processing."
+      },
+      {
+        "question": "Is extracting PDF pages free?",
+        "answer": "Yes, many online PDF extractors allow you to extract pages for free without watermarks."
+      }
+    ]
   }
+  
   
   
 ]

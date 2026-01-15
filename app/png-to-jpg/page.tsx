@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
+import JSZip from "jszip";
 import {
   Download,
   ArrowLeft,
@@ -23,13 +24,14 @@ import {
   Grid,
   X,
   Plus,
+  Archive,
+  FolderClosed,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
 import { convertPngToJpg, downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
-
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
 
@@ -178,6 +180,7 @@ interface DownloadNotification {
   fileName: string;
   fileCount: number;
   timestamp: Date;
+  type: 'single' | 'zip' | 'multi';
 }
 
 // --- Image Preview Component ---
@@ -188,6 +191,7 @@ const ImagePreview = ({
   isDownloadable = false,
   filename = "image.jpg",
   index,
+  onSingleDownload,
 }: {
   file: Blob | File;
   onRemove?: () => void;
@@ -195,6 +199,7 @@ const ImagePreview = ({
   isDownloadable?: boolean;
   filename: string;
   index: number;
+  onSingleDownload?: () => void;
 }) => {
   const url = useMemo(() => createObjectURL(file), [file]);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -210,7 +215,11 @@ const ImagePreview = ({
       : "text-blue-600 dark:text-blue-400";
 
   const handleIndividualDownload = () => {
-    downloadFile(file as Blob, filename);
+    if (onSingleDownload) {
+      onSingleDownload();
+    } else {
+      downloadFile(file as Blob, filename);
+    }
   };
 
   return (
@@ -349,30 +358,49 @@ const DownloadNotification = ({
   fileName,
   fileCount,
   timestamp,
+  type,
   onClose,
 }: DownloadNotification & { onClose: () => void }) => {
+  const getMessage = () => {
+    switch (type) {
+      case 'zip':
+        return `ZIP archive downloaded with ${fileCount} files`;
+      case 'multi':
+        return `${fileCount} files downloaded individually`;
+      default:
+        return 'File downloaded successfully! 🎉';
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
-      className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 rounded-xl shadow-lg mb-2"
+      className={`bg-gradient-to-r ${
+        type === 'zip' 
+          ? 'from-purple-500 to-indigo-600' 
+          : 'from-green-500 to-emerald-600'
+      } text-white p-4 rounded-xl shadow-lg mb-2`}
     >
       <div className="flex items-start gap-3">
-        <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
+        {type === 'zip' ? (
+          <Archive className="w-5 h-5 mt-0.5 flex-shrink-0" />
+        ) : (
+          <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
+        )}
         <div className="flex-1 min-w-0">
           <h4 className="font-bold text-sm mb-1">
-            {fileCount > 1
-              ? `${fileCount} Files Downloaded! 🎉`
-              : "File Downloaded Successfully! 🎉"}
+            {type === 'zip' ? 'ZIP Archive Downloaded! 📦' : getMessage()}
           </h4>
-          {fileCount === 1 && (
+          {type === 'single' && (
             <p className="text-xs opacity-90 truncate mb-1">{fileName}</p>
           )}
           <p className="text-xs opacity-80 mb-2">
-            {fileCount > 1
-              ? `${fileCount} PNG files converted to JPG`
-              : "PNG successfully converted to JPG"}
+            {type === 'zip' 
+              ? `All ${fileCount} files are now in a single ZIP archive`
+              : `${fileCount} PNG ${fileCount === 1 ? 'file' : 'files'} converted to JPG`
+            }
           </p>
           <div className="flex items-center gap-1 text-xs opacity-80">
             <Clock className="w-3 h-3" />
@@ -403,6 +431,7 @@ export default function PngToJpg() {
   const [downloadNotifications, setDownloadNotifications] = useState<
     DownloadNotification[]
   >([]);
+  const [zipDownloading, setZipDownloading] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   // Generate unique filename
@@ -460,8 +489,51 @@ export default function PngToJpg() {
     }
   };
 
-  const handleDownload = () => {
-    // Downloads all converted files
+  const handleDownloadAllAsZip = async () => {
+    if (jpgBlobs.length === 0) return;
+
+    setZipDownloading(true);
+    try {
+      const zip = new JSZip();
+      
+      // Add all JPG files to the zip
+      jpgBlobs.forEach((item, index) => {
+        zip.file(item.name, item.blob);
+      });
+
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      
+      // Create download link
+      const zipName = `converted_images_${new Date().getTime()}.zip`;
+      downloadFile(zipBlob, zipName);
+
+      // Add download notification
+      const notification: DownloadNotification = {
+        id: Math.random().toString(36).substring(7),
+        fileName: zipName,
+        fileCount: jpgBlobs.length,
+        timestamp: new Date(),
+        type: 'zip',
+      };
+      setDownloadNotifications((prev) => [...prev, notification]);
+
+      // Auto-remove notification after 5 seconds
+      setTimeout(() => {
+        setDownloadNotifications((prev) =>
+          prev.filter((n) => n.id !== notification.id)
+        );
+      }, 5000);
+    } catch (error) {
+      console.error("ZIP creation error:", error);
+      alert("Failed to create ZIP archive. Please try again.");
+    } finally {
+      setZipDownloading(false);
+    }
+  };
+
+  const handleDownloadAllSeparate = () => {
+    // Downloads all converted files individually
     jpgBlobs.forEach((item) => {
       downloadFile(item.blob, item.name);
     });
@@ -472,6 +544,7 @@ export default function PngToJpg() {
       fileName: jpgBlobs.length === 1 ? jpgBlobs[0].name : "Multiple files",
       fileCount: jpgBlobs.length,
       timestamp: new Date(),
+      type: jpgBlobs.length === 1 ? 'single' : 'multi',
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
@@ -483,19 +556,19 @@ export default function PngToJpg() {
     }, 5000);
   };
 
-  const handleSingleDownload = (
-    blob: Blob,
-    filename: string,
-    index: number
-  ) => {
-    downloadFile(blob, filename);
+  const handleSingleDownload = (index: number) => {
+    const item = jpgBlobs[index];
+    if (!item) return;
+
+    downloadFile(item.blob, item.name);
 
     // Add download notification
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
-      fileName: filename,
+      fileName: item.name,
       fileCount: 1,
       timestamp: new Date(),
+      type: 'single',
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
@@ -545,12 +618,13 @@ export default function PngToJpg() {
 
   return (
     <>
-    <Head>
-      <ArticleSchema />
-      <HowToSchema />
-      <FAQSchema />
-      <BreadcrumbSchema />
-        </Head>
+      <Head>
+        <ArticleSchema />
+        <HowToSchema />
+        <FAQSchema />
+        <BreadcrumbSchema />
+      </Head>
+      
       {/* Download Success Notifications */}
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
         <div
@@ -595,10 +669,10 @@ export default function PngToJpg() {
                   initial={{ scale: 0.5 }}
                   animate={{ scale: 1 }}
                   className={`inline-flex items-center justify-center
-    w-14 h-14 md:w-16 md:h-16
-    bg-gradient-to-br ${tool.color}
-    rounded-2xl md:rounded-3xl
-    mb-3 md:mb-4 shadow-xl`}
+                    w-14 h-14 md:w-16 md:h-16
+                    bg-gradient-to-br ${tool.color}
+                    rounded-2xl md:rounded-3xl
+                    mb-3 md:mb-4 shadow-xl`}
                 >
                   <span className="text-2xl md:text-3xl text-white select-none">
                     {tool.icon}
@@ -613,7 +687,7 @@ export default function PngToJpg() {
                   Convert your PNG images to high-quality JPG format with
                   superior compression
                   <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    Preserve quality while reducing file size
+                    Download individual files or as ZIP archive
                   </span>
                 </p>
               </div>
@@ -646,12 +720,12 @@ export default function PngToJpg() {
                       border: "border-blue-200",
                     },
                     {
-                      icon: Shield,
-                      title: "Secure Processing",
-                      desc: "All conversions happen locally in your browser. Your images never leave your device",
-                      gradient: "from-green-500 to-emerald-600",
-                      bg: "from-green-50 to-emerald-50",
-                      border: "border-green-200",
+                      icon: Archive,
+                      title: "ZIP Download",
+                      desc: "Download all converted images in a single ZIP archive for easy organization",
+                      gradient: "from-purple-500 to-indigo-600",
+                      bg: "from-purple-50 to-indigo-50",
+                      border: "border-purple-200",
                     },
                   ].map((feature, index) => (
                     <div
@@ -814,8 +888,7 @@ export default function PngToJpg() {
                       format
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      {sizeReduction}% average size reduction • All files are
-                      ready for download
+                      {sizeReduction}% average size reduction • Choose your download option below
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
@@ -841,23 +914,51 @@ export default function PngToJpg() {
                         status="Converted ✓"
                         isDownloadable={true}
                         index={index}
+                        onSingleDownload={() => handleSingleDownload(index)}
                       />
                     ))}
                   </div>
                 </div>
 
-                {/* --- Download All Button --- */}
+                {/* --- Download Options Section --- */}
                 <div className="space-y-4 sm:space-y-6">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleDownload}
-                    className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
-                  >
-                    <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                    Download All {jpgBlobs.length} JPG Files
-                    <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
-                  </motion.button>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    {/* Download as ZIP Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDownloadAllAsZip}
+                      disabled={zipDownloading}
+                      className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
+                        zipDownloading ? 'opacity-75 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {zipDownloading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                          Creating ZIP...
+                        </>
+                      ) : (
+                        <>
+                          <Archive className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                          Download as ZIP Archive ({jpgBlobs.length} files)
+                          <FolderClosed className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                        </>
+                      )}
+                    </motion.button>
+
+                    {/* Download All Separately Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDownloadAllSeparate}
+                      className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                    >
+                      <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                      Download All {jpgBlobs.length} Files Separately
+                      <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                    </motion.button>
+                  </div>
 
                   <div className="text-center">
                     <button
