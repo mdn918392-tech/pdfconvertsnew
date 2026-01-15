@@ -72,6 +72,46 @@
         "answer": "Yes, most online PDF to JPG tools offer free conversion for basic usage."
       }
     ]
+  },
+  {
+    "id": "how-to-merge-pdf",
+    "title": "How to Merge PDF Files in 2026",
+    "date": "Jan 15 2026",
+    "description": "Step by step guide to merge multiple PDF files into one document on mobile and PC easily.",
+    "slug": "how-to-merge-pdf",
+    "image": "https://i.ibb.co/ZkKDzCM/how-to-merge.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "How to Merge PDF", "url": "/blog/how-to-merge-pdf" }
+    ],
+    "howto": {
+      "steps": [
+        "Open the Merge PDF tool.",
+        "Upload multiple PDF files.",
+        "Reorder the PDFs as needed.",
+        "Click on the merge button.",
+        "Download the merged PDF file."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["Multiple PDF files"],
+      "tool": ["Online PDF merger"]
+    },
+    "faq": [
+      {
+        "question": "Can I merge PDF files on mobile?",
+        "answer": "Yes, you can merge PDF files easily on Android and iPhone using an online PDF merger."
+      },
+      {
+        "question": "Is it safe to merge PDF files online?",
+        "answer": "Yes, trusted PDF merger tools use HTTPS encryption and automatically delete files after processing."
+      },
+      {
+        "question": "Is merging PDF files free?",
+        "answer": "Yes, many online tools allow free PDF merging without watermarks."
+      }
+    ]
   }
   
   
