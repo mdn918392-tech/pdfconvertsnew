@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
+import FAQSchema from "./FAQSchema";
+import { faqData } from "./faqData";
 
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -24,12 +26,20 @@ import {
   X,
   Plus,
   FolderArchive,
+  FileQuestion,
+  Cpu,
+  Globe,
+  Lock,
+  HelpCircle,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
-import { convertPngToJpg, downloadFile, downloadAsZip } from "../../utils/imageUtils";
+import {
+  convertPngToJpg,
+  downloadFile,
+  downloadAsZip,
+} from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
-
 
 const tool = {
   id: "compress-image",
@@ -346,7 +356,11 @@ const DownloadNotification = ({
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
-      className={`bg-gradient-to-r ${isZip ? 'from-purple-500 to-indigo-600' : 'from-green-500 to-emerald-600'} text-white p-4 rounded-xl shadow-lg mb-2`}
+      className={`bg-gradient-to-r ${
+        isZip
+          ? "from-purple-500 to-indigo-600"
+          : "from-green-500 to-emerald-600"
+      } text-white p-4 rounded-xl shadow-lg mb-2`}
     >
       <div className="flex items-start gap-3">
         {isZip ? (
@@ -358,8 +372,8 @@ const DownloadNotification = ({
           <h4 className="font-bold text-sm mb-1">
             {isZip ? (
               <>
-                {fileCount > 1 
-                  ? `${fileCount} Files Downloaded as ZIP! 📦` 
+                {fileCount > 1
+                  ? `${fileCount} Files Downloaded as ZIP! 📦`
                   : "File Downloaded as ZIP! 📦"}
               </>
             ) : (
@@ -374,13 +388,11 @@ const DownloadNotification = ({
             <p className="text-xs opacity-90 truncate mb-1">{fileName}</p>
           )}
           <p className="text-xs opacity-80 mb-2">
-            {isZip ? (
-              `All ${fileCount} files compressed into ZIP archive`
-            ) : (
-              fileCount > 1
-                ? `${fileCount} PNG files converted to JPG`
-                : "PNG successfully converted to JPG"
-            )}
+            {isZip
+              ? `All ${fileCount} files compressed into ZIP archive`
+              : fileCount > 1
+              ? `${fileCount} PNG files converted to JPG`
+              : "PNG successfully converted to JPG"}
           </p>
           <div className="flex items-center gap-1 text-xs opacity-80">
             <Clock className="w-3 h-3" />
@@ -500,9 +512,9 @@ export default function PngToJpg() {
 
     try {
       // Prepare files for ZIP
-      const filesForZip = jpgBlobs.map(item => ({
+      const filesForZip = jpgBlobs.map((item) => ({
         name: item.name,
-        blob: item.blob
+        blob: item.blob,
       }));
 
       // Generate ZIP filename
@@ -607,10 +619,12 @@ export default function PngToJpg() {
   return (
     <>
       <>
-  <BreadcrumbSchema />
-  {/* rest of page */}
-</>
 
+      {/* SEO Schema */}
+      <FAQSchema />
+        <BreadcrumbSchema />
+        {/* rest of page */}
+      </>
 
       {/* Download Success Notifications */}
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
@@ -667,12 +681,13 @@ export default function PngToJpg() {
                 </motion.div>
 
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-orange-600 via-pink-600 to-orange-600 bg-clip-text text-transparent px-2">
-                  Compress Image
+                  Compress Images Online Without Quality Loss
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Convert your PNG images to high-quality JPG format with
-                  superior compression
+                  Compress images online to reduce file size without losing
+                  quality. Fast, secure, browser-based image compressor for JPG
+                  & PNG. No signup required.
                   <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
                     Preserve quality while reducing file size
                   </span>
@@ -693,11 +708,12 @@ export default function PngToJpg() {
                     {
                       icon: Zap,
                       title: "Fast Conversion",
-                      desc: "Convert multiple PNG files to JPG format in seconds with our optimized engine",
+                      desc: "Convert multiple images to high-quality JPG in seconds using our optimized compression engine.",
                       gradient: "from-orange-500 to-pink-600",
                       bg: "from-orange-50 to-pink-50",
                       border: "border-orange-200",
                     },
+
                     {
                       icon: Palette,
                       title: "Quality Preserved",
@@ -756,10 +772,11 @@ export default function PngToJpg() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                      {hasFiles ? "Add More PNG Images" : "Upload PNG Images"}
+                      {hasFiles ? "Add More PNG Images" : "Upload Images"}
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Select PNG files to convert to JPG format
+                      Upload JPG or PNG images to compress and reduce file size
+                      without losing quality.
                     </p>
                   </div>
                 </div>
@@ -768,7 +785,9 @@ export default function PngToJpg() {
                 <FileUploader
                   accept="image/png"
                   multiple={true}
-                  onFilesSelected={hasFiles ? handleAddMoreFiles : handleFilesSelected}
+                  onFilesSelected={
+                    hasFiles ? handleAddMoreFiles : handleFilesSelected
+                  }
                   key={files.length} // Reset करने के लिए key
                 />
 
@@ -785,7 +804,8 @@ export default function PngToJpg() {
                             {files.length} PNG files selected
                           </p>
                           <p className="text-xs text-orange-600 dark:text-orange-400">
-                            Total size: {(totalSize / 1024 / 1024).toFixed(2)} MB
+                            Total size: {(totalSize / 1024 / 1024).toFixed(2)}{" "}
+                            MB
                           </p>
                         </div>
                       </div>
@@ -816,7 +836,9 @@ export default function PngToJpg() {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => document.getElementById('file-upload')?.click()}
+                          onClick={() =>
+                            document.getElementById("file-upload")?.click()
+                          }
                           className="px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-colors flex items-center gap-1"
                         >
                           <Plus className="w-3 h-3" />
@@ -894,10 +916,12 @@ export default function PngToJpg() {
                       Conversion Complete! 🎉
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
-                      Successfully converted {files.length} PNG files to JPG format
+                      Successfully converted {files.length} PNG files to JPG
+                      format
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      {sizeReduction}% average size reduction • All files are ready for download
+                      {sizeReduction}% average size reduction • All files are
+                      ready for download
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
@@ -948,7 +972,9 @@ export default function PngToJpg() {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleDownloadAsZip}
                     disabled={creatingZip}
-                    className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${creatingZip ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
+                      creatingZip ? "opacity-70 cursor-not-allowed" : ""
+                    }`}
                   >
                     {creatingZip ? (
                       <>
@@ -1009,6 +1035,92 @@ export default function PngToJpg() {
                 </div>
               </motion.div>
             )}
+
+            {/* --- FAQ Section --- */}
+            <div className="mb-6 md:mb-8">
+             
+
+              
+               
+               
+  
+
+      {/* Visible FAQ Section */}
+<section className="max-w-3xl mx-auto my-16 px-4">
+  {/* Title */}
+  <div className="text-center mb-8">
+    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+      Frequently Asked Questions
+    </h2>
+    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      Everything you need to know about compressing images online
+    </p>
+  </div>
+
+  {/* FAQ List */}
+  <div className="space-y-4">
+    {faqData.map((faq, index) => (
+      <details
+        key={index}
+        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+        bg-white dark:bg-gray-800"
+      >
+        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+          {faq.question}
+        </summary>
+        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+          {faq.answer}
+        </p>
+      </details>
+    ))}
+  </div>
+</section>
+
+               
+
+                
+
+                
+
+               
+
+                
+              
+
+              {/*
+  Additional Help
+  <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl border-2 border-blue-200 dark:border-blue-800/30 text-center">
+    <div className="inline-flex items-center gap-3 mb-3">
+      <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl">
+        <HelpCircle className="w-5 h-5 text-white" />
+      </div>
+      <h3 className="font-bold text-blue-700 dark:text-blue-300 text-lg">
+        Need More Help?
+      </h3>
+    </div>
+
+    <p className="text-blue-600 dark:text-blue-400 text-sm mb-4">
+      Check our comprehensive guide or contact support for assistance
+    </p>
+
+    <div className="flex flex-wrap gap-3 justify-center">
+      <a
+        href="/help/image-compression-guide"
+        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all text-sm"
+      >
+        View Complete Guide
+      </a>
+
+      <a
+        href="/contact"
+        className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all text-sm"
+      >
+        Contact Support
+      </a>
+    </div>
+  </div>
+*/}
+            </div>
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">

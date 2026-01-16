@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import HowToSchema from "./HowToSchema";
-import FAQSchema from "./FAQSchema";
+
 
 import ArticleSchema from "./ArticleSchema";
 
@@ -37,7 +37,7 @@ export default function PDFToJPGLayout({
     <>
       {/* Only keep the schemas you need */}
       <HowToSchema />
-      <FAQSchema />
+  
       <ArticleSchema />
       
       <main>{children}</main>

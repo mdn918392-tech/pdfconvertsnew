@@ -42,11 +42,11 @@ import FileUploader from "@/app/components/FileUploader";
 import ProgressBar from "@/app/components/ProgressBar";
 import { downloadFile } from "../../utils/imageUtils";
 import { PDFDocument, degrees } from "pdf-lib";
-import ArticleSchema from "./ArticleSchema";
+
 import BreadcrumbSchema from "./BreadcrumbSchema";
 
-import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
+import { faqData } from "./faqData";
 
 // Import pdfjs-dist with proper configuration
 import * as pdfjsLib from "pdfjs-dist";
@@ -1269,6 +1269,8 @@ export default function PdfRotatorTool() {
   return (
   <>
   <Head>
+  {/* SEO Schema */}
+      <FAQSchema />
    
       <BreadcrumbSchema />
       </Head>
@@ -1924,6 +1926,37 @@ export default function PdfRotatorTool() {
             fileName={zoomModal.fileName}
             rotation={zoomModal.rotation} // ✅ rotation भेजें
           />
+
+{/* Visible FAQ Section */}
+<section className="max-w-3xl mx-auto my-16 px-4">
+  {/* Title */}
+  <div className="text-center mb-8">
+    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+      Frequently Asked Questions
+    </h2>
+    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      Everything you need to know about rotating PDF pages online
+    </p>
+  </div>
+
+  {/* FAQ List */}
+  <div className="space-y-4">
+    {faqData.map((faq, index) => (
+      <details
+        key={index}
+        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+        bg-white dark:bg-gray-800"
+      >
+        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+          {faq.question}
+        </summary>
+        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+          {faq.answer}
+        </p>
+      </details>
+    ))}
+  </div>
+</section>
 
           {/* Explore All Tools Section */}
           <div className="mb-6 md:mb-8">

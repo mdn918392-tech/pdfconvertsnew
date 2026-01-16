@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import FAQSchema from "./FAQSchema";
+import { faqData } from "./faqData";
 
 
 import Link from "next/link";
@@ -31,9 +33,7 @@ import ProgressBar from "@/app/components/ProgressBar";
 import { mergePdfs, reversePdfOrder } from "../../utils/pdfUtils";
 import { downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
-import ArticleSchema from "./ArticleSchema";
-import HowToSchema from "./HowToSchema";
-import FAQSchema from "./FAQSchema";
+
 
 // Smart filename generator for merged PDFs
  const generateMergedPdfFilename = (files: File[]): string => {
@@ -396,6 +396,8 @@ export default function MergePdf() {
   
          
           <BreadcrumbSchema />
+          {/* SEO Schema */}
+      <FAQSchema />
            
             
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950/20 py-8 md:py-12">
@@ -999,9 +1001,38 @@ export default function MergePdf() {
             )}
           </div>
 
-          <HowToSchema />
-          <FAQSchema />
-          <BreadcrumbSchema />
+{/* Visible FAQ Section */}
+<section className="max-w-3xl mx-auto my-16 px-4">
+  {/* Title */}
+  <div className="text-center mb-8">
+    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+      Frequently Asked Questions
+    </h2>
+    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+     Everything you need to know about combining multiple PDF files into one
+    </p>
+  </div>
+
+  {/* FAQ List */}
+  <div className="space-y-4">
+    {faqData.map((faq, index) => (
+      <details
+        key={index}
+        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+        bg-white dark:bg-gray-800"
+      >
+        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+          {faq.question}
+        </summary>
+        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+          {faq.answer}
+        </p>
+      </details>
+    ))}
+  </div>
+</section>
+
+         
 
           {/* Explore All Tools Section */}
           <div className="mb-6 md:mb-8">

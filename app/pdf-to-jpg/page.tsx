@@ -4,12 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
+import FAQSchema from "./FAQSchema";
+import { faqData } from "./faqData";
 
-import ArticleSchema from "./ArticleSchema";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 
-import HowToSchema from "./HowToSchema";
-import FAQSchema from "./FAQSchema";
+
 import {
   Download,
   ArrowLeft,
@@ -316,7 +316,7 @@ const ImageRotator = ({
 
   return (
     <div
-      className="w-full h-48 sm:h-56 flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center border-2 border-gray-200 dark:border-gray-700 relative overflow-hidden cursor-pointer group"
+      className="w-full h-40 sm:h-44 flex-shrink-0 bg-white dark:bg-gray-800 rounded-lg shadow-md flex items-center justify-center border border-gray-200 dark:border-gray-700 relative overflow-hidden cursor-pointer group"
       onClick={onZoomClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -494,7 +494,7 @@ const PdfPageRenderer = ({
 
   return (
     <div
-      className="w-full h-48 sm:h-56 flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center border-2 border-gray-200 dark:border-gray-700 relative overflow-hidden cursor-pointer group"
+      className="w-full h-40 sm:h-44 flex-shrink-0 bg-white dark:bg-gray-800 rounded-lg shadow-md flex items-center justify-center border border-gray-200 dark:border-gray-700 relative overflow-hidden cursor-pointer group"
       onClick={onZoomClick}
     >
       {/* Zoom overlay button */}
@@ -1013,9 +1013,9 @@ export default function PdfToImageConverterWithRotation() {
     dpi: 300,
   });
 
-  // Pagination states
+  // Pagination states - CHANGED: 12 per page for desktop
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(12); // Changed from 10 to 12
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -1467,13 +1467,14 @@ export default function PdfToImageConverterWithRotation() {
     }
   };
 
-  // Items per page options
-  const itemsPerPageOptions = [10, 20, 30, 50];
+  // Items per page options - CHANGED: 12, 24, 36, 48 for better desktop view
+  const itemsPerPageOptions = [12, 24, 36, 48];
 
   return (
   <>
    
-
+{/* SEO Schema */}
+      <FAQSchema />
 
  <BreadcrumbSchema />
       
@@ -1909,6 +1910,9 @@ export default function PdfToImageConverterWithRotation() {
                             <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">
                               Showing {startIndex + 1}-{endIndex} of{" "}
                               {pageData.length} images
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                (12 per page)
+                              </span>
                             </h4>
                             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                               Navigate through images using pagination
@@ -2016,7 +2020,7 @@ export default function PdfToImageConverterWithRotation() {
                         </motion.div>
                       )}
 
-                      {/* Image Grid */}
+                      {/* Image Grid - CHANGED: 4 columns for 12 items per page */}
                       <div>
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
                           <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
@@ -2029,7 +2033,7 @@ export default function PdfToImageConverterWithRotation() {
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                           {currentPageData.map((page, index) => {
                             const actualIndex = startIndex + index;
                             return (
@@ -2228,7 +2232,38 @@ export default function PdfToImageConverterWithRotation() {
             pageImageData={zoomModal.pageImageData}
           />
 
-          {/* Enhanced Tools Section */}
+         {/* Visible FAQ Section */}
+<section className="max-w-3xl mx-auto my-16 px-4">
+  {/* Title */}
+  <div className="text-center mb-8">
+    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+      Frequently Asked Questions
+    </h2>
+    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+     Everything you need to know about converting PDF files to JPG images online
+    </p>
+  </div>
+
+  {/* FAQ List */}
+  <div className="space-y-4">
+    {faqData.map((faq, index) => (
+      <details
+        key={index}
+        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+        bg-white dark:bg-gray-800"
+      >
+        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+          {faq.question}
+        </summary>
+        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+          {faq.answer}
+        </p>
+      </details>
+    ))}
+  </div>
+</section>
+
+
           {/* Explore All Tools Section */}
           <div className="mb-6 md:mb-8">
             <div className="flex items-center justify-between mb-6 md:mb-8">

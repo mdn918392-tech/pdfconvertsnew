@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import HowToSchema from "./HowToSchema";
-import FAQSchema from "./FAQSchema";
+
 import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export default function MergePDFLayout({
   return (
     <>
       <HowToSchema />
-      <FAQSchema />
+    
       <ArticleSchema/>
       
       <main>{children}</main>

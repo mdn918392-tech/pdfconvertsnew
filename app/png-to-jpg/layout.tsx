@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import PNGtoJPGHowToSchema from "./HowToSchema";
-import PNGtoJPGFAQSchema from "./FAQSchema";
+
 import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
@@ -37,7 +37,7 @@ export default function PNGtoJPGLayout({
     <>
       {/* Tool-specific schemas */}
       <PNGtoJPGHowToSchema />
-      <PNGtoJPGFAQSchema />
+      
       <ArticleSchema />
 
       <main>{children}</main>
