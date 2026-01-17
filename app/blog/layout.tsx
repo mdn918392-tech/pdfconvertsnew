@@ -1,43 +1,71 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "Blog | Free Online PDF Tools",
-    template: "%s | Free Online PDF Tools"
+    default: "PDFSwift Blog – PDF Tips, Guides & Tutorials",
+    template: "%s | PDFSwift Blog",
   },
-
   description:
-    "Read helpful guides and tutorials about PDF tools like JPG to PDF, Merge PDF, Split PDF and more.",
-
+    "Explore the PDFSwift Blog for expert PDF tips, step-by-step guides, and practical tutorials on JPG to PDF, PDF to JPG, compression, merging, and more. Stay updated with the latest online PDF tools, smart document solutions, and productivity tips for mobile and desktop users.",
+  keywords: [
+     "PDFSwift blog",
+  "PDF blog",
+  "PDF tips and tricks",
+  "PDF tutorials",
+  "PDF how to guides",
+  "online PDF tools",
+  "PDF conversion tips",
+  "JPG to PDF guide",
+  "PDF to JPG guide",
+  "document conversion tips",
+  ],
+  alternates: {
+    canonical: "https://pdfswift.online/blog",
+  },
   robots: {
     index: true,
-    follow: true
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
   },
-
   openGraph: {
-    type: "website",
-    siteName: "Free Online PDF Tools",
-    title: "Blog | Free Online PDF Tools",
+    title: "PDFSwift Blog – PDF Tips, Guides & Tutorials",
     description:
-      "Step-by-step tutorials on how to use free online PDF tools easily.",
-    url: "https://yourdomain.com/blog"
+      "Read helpful PDF tutorials and conversion guides on the PDFSwift Blog. Learn how to work with PDFs efficiently on mobile and PC.",
+    url: "https://pdfswift.online/blog",
+    siteName: "PDFSwift",
+    type: "website",
+    locale: "en_US",
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "Blog | Free Online PDF Tools",
+    title: "PDFSwift Blog – PDF Tips & Guides",
     description:
-      "Learn how to use free online PDF tools with simple step-by-step guides."
-  }
+      "Step-by-step PDF guides, image conversion tutorials, and document tips from the PDFSwift Blog.",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#ffffff",
 };
 
 export default function BlogLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen">
+    <main
+      role="main"
+      className="min-h-screen bg-white text-gray-900"
+    >
       {children}
     </main>
   );
