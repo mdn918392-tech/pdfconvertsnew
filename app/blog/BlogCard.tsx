@@ -4,7 +4,7 @@ import Image from "next/image";
 interface BlogProps {
   blog: {
     title: string;
-    slug: string;
+    id: string;
     description: string;
     date: string;
     image: string;
@@ -13,7 +13,7 @@ interface BlogProps {
 
 export default function BlogCard({ blog }: BlogProps) {
   return (
-    <Link href={`/blog/${blog.slug}`} className="block group">
+    <Link href={`/blog/${blog.id}`} className="block group">
       <div className="rounded-2xl overflow-hidden bg-white dark:bg-gray-900 
                       shadow-soft hover:shadow-xl transition-all duration-300 
                       animate-fade-in">

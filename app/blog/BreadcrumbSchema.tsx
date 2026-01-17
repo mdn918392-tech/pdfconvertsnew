@@ -18,6 +18,7 @@ export default function BreadcrumbSchema() {
     ],
   };
 
+
   return (
     <script
       type="application/ld+json"

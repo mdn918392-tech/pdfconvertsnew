@@ -1,3 +1,5 @@
+import blogData from "./data.json";
+
 export default function BlogSchema() {
   const data = {
     "@context": "https://schema.org",
@@ -13,33 +15,34 @@ export default function BlogSchema() {
       url: "https://pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/logo.png",
+        url: "https://pdfswift.online/favicon.png",
       },
     },
-    blogPost: [
-      {
-        "@type": "BlogPosting",
-        headline: "How to Convert JPG to PDF Online",
-        url: "https://pdfswift.online/blog/how-to-convert-jpg-to-pdf-online",
-        datePublished: "2026-01-12",
-        dateModified: "2026-01-12",
-        author: {
-          "@type": "Organization",
-          name: "PDFSwift",
+    blogPost: blogData.map((blog) => ({
+      "@type": "BlogPosting",
+      headline: blog.title,
+      description: blog.description,
+      image: blog.image,
+      url: `https://pdfswift.online/blog/${blog.slug}`,
+      datePublished: new Date(blog.date).toISOString(),
+      dateModified: new Date(blog.date).toISOString(),
+      author: {
+        "@type": "Organization",
+        name: "PDFSwift",
+      },
+      publisher: {
+        "@type": "Organization",
+        name: "PDFSwift",
+        logo: {
+          "@type": "ImageObject",
+          url: "https://pdfswift.online/favicon.png",
         },
       },
-      {
-        "@type": "BlogPosting",
-        headline: "How to Convert PDF to JPG on Mobile and PC",
-        url: "https://pdfswift.online/blog/how-to-convert-pdf-to-jpg",
-        datePublished: "2026-01-14",
-        dateModified: "2026-01-14",
-        author: {
-          "@type": "Organization",
-          name: "PDFSwift",
-        },
+      mainEntityOfPage: {
+        "@type": "WebPage",
+        "@id": `https://pdfswift.online/blog/${blog.slug}`,
       },
-    ],
+    })),
   };
 
   return (
