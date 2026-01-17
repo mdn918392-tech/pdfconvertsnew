@@ -3,9 +3,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-
-import Head from 'next/head';
-
 import Link from "next/link";
 import {
   Download,
@@ -37,8 +34,12 @@ import {
   RefreshCw,
   ChevronUp,
   ChevronDown,
+  Columns,
+  Square,
+  Expand,
 } from "lucide-react";
 
+// Make sure these components are client components
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
 import { imageToPdf } from "../../utils/pdfUtils";
@@ -46,10 +47,13 @@ import { downloadFile } from "../../utils/imageUtils";
 
 import type { PaperSize, Orientation } from "../../types";
 import BreadcrumbSchema from "./BreadcrumbSchema";
-import FAQSchema from "./FAQSchema";
 import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
 import { faqData } from "./faqData";
+
+// Add MarginSize type
+type MarginSize = "no-margin" | "small" | "big";
 
 interface FileWithPreview {
   file: File;
@@ -69,6 +73,7 @@ interface DownloadNotification {
   timestamp: Date;
   fileSize: number;
 }
+
 
 // Compression Quality Options
 type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
@@ -104,6 +109,7 @@ const generatePdfFilename = (
   orientation: Orientation,
   reverseOrder: boolean,
   compressionQuality: CompressionQuality,
+  marginSize: MarginSize,
   customQualityValue?: number
 ): string => {
   const now = new Date();
@@ -111,6 +117,12 @@ const generatePdfFilename = (
   const randomId = Math.random().toString(36).substring(2, 9);
 
   const orderSuffix = reverseOrder ? "_reverse" : "";
+  
+  const marginLabels = {
+    "no-margin": "no-margin",
+    "small": "small-margin",
+    "big": "big-margin"
+  };
 
   let qualitySuffix = "";
   if (compressionQuality === "custom" && customQualityValue !== undefined) {
@@ -123,9 +135,9 @@ const generatePdfFilename = (
 
   if (files.length === 1) {
     const originalName = files[0].file.name.split(".")[0];
-    return `${originalName}_${paperSize}${qualitySuffix}_${timestamp}_${randomId}${orderSuffix}.pdf`;
+    return `${originalName}_${paperSize}_${marginLabels[marginSize]}${qualitySuffix}_${timestamp}_${randomId}${orderSuffix}.pdf`;
   } else {
-    return `images_${files.length}_pages_${paperSize}${qualitySuffix}_${timestamp}_${randomId}${orderSuffix}.pdf`;
+    return `images_${files.length}_pages_${paperSize}_${marginLabels[marginSize]}${qualitySuffix}_${timestamp}_${randomId}${orderSuffix}.pdf`;
   }
 };
 
@@ -154,7 +166,6 @@ const tool = {
 
 // Explore All Tools Data
 const exploreTools: Tool[] = [
- 
   {
     id: "split-pdf",
     name: "Split PDF",
@@ -461,12 +472,14 @@ const FloatingPageCounter = ({
   count,
   reverseOrder,
   compressionQuality,
+  marginSize,
   customQualityValue,
   showWarning,
 }: {
   count: number;
   reverseOrder: boolean;
   compressionQuality: CompressionQuality;
+  marginSize: MarginSize;
   customQualityValue?: number;
   showWarning: boolean;
 }) => {
@@ -478,6 +491,12 @@ const FloatingPageCounter = ({
     high: "High Quality (95%)",
     medium: "Medium Quality (85%)",
     low: "Low Quality (70%)",
+  };
+
+  const marginLabels = {
+    "no-margin": "No Margin",
+    "small": "Small Margin",
+    "big": "Big Margin"
   };
 
   return (
@@ -507,6 +526,9 @@ const FloatingPageCounter = ({
           <div className="text-xs opacity-80 mt-1">
             {qualityLabels[compressionQuality]}
           </div>
+          <div className="text-xs opacity-80 mt-1">
+            {marginLabels[marginSize]}
+          </div>
           {reverseOrder && (
             <div className="text-xs opacity-80 mt-1 flex items-center justify-center gap-1">
               <ArrowUpDown className="w-3 h-3" />
@@ -521,6 +543,7 @@ const FloatingPageCounter = ({
         <div className="text-xs mt-1">
           Quality: {qualityLabels[compressionQuality]}
         </div>
+        <div className="text-xs mt-1">Margin: {marginLabels[marginSize]}</div>
         {reverseOrder && (
           <div className="text-xs mt-1">• Images in Reverse Order</div>
         )}
@@ -566,10 +589,52 @@ const DraggableItem = ({
   );
 };
 
+// Margin Preview Component
+const MarginPreview = ({ marginSize }: { marginSize: MarginSize }) => {
+  const marginStyles = {
+    "no-margin": {
+      container: "p-0",
+      border: "border-2 border-gray-300 dark:border-gray-600",
+      label: "No Margin",
+      bg: "bg-gray-100 dark:bg-gray-800",
+      color: "text-gray-700 dark:text-gray-300"
+    },
+    "small": {
+      container: "p-2",
+      border: "border-2 border-blue-300 dark:border-blue-600",
+      label: "Small Margin",
+      bg: "bg-blue-50 dark:bg-blue-900/20",
+      color: "text-blue-700 dark:text-blue-300"
+    },
+    "big": {
+      container: "p-4",
+      border: "border-2 border-purple-300 dark:border-purple-600",
+      label: "Big Margin",
+      bg: "bg-purple-50 dark:bg-purple-900/20",
+      color: "text-purple-700 dark:text-purple-300"
+    }
+  };
+
+  const style = marginStyles[marginSize];
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className={`text-sm font-medium ${style.color} mb-2`}>
+        {style.label}
+      </div>
+      <div className={`relative ${style.container} ${style.border} ${style.bg} rounded-lg`}>
+        <div className="w-16 h-20 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 rounded" />
+        <div className="absolute inset-0 border border-gray-400 dark:border-gray-600 rounded" />
+      </div>
+    </div>
+  );
+};
+
 export default function JpgToPdf() {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [paperSize, setPaperSize] = useState<PaperSize>("A4");
   const [orientation, setOrientation] = useState<Orientation>("Portrait");
+  const [marginSize, setMarginSize] = useState<MarginSize>("small");
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
@@ -605,6 +670,7 @@ export default function JpgToPdf() {
       })),
       paperSize,
       orientation,
+      marginSize,
       reverseOrder,
       compressionQuality,
       customQualityValue,
@@ -614,6 +680,7 @@ export default function JpgToPdf() {
     files,
     paperSize,
     orientation,
+    marginSize,
     reverseOrder,
     compressionQuality,
     customQualityValue,
@@ -632,6 +699,7 @@ export default function JpgToPdf() {
     files,
     paperSize,
     orientation,
+    marginSize,
     reverseOrder,
     compressionQuality,
     customQualityValue,
@@ -686,6 +754,12 @@ export default function JpgToPdf() {
     },
     [calculateStateHash]
   );
+
+  // Handle margin change
+  const handleMarginChange = (margin: MarginSize) => {
+    setMarginSize(margin);
+    setPdfBlobWithState(null);
+  };
 
   const handleRemoveFile = useCallback(
     (fileToRemove: FileWithPreview) => {
@@ -944,12 +1018,25 @@ export default function JpgToPdf() {
 
       if (cleanup) cleanup();
 
-      // Now create PDF with compressed files
+      // Now create PDF with compressed files and margin
       try {
         setProgress(50);
         cleanup = simulateProgress(setProgress, 50, 90, 3000);
 
-        const blob = await imageToPdf(compressedFiles, paperSize, orientation);
+        // Create PDF with margin setting
+        const marginPoints = {
+          "no-margin": 0,
+          "small": 36, // 0.5 inch = 36 points
+          "big": 72 // 1 inch = 72 points
+        }[marginSize];
+
+        // Update the imageToPdf function call to include margin
+        const blob = await imageToPdf(
+          compressedFiles, 
+          paperSize, 
+          orientation,
+          marginPoints // Pass margin to your pdf utility
+        );
 
         if (cleanup) cleanup();
         setProgress(100);
@@ -974,6 +1061,9 @@ export default function JpgToPdf() {
             `Quality Setting: ${compressionQuality}${
               compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""
             }`
+          );
+          console.log(
+            `Margin Setting: ${marginSize}`
           );
           console.log(
             `Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`
@@ -1007,6 +1097,7 @@ export default function JpgToPdf() {
         orientation,
         reverseOrder,
         compressionQuality,
+        marginSize,
         customQualityValue
       );
       downloadFile(pdfBlob, filename);
@@ -1167,14 +1258,12 @@ export default function JpgToPdf() {
 
   return (
     <>
-     {/* SEO Schema */}
-      <FAQSchema />
+       <FAQSchema />
         <BreadcrumbSchema />
-       
+        {/* rest of page */}
       
       <HowToSchema />
       <ArticleSchema />
-                  
 
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
         <div
@@ -1201,6 +1290,7 @@ export default function JpgToPdf() {
         count={files.length}
         reverseOrder={reverseOrder}
         compressionQuality={compressionQuality}
+        marginSize={marginSize}
         customQualityValue={customQualityValue}
         showWarning={showChangesWarning}
       />
@@ -1312,8 +1402,7 @@ export default function JpgToPdf() {
               </h1>
 
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Transform images with maximum quality control and professional
-                PDF output
+                Transform images with maximum quality control, margin settings and professional PDF output
               </p>
             </div>
 
@@ -1348,7 +1437,7 @@ export default function JpgToPdf() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Precise Control</span>
+                    <span>Margin Control</span>
                   </div>
                 </div>
 
@@ -1693,6 +1782,210 @@ export default function JpgToPdf() {
                     })}
                   </div>
 
+                 {/* Margin Settings Section - Compact & Responsive */}
+<div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-4 md:p-5 border border-gray-200 dark:border-gray-700">
+  <div className="flex items-center gap-3 mb-4">
+    <Columns className="w-5 h-5 md:w-6 md:h-6 text-blue-500 flex-shrink-0" />
+    <div>
+      <h3 className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200">
+        Page Margins
+      </h3>
+      <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+        Choose margin size for printing & readability
+      </p>
+    </div>
+  </div>
+
+  <div className="space-y-4">
+    {/* Compact Margin Options */}
+    <div className="grid grid-cols-3 gap-2 md:gap-3">
+      {([
+        {
+          value: "no-margin" as MarginSize,
+          label: "No",
+          icon: Expand,
+          color: "from-gray-500 to-gray-700",
+          size: "0\""
+        },
+        {
+          value: "small" as MarginSize,
+          label: "Small",
+          icon: Columns,
+          color: "from-blue-500 to-cyan-600",
+          size: "0.5\""
+        },
+        {
+          value: "big" as MarginSize,
+          label: "Big",
+          icon: Square,
+          color: "from-purple-500 to-pink-600",
+          size: "1\""
+        },
+      ] as const).map((option) => {
+        const Icon = option.icon;
+        return (
+          <button
+            key={option.value}
+            onClick={() => handleMarginChange(option.value)}
+            className={`flex flex-col items-center p-3 md:p-4 rounded-xl border transition-all ${
+              marginSize === option.value
+                ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-md`
+                : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+            }`}
+          >
+            <div className={`p-2 rounded-lg mb-2 ${
+              marginSize === option.value 
+                ? "bg-white/20" 
+                : "bg-gray-100 dark:bg-gray-700"
+            }`}>
+              <Icon className="w-4 h-4 md:w-5 md:h-5" />
+            </div>
+            <div className="text-center">
+              <span className="font-semibold text-sm">
+                {option.label}
+              </span>
+              <div className="text-xs opacity-80 mt-0.5">
+                {option.size}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+    
+    {/* Current Selection Indicator */}
+    <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${
+          marginSize === "no-margin" ? "bg-gray-500" :
+          marginSize === "small" ? "bg-blue-500" :
+          "bg-purple-500"
+        }`} />
+        <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+          {
+            marginSize === "no-margin" ? "No Margin" :
+            marginSize === "small" ? "Small Margin" :
+            "Big Margin"
+          }
+        </span>
+      </div>
+      <span className="text-xs text-gray-600 dark:text-gray-400">
+        {
+          marginSize === "no-margin" ? "Full page" :
+          marginSize === "small" ? "0.5 inch" :
+          "1 inch"
+        }
+      </span>
+    </div>
+    
+    {/* Compact Margin Preview */}
+    <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200">
+          Preview
+        </h4>
+        <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+          <span className="hidden sm:inline">Current:</span>
+          <span className="font-medium">
+            {
+              marginSize === "no-margin" ? "No Margin" :
+              marginSize === "small" ? "Small" :
+              "Big"
+            }
+          </span>
+        </div>
+      </div>
+      
+      {/* Interactive Mini Preview */}
+      <div className="relative mx-auto" style={{ maxWidth: "200px" }}>
+        {/* Page */}
+        <div className="relative w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-lg border-2 border-gray-300 dark:border-gray-600">
+          {/* Margin Area */}
+          <div className={`absolute rounded-md transition-all duration-200 ${
+            marginSize === "no-margin" 
+              ? "inset-1 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-700 dark:to-gray-600"
+              : marginSize === "small"
+              ? "inset-3 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700"
+              : "inset-5 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/50 dark:to-purple-800/50 border border-purple-200 dark:border-purple-700"
+          }`}>
+            {/* Image Placeholder */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-10 h-12 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 rounded flex items-center justify-center">
+                <ImageIcon className="w-4 h-4 text-blue-400 dark:text-blue-300" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Margin Indicator */}
+        {marginSize !== "no-margin" && (
+          <div className="mt-2 flex items-center justify-center">
+            <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+              <div className={`w-8 h-0.5 ${
+                marginSize === "small" ? "bg-blue-500" : "bg-purple-500"
+              }`}></div>
+              <span>{marginSize === "small" ? "0.5\"" : "1\""}</span>
+              <div className={`w-8 h-0.5 ${
+                marginSize === "small" ? "bg-blue-500" : "bg-purple-500"
+              }`}></div>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Usage Tips - Compact */}
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="text-center">
+          <div className={`text-xs font-medium ${
+            marginSize === "no-margin" ? "text-gray-700 dark:text-gray-300" : "text-gray-600 dark:text-gray-400"
+          }`}>
+            Digital
+          </div>
+          <div className="text-[10px] text-gray-500 dark:text-gray-500">
+            Screens
+          </div>
+        </div>
+        <div className="text-center">
+          <div className={`text-xs font-medium ${
+            marginSize === "small" ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
+          }`}>
+            Standard
+          </div>
+          <div className="text-[10px] text-gray-500 dark:text-gray-500">
+            Documents
+          </div>
+        </div>
+        <div className="text-center">
+          <div className={`text-xs font-medium ${
+            marginSize === "big" ? "text-purple-600 dark:text-purple-400" : "text-gray-600 dark:text-gray-400"
+          }`}>
+            Print
+          </div>
+          <div className="text-[10px] text-gray-500 dark:text-gray-500">
+            Notes
+          </div>
+        </div>
+      </div>
+      
+      {/* Quick Tip */}
+      <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex items-start gap-2">
+          <Target className="w-3 h-3 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <div className="font-medium text-[10px] text-blue-700 dark:text-blue-300">
+              {marginSize === "no-margin" 
+                ? "Best for digital viewing"
+                : marginSize === "small"
+                ? "Ideal for general documents"
+                : "Perfect for printing"}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
                   {/* Advanced Settings Section - Always Visible */}
                   <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3 mb-6">
@@ -1942,7 +2235,7 @@ export default function JpgToPdf() {
                       </h3>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <div className="space-y-3">
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                           Paper Size
@@ -1995,6 +2288,35 @@ export default function JpgToPdf() {
                           </button>
                         </div>
                       </div>
+
+                      <div className="space-y-3">
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                          <Columns className="w-4 h-4" />
+                          Page Margin
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(["no-margin", "small", "big"] as MarginSize[]).map(
+                            (margin) => (
+                              <button
+                                key={margin}
+                                onClick={() => handleMarginChange(margin)}
+                                className={`px-3 py-2.5 rounded-lg border transition-all text-sm ${
+                                  marginSize === margin
+                                    ? margin === "no-margin"
+                                      ? "bg-gray-500 text-white border-gray-500"
+                                      : margin === "small"
+                                      ? "bg-blue-500 text-white border-blue-500"
+                                      : "bg-purple-500 text-white border-purple-500"
+                                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                }`}
+                              >
+                                {margin === "no-margin" ? "No Margin" :
+                                 margin === "small" ? "Small" : "Big"}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="mt-6 space-y-6">
@@ -2028,7 +2350,7 @@ export default function JpgToPdf() {
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         <div className="text-sm">
                           <span className="text-gray-600 dark:text-gray-400">
                             Total Pages:
@@ -2043,6 +2365,15 @@ export default function JpgToPdf() {
                           </span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
                             {paperSize} ({orientation})
+                          </span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Margin:
+                          </span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                            {marginSize === "no-margin" ? "No Margin" :
+                             marginSize === "small" ? "Small Margin" : "Big Margin"}
                           </span>
                         </div>
                         <div className="text-sm">
@@ -2104,6 +2435,15 @@ export default function JpgToPdf() {
                               : "Small"}
                           </span>
                         </div>
+                        <div className="text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">
+                            Margin Size:
+                          </span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                            {marginSize === "no-margin" ? "0 inch" :
+                             marginSize === "small" ? "0.5 inch" : "1 inch"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2162,7 +2502,7 @@ export default function JpgToPdf() {
                             Professional PDF Ready! 🎉
                           </h4>
                           <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
-                            Your high-quality PDF is ready for download
+                            Your high-quality PDF with {marginSize === "no-margin" ? "no margin" : marginSize + " margin"} is ready for download
                             {compressionQuality !== "none" && (
                               <span className="text-blue-600 dark:text-blue-400">
                                 {" "}
@@ -2181,6 +2521,9 @@ export default function JpgToPdf() {
                             </span>
                             <span className="text-gray-600 dark:text-gray-400">
                               Pages: {files.length}
+                            </span>
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Margin: {marginSize === "no-margin" ? "No Margin" : marginSize === "small" ? "Small" : "Big"}
                             </span>
                             {compressionQuality !== "none" && (
                               <span className="text-blue-600 dark:text-blue-400 font-semibold">
@@ -2261,13 +2604,13 @@ export default function JpgToPdf() {
                               changes.
                             </span>
                           ) : compressionQuality === "none" ? (
-                            "Images will be converted with maximum 100% quality for professional output"
+                            `Images will be converted with maximum 100% quality and ${marginSize === "no-margin" ? "no margin" : marginSize + " margin"} for professional output`
                           ) : (
                             `Images will be converted with ${
                               compressionQuality === "custom"
                                 ? `${customQualityValue}%`
                                 : compressionQuality
-                            } quality for optimal results`
+                            } quality and ${marginSize === "no-margin" ? "no margin" : marginSize + " margin"} for optimal results`
                           )}
                         </p>
                       </motion.div>
@@ -2307,51 +2650,19 @@ export default function JpgToPdf() {
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                   <div className="inline-flex p-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl mb-4">
-                    <Percent className="w-7 h-7 text-white" />
+                    <Columns className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Precise Quality Control
+                    Margin Control
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Custom quality slider from 10% to 100% for perfect balance
-                    of size and quality
+                    Choose between no margin, small margin, or big margin for
+                    perfect printing and display
                   </p>
                 </div>
               </div>
             )}
           </motion.div>
-
-          {/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-    Everything you need to know about converting JPG images to PDF files online
-    </p>
-  </div>
-
-  {/* FAQ List */}
-  <div className="space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
-      >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
-        </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
-      </details>
-    ))}
-  </div>
-</section>
-
 
           {/* Explore All Tools Section */}
           <div className="mb-6 md:mb-8">
@@ -2409,6 +2720,38 @@ export default function JpgToPdf() {
               </Link>
             </div>
           </div>
+
+          <section className="max-w-3xl mx-auto my-16 px-4">
+  {/* Title */}
+  <div className="text-center mb-8">
+    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+      Frequently Asked Questions
+    </h2>
+    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      Everything you need to know about compressing images online
+    </p>
+  </div>
+
+  {/* FAQ List */}
+  <div className="space-y-4">
+    {faqData.map((faq, index) => (
+      <details
+        key={index}
+        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+        bg-white dark:bg-gray-800"
+      >
+        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+          {faq.question}
+        </summary>
+        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+          {faq.answer}
+        </p>
+      </details>
+    ))}
+  </div>
+</section>
+
+          
         </div>
       </div>
     </>

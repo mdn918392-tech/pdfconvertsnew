@@ -29,7 +29,9 @@ export default function BlogSchema() {
       author: {
         "@type": "Organization",
         name: "PDFSwift",
+        url: "https://pdfswift.online",
       },
+
       publisher: {
         "@type": "Organization",
         name: "PDFSwift",

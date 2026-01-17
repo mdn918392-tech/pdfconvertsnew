@@ -232,7 +232,52 @@
         "answer": "Yes, many online PDF compression tools allow you to compress PDF files for free without adding watermarks."
       }
     ]
+  },
+
+  
+  {
+    "id": "how-to-rotate-pdf-pages",
+    "title": "How to Rotate PDF Pages Online: Complete 2026 Guide",
+    "date": "Jan 18 2026",
+    "description": "Learn how to rotate PDF pages clockwise or counterclockwise on mobile and PC using free, secure, and easy online tools.",
+    "slug": "how-to-rotate-pdf-pages",
+    "image": "https://pdfswift.online/images/rotatepdf.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "How to Rotate PDF Pages", "url": "/blog/how-to-rotate-pdf-pages" }
+    ],
+    "howto": {
+      "steps": [
+        "Open the online Rotate PDF tool.",
+        "Upload your PDF file from your device.",
+        "Select the pages you want to rotate.",
+        "Choose rotation angle (90°, 180°, or 270°).",
+        "Click on the Rotate PDF button.",
+        "Download the rotated PDF file."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["PDF file"],
+      "tool": ["Online PDF rotate tool"]
+    },
+    "faq": [
+      {
+        "question": "Can I rotate specific pages in a PDF?",
+        "answer": "Yes, PDF rotation tools allow you to rotate selected pages without affecting the entire document."
+      },
+      {
+        "question": "Does rotating PDF pages affect quality?",
+        "answer": "No, rotating PDF pages does not reduce quality because the content is not re-compressed."
+      },
+      {
+        "question": "Is rotating PDF pages free?",
+        "answer": "Yes, many online PDF rotate tools allow you to rotate PDF pages for free without watermarks."
+      }
+    ]
   }
+
+
   
   
   

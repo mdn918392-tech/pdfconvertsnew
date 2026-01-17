@@ -209,17 +209,30 @@ async function embedImageWithValidation(
 }
 
 /* ============================================================
-    Helper: Create placeholder image page
+    Helper: Create placeholder image page with margin support
 ============================================================ */
-function createPlaceholderPage(pdfDoc: PDFDocument, pageWidth: number, pageHeight: number, fileName: string): void {
+function createPlaceholderPage(
+    pdfDoc: PDFDocument, 
+    pageWidth: number, 
+    pageHeight: number, 
+    fileName: string,
+    margin?: number
+): void {
     try {
         const page = pdfDoc.addPage([pageWidth, pageHeight]);
+        const m = margin || 36;
+        
+        // Draw placeholder within margins
+        const x = m + 20;
+        const y = m + 20;
+        const width = pageWidth - (m * 2) - 40;
+        const height = pageHeight - (m * 2) - 40;
         
         page.drawRectangle({
-            x: 20,
-            y: 20,
-            width: pageWidth - 40,
-            height: pageHeight - 40,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
             borderWidth: 2,
             borderColor: rgb(0.8, 0.8, 0.8),
         });
@@ -244,9 +257,14 @@ function createPlaceholderPage(pdfDoc: PDFDocument, pageWidth: number, pageHeigh
 }
 
 /* ============================================================
-    IMAGE → PDF with REAL Compression
+    IMAGE → PDF with REAL Compression and Margin Support
 ============================================================ */
-export async function imageToPdf(files: File[], paperSize: PaperSize, orientation: Orientation): Promise<Blob> {
+export async function imageToPdf(
+    files: File[], 
+    paperSize: PaperSize, 
+    orientation: Orientation,
+    marginPoints?: number // Add margin parameter (in points, 1 inch = 72 points)
+): Promise<Blob> {
     const pdfDoc = await PDFDocument.create();
     
     const sizeConfig = PAPER_SIZES[paperSize] || PAPER_SIZES['A4'];
@@ -255,6 +273,13 @@ export async function imageToPdf(files: File[], paperSize: PaperSize, orientatio
     if (orientation === 'Landscape') {
         [pageWidth, pageHeight] = [pageHeight, pageWidth];
     }
+
+    // Set default margin if not provided (36 points = 0.5 inch)
+    const margin = marginPoints !== undefined ? marginPoints : 36;
+    
+    // Calculate usable area after margins
+    const usableWidth = pageWidth - (margin * 2);
+    const usableHeight = pageHeight - (margin * 2);
 
     let successCount = 0;
     let errorCount = 0;
@@ -268,7 +293,7 @@ export async function imageToPdf(files: File[], paperSize: PaperSize, orientatio
             
             if (arrayBuffer.byteLength === 0) {
                 console.warn(`Empty file: ${file.name}`);
-                createPlaceholderPage(pdfDoc, pageWidth, pageHeight, file.name);
+                createPlaceholderPage(pdfDoc, pageWidth, pageHeight, file.name, margin);
                 placeholderCount++;
                 continue;
             }
@@ -278,14 +303,14 @@ export async function imageToPdf(files: File[], paperSize: PaperSize, orientatio
                 image = await embedImageWithValidation(pdfDoc, file, arrayBuffer, pageWidth, pageHeight);
             } catch (embedError: any) {
                 console.warn(`Could not embed image ${file.name}:`, embedError.message);
-                createPlaceholderPage(pdfDoc, pageWidth, pageHeight, file.name);
+                createPlaceholderPage(pdfDoc, pageWidth, pageHeight, file.name, margin);
                 placeholderCount++;
                 continue;
             }
 
             if (!image || typeof image !== 'object' || !image.scale) {
                 console.warn(`Invalid image object for ${file.name}`);
-                createPlaceholderPage(pdfDoc, pageWidth, pageHeight, file.name);
+                createPlaceholderPage(pdfDoc, pageWidth, pageHeight, file.name, margin);
                 placeholderCount++;
                 continue;
             }
@@ -300,28 +325,47 @@ export async function imageToPdf(files: File[], paperSize: PaperSize, orientatio
                     throw new Error('Invalid image dimensions');
                 }
                 
-                const margin = 0.05;
-                const maxWidth = pageWidth * (1 - 2 * margin);
-                const maxHeight = pageHeight * (1 - 2 * margin);
+                // Use the usable area instead of full page for margin calculation
+                const marginFactor = 0.05; // Small additional margin inside the usable area
+                const maxWidth = usableWidth * (1 - 2 * marginFactor);
+                const maxHeight = usableHeight * (1 - 2 * marginFactor);
                 
                 const scale = Math.min(maxWidth / imgDims.width, maxHeight / imgDims.height, 1);
                 const scaledWidth = imgDims.width * scale;
                 const scaledHeight = imgDims.height * scale;
 
+                // Center the image within the usable area (margins applied)
+                const x = margin + (usableWidth - scaledWidth) / 2;
+                const y = margin + (usableHeight - scaledHeight) / 2;
+
                 page.drawImage(image, {
-                    x: (pageWidth - scaledWidth) / 2,
-                    y: (pageHeight - scaledHeight) / 2,
+                    x: x,
+                    y: y,
                     width: scaledWidth,
                     height: scaledHeight,
                 });
                 
+                // Add page number in the margin area if there's enough space
+                if (margin >= 36) {
+                    const pageNumber = successCount + 1;
+                    page.drawText(
+                        `Page ${pageNumber}`,
+                        {
+                            x: pageWidth / 2,
+                            y: margin / 2,
+                            size: 10,
+                            color: rgb(0.5, 0.5, 0.5),
+                        }
+                    );
+                }
+                
                 successCount++;
-                console.log(`✓ Added ${file.name} (${(arrayBuffer.byteLength / 1024).toFixed(0)}KB)`);
+                console.log(`✓ Added ${file.name} (${(arrayBuffer.byteLength / 1024).toFixed(0)}KB) with ${margin}pt margins`);
                 
             } catch (drawError: any) {
                 console.warn(`Could not draw image ${file.name}:`, drawError.message);
                 page.drawText(`Error: Could not display ${file.name}`, {
-                    x: 50,
+                    x: margin + 20,
                     y: pageHeight / 2,
                     size: 12,
                     color: rgb(1, 0, 0),
@@ -332,7 +376,7 @@ export async function imageToPdf(files: File[], paperSize: PaperSize, orientatio
         } catch (error: any) {
             console.error(`Error processing ${file.name}:`, error.message);
             errorCount++;
-            createPlaceholderPage(pdfDoc, pageWidth, pageHeight, file.name);
+            createPlaceholderPage(pdfDoc, pageWidth, pageHeight, file.name, margin);
         }
     }
 

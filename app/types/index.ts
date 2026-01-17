@@ -2,6 +2,8 @@ export type PaperSize = "A4" | "A3" | "Letter" | "Legal" | "Custom";
 export type Orientation = "Portrait" | "Landscape";
 export type RotationDegree = 90 | 180 | 270;
 
+export type MarginSize = "no-margin" | "small" | "big";
+
 export interface PaperDimensions {
   width: number;
   height: number;
