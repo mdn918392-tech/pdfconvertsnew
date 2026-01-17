@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import HowToSchema from "./HowToSchema";
 
-import ArticleSchema from "./ArticleSchema";
+
+
 
 export const metadata: Metadata = {
   title: "Compress Images & Download as PDF/Image - Free Online Tool",
@@ -36,9 +36,9 @@ export default function CompressImageLayout({
 }) {
   return (
     <>
-      <HowToSchema />
       
-      <ArticleSchema/>
+      
+     
       
       <main>{children}</main>
     </>

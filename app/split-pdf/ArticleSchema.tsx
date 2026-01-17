@@ -17,6 +17,7 @@ export default function SplitPdfSchema() {
     author: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://pdfswift.online",
     },
 
     // 🔹 Publisher
@@ -30,23 +31,18 @@ export default function SplitPdfSchema() {
         height: 60,
       },
     },
+
+    // ✅ FIXED DATES (ISO 8601 + IST timezone)
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-17T00:00:00+05:30",
+
     // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": "https://pdfswift.online/split-pdf",
     },
 
-    // 🔹 Dates
-    datePublished: "2026-01-13",
-    dateModified: "2026-01-13",
-
-    // 🔹 Extra SEO Signals
-    articleSection: "PDF Tools",
-    keywords:
-      "split pdf, split pdf online, extract pdf pages, pdf page splitter, free pdf tool, pdfswift",
-
-    wordCount: 1100,
-    timeRequired: "PT3M",
+    // 🔹 Language
     inLanguage: "en",
   };
 

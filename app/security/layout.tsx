@@ -1,78 +1,47 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Security & Privacy | 100% Client-Side PDF Processing",
+  title: "Security & Privacy | PDFSwift – 100% Client-Side Processing",
   description:
-    "Learn how we protect your privacy. All PDF processing happens locally in your browser. Your files are never uploaded, stored, or accessed by our servers.",
-  keywords: [
-    "PDF security",
-    "privacy",
-    "client-side PDF processing",
-    "browser based PDF tools",
-    "no file upload",
-    "secure PDF tools",
-    "offline PDF processing"
-  ],
+    "All PDF processing happens directly in your browser. Files are never uploaded, stored, or accessed by our servers.",
+
   robots: {
     index: true,
-    follow: true
+    follow: true,
   },
+
+  alternates: {
+    canonical: "https://pdfswift.online/security",
+  },
+
   openGraph: {
-    title: "Security & Privacy | Client-Side PDF Tools",
+    title: "Security & Privacy | PDFSwift",
     description:
-      "Your files stay on your device. All PDF processing happens locally in your browser with zero uploads.",
-    url: "https://pdfswitf.online/security",
-    siteName: "PDF swift",
+      "100% client-side PDF processing. Your files never leave your device.",
+    url: "https://pdfswift.online/security",
+    siteName: "PDFSwift",
     type: "website",
-    images: [
-      {
-        url: "https://i.ibb.co/wrgZZrSc/Screenshot-2026-01-14-125828.png",
-        width: 1200,
-        height: 630,
-        alt: "PDF Security and Privacy"
-      }
-    ]
   },
+
   twitter: {
     card: "summary_large_image",
-    title: "Security & Privacy | PDF Tools",
+    title: "Security & Privacy | PDFSwift",
     description:
-      "100% client-side PDF processing. No uploads. No storage. Full privacy.",
-    images: ["https://i.ibb.co/6b6FJtD/mergepdf.png"]
+      "Your files stay on your device. No uploads. No storage.",
   },
-  alternates: {
-    canonical: "https://pdfswift.online/security"
-  }
+};
+
+/* ✅ Viewport should be exported separately */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#ffffff",
 };
 
 export default function SecurityLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      {/* Structured Data (JSON-LD) */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebPage",
-            name: "Security & Privacy",
-            description:
-              "All PDF processing happens locally in your browser. Files are never uploaded or stored.",
-            url: "https://pdfswift.online/security",
-            publisher: {
-              "@type": "Organization",
-              name: "PDF Tools",
-              description: "Privacy-focused, browser-based PDF tools"
-            }
-          })
-        }}
-      />
-
-      {children}
-    </>
-  );
+  return <main>{children}</main>;
 }

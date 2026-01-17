@@ -32,9 +32,9 @@ export default function JpgToPdfSchema() {
       },
     },
 
-    // 🔹 Dates (Project launch date)
-    datePublished: "2026-01-13",
-    dateModified: "2026-01-13",
+    // ✅ FIXED DATES (ISO 8601 + timezone)
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-17T00:00:00+05:30",
 
     // 🔹 Canonical Page
     mainEntityOfPage: {
@@ -42,13 +42,7 @@ export default function JpgToPdfSchema() {
       "@id": "https://pdfswift.online/jpg-to-pdf",
     },
 
-    // 🔹 Extra SEO Signals
-    articleSection: "Image Tools",
-    keywords:
-      "jpg to pdf, convert jpg to pdf online, image to pdf converter, pdfswift, free jpg to pdf tool",
-
-    wordCount: 1100, // approximate content length
-    timeRequired: "PT3M",
+    // 🔹 Language
     inLanguage: "en",
   };
 

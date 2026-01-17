@@ -3,24 +3,21 @@ export default function ArticleSchema() {
     "@context": "https://schema.org",
     "@type": "Article",
 
-    // 🔹 Core SEO
-    headline: "Compress Image Online – Reduce Image Size Without Losing Quality",
+    headline:
+      "Compress Image Online – Reduce Image Size Without Losing Quality",
     description:
       "Compress images online quickly and securely using PDFSwift. Reduce image size without noticeable quality loss. Supports JPG, PNG, and WebP formats.",
 
-    // 🔹 Featured Image
     image: [
       "https://pdfswift.online/images/compress-image-tool.png",
     ],
 
-    // 🔹 Author
     author: {
       "@type": "Organization",
       name: "PDFSwift",
       url: "https://pdfswift.online",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
@@ -32,23 +29,15 @@ export default function ArticleSchema() {
       },
     },
 
-    // 🔹 Dates (Project launch date)
-    datePublished: "2026-01-13",
-    dateModified: "2026-01-13",
+    // ✅ FIXED DATES
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-17T00:00:00+05:30",
 
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": "https://pdfswift.online/compress-image",
     },
 
-    // 🔹 Extra SEO Signals
-    articleSection: "Image Tools",
-    keywords:
-      "compress image, image compressor online, reduce image size, compress jpg png webp, pdfswift",
-
-    wordCount: 1100,
-    timeRequired: "PT3M",
     inLanguage: "en",
   };
 

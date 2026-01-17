@@ -17,13 +17,9 @@ export default function RotatePdfSchema() {
     author: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://pdfswift.online",
     },
 
- // 🔹 Canonical Page
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": "https://pdfswift.online/rotate-pdf",
-    },
     // 🔹 Publisher
     publisher: {
       "@type": "Organization",
@@ -36,17 +32,17 @@ export default function RotatePdfSchema() {
       },
     },
 
-    // 🔹 Dates
-    datePublished: "2026-01-13",
-    dateModified: "2026-01-13",
+    // ✅ FIXED DATES (ISO 8601 + IST timezone)
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-17T00:00:00+05:30",
 
-    // 🔹 Extra SEO Signals
-    articleSection: "PDF Tools",
-    keywords:
-      "rotate pdf, rotate pdf pages online, pdf page rotation, free pdf tool, pdfswift",
+    // 🔹 Canonical Page
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": "https://pdfswift.online/rotate-pdf",
+    },
 
-    wordCount: 1100,
-    timeRequired: "PT3M",
+    // 🔹 Language
     inLanguage: "en",
   };
 

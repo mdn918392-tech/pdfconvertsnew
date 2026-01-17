@@ -319,6 +319,9 @@ import BreadcrumbSchema from "./BreadcrumbSchema";
 import FAQSchema from "./FAQSchema";
 import { faqData } from "./faqData";
 
+import ArticleSchema from "./ArticleSchema";
+import HowToSchema from "./HowToSchema";
+
 // Import pdfjs-dist with proper configuration
 import * as pdfjsLib from "pdfjs-dist";
 
@@ -2029,12 +2032,13 @@ export default function PdfSplitRotatorTool() {
 
   return (
   <>
-   <Head>
    {/* SEO Schema */}
       <FAQSchema />
-   
-      <BreadcrumbSchema />
-       </Head>
+        <BreadcrumbSchema />
+       
+      
+      <HowToSchema />
+      <ArticleSchema />
 
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-4 sm:py-8 md:py-12">
       <div className="container mx-auto px-3 sm:px-4 max-w-6xl">

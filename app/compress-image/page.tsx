@@ -40,9 +40,12 @@ import {
   downloadAsZip,
 } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
+import HowToSchema from "./HowToSchema";
 
+ 
 const tool = {
-  id: "compress-image",
+  id: "compress-image", 
   name: "Compress Image",
   description: "Reduce JPG/PNG file size",
   category: "image",
@@ -618,13 +621,13 @@ export default function PngToJpg() {
 
   return (
     <>
-      <>
-
-      {/* SEO Schema */}
+     {/* SEO Schema */}
       <FAQSchema />
         <BreadcrumbSchema />
         {/* rest of page */}
-      </>
+      
+      <HowToSchema />
+      <ArticleSchema />
 
       {/* Download Success Notifications */}
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">

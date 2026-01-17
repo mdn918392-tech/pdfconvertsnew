@@ -4,11 +4,12 @@ export default function ArticleSchema() {
     "@type": "Article",
 
     // 🔹 Core SEO
-    headline: "Compress PDF Online – Reduce PDF File Size Without Losing Quality",
+    headline:
+      "Compress PDF Online – Reduce PDF File Size Without Losing Quality",
     description:
       "Compress PDF files online quickly and securely using PDFSwift. Reduce PDF file size without noticeable quality loss. Free, fast, and privacy-focused PDF compression tool.",
 
-    // 🔹 Featured Image (important for rich results)
+    // 🔹 Featured Image
     image: [
       "https://pdfswift.online/images/compress-pdf.png",
     ],
@@ -32,9 +33,9 @@ export default function ArticleSchema() {
       },
     },
 
-    // 🔹 Dates (Project live date)
-    datePublished: "2026-01-13",
-    dateModified: "2026-01-13",
+    // 🔹 Dates (ISO 8601 with timezone – REQUIRED FORMAT)
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-17T00:00:00+05:30",
 
     // 🔹 Canonical Page
     mainEntityOfPage: {
@@ -42,13 +43,7 @@ export default function ArticleSchema() {
       "@id": "https://pdfswift.online/compress-pdf",
     },
 
-    // 🔹 Extra SEO Signals
-    articleSection: "PDF Tools",
-    keywords:
-      "compress pdf, reduce pdf size, pdf compressor online, shrink pdf file, pdfswift",
-
-    wordCount: 1150,
-    timeRequired: "PT3M",
+    // 🔹 Language
     inLanguage: "en",
   };
 

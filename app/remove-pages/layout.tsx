@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import HowToSchema from "./HowToSchema";
 
-
-import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
   title: "Remove Pages from PDF Online – Delete PDF Pages Free",
@@ -35,10 +32,7 @@ export default function PDFToJPGLayout({
 }) {
   return (
     <>
-      {/* Only keep the schemas you need */}
-      <HowToSchema />
-  
-      <ArticleSchema />
+     
       
       <main>{children}</main>
     </>

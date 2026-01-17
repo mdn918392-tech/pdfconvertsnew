@@ -317,6 +317,8 @@ import ProgressBar from "@/app/components/ProgressBar";
 import { downloadFile } from "../../utils/imageUtils";
 import { PDFDocument } from "pdf-lib";
 import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
+import HowToSchema from "./HowToSchema";
 
 
 
@@ -1542,9 +1544,13 @@ export default function PdfPageExtractorTool() {
   return (
     <>
      
-       {/* SEO Schema */}
+      {/* SEO Schema */}
       <FAQSchema />
-      <BreadcrumbSchema />
+        <BreadcrumbSchema />
+        {/* rest of page */}
+      
+      <HowToSchema />
+      <ArticleSchema />
       
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-4 sm:py-8 md:py-12">
         <div className="container mx-auto px-3 sm:px-4 max-w-6xl">

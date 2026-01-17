@@ -33,6 +33,8 @@ import ProgressBar from "@/app/components/ProgressBar";
 import { mergePdfs, reversePdfOrder } from "../../utils/pdfUtils";
 import { downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
+import HowToSchema from "./HowToSchema";
 
 
 // Smart filename generator for merged PDFs
@@ -395,9 +397,13 @@ export default function MergePdf() {
   <>
   
          
-          <BreadcrumbSchema />
           {/* SEO Schema */}
       <FAQSchema />
+        <BreadcrumbSchema />
+       
+      
+      <HowToSchema />
+      <ArticleSchema />
            
             
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950/20 py-8 md:py-12">

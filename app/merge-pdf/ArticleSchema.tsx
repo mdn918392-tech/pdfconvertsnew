@@ -8,7 +8,7 @@ export default function ArticleSchema() {
     description:
       "Merge multiple PDF files into one document online quickly and securely using PDFSwift. Free, fast, and privacy-focused PDF merger tool.",
 
-    // 🔹 Featured Image (important for rich results)
+    // 🔹 Featured Image
     image: [
       "https://pdfswift.online/images/merge-pdf-tool.png",
     ],
@@ -32,9 +32,9 @@ export default function ArticleSchema() {
       },
     },
 
-    // 🔹 Dates
-    datePublished: "2024-01-12",
-    dateModified: "2024-01-12",
+    // ✅ FIXED DATES (ISO 8601 + timezone)
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-17T00:00:00+05:30",
 
     // 🔹 Canonical Page
     mainEntityOfPage: {
@@ -42,13 +42,7 @@ export default function ArticleSchema() {
       "@id": "https://pdfswift.online/merge-pdf",
     },
 
-    // 🔹 Extra SEO Signals
-    articleSection: "PDF Tools",
-    keywords:
-      "merge pdf, combine pdf files, pdf merger online, free pdf merge tool, pdfswift",
-
-    wordCount: 1200,
-    timeRequired: "PT5M",
+    // 🔹 Language
     inLanguage: "en",
   };
 

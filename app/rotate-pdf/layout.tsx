@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import HowToSchema from "./HowToSchema";
 
-import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
   title: "Rotate PDF Pages Online for Free – Fix Orientation Instantly",
@@ -36,9 +34,7 @@ export default function RotatePDFLayout({
 }) {
   return (
     <>
-      <HowToSchema />
      
-      <ArticleSchema />
       
       <main>{children}</main>
     </>

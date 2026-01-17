@@ -32,9 +32,9 @@ export default function ExtractPagesSchema() {
       },
     },
 
-    // 🔹 Dates (Project launch date)
-    datePublished: "2026-01-13",
-    dateModified: "2026-01-13",
+    // ✅ FIXED DATES (ISO 8601 + timezone)
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-17T00:00:00+05:30",
 
     // 🔹 Canonical Page
     mainEntityOfPage: {
@@ -42,13 +42,7 @@ export default function ExtractPagesSchema() {
       "@id": "https://pdfswift.online/extract-pages",
     },
 
-    // 🔹 Extra SEO Signals
-    articleSection: "PDF Tools",
-    keywords:
-      "extract pages from pdf, split pdf online, pdf page extractor, pdfswift",
-
-    wordCount: 1200, // approximate word count for your article
-    timeRequired: "PT4M",
+    // 🔹 Language
     inLanguage: "en",
   };
 

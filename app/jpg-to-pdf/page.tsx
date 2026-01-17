@@ -47,6 +47,8 @@ import { downloadFile } from "../../utils/imageUtils";
 import type { PaperSize, Orientation } from "../../types";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 import FAQSchema from "./FAQSchema";
+import ArticleSchema from "./ArticleSchema";
+import HowToSchema from "./HowToSchema";
 import { faqData } from "./faqData";
 
 interface FileWithPreview {
@@ -1167,8 +1169,11 @@ export default function JpgToPdf() {
     <>
      {/* SEO Schema */}
       <FAQSchema />
-    
-                  <BreadcrumbSchema />
+        <BreadcrumbSchema />
+       
+      
+      <HowToSchema />
+      <ArticleSchema />
                   
 
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">

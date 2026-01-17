@@ -32,9 +32,9 @@ export default function PngToJpgSchema() {
       },
     },
 
-    // 🔹 Dates (Project launch date)
-    datePublished: "2026-01-13",
-    dateModified: "2026-01-13",
+    // ✅ FIXED DATES (ISO 8601 + IST timezone)
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-17T00:00:00+05:30",
 
     // 🔹 Canonical Page
     mainEntityOfPage: {
@@ -42,13 +42,7 @@ export default function PngToJpgSchema() {
       "@id": "https://pdfswift.online/png-to-jpg",
     },
 
-    // 🔹 Extra SEO Signals
-    articleSection: "Image Tools",
-    keywords:
-      "png to jpg, convert png to jpg online, image converter, pdfswift, free png to jpg tool",
-
-    wordCount: 1100, // approximate content length
-    timeRequired: "PT3M",
+    // 🔹 Language
     inLanguage: "en",
   };
 

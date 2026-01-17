@@ -22,6 +22,8 @@ import ProgressBar from "../components/ProgressBar";
 import { compressPdf } from "../../utils/pdfUtils";
 import { downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
+import HowToSchema from "./HowToSchema";
 
 import Link from "next/link";
 
@@ -277,8 +279,16 @@ export default function CompressPdf() {
 
   return (
     <>
+
+     {/* SEO Schema */}
+     
+        <BreadcrumbSchema />
+        {/* rest of page */}
       
-      <BreadcrumbSchema />
+      <HowToSchema />
+      <ArticleSchema />
+      
+      
       {/* Success Message Overlay */}
       <AnimatePresence>
         {downloadSuccess && (

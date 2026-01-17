@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import HowToSchema from "./HowToSchema";
 
-import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
   title: "Split PDF Files Online for Free – Separate Pages Instantly",
@@ -36,9 +34,7 @@ export default function SplitPDFLayout({
 }) {
   return (
     <>
-      <HowToSchema />
      
-      <ArticleSchema/>
       
       <main>{children}</main>
     </>

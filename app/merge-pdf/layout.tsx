@@ -34,9 +34,7 @@ export default function MergePDFLayout({
 }) {
   return (
     <>
-      <HowToSchema />
-    
-      <ArticleSchema/>
+      
       
       <main>{children}</main>
     </>

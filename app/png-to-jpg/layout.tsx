@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import PNGtoJPGHowToSchema from "./HowToSchema";
 
-import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
   title: "PNG to JPG Converter Online – Fast, Free & Secure",
@@ -35,10 +33,7 @@ export default function PNGtoJPGLayout({
 }) {
   return (
     <>
-      {/* Tool-specific schemas */}
-      <PNGtoJPGHowToSchema />
-      
-      <ArticleSchema />
+    
 
       <main>{children}</main>
     </>

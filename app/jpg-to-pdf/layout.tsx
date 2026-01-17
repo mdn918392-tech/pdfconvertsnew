@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import HowToSchema from "./HowToSchema";
 
-import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
   title: "JPG to PDF Converter - Free Online Tool",
@@ -35,9 +33,7 @@ export default function JPGtoPDFLayout({
 }) {
   return (
     <>
-      <HowToSchema />
-      
-      <ArticleSchema/>
+     
       
       <main>{children}</main>
     </>

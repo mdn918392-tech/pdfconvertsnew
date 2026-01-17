@@ -31,7 +31,8 @@ import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
 import { convertPngToJpg, downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
-
+import ArticleSchema from "./ArticleSchema";
+import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
 import { faqData } from "./faqData";
 
@@ -618,12 +619,13 @@ export default function PngToJpg() {
 
   return (
     <>
-      <Head>
       {/* SEO Schema */}
       <FAQSchema />
-        
         <BreadcrumbSchema />
-      </Head>
+       
+      
+      <HowToSchema />
+      <ArticleSchema />
       
       {/* Download Success Notifications */}
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">

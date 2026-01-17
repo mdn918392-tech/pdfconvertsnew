@@ -17,6 +17,7 @@ export default function RemovePagesSchema() {
     author: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://pdfswift.online",
     },
 
     // 🔹 Publisher
@@ -31,22 +32,17 @@ export default function RemovePagesSchema() {
       },
     },
 
-// 🔹 Canonical Page
+    // ✅ FIXED DATES (ISO 8601 + IST timezone)
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-17T00:00:00+05:30",
+
+    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": "https://pdfswift.online/remove-pages",
     },
-    // 🔹 Dates
-    datePublished: "2026-01-13",
-    dateModified: "2026-01-13",
 
-    // 🔹 Extra SEO Signals
-    articleSection: "PDF Tools",
-    keywords:
-      "remove pdf pages, delete pages from pdf, pdf page remover online, free pdf editor",
-
-    wordCount: 1200,
-    timeRequired: "PT2M",
+    // 🔹 Language
     inLanguage: "en",
   };
 
