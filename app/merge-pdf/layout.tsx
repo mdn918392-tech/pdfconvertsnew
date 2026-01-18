@@ -4,21 +4,21 @@ import HowToSchema from "./HowToSchema";
 import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
-  title: "Merge PDF Tool - Free Online PDF Merger",
+  title: "Merge PDF Files Online Free – Combine PDFs Instantly (2026)",
   description:
-    "Merge multiple PDF files online easily and securely with PDFSwift. Combine PDFs into a single, well-organized file in seconds using our free, browser-based PDF merge tool. Arrange pages in any order, get instant results, and enjoy complete privacy — no signup or file uploads required.",
+    "Merge PDF files online free without watermark or signup. Combine multiple PDF documents into one file instantly using a secure, browser-based PDF merger tool with full privacy.",
   keywords: [
-  "merge PDF online",
-  "combine PDF files",
-  "PDF merger online",
-  "free PDF merge tool",
-  "merge multiple PDF files",
-  "online PDF merger",
-  "secure PDF merge",
-  "browser based PDF tool"
-]
-
+    "merge pdf files online free",
+    "merge pdf online",
+    "combine pdf files",
+    "pdf merger online",
+    "free pdf merge tool",
+    "merge multiple pdf files",
+    "online pdf merger",
+    "combine pdfs into one"
+  ],
 };
+
 
 // ✅ viewport must be exported separately
 export const viewport: Viewport = {

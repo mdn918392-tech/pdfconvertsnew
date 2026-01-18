@@ -1,6 +1,7 @@
 import data from "../data.json";
 import Link from "next/link";
 import Image from "next/image";
+import BlogToolsSection from "@/app/components/BlogToolsSection";
 
 import { 
   CalendarDays, 
@@ -1097,6 +1098,7 @@ export default function MergePDFGuide() {
           </div>
         </main>
       </div>
+      <BlogToolsSection />
     </>
   );
 }

@@ -931,13 +931,16 @@ export default function CompressPdf() {
                 </motion.div>
                 
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 md:mb-3 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 bg-clip-text text-transparent">
-                  Quality PDF Compressor
+                  Compress PDF Files Online Free
+
                 </h1>
                 
                 <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed px-2">
-                  Reduce PDF file size while preserving image quality
+                 Reduce PDF file size without losing quality using fast and secure compression.
+
                   <span className="block text-amber-600 dark:text-amber-400 font-medium mt-2 text-sm md:text-base">
-                    Quality Guaranteed • Max 50% Compression • Secure
+                   Quality guaranteed • Smart compression • 100% secure
+
                   </span>
                 </p>
               </div>

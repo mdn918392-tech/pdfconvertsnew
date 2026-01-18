@@ -2,23 +2,20 @@ import type { Metadata, Viewport } from "next";
 
 
 export const metadata: Metadata = {
-  title: "PDF to JPG Converter Online – High Quality, No Signup",
+  title: "Convert PDF to Images Online Free – JPG & PNG (2026)",
   description:
-    "Convert PDF pages to JPG images instantly with high quality using PDFSwift. Extract individual pages or entire PDFs as JPG images with fast, browser-based processing. Free to use, secure, and no signup required.",
- keywords: [
-  "PDF to JPG converter online",
-  "convert PDF to JPG",
-  "PDF to image converter",
-  "extract PDF pages as JPG",
-  "free PDF to JPG tool",
-  "convert PDF pages to images",
-  "online PDF to JPG converter",
-  "high quality PDF to JPG",
-  "secure PDF to image tool",
-  "browser based PDF converter"
-]
-
+    "Convert PDF to images online free without watermark or signup. Extract PDF pages as high-quality JPG or PNG images, rotate pages as needed, and download instantly using a secure, browser-based tool.",
+  keywords: [
+    "convert pdf to images online free",
+    "pdf to image converter",
+    "convert pdf to jpg png",
+    "extract pdf pages as images",
+    "pdf to jpg png converter",
+    "free pdf to image tool",
+    "online pdf to image converter"
+  ],
 };
+
 
 // ✅ viewport must be exported separately
 export const viewport: Viewport = {

@@ -1,6 +1,7 @@
 import data from "../data.json";
 import Link from "next/link";
 import Image from "next/image";
+import BlogToolsSection from "@/app/components/BlogToolsSection";
 import { 
   CalendarDays, 
   FileImage, 
@@ -1147,6 +1148,7 @@ export default function SplitPDFGuide() {
             </aside>
           </div>
         </main>
+        <BlogToolsSection />
       </div>
     </>
   );

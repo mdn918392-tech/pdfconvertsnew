@@ -1625,11 +1625,13 @@ export default function PdfPageExtractorTool() {
               </motion.div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent px-2">
-                PDF Page Extractor Tool
+                Extract Pages from PDF Online Free
+
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                Extract specific pages from your PDF documents.
+                Extract specific pages from PDF files online free without watermark.
+
                 <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
                   Select pages to extract and download them as a new PDF!
                 </span>

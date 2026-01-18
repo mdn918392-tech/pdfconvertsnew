@@ -7,31 +7,31 @@ interface BlogProps {
     id: string;
     description: string;
     date: string;
-    image: string;
+    image?: string;
   };
 }
 
 export default function BlogCard({ blog }: BlogProps) {
+  // allow only images from /public/images
+  const isValidPublicImage =
+    typeof blog.image === "string" && blog.image.startsWith("/images/");
+
   return (
     <Link href={`/blog/${blog.id}`} className="block group">
-      <div className="rounded-2xl overflow-hidden bg-white dark:bg-gray-900 
-                      shadow-soft hover:shadow-xl transition-all duration-300 
-                      animate-fade-in">
-
-        {/* Image / Gradient Section */}
+      <div className="rounded-2xl overflow-hidden bg-white dark:bg-gray-900 shadow-soft hover:shadow-xl transition-all duration-300">
+        
+        {/* Image */}
         <div className="relative h-56 w-full overflow-hidden">
-          {blog.image ? (
+          {isValidPublicImage ? (
             <Image
-              src={blog.image}
+              src={blog.image as string}
               alt={blog.title}
               fill
-              unoptimized={blog.image.startsWith("http")}
               className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-orange-400 to-red-500 
-                            animate-gradient flex items-center justify-center px-6">
-              <h2 className="text-white text-2xl font-bold text-center">
+            <div className="h-full w-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center px-6">
+              <h2 className="text-white text-xl font-bold text-center line-clamp-2">
                 {blog.title}
               </h2>
             </div>

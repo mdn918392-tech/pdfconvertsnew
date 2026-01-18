@@ -1558,7 +1558,8 @@ export default function PdfToImageConverterWithRotation() {
             </h1>
 
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-              Convert PDF documents to images and rotate them to any angle.
+              Convert PDF pages to high-quality JPG or PNG images, rotate them as needed, and download instantly.
+
               <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1">
                 Rotate individual images or batch rotate all pages!
               </span>

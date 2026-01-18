@@ -1,5 +1,6 @@
 import data from "../data.json";
 import Head from "next/head";
+import BlogToolsSection from "@/app/components/BlogToolsSection";
 import { 
   CalendarDays, 
   FileImage, 
@@ -666,8 +667,11 @@ export default function JPGtoPDFBlog() {
               </div>
             </aside>
           </div>
+          
         </main>
+        
       </div>
+      <BlogToolsSection />
     </>
   );
 }

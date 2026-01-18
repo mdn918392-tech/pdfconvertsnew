@@ -2,21 +2,20 @@ import type { Metadata, Viewport } from "next";
 
 
 export const metadata: Metadata = {
-  title: "Compress PDF Files Online for Free – Reduce PDF Size Instantly",
+  title: "Compress PDF Files Online Free – Reduce PDF Size Instantly (2026)",
   description:
-    "Compress PDF files online quickly and securely with PDFSwift. Reduce PDF file size without losing quality using fast, browser-based compression. Your files stay private, no signup or installation required, and everything works instantly on desktop and mobile.",
-keywords: [
-  "compress PDF online",
-  "reduce PDF size",
-  "online PDF compressor",
-  "free PDF compressor",
-  "shrink PDF file",
-  "compress PDF without quality loss",
-  "secure PDF compression",
-  "browser based PDF tool"
-]
-
+    "Compress PDF files online free without watermark or signup. Reduce PDF file size instantly while preserving quality using a secure, browser-based PDF compressor.",
+  keywords: [
+    "compress pdf online free",
+    "compress pdf online",
+    "reduce pdf size",
+    "pdf compressor",
+    "free pdf compressor",
+    "shrink pdf file",
+    "compress pdf without quality loss"
+  ],
 };
+
 
 // ✅ viewport must be exported separately
 export const viewport: Viewport = {

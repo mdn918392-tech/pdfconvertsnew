@@ -1,22 +1,21 @@
 import type { Metadata, Viewport } from "next";
 
-
 export const metadata: Metadata = {
-  title: "Extract Pages from PDF - Free Online Tool",
+  title: "Extract Pages from PDF Online Free – No Watermark (2026)",
   description:
-    "Extract specific pages from PDF files online quickly and securely with PDFSwift. Select the pages you need and download the extracted PDF instantly using our free, browser-based tool — no signup, no uploads, and complete privacy guaranteed.",
-keywords: [
-  "extract pages from PDF online",
-  "PDF page extractor",
-  "extract PDF pages",
-  "split PDF pages online",
-  "free PDF extractor",
-  "online PDF page extractor",
-  "extract specific pages from PDF",
-  "secure PDF extraction tool",
-  "browser based PDF tool"
-]
+    "Extract pages from PDF online free without watermark or signup. Secure browser-based PDF page extractor to extract one or multiple pages instantly with complete privacy.",
+  keywords: [
+    "extract pages from pdf free",
+    "extract one page from pdf",
+    "pdf page extractor online",
+    "remove pages from pdf free",
+    "extract pdf pages without watermark",
+    "extract pages from pdf online free",
+    "extract single page from pdf",
+    "pdf page extractor without watermark",
 
+    "online pdf page extractor free"
+  ],
 };
 
 // ✅ viewport must be exported separately
@@ -33,8 +32,6 @@ export default function ExtractPDFLayout({
 }) {
   return (
     <>
-      
-      
       <main>{children}</main>
     </>
   );

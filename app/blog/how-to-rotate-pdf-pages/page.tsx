@@ -1,6 +1,7 @@
 import data from "../data.json";
 import Link from "next/link";
 import Image from "next/image";
+import BlogToolsSection from "@/app/components/BlogToolsSection";
 import { 
   CalendarDays, 
   File, 
@@ -1081,6 +1082,7 @@ export default function RotatePDFGuide() {
           </div>
         </main>
       </div>
+      <BlogToolsSection />
     </>
   );
 }

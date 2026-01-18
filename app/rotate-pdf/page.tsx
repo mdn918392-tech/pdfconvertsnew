@@ -1349,13 +1349,15 @@ export default function PdfRotatorTool() {
             </motion.div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent px-2">
-              PDF Rotator Tool
+             Rotate PDF Pages Online for Free – Fix Orientation Instantly
+
             </h1>
 
             <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
               Rotate PDF pages to any angle and save as new PDF document.
               <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
-                Rotate individual pages or batch rotate all pages with ease!
+                Rotate PDF pages by 90°, 180°, or 270° and save them as a new PDF instantly.
+
               </span>
             </p>
           </div>

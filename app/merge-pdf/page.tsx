@@ -439,11 +439,13 @@ export default function MergePdf() {
               </motion.div>
 
               <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                PDF Merger
+                Merge PDF Files Online Free
+
               </h1>
 
               <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                Combine multiple PDF files into a single, organized document
+               Combine multiple PDF files into a single document and download it instantly.
+
                 <span className="block text-indigo-600 dark:text-indigo-400 font-medium mt-1">
                   Drag & drop to rearrange pages in your desired order
                 </span>

@@ -1398,11 +1398,13 @@ export default function JpgToPdf() {
               </motion.div>
 
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                JPG to PDF Converter
+                Convert JPG to PDF Online Free
+
               </h1>
 
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Transform images with maximum quality control, margin settings and professional PDF output
+               Convert JPG images to a professional PDF with maximum quality, margin control, and clean layout.
+
               </p>
             </div>
 

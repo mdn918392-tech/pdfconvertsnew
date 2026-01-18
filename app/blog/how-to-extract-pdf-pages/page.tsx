@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import BlogToolsSection from "@/app/components/BlogToolsSection";
 import { 
   CalendarDays, 
   File, 
@@ -551,6 +552,7 @@ export default function ExtractPDFPagesGuide() {
           </aside>
         </div>
       </main>
+      <BlogToolsSection />
     </div>
   );
 }

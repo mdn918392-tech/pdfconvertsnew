@@ -5,7 +5,7 @@
     "date":"Jan 12 2026",
     "description": "Step by step guide to convert JPG images to PDF format.",
     "slug": "how-to-convert-jpg-to-pdf",
-         "image": "https://i.ibb.co/0ykjSxsF/Gemini-Generated-Image-f81m1if81m1if81m.png",
+         "image": "/images/jpg-to-pdf-conversion-guide.png",
     "breadcrumbs": [
       { "name": "Home", "url": "/" },
       { "name": "Blog", "url": "/blog" },
@@ -39,7 +39,7 @@
     "date": "Jan 14 2026",
     "description": "Step by step guide to convert PDF files into JPG images on mobile and PC easily.",
     "slug": "how-to-convert-pdf-to-jpg",
-    "image": "https://i.ibb.co/hR3PfDVh/pdftojpg.png",
+    "image": "/images/pdftojpg.png",
     "breadcrumbs": [
       { "name": "Home", "url": "/" },
       { "name": "Blog", "url": "/blog" },
@@ -79,7 +79,7 @@
     "date": "Jan 15 2026",
     "description": "Step by step guide to merge multiple PDF files into one document on mobile and PC easily.",
     "slug": "how-to-merge-pdf",
-    "image": "https://i.ibb.co/ZkKDzCM/how-to-merge.png",
+    "image": "/images/merge-pdf-tool.png",
     "breadcrumbs": [
       { "name": "Home", "url": "/" },
       { "name": "Blog", "url": "/blog" },
@@ -119,7 +119,7 @@
     "date": "Jan 15 2026",
     "description": "Step by step guide to extract specific pages from a PDF file on mobile and PC easily.",
     "slug": "how-to-extract-pdf-pages",
-    "image": "https://i.ibb.co/qYL4yjSz/how-to-extractpage.jpg",
+    "image": "/images/Extractor-Tool.png",
     "breadcrumbs": [
       { "name": "Home", "url": "/" },
       { "name": "Blog", "url": "/blog" },
@@ -159,7 +159,7 @@
     "date": "Jan 16 2026",
     "description": "Learn how to split PDF pages, extract specific pages, or divide a PDF into multiple files on mobile and PC using free and secure tools.",
     "slug": "how-to-split-pdf",
-    "image": "https://i.ibb.co/DPytB0jM/Screenshot-2026-01-15-221306.png",
+    "image": "/images/split-pdf.png",
     "breadcrumbs": [
       { "name": "Home", "url": "/" },
       { "name": "Blog", "url": "/blog" },
@@ -192,14 +192,14 @@
         "answer": "Yes, many online PDF split tools allow you to split PDF files for free without watermarks."
       }
     ]
-  },
+  },  
   {
     "id": "how-to-compress-pdf-without-quality-loss",
     "title": "How to Compress PDF Without Quality Loss on Mobile and PC (Step-by-Step Guide)",
     "date": "Jan 17 2026",
     "description": "Learn how to compress PDF files without losing quality on mobile and PC using free, secure, and easy online tools.",
     "slug": "how-to-compress-pdf-without-quality-loss",
-    "image": "https://i.ibb.co/nM3tx8x5/choose-method.jpg",
+    "image": "/images/compress-pdf.png",
     "breadcrumbs": [
       { "name": "Home", "url": "/" },
       { "name": "Blog", "url": "/blog" },
@@ -241,7 +241,7 @@
     "date": "Jan 18 2026",
     "description": "Learn how to rotate PDF pages clockwise or counterclockwise on mobile and PC using free, secure, and easy online tools.",
     "slug": "how-to-rotate-pdf-pages",
-    "image": "https://pdfswift.online/images/rotatepdf.png",
+    "image": "/images/rotatepdf.png",
     "breadcrumbs": [
       { "name": "Home", "url": "/" },
       { "name": "Blog", "url": "/blog" },
@@ -273,6 +273,46 @@
       {
         "question": "Is rotating PDF pages free?",
         "answer": "Yes, many online PDF rotate tools allow you to rotate PDF pages for free without watermarks."
+      }
+    ]
+  },
+  {
+    "id": "how-to-remove-unwanted-pages-from-pdf",
+    "title": "How to Remove Unwanted Pages from PDF on Mobile and PC (Step-by-Step Guide)",
+    "date": "Jan 19 2026",
+    "description": "Learn how to remove unwanted pages from a PDF on mobile and PC using free, secure, and easy online tools without affecting quality.",
+    "slug": "how-to-remove-unwanted-pages-from-pdf",
+    "image": "/images/pdf-page-removal-guide.jpg",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "How to Remove Unwanted Pages from PDF", "url": "/blog/how-to-remove-unwanted-pages-from-pdf" }
+    ],
+    "howto": {
+      "steps": [
+        "Open the online Remove PDF Pages tool.",
+        "Upload your PDF file from your device.",
+        "Select the pages you want to delete.",
+        "Click on the Remove Pages button.",
+        "Download the updated PDF file."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["PDF file"],
+      "tool": ["Online PDF page removal tool"]
+    },
+    "faq": [
+      {
+        "question": "Can I remove specific pages from a PDF?",
+        "answer": "Yes, PDF editing tools allow you to delete selected pages while keeping the rest of the document intact."
+      },
+      {
+        "question": "Does removing PDF pages affect file quality?",
+        "answer": "No, removing pages does not reduce quality because the remaining pages are not reprocessed."
+      },
+      {
+        "question": "Is removing unwanted PDF pages free?",
+        "answer": "Yes, many online tools allow you to remove PDF pages for free without watermarks or sign-up."
       }
     ]
   }
