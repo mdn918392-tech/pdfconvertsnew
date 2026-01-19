@@ -103,6 +103,8 @@ export default function Home() {
     },
 
     // Image Tools
+
+   
     {
       id: "png-to-jpg",
       name: "PNG to JPG",
@@ -113,6 +115,23 @@ export default function Home() {
       href: "/png-to-jpg",
       path: "/tools/png-to-jpg",
     },
+
+      {
+  id: "resize-image",
+  name: "Resize Image",
+  description: "Resize JPG, PNG, and WebP images with custom dimensions",
+  category: "image",
+  icon: "📏",
+  color: "from-green-500 to-emerald-500",
+  href: "/resize-image",
+  path: "/tools/resize-image",
+},
+
+  
+
+    
+
+
     {
       id: "compress-image",
       name: "Compress Image",
@@ -123,6 +142,18 @@ export default function Home() {
       href: "/compress-image",
       path: "/tools/compress-image",
     },
+    
+
+     {
+    id: "webpage-to-jpg",
+    name: "WebPage to JPG",
+    description: "Convert WebP images to JPG format",
+    category: "image",
+    icon: "🔄",
+    color: "from-purple-500 to-pink-500",
+    href: "/webpage-to-jpg",
+    path: "/tools/webp-to-jpg",
+  },
   ];
 
   const cleanTools = extendedTools.filter((t) => t != null);

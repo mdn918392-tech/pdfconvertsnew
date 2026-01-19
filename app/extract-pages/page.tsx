@@ -1836,129 +1836,7 @@ export default function PdfPageExtractorTool() {
                           </div>
                         </div>
 
-                        {/* Batch Selection Controls - Responsive */}
-                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
-                          <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2">
-                            <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                            Quick Page Selection
-                          </h4>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                            <button
-                              onClick={selectAllPages}
-                              disabled={processing}
-                              className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                            >
-                              <Check className="w-3 h-3 sm:w-4 sm:h-4" />
-                              <span>Select All</span>
-                            </button>
-                            <button
-                              onClick={deselectAllPages}
-                              disabled={processing}
-                              className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-medium rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                            >
-                              <X className="w-3 h-3 sm:w-4 sm:h-4" />
-                              <span>Deselect All</span>
-                            </button>
-                            <button
-                              onClick={handleDownloadExtractedPdf}
-                              disabled={
-                                downloadingAll || selectedPagesCount === 0
-                              }
-                              className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
-                            >
-                              <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                              <span>Extract {selectedPagesCount} Pages</span>
-                            </button>
-                          </div>
-
-                          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 text-center">
-                            Quick selection options for {pageData.length} pages
-                          </p>
-                        </div>
-
-                        {/* Pagination Controls - Responsive */}
-                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
-                          <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
-                            <div>
-                              <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
-                                Showing {startIndex + 1}-{endIndex} of{" "}
-                                {pageData.length} pages
-                              </h4>
-                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                                Navigate through pages using pagination
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-2 sm:gap-3">
-                              <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
-                                Items per page:
-                              </label>
-                              <select
-                                value={itemsPerPage}
-                                onChange={(e) =>
-                                  setItemsPerPage(Number(e.target.value))
-                                }
-                                className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm"
-                              >
-                                {itemsPerPageOptions.map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Pagination Buttons */}
-                          <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
-                            <button
-                              onClick={prevPage}
-                              disabled={currentPage === 1}
-                              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
-                            >
-                              <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button>
-
-                            {Array.from(
-                              { length: Math.min(5, totalPages) },
-                              (_, i) => {
-                                let pageNum;
-                                if (totalPages <= 5) {
-                                  pageNum = i + 1;
-                                } else if (currentPage <= 3) {
-                                  pageNum = i + 1;
-                                } else if (currentPage >= totalPages - 2) {
-                                  pageNum = totalPages - 4 + i;
-                                } else {
-                                  pageNum = currentPage - 2 + i;
-                                }
-
-                                return (
-                                  <button
-                                    key={pageNum}
-                                    onClick={() => goToPage(pageNum)}
-                                    className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
-                                      currentPage === pageNum
-                                        ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white"
-                                        : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                    }`}
-                                  >
-                                    {pageNum}
-                                  </button>
-                                );
-                              }
-                            )}
-
-                            <button
-                              onClick={nextPage}
-                              disabled={currentPage === totalPages}
-                              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
-                            >
-                              <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button>
-                          </div>
-                        </div>
+                      
 
                         {/* Download Progress */}
                         {downloadingAll && (
@@ -2133,6 +2011,132 @@ export default function PdfPageExtractorTool() {
                           </div>
                         </div>
 
+                          {/* Pagination Controls - Responsive */}
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
+                          <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+                            <div>
+                              <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
+                                Showing {startIndex + 1}-{endIndex} of{" "}
+                                {pageData.length} pages
+                              </h4>
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                Navigate through pages using pagination
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                Items per page:
+                              </label>
+                              <select
+                                value={itemsPerPage}
+                                onChange={(e) =>
+                                  setItemsPerPage(Number(e.target.value))
+                                }
+                                className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm"
+                              >
+                                {itemsPerPageOptions.map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Pagination Buttons */}
+                          <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
+                            <button
+                              onClick={prevPage}
+                              disabled={currentPage === 1}
+                              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+                            >
+                              <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </button>
+
+                            {Array.from(
+                              { length: Math.min(5, totalPages) },
+                              (_, i) => {
+                                let pageNum;
+                                if (totalPages <= 5) {
+                                  pageNum = i + 1;
+                                } else if (currentPage <= 3) {
+                                  pageNum = i + 1;
+                                } else if (currentPage >= totalPages - 2) {
+                                  pageNum = totalPages - 4 + i;
+                                } else {
+                                  pageNum = currentPage - 2 + i;
+                                }
+
+                                return (
+                                  <button
+                                    key={pageNum}
+                                    onClick={() => goToPage(pageNum)}
+                                    className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
+                                      currentPage === pageNum
+                                        ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white"
+                                        : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                    }`}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                );
+                              }
+                            )}
+
+                            <button
+                              onClick={nextPage}
+                              disabled={currentPage === totalPages}
+                              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+                            >
+                              <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                          {/* Batch Selection Controls - Responsive */}
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
+                          <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2">
+                            <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                            Quick Page Selection
+                          </h4>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                            <button
+                              onClick={selectAllPages}
+                              disabled={processing}
+                              className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                            >
+                              <Check className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span>Select All</span>
+                            </button>
+                            <button
+                              onClick={deselectAllPages}
+                              disabled={processing}
+                              className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-medium rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                            >
+                              <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span>Deselect All</span>
+                            </button>
+                            <button
+                              onClick={handleDownloadExtractedPdf}
+                              disabled={
+                                downloadingAll || selectedPagesCount === 0
+                              }
+                              className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm col-span-2 sm:col-span-1"
+                            >
+                              <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span>Extract {selectedPagesCount} Pages</span>
+                            </button>
+                          </div>
+
+                          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 text-center">
+                            Quick selection options for {pageData.length} pages
+                          </p>
+                        </div>
+
+                      
+
                         {/* Download Button Section - Responsive */}
                         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border-2 border-indigo-200 dark:border-indigo-800/50">
                           <div className="text-center mb-3 sm:mb-4 md:mb-6">
@@ -2251,36 +2255,7 @@ export default function PdfPageExtractorTool() {
               fileName={simpleZoomModal.fileName}
             />
 
-{/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-     Everything you need to know about extracting pages from PDF files online
-    </p>
-  </div>
 
-  {/* FAQ List */}
-  <div className="space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
-      >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
-        </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
-      </details>
-    ))}
-  </div>
-</section>
 
 
             {/* Explore All Tools Section */}
@@ -2291,7 +2266,7 @@ export default function PdfPageExtractorTool() {
                     Explore All Tools
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
-                    40+ specialized PDF, image, and document tools
+                    10+ specialized PDF, image, and document tools
                   </p>
                 </div>
               </div>
@@ -2340,6 +2315,36 @@ export default function PdfPageExtractorTool() {
               </div>
             </div>
 
+{/* Visible FAQ Section */}
+<section className="max-w-3xl mx-auto my-16 px-4">
+  {/* Title */}
+  <div className="text-center mb-8">
+    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+      Frequently Asked Questions
+    </h2>
+    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+     Everything you need to know about extracting pages from PDF files online
+    </p>
+  </div>
+
+  {/* FAQ List */}
+  <div className="space-y-4">
+    {faqData.map((faq, index) => (
+      <details
+        key={index}
+        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+        bg-white dark:bg-gray-800"
+      >
+        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+          {faq.question}
+        </summary>
+        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+          {faq.answer}
+        </p>
+      </details>
+    ))}
+  </div>
+</section>
             {/* Info Footer - Responsive */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-center mt-6 sm:mt-8 md:mt-12">
               <div className="p-2 sm:p-3 md:p-4">

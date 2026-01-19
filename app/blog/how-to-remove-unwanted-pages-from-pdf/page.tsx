@@ -1040,27 +1040,7 @@ export default function RemovePDFPagesGuide() {
                   </h4>
 
                   <div className="space-y-4">
-                    {/* PDF Editor */}
-                    <a
-                      href="/edit-pdf"
-                      className="block p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800/30 hover:shadow-md transition"
-                    >
-                      <div className="flex items-center mb-2">
-                        <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-                        <span className="font-semibold text-gray-900 dark:text-white">
-                          PDF Editor
-                        </span>
-                      </div>
-
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        Remove pages, rearrange, split, merge, and edit PDF files online.
-                      </p>
-
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Edit className="w-3 h-3 mr-1" />
-                        <span>Free • Secure • No Installation</span>
-                      </div>
-                    </a>
+                   
 
                     {/* PDF Splitter */}
                     <a

@@ -315,6 +315,47 @@
         "answer": "Yes, many online tools allow you to remove PDF pages for free without watermarks or sign-up."
       }
     ]
+  },
+
+  {
+    "id": "how-to-extract-specific-pages-from-pdf",
+    "title": "How to Extract Specific Pages from PDF on Mobile and PC (Step-by-Step Guide)",
+    "date": "Jan 20 2026",
+    "description": "Learn how to extract specific pages from a PDF on mobile and PC using free, secure, and easy online tools without affecting quality.",
+    "slug": "how-to-extract-specific-pages-from-pdf",
+    "image": "/images/extractpdfpages.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "How to Extract Specific Pages from PDF", "url": "/blog/how-to-extract-specific-pages-from-pdf" }
+    ],
+    "howto": {
+      "steps": [
+        "Open the online Extract PDF Pages tool.",
+        "Upload your PDF file from your device.",
+        "Select the specific pages you want to extract.",
+        "Click on the Extract Pages button.",
+        "Download the new PDF containing only the selected pages."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["PDF file"],
+      "tool": ["Online PDF page extraction tool"]
+    },
+    "faq": [
+      {
+        "question": "Can I extract only selected pages from a PDF?",
+        "answer": "Yes, PDF tools allow you to extract specific pages and save them as a separate PDF file."
+      },
+      {
+        "question": "Does extracting pages affect PDF quality?",
+        "answer": "No, extracting pages does not reduce quality because the original content is preserved."
+      },
+      {
+        "question": "Is extracting PDF pages free?",
+        "answer": "Yes, many online PDF tools let you extract pages for free without watermarks or sign-up."
+      }
+    ]
   }
 
 

@@ -47,6 +47,12 @@ export default function Header() {
     { name: "Rotate PDF", href: "rotate-pdf" },
     { name: "PNG to JPG", href: "png-to-jpg" },
     { name: "Compress Image", href: "compress-image" },
+      { name: "resize image", href: "resize-image" },
+        { name: "webpage-to-jpg", href: "webpage-to-jpg" }
+
+      
+
+    
   ];
 
   return (

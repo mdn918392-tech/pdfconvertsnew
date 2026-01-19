@@ -91,6 +91,97 @@ export const processImageForPdf = async (
 };
 // --------------------------------------------------
 
+// Add to your existing imageUtils.ts file
+export const resizeImage = async (
+  file: File,
+  width: number,
+  height: number,
+  quality: number = 85,
+  format: 'jpg' | 'png' | 'webp' = 'jpg'
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      reject(new Error('Canvas context not available'));
+      return;
+    }
+
+    img.onload = () => {
+      // Set canvas dimensions
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Draw image with high quality scaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Convert to blob based on format
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Failed to create blob'));
+          }
+        },
+        `image/${format}`,
+        quality / 100
+      );
+    };
+    
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+// Add this function to your existing imageUtils.ts file
+export const convertWebpToJpg = (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      reject(new Error("Canvas context not available"));
+      return;
+    }
+
+    img.onload = () => {
+      try {
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        // Draw the WebP image onto the canvas
+        ctx.drawImage(img, 0, 0);
+
+        // Convert canvas to JPG blob
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("Failed to convert WebP to JPG"));
+            }
+          },
+          "image/jpeg",
+          0.92 // Quality: 0.92 (92%)
+        );
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      reject(new Error("Failed to load WebP image"));
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
 /**
  * Convert PNG to JPG with white background
  */

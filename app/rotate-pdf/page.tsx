@@ -1558,136 +1558,7 @@ export default function PdfRotatorTool() {
                         </div>
                       </div>
 
-                      {/* Batch Rotation Controls - Responsive */}
-                      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-indigo-200 dark:border-indigo-800/30">
-                        <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2">
-                          <Rotate3D className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
-                          Batch Rotate All Pages
-                        </h4>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                          <button
-                            onClick={() => rotateAllPages(90)}
-                            disabled={rotating}
-                            className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                          >
-                            <RotateCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span className="truncate">90° Right</span>
-                          </button>
-                          <button
-                            onClick={() => rotateAllPages(180)}
-                            disabled={rotating}
-                            className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                          >
-                            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span className="truncate">180°</span>
-                          </button>
-                          <button
-                            onClick={() => rotateAllPages(270)}
-                            disabled={rotating}
-                            className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                          >
-                            <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span className="truncate">90° Left</span>
-                          </button>
-                          <button
-                            onClick={() => rotateAllPages(0)}
-                            disabled={rotating}
-                            className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                          >
-                            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span className="truncate">Reset All</span>
-                          </button>
-                        </div>
-
-                        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 text-center">
-                          Apply the same rotation to all {pageData.length} pages
-                          at once
-                        </p>
-                      </div>
-
-                      {/* Pagination Controls - Responsive */}
-                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
-                          <div>
-                            <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
-                              Showing {startIndex + 1}-{endIndex} of{" "}
-                              {pageData.length} pages
-                            </h4>
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                              Navigate through pages using pagination
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
-                              Items per page:
-                            </label>
-                            <select
-                              value={itemsPerPage}
-                              onChange={(e) =>
-                                setItemsPerPage(Number(e.target.value))
-                              }
-                              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm"
-                            >
-                              {itemsPerPageOptions.map((option) => (
-                                <option key={option} value={option}>
-                                  {option}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Pagination Buttons */}
-                        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
-                          <button
-                            onClick={prevPage}
-                            disabled={currentPage === 1}
-                            className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
-                          >
-                            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </button>
-
-                          {Array.from(
-                            { length: Math.min(5, totalPages) },
-                            (_, i) => {
-                              let pageNum;
-                              if (totalPages <= 5) {
-                                pageNum = i + 1;
-                              } else if (currentPage <= 3) {
-                                pageNum = i + 1;
-                              } else if (currentPage >= totalPages - 2) {
-                                pageNum = totalPages - 4 + i;
-                              } else {
-                                pageNum = currentPage - 2 + i;
-                              }
-
-                              return (
-                                <button
-                                  key={pageNum}
-                                  onClick={() => goToPage(pageNum)}
-                                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
-                                    currentPage === pageNum
-                                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white"
-                                      : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                  }`}
-                                >
-                                  {pageNum}
-                                </button>
-                              );
-                            }
-                          )}
-
-                          <button
-                            onClick={nextPage}
-                            disabled={currentPage === totalPages}
-                            className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
-                          >
-                            <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </button>
-                        </div>
-                      </div>
+                    
 
                      
 
@@ -1835,6 +1706,137 @@ export default function PdfRotatorTool() {
                         </div>
                       </div>
 
+                        {/* Batch Rotation Controls - Responsive */}
+                      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-indigo-200 dark:border-indigo-800/30">
+                        <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2">
+                          <Rotate3D className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                          Batch Rotate All Pages
+                        </h4>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                          <button
+                            onClick={() => rotateAllPages(90)}
+                            disabled={rotating}
+                            className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                          >
+                            <RotateCw className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span className="truncate">90° Right</span>
+                          </button>
+                          <button
+                            onClick={() => rotateAllPages(180)}
+                            disabled={rotating}
+                            className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                          >
+                            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span className="truncate">180°</span>
+                          </button>
+                          <button
+                            onClick={() => rotateAllPages(270)}
+                            disabled={rotating}
+                            className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                          >
+                            <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span className="truncate">90° Left</span>
+                          </button>
+                          <button
+                            onClick={() => rotateAllPages(0)}
+                            disabled={rotating}
+                            className="py-1.5 sm:py-2 px-2 sm:px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
+                          >
+                            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span className="truncate">Reset All</span>
+                          </button>
+                        </div>
+
+                        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 text-center">
+                          Apply the same rotation to all {pageData.length} pages
+                          at once
+                        </p>
+                      </div>
+
+                      {/* Pagination Controls - Responsive */}
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
+                          <div>
+                            <h4 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base md:text-lg">
+                              Showing {startIndex + 1}-{endIndex} of{" "}
+                              {pageData.length} pages
+                            </h4>
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                              Navigate through pages using pagination
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
+                              Items per page:
+                            </label>
+                            <select
+                              value={itemsPerPage}
+                              onChange={(e) =>
+                                setItemsPerPage(Number(e.target.value))
+                              }
+                              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm"
+                            >
+                              {itemsPerPageOptions.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Pagination Buttons */}
+                        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
+                          <button
+                            onClick={prevPage}
+                            disabled={currentPage === 1}
+                            className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+                          >
+                            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </button>
+
+                          {Array.from(
+                            { length: Math.min(5, totalPages) },
+                            (_, i) => {
+                              let pageNum;
+                              if (totalPages <= 5) {
+                                pageNum = i + 1;
+                              } else if (currentPage <= 3) {
+                                pageNum = i + 1;
+                              } else if (currentPage >= totalPages - 2) {
+                                pageNum = totalPages - 4 + i;
+                              } else {
+                                pageNum = currentPage - 2 + i;
+                              }
+
+                              return (
+                                <button
+                                  key={pageNum}
+                                  onClick={() => goToPage(pageNum)}
+                                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
+                                    currentPage === pageNum
+                                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white"
+                                      : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                  }`}
+                                >
+                                  {pageNum}
+                                </button>
+                              );
+                            }
+                          )}
+
+                          <button
+                            onClick={nextPage}
+                            disabled={currentPage === totalPages}
+                            className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+                          >
+                            <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </button>
+                        </div>
+                      </div>
+
                       {/* Download All Button Section - Responsive */}
                       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border-2 border-indigo-200 dark:border-indigo-800/50">
                         <div className="text-center mb-3 sm:mb-4 md:mb-6">
@@ -1931,36 +1933,7 @@ export default function PdfRotatorTool() {
             rotation={zoomModal.rotation} // ✅ rotation भेजें
           />
 
-{/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about rotating PDF pages online
-    </p>
-  </div>
 
-  {/* FAQ List */}
-  <div className="space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
-      >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
-        </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
-      </details>
-    ))}
-  </div>
-</section>
 
           {/* Explore All Tools Section */}
           <div className="mb-6 md:mb-8">
@@ -1970,7 +1943,7 @@ export default function PdfRotatorTool() {
                   Explore All Tools
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
-                  40+ specialized PDF, image, and document tools
+                  10+ specialized PDF, image, and document tools
                 </p>
               </div>
             </div>
@@ -2018,6 +1991,37 @@ export default function PdfRotatorTool() {
               </Link>
             </div>
           </div>
+
+          {/* Visible FAQ Section */}
+<section className="max-w-3xl mx-auto my-16 px-4">
+  {/* Title */}
+  <div className="text-center mb-8">
+    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+      Frequently Asked Questions
+    </h2>
+    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      Everything you need to know about rotating PDF pages online
+    </p>
+  </div>
+
+  {/* FAQ List */}
+  <div className="space-y-4">
+    {faqData.map((faq, index) => (
+      <details
+        key={index}
+        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+        bg-white dark:bg-gray-800"
+      >
+        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+          {faq.question}
+        </summary>
+        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+          {faq.answer}
+        </p>
+      </details>
+    ))}
+  </div>
+</section>
 
           {/* Info Footer - Responsive */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-center mt-6 sm:mt-8 md:mt-12">
