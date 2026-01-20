@@ -40,7 +40,7 @@ export default function ArticleSchema() {
     // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/resize-image",
+      "@id": "https://www.pdfswift.online/resize-image",
     },
 
     // 🔹 Language

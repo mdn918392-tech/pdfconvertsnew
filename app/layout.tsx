@@ -167,11 +167,56 @@ export default function RootLayout({
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
+
+
+
+
+            {/* ✅ Google Analytics (GA4) */}
+
+         
+         <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-PRWCRV02GZ"
+          strategy="afterInteractive"
+          />
+           <Script id="google-analytics" strategy="afterInteractive">
+           {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-PRWCRV02GZ');
+
+          `}
+        </Script>
+
+  
+
+
+
+
+
+
+
+        
       </head>
 
-      <body
+
+
+
+        
+
+        
+
+
+
+
+
+
+
+
+       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900`}
-      >
+       >
         <Header />
         <main className="min-h-screen">{children}</main>
         <Footer />

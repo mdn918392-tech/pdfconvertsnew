@@ -12,39 +12,23 @@ import {
 } from "lucide-react";
 
 export default function SecurityPage() {
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: "Do you upload my files to your server?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "No. All files are processed entirely in your browser and never uploaded.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Do you store any data?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "No. We do not store files, logs, or document content.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Can you see my PDFs?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "No. Files never leave your device, so we have zero access.",
-        },
-      },
-    ],
-  };
+  const faqs = [
+    {
+      question: "Do you upload my files to your server?",
+      answer:
+        "No. All files are processed entirely in your browser and never uploaded.",
+    },
+    {
+      question: "Do you store any data?",
+      answer:
+        "No. We do not store files, logs, or document content.",
+    },
+    {
+      question: "Can you see my PDFs?",
+      answer:
+        "No. Files never leave your device, so we have zero access.",
+    },
+  ];
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -67,14 +51,12 @@ export default function SecurityPage() {
 
   return (
     <>
-      {/* Structured Data */}
+      {/* Breadcrumb Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbSchema),
+        }}
       />
 
       <section className="min-h-screen bg-white text-gray-800">
@@ -111,13 +93,13 @@ export default function SecurityPage() {
           ))}
         </section>
 
-        {/* FAQ */}
+        {/* FAQ (HTML ONLY – NO SCHEMA) */}
         <section className="py-16 px-6 max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
             Security Questions
           </h2>
 
-          {faqSchema.mainEntity.map((faq, i) => (
+          {faqs.map((faq, i) => (
             <div
               key={i}
               className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-4"
@@ -125,9 +107,11 @@ export default function SecurityPage() {
               <div className="flex gap-3">
                 <AlertTriangle className="w-5 h-5 text-yellow-500 mt-1" />
                 <div>
-                  <h3 className="text-gray-900 font-semibold">{faq.name}</h3>
+                  <h3 className="text-gray-900 font-semibold">
+                    {faq.question}
+                  </h3>
                   <p className="text-gray-600 mt-2">
-                    {faq.acceptedAnswer.text}
+                    {faq.answer}
                   </p>
                 </div>
               </div>
