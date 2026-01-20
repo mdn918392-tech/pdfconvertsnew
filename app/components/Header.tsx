@@ -48,7 +48,12 @@ export default function Header() {
     { name: "PNG to JPG", href: "png-to-jpg" },
     { name: "Compress Image", href: "compress-image" },
       { name: "resize image", href: "resize-image" },
-        { name: "webpage-to-jpg", href: "webpage-to-jpg" }
+
+      { name: "passport photo maker", href: "passport-photo" },
+        { name: "webpage-to-jpg", href: "webpage-to-jpg" },
+{ name: "rotate to image", href: "rotate-image" },
+        
+        
 
       
 

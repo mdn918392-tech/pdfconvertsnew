@@ -1204,7 +1204,7 @@ export default function PdfPageRemoverTool() {
 </motion.div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-red-600 via-orange-600 to-red-600 bg-clip-text text-transparent px-2">
-              PDF Page Remover
+            Remove Pages from PDF Online – Free PDF Page Remover
             </h1>
 
             <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">

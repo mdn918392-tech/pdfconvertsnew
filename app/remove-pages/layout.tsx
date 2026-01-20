@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 
 export const metadata: Metadata = {
-  title: "Remove Pages from PDF Online – Delete PDF Pages Free",
+  title: "Remove Pages from PDF Online – Free PDF Page Remover",
   description:
     "Remove unwanted pages from PDF files online quickly and securely. Delete specific PDF pages and download a new PDF instantly using a free, browser-based tool — no signup required.",
   keywords: [

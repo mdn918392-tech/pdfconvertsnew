@@ -216,40 +216,45 @@ const ImagePreview = ({
 
   return (
     <>
-      {/* Image Preview Modal */}
-      <AnimatePresence>
-        {previewOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setPreviewOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-4xl max-h-[90vh]"
-            >
-              <img
-                src={url}
-                alt={filename}
-                className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-              />
-              <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-full shadow-lg">
-                {filename}
-              </div>
-              <button
-                onClick={() => setPreviewOpen(false)}
-                className="absolute -top-4 -right-4 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    {/* Image Preview Modal */}
+<AnimatePresence>
+  {previewOpen && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      onClick={() => setPreviewOpen(false)}
+    >
+      {/* OUTER WRAPPER */}
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.9 }}
+        className="relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ❌ CLOSE BUTTON — IMAGE SE UPAR */}
+        <button
+          onClick={() => setPreviewOpen(false)}
+          className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+        >
+          <XCircle className="w-6 h-6" />
+        </button>
+
+        {/* IMAGE CONTAINER */}
+        <div className="max-w-4xl max-h-[90vh]">
+          <img
+            src={url}
+            alt={filename}
+            className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+          />
+        </div>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
+
 
       {/* Preview Card */}
       <motion.div
@@ -671,12 +676,12 @@ export default function WebpToJpg() {
                 </motion.div>
 
                 <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
-  Webpage to JPG Converter – Convert Webpage Content to JPG
+ Webpage to JPG Converter – Create High-Quality JPG Images Online
 </h1>
 
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Convert webpage content into a high-quality JPG image instantly using PDFSwift.
+                  Convert webpage content into high-quality JPG images instantly using PDFSwift. Fast, secure, and browser-based with no installation or signup required. Works smoothly on all devices while preserving clarity and layout.
 
                   <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
                     Download individual files or as ZIP archive

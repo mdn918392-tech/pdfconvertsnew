@@ -182,6 +182,81 @@ export const convertWebpToJpg = (file: File): Promise<Blob> => {
     img.src = URL.createObjectURL(file);
   });
 };
+
+
+export const rotateImage = (file: File, degrees: number): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      reject(new Error("Canvas context not available"));
+      return;
+    }
+
+    img.onload = () => {
+      try {
+        // Calculate new canvas size based on rotation
+        if (degrees === 90 || degrees === 270) {
+          canvas.width = img.height;
+          canvas.height = img.width;
+        } else {
+          canvas.width = img.width;
+          canvas.height = img.height;
+        }
+
+        // Translate and rotate
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((degrees * Math.PI) / 180);
+        ctx.translate(-img.width / 2, -img.height / 2);
+
+        // Draw the image
+        ctx.drawImage(img, 0, 0);
+
+        // Convert to original format
+        const mimeType = file.type || "image/jpeg";
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("Failed to rotate image"));
+            }
+          },
+          mimeType,
+          0.92 // Quality: 0.92 (92%)
+        );
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      reject(new Error("Failed to load image"));
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+// Add this function to your existing imageUtils.ts file
+export const downloadMultipleFiles = (files: { blob: Blob; filename: string }[]) => {
+  // Create a temporary link for each file
+  files.forEach((file) => {
+    const url = URL.createObjectURL(file.blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    // Add small delay between downloads to avoid browser restrictions
+    setTimeout(() => {}, 100);
+  });
+};
 /**
  * Convert PNG to JPG with white background
  */

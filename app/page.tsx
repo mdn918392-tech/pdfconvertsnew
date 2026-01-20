@@ -127,6 +127,30 @@ export default function Home() {
   path: "/tools/resize-image",
 },
 
+{
+ id: "passport-photo",
+  name: "Passport Photo Maker",
+  description: "Create passport size photos online",
+  category: "image",
+  icon: "📸",
+  color: "from-blue-500 to-indigo-600",
+  href: "/passport-photo",
+  path: "/tools/passport-photo",
+},
+ {
+  id: "rotate-image",
+  name: "Rotate Image",
+  description: "Rotate JPG, PNG, and WebP images online",
+  category: "image",
+  icon: "↻",
+  color: "from-blue-500 to-cyan-500",
+  href: "/rotate-image",
+  path: "/tools/rotate-image",
+},
+
+
+  
+
   
 
     

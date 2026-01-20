@@ -216,40 +216,45 @@ const ImagePreview = ({
 
   return (
     <>
-      {/* Image Preview Modal */}
-      <AnimatePresence>
-        {previewOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setPreviewOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-4xl max-h-[90vh]"
-            >
-              <img
-                src={url}
-                alt={filename}
-                className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-              />
-              <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full shadow-lg">
-                {filename}
-              </div>
-              <button
-                onClick={() => setPreviewOpen(false)}
-                className="absolute -top-4 -right-4 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+     {/* Image Preview Modal */}
+<AnimatePresence>
+  {previewOpen && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      onClick={() => setPreviewOpen(false)}
+    >
+      {/* OUTER WRAPPER */}
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.9 }}
+        className="relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ❌ CLOSE BUTTON — IMAGE SE UPAR */}
+        <button
+          onClick={() => setPreviewOpen(false)}
+          className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+        >
+          <XCircle className="w-6 h-6" />
+        </button>
+
+        {/* IMAGE CONTAINER */}
+        <div className="max-w-4xl max-h-[90vh]">
+          <img
+            src={url}
+            alt={filename}
+            className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+          />
+        </div>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
+
 
       {/* Preview Card */}
       <motion.div

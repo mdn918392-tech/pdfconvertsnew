@@ -26,10 +26,15 @@ import {
   Plus,
   Archive,
   FolderClosed,
+  RotateCw,
+  RotateCcw,
+  RefreshCw,
+  Rotate3D,
+  Undo,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
-import { convertPngToJpg, downloadFile } from "../../utils/imageUtils";
+import { rotateImage, downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
@@ -54,14 +59,14 @@ type Tool = {
 };
 
 const tool = {
-  id: "png-to-jpg",
-  name: "PNG to JPG",
-  description: "Convert PNG images to JPG format",
+  id: "rotate-image",
+  name: "Rotate Image",
+  description: "Rotate JPG, PNG, WebP images",
   category: "image",
-  icon: "🔄",
-  color: "from-emerald-500 to-green-500",
-  href: "/png-to-jpg",
-  path: "/tools/png-to-jpg",
+  icon: "↻",
+  color: "from-blue-500 to-cyan-500",
+  href: "/rotate-image",
+  path: "/tools/rotate-image",
 };
 
 // Explore All Tools Data
@@ -87,14 +92,14 @@ const exploreTools: Tool[] = [
     path: "/tools/split-pdf",
   },
   {
-    id: "rotate-pdf",
-    name: "Rotate PDF",
-    description: "Rotate PDF pages",
-    category: "pdf",
-    icon: "🔄",
-    color: "from-teal-500 to-cyan-500",
-    href: "/rotate-pdf",
-    path: "/tools/rotate-pdf",
+    id: "rotate-image",
+    name: "Rotate Image",
+    description: "Rotate JPG, PNG, WebP images",
+    category: "image",
+    icon: "↻",
+    color: "from-blue-500 to-cyan-500",
+    href: "/rotate-image",
+    path: "/tools/rotate-image",
   },
   {
     id: "jpg-to-pdf",
@@ -169,11 +174,13 @@ const exploreTools: Tool[] = [
 ];
 
 // --- Component Interface ---
-interface ConvertedFile {
+interface RotatedFile {
   blob: Blob;
   name: string;
   originalFile: File;
   timestamp: number;
+  rotation: number;
+  currentRotation: number; // Add current rotation for dynamic updates
 }
 
 interface DownloadNotification {
@@ -184,6 +191,13 @@ interface DownloadNotification {
   type: 'single' | 'zip' | 'multi';
 }
 
+// Rotation Options
+const rotationOptions = [
+  { degrees: 90, label: "90° Clockwise", icon: RotateCw },
+  { degrees: 180, label: "180°", icon: RefreshCw },
+  { degrees: 270, label: "90° Counter-clockwise", icon: RotateCcw },
+];
+
 // --- Image Preview Component ---
 const ImagePreview = ({
   file,
@@ -193,6 +207,12 @@ const ImagePreview = ({
   filename = "image.jpg",
   index,
   onSingleDownload,
+  rotation = 0,
+  currentRotation = 0,
+  onRotateChange,
+  isRotating = false,
+  onApplyRotation,
+  showApplyButton = false,
 }: {
   file: Blob | File;
   onRemove?: () => void;
@@ -201,9 +221,16 @@ const ImagePreview = ({
   filename: string;
   index: number;
   onSingleDownload?: () => void;
+  rotation?: number;
+  currentRotation?: number;
+  onRotateChange?: (rotation: number) => void;
+  isRotating?: boolean;
+  onApplyRotation?: () => void;
+  showApplyButton?: boolean;
 }) => {
   const url = useMemo(() => createObjectURL(file), [file]);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [rotationDegrees, setRotationDegrees] = useState(currentRotation);
 
   // Clean up the object URL when the component unmounts
   useMemo(() => {
@@ -211,7 +238,7 @@ const ImagePreview = ({
   }, [url]);
 
   const statusColor =
-    status && status.includes("Converted")
+    status && status.includes("Rotated")
       ? "text-green-600 dark:text-green-400"
       : "text-blue-600 dark:text-blue-400";
 
@@ -223,9 +250,25 @@ const ImagePreview = ({
     }
   };
 
+  const handleRotate = (degrees: number) => {
+    const newRotation = (rotationDegrees + degrees) % 360;
+    setRotationDegrees(newRotation);
+    if (onRotateChange) {
+      onRotateChange(newRotation);
+    }
+  };
+
+  const resetRotation = () => {
+    setRotationDegrees(0);
+    if (onRotateChange) {
+      onRotateChange(0);
+    }
+  };
+
   return (
     <>
-      <AnimatePresence>
+    {/* Image Preview Modal */}
+<AnimatePresence>
   {previewOpen && (
     <motion.div
       initial={{ opacity: 0 }}
@@ -242,20 +285,24 @@ const ImagePreview = ({
         className="relative"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* CLOSE BUTTON — IMAGE KE UPAR */}
+        {/* ❌ CLOSE BUTTON — IMAGE SE JUST UPAR */}
         <button
           onClick={() => setPreviewOpen(false)}
-          className="absolute -top-10 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+          className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
         >
           <XCircle className="w-6 h-6" />
         </button>
 
         {/* IMAGE CONTAINER */}
-        <div className="max-w-4xl max-h-[90vh]">
+        <div className="max-w-4xl max-h-[90vh] flex items-center justify-center">
           <img
             src={url}
             alt={filename}
             className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+            style={{
+              transform: `rotate(${rotationDegrees}deg)`,
+              transition: "transform 0.3s ease",
+            }}
           />
         </div>
       </motion.div>
@@ -274,7 +321,7 @@ const ImagePreview = ({
       >
         <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
           {/* Image Number Badge */}
-          <div className="absolute top-3 left-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+          <div className="absolute top-3 left-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
             #{index + 1}
           </div>
 
@@ -287,6 +334,10 @@ const ImagePreview = ({
               src={url}
               alt={filename}
               className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
+              style={{
+                transform: `rotate(${rotationDegrees}deg)`,
+                transition: 'transform 0.3s ease'
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <Eye className="w-8 h-8 text-white" />
@@ -308,22 +359,92 @@ const ImagePreview = ({
             <div className="flex items-center justify-between">
               <span
                 className={`text-xs px-3 py-1 rounded-full font-medium ${statusColor} bg-opacity-10 ${
-                  status.includes("Converted") ? "bg-green-500" : "bg-blue-500"
+                  status.includes("Rotated") ? "bg-green-500" : "bg-blue-500"
                 }`}
               >
                 {status}
               </span>
 
-              {/* File Size (if available) */}
-              {file.size && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {(file.size / 1024).toFixed(1)} KB
+              {/* Rotation Info */}
+              {rotationDegrees !== 0 && (
+                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  {rotationDegrees}°
                 </span>
               )}
             </div>
+
+            {/* File Size (if available) */}
+            {file.size && (
+              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>Size: {(file.size / 1024).toFixed(1)} KB</span>
+              </div>
+            )}
           </div>
 
-          
+          {/* Rotation Controls for Converted Images */}
+          {isDownloadable && onRotateChange && (
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-600 dark:text-gray-400">Adjust Rotation:</span>
+                <button
+                  onClick={resetRotation}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
+                >
+                  <Undo className="w-3 h-3" />
+                  Reset
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleRotate(-90)}
+                  disabled={isRotating}
+                  className="flex-1 py-1.5 px-2 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-50"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  -90°
+                </button>
+                <button
+                  onClick={() => handleRotate(90)}
+                  disabled={isRotating}
+                  className="flex-1 py-1.5 px-2 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-50"
+                >
+                  <RotateCw className="w-3 h-3" />
+                  +90°
+                </button>
+                <button
+                  onClick={() => handleRotate(180)}
+                  disabled={isRotating}
+                  className="flex-1 py-1.5 px-2 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-50"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  180°
+                </button>
+              </div>
+              
+              {/* Apply Button - दिखेगा जब rotation बदले */}
+              {showApplyButton && rotationDegrees !== rotation && onApplyRotation && (
+                <motion.button
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={onApplyRotation}
+                  disabled={isRotating}
+                  className="w-full mt-2 py-1.5 px-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-xs font-medium rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  {isRotating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                      Applying...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-3 h-3" />
+                      Apply {rotationDegrees}° Rotation
+                    </>
+                  )}
+                </motion.button>
+              )}
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -406,7 +527,7 @@ const DownloadNotification = ({
           <p className="text-xs opacity-80 mb-2">
             {type === 'zip' 
               ? `All ${fileCount} files are now in a single ZIP archive`
-              : `${fileCount} PNG ${fileCount === 1 ? 'file' : 'files'} converted to JPG`
+              : `${fileCount} ${fileCount === 1 ? 'image' : 'images'} rotated successfully`
             }
           </p>
           <div className="flex items-center gap-1 text-xs opacity-80">
@@ -429,27 +550,29 @@ const DownloadNotification = ({
 };
 
 // --- Main Component ---
-export default function PngToJpg() {
+export default function RotateImage() {
   const [files, setFiles] = useState<File[]>([]);
-  const [converting, setConverting] = useState(false);
+  const [rotating, setRotating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [jpgBlobs, setJpgBlobs] = useState<ConvertedFile[]>([]);
+  const [rotatedBlobs, setRotatedBlobs] = useState<RotatedFile[]>([]);
   const [showFeatures, setShowFeatures] = useState(true);
   const [downloadNotifications, setDownloadNotifications] = useState<
     DownloadNotification[]
   >([]);
   const [zipDownloading, setZipDownloading] = useState(false);
+  const [individualRotating, setIndividualRotating] = useState<number | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const [selectedRotation, setSelectedRotation] = useState<number>(90);
+  const [currentRotations, setCurrentRotations] = useState<number[]>([]);
 
   // Generate unique filename
-  const generateUniqueFileName = (baseName: string, index: number) => {
+  const generateUniqueFileName = (baseName: string, index: number, rotation: number) => {
     const timestamp = new Date().getTime();
     const randomId = Math.random().toString(36).substring(2, 9);
-    const cleanBaseName = baseName
-      .replace(/\.png$/i, "")
-      .replace(/\.[^/.]+$/, "");
+    const cleanBaseName = baseName.replace(/\.[^/.]+$/, "");
     const sequence = (index + 1).toString().padStart(3, "0");
-    return `${cleanBaseName}_converted_${sequence}_${timestamp}_${randomId}.jpg`;
+    const rotationLabel = rotation === 90 ? "clockwise" : rotation === 270 ? "counterclockwise" : "180";
+    return `${cleanBaseName}_rotated_${rotationLabel}_${sequence}_${timestamp}_${randomId}.${baseName.split('.').pop()?.toLowerCase() || 'jpg'}`;
   };
 
   // Auto-scroll notifications
@@ -460,25 +583,34 @@ export default function PngToJpg() {
     }
   }, [downloadNotifications]);
 
-  const handleConvert = async () => {
+  // Initialize current rotations when files are rotated
+  useEffect(() => {
+    if (rotatedBlobs.length > 0) {
+      setCurrentRotations(rotatedBlobs.map(item => item.rotation));
+    }
+  }, [rotatedBlobs]);
+
+  const handleRotate = async () => {
     if (files.length === 0) return;
 
-    setConverting(true);
+    setRotating(true);
     setProgress(0);
-    setJpgBlobs([]);
+    setRotatedBlobs([]);
     setShowFeatures(false);
 
     try {
-      const blobs: ConvertedFile[] = [];
+      const blobs: RotatedFile[] = [];
       for (let i = 0; i < files.length; i++) {
-        const uniqueFilename = generateUniqueFileName(files[i].name, i);
-        const blob = await convertPngToJpg(files[i]);
+        const uniqueFilename = generateUniqueFileName(files[i].name, i, selectedRotation);
+        const blob = await rotateImage(files[i], selectedRotation);
 
         blobs.push({
           blob: blob,
           name: uniqueFilename,
           originalFile: files[i],
           timestamp: Date.now(),
+          rotation: selectedRotation,
+          currentRotation: selectedRotation,
         });
 
         // Animate progress smoothly
@@ -487,24 +619,87 @@ export default function PngToJpg() {
         // Small delay for smooth progress animation
         await new Promise((resolve) => setTimeout(resolve, 200));
       }
-      setJpgBlobs(blobs);
+      setRotatedBlobs(blobs);
     } catch (error) {
-      console.error("Conversion error:", error);
-      alert("Failed to convert PNG to JPG. Please try again.");
+      console.error("Rotation error:", error);
+      alert("Failed to rotate images. Please try again.");
     } finally {
-      setConverting(false);
+      setRotating(false);
     }
   };
 
+  const handleIndividualRotation = async (index: number, newRotation: number) => {
+    if (index < 0 || index >= rotatedBlobs.length) return;
+
+    setIndividualRotating(index);
+    
+    try {
+      const item = rotatedBlobs[index];
+      // Rotate from the original file with new rotation amount
+      const newRotationDegrees = newRotation;
+      const blob = await rotateImage(item.originalFile, newRotationDegrees);
+      
+      // Update the rotated file with new blob and rotation
+      const updatedBlobs = [...rotatedBlobs];
+      updatedBlobs[index] = {
+        ...item,
+        blob: blob,
+        rotation: newRotationDegrees,
+        currentRotation: newRotationDegrees,
+        name: generateUniqueFileName(item.originalFile.name, index, newRotationDegrees),
+      };
+      
+      setRotatedBlobs(updatedBlobs);
+      
+      // Update current rotations array
+      const updatedRotations = [...currentRotations];
+      updatedRotations[index] = newRotationDegrees;
+      setCurrentRotations(updatedRotations);
+      
+      // Show success notification
+      const notification: DownloadNotification = {
+        id: Math.random().toString(36).substring(7),
+        fileName: updatedBlobs[index].name,
+        fileCount: 1,
+        timestamp: new Date(),
+        type: 'single',
+      };
+      setDownloadNotifications((prev) => [...prev, notification]);
+      
+      setTimeout(() => {
+        setDownloadNotifications((prev) =>
+          prev.filter((n) => n.id !== notification.id)
+        );
+      }, 5000);
+      
+    } catch (error) {
+      console.error("Individual rotation error:", error);
+      alert("Failed to rotate individual image. Please try again.");
+    } finally {
+      setIndividualRotating(null);
+    }
+  };
+
+  const handleRotationChange = (index: number, newRotation: number) => {
+    // Only update the preview rotation, not the actual file
+    const updatedRotations = [...currentRotations];
+    updatedRotations[index] = newRotation;
+    setCurrentRotations(updatedRotations);
+  };
+
+  const applyIndividualRotation = async (index: number) => {
+    await handleIndividualRotation(index, currentRotations[index]);
+  };
+
   const handleDownloadAllAsZip = async () => {
-    if (jpgBlobs.length === 0) return;
+    if (rotatedBlobs.length === 0) return;
 
     setZipDownloading(true);
     try {
       const zip = new JSZip();
       
-      // Add all JPG files to the zip
-      jpgBlobs.forEach((item, index) => {
+      // Add all rotated files to the zip
+      rotatedBlobs.forEach((item, index) => {
         zip.file(item.name, item.blob);
       });
 
@@ -512,14 +707,14 @@ export default function PngToJpg() {
       const zipBlob = await zip.generateAsync({ type: "blob" });
       
       // Create download link
-      const zipName = `converted_images_${new Date().getTime()}.zip`;
+      const zipName = `rotated_images_${new Date().getTime()}.zip`;
       downloadFile(zipBlob, zipName);
 
       // Add download notification
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
         fileName: zipName,
-        fileCount: jpgBlobs.length,
+        fileCount: rotatedBlobs.length,
         timestamp: new Date(),
         type: 'zip',
       };
@@ -540,18 +735,18 @@ export default function PngToJpg() {
   };
 
   const handleDownloadAllSeparate = () => {
-    // Downloads all converted files individually
-    jpgBlobs.forEach((item) => {
+    // Downloads all rotated files individually
+    rotatedBlobs.forEach((item) => {
       downloadFile(item.blob, item.name);
     });
 
     // Add download notification
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
-      fileName: jpgBlobs.length === 1 ? jpgBlobs[0].name : "Multiple files",
-      fileCount: jpgBlobs.length,
+      fileName: rotatedBlobs.length === 1 ? rotatedBlobs[0].name : "Multiple files",
+      fileCount: rotatedBlobs.length,
       timestamp: new Date(),
-      type: jpgBlobs.length === 1 ? 'single' : 'multi',
+      type: rotatedBlobs.length === 1 ? 'single' : 'multi',
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
@@ -564,7 +759,7 @@ export default function PngToJpg() {
   };
 
   const handleSingleDownload = (index: number) => {
-    const item = jpgBlobs[index];
+    const item = rotatedBlobs[index];
     if (!item) return;
 
     downloadFile(item.blob, item.name);
@@ -591,37 +786,28 @@ export default function PngToJpg() {
     setFiles((prevFiles) =>
       prevFiles.filter((_, index) => index !== indexToRemove)
     );
-    setJpgBlobs([]);
+    setRotatedBlobs([]);
   };
 
   const handleFilesSelected = (newFiles: File[]) => {
     // Add new files to existing files
     setFiles((prev) => [...prev, ...newFiles]);
-    setJpgBlobs([]);
+    setRotatedBlobs([]);
     setShowFeatures(false);
   };
 
   const handleReset = () => {
     setFiles([]);
-    setJpgBlobs([]);
+    setRotatedBlobs([]);
+    setCurrentRotations([]);
     setProgress(0);
     setShowFeatures(true);
   };
 
   const hasFiles = files.length > 0;
-  const hasResults = jpgBlobs.length > 0;
-  const isReadyToConvert = hasFiles && !hasResults && !converting;
+  const hasResults = rotatedBlobs.length > 0;
+  const isReadyToRotate = hasFiles && !hasResults && !rotating;
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-
-  // Calculate total size of converted files
-  const convertedTotalSize = jpgBlobs.reduce(
-    (acc, item) => acc + item.blob.size,
-    0
-  );
-  const sizeReduction =
-    totalSize > 0
-      ? (((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
-      : "0";
 
   return (
     <>
@@ -687,15 +873,14 @@ export default function PngToJpg() {
                   </span>
                 </motion.div>
 
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-orange-600 via-pink-600 to-orange-600 bg-clip-text text-transparent px-2">
-                  PNG to JPG Converter
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent px-2">
+                  Rotate Image Online – Rotate JPG, PNG & WebP Free
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Convert your PNG images to high-quality JPG format with
-                  superior compression
-                  <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    Download individual files or as ZIP archive
+                  Rotate images online for free. Easily rotate JPG, PNG, and WebP images clockwise or counter-clockwise using PDFSwift. No signup required.
+                  <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
+                    Supports batch rotation • Dynamic rotation after conversion • Download as ZIP or individual files
                   </span>
                 </p>
               </div>
@@ -712,25 +897,25 @@ export default function PngToJpg() {
                 >
                   {[
                     {
-                      icon: Zap,
-                      title: "Fast Conversion",
-                      desc: "Convert multiple PNG files to JPG format in seconds with our optimized engine",
-                      gradient: "from-orange-500 to-pink-600",
-                      bg: "from-orange-50 to-pink-50",
-                      border: "border-orange-200",
-                    },
-                    {
-                      icon: Palette,
-                      title: "Quality Preserved",
-                      desc: "Maintain image quality while significantly reducing file size with intelligent compression",
-                      gradient: "from-blue-500 to-purple-600",
-                      bg: "from-blue-50 to-purple-50",
+                      icon: RotateCw,
+                      title: "Multiple Rotations",
+                      desc: "Rotate images 90°, 180°, or 270° in either direction with precise control",
+                      gradient: "from-blue-500 to-cyan-600",
+                      bg: "from-blue-50 to-cyan-50",
                       border: "border-blue-200",
                     },
                     {
+                      icon: Rotate3D,
+                      title: "Dynamic Adjustment",
+                      desc: "Fine-tune rotation after conversion with individual rotation controls for each image",
+                      gradient: "from-green-500 to-emerald-600",
+                      bg: "from-green-50 to-emerald-50",
+                      border: "border-green-200",
+                    },
+                    {
                       icon: Archive,
-                      title: "ZIP Download",
-                      desc: "Download all converted images in a single ZIP archive for easy organization",
+                      title: "Batch Processing",
+                      desc: "Rotate multiple images at once and download all rotated files as ZIP archive",
                       gradient: "from-purple-500 to-indigo-600",
                       bg: "from-purple-50 to-indigo-50",
                       border: "border-purple-200",
@@ -759,20 +944,20 @@ export default function PngToJpg() {
               )}
             </AnimatePresence>
 
-            {/* --- Main Converter Card --- */}
+            {/* --- Main Rotator Card --- */}
             <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
               {/* Upload Section */}
               <div className="mb-4 sm:mb-6 md:mb-8">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
-                  <div className="p-1.5 sm:p-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-xl">
-                    <Upload className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
+                  <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg sm:rounded-xl">
+                    <Upload className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                      Upload PNG Images
+                      Upload Images to Rotate
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Select PNG files to convert to JPG format
+                      Select JPG, PNG, or WebP files to rotate
                     </p>
                   </div>
                 </div>
@@ -780,7 +965,7 @@ export default function PngToJpg() {
                 {/* FileUploader हमेशा दिखेगा */}
                 <div className="mb-6">
                   <FileUploader
-                    accept="image/png"
+                    accept="image/*"
                     multiple={true}
                     onFilesSelected={handleFilesSelected}
                   />
@@ -788,14 +973,14 @@ export default function PngToJpg() {
 
                 {hasFiles && (
                   <div className="text-center mb-6">
-                    <div className="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-full">
+                    <div className="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg sm:rounded-full">
                       <div className="flex items-center gap-1 sm:gap-2">
-                        <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 dark:text-orange-400" />
-                        <span className="font-medium text-orange-700 dark:text-orange-300">
-                          {files.length} PNG files selected
+                        <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+                        <span className="font-medium text-blue-700 dark:text-blue-300">
+                          {files.length} images selected
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                      <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                         <span>
                           • {(totalSize / 1024 / 1024).toFixed(2)} MB total
                         </span>
@@ -805,15 +990,15 @@ export default function PngToJpg() {
                 )}
               </div>
 
-              {/* --- File Previews and Conversion Area --- */}
+              {/* --- File Previews and Rotation Area --- */}
               {hasFiles && (
                 <div className="space-y-4 sm:space-y-6 md:space-y-8">
-                  {/* --- Input PNG Previews --- */}
+                  {/* --- Input Image Previews --- */}
                   <div className="space-y-3 sm:space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Image className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
-                        Uploaded PNG Images
+                        <Image className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                        Uploaded Images
                       </h3>
                       <button
                         onClick={handleReset}
@@ -830,7 +1015,7 @@ export default function PngToJpg() {
                           file={file}
                           filename={file.name}
                           onRemove={() => handleRemoveFile(index)}
-                          status="Ready to Convert"
+                          status="Ready to Rotate"
                           index={index}
                         />
                       ))}
@@ -839,32 +1024,32 @@ export default function PngToJpg() {
 
                   {/* --- Progress and Action Buttons --- */}
                   <div className="space-y-4 sm:space-y-6">
-                    {converting && (
+                    {rotating && (
                       <div className="space-y-3 sm:space-y-4">
                         <ProgressBar
                           progress={progress}
-                          label={`Converting ${files.length} files...`}
+                          label={`Rotating ${files.length} files...`}
                         />
-                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-blue-600 dark:text-blue-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing your images...
+                            Rotating your images by {selectedRotation}°...
                           </span>
                         </div>
                       </div>
                     )}
 
-                    {isReadyToConvert && (
+                    {isReadyToRotate && (
                       <motion.button
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={handleConvert}
-                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                        onClick={handleRotate}
+                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                       >
-                        <Image className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                        Convert {files.length} PNG to JPG
+                        <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                        Rotate {files.length} Images by {selectedRotation}°
                         <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                       </motion.button>
                     )}
@@ -872,6 +1057,84 @@ export default function PngToJpg() {
                 </div>
               )}
             </div>
+
+            {/* --- Rotation Options --- */}
+{hasFiles && !hasResults && (
+  <div className="mb-6 sm:mb-8 bg-gradient-to-br from-blue-50 to-cyan-50 
+  dark:from-blue-900/20 dark:to-cyan-900/20 
+  rounded-xl p-3 sm:p-4 border border-blue-200 dark:border-blue-700">
+
+    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+      <RotateCw className="w-4 h-4 text-blue-500" />
+      Select Rotation Angle
+    </h3>
+
+    {/* Options Grid */}
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {rotationOptions.map((option) => {
+        const Icon = option.icon;
+        const active = selectedRotation === option.degrees;
+
+        return (
+          <button
+            key={option.degrees}
+            onClick={() => setSelectedRotation(option.degrees)}
+            className={`relative rounded-lg border transition-all p-3 flex flex-col items-center gap-2
+              ${active
+                ? "border-blue-500 bg-white dark:bg-gray-900 shadow-sm"
+                : "border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-900/60 hover:border-blue-300"
+              }`}
+          >
+            {/* Icon */}
+            <div
+              className={`p-2 rounded-md ${
+                active
+                  ? "bg-gradient-to-r from-blue-500 to-cyan-600"
+                  : "bg-gray-100 dark:bg-gray-800"
+              }`}
+            >
+              <Icon
+                className={`w-5 h-5 ${
+                  active ? "text-white" : "text-gray-600 dark:text-gray-400"
+                }`}
+              />
+            </div>
+
+            {/* Degree */}
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+              {option.degrees}°
+            </div>
+
+            {/* Label */}
+            <div className="text-[11px] text-gray-500 dark:text-gray-400">
+              {option.label}
+            </div>
+
+            {/* Active dot */}
+            {active && (
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-500" />
+            )}
+          </button>
+        );
+      })}
+    </div>
+
+    {/* Selected Info */}
+    <div className="mt-4 flex items-center gap-3 p-3 rounded-lg bg-white/70 dark:bg-gray-900/70 border border-blue-200 dark:border-blue-700">
+      <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/30">
+        <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+          Selected Rotation: {selectedRotation}°
+        </p>
+        <p className="text-xs text-blue-600 dark:text-blue-400">
+          {files.length} image{files.length > 1 ? "s" : ""} will be rotated
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
             {/* --- Results and Download Area --- */}
             {hasResults && (
@@ -889,40 +1152,63 @@ export default function PngToJpg() {
                   </div>
                   <div className="flex-1 text-center sm:text-left">
                     <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
-                      Conversion Complete! 🎉
+                      Rotation Complete! 🎉
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
-                      Successfully converted {files.length} PNG files to JPG
-                      format
+                      Successfully rotated {files.length} images by {selectedRotation}°
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      {sizeReduction}% average size reduction • Choose your download option below
+                      Adjust individual rotations below • All formats preserved • Choose your download option
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
                     <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
-                      {jpgBlobs.length} Files
+                      {rotatedBlobs.length} Files
                     </div>
                   </div>
                 </div>
 
-                {/* --- Output JPG Previews --- */}
+                {/* --- Dynamic Rotation Instructions --- */}
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <Rotate3D className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                        Fine-tune Your Rotations
+                      </h3>
+                      <p className="text-sm text-blue-700 dark:text-blue-400">
+                        Adjust individual image rotations using the controls below each preview.
+                        Preview updates in real-time. Click "Apply Rotation" to save changes.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* --- Output Rotated Previews --- */}
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                   <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                    Converted JPG Images
+                    Rotated Images
                   </h3>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-green-100 dark:border-green-800/30">
-                    {jpgBlobs.map((item, index) => (
+                    {rotatedBlobs.map((item, index) => (
                       <ImagePreview
                         key={index}
                         file={item.blob}
                         filename={item.name}
-                        status="Converted ✓"
+                        status={`Rotated ${currentRotations[index]}°`}
                         isDownloadable={true}
                         index={index}
                         onSingleDownload={() => handleSingleDownload(index)}
+                        rotation={item.rotation}
+                        currentRotation={currentRotations[index]}
+                        onRotateChange={(newRotation) => handleRotationChange(index, newRotation)}
+                        onApplyRotation={() => applyIndividualRotation(index)}
+                        isRotating={individualRotating === index}
+                        showApplyButton={currentRotations[index] !== item.rotation}
                       />
                     ))}
                   </div>
@@ -949,7 +1235,7 @@ export default function PngToJpg() {
                       ) : (
                         <>
                           <Archive className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                          Download as ZIP Archive ({jpgBlobs.length} files)
+                          Download as ZIP Archive ({rotatedBlobs.length} files)
                           <FolderClosed className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                         </>
                       )}
@@ -963,7 +1249,7 @@ export default function PngToJpg() {
                       className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                     >
                       <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                      Download All {jpgBlobs.length} Files Separately
+                      Download All {rotatedBlobs.length} Files Separately
                       <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                     </motion.button>
                   </div>
@@ -971,10 +1257,10 @@ export default function PngToJpg() {
                   <div className="text-center">
                     <button
                       onClick={handleReset}
-                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
+                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
                     >
-                      <Image className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
-                      Convert More Images
+                      <RotateCw className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
+                      Rotate More Images
                     </button>
                   </div>
                 </div>
@@ -990,24 +1276,24 @@ export default function PngToJpg() {
           {
             value: files.length,
             label: "Files Uploaded",
-            color: "text-orange-600",
-            bg: "bg-orange-50 dark:bg-orange-900/10",
-          },
-          {
-            value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`,
-            label: "Total Size",
             color: "text-blue-600",
             bg: "bg-blue-50 dark:bg-blue-900/10",
           },
           {
-            value: jpgBlobs.length,
-            label: "Files Converted",
+            value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`,
+            label: "Total Size",
+            color: "text-cyan-600",
+            bg: "bg-cyan-50 dark:bg-cyan-900/10",
+          },
+          {
+            value: rotatedBlobs.length,
+            label: "Files Rotated",
             color: "text-green-600",
             bg: "bg-green-50 dark:bg-green-900/10",
           },
           {
-            value: `${sizeReduction}%`,
-            label: "Size Reduction",
+            value: hasResults ? `${(currentRotations.reduce((a, b) => a + b, 0) / currentRotations.length).toFixed(0)}° avg` : `${selectedRotation}°`,
+            label: "Rotation Angle",
             color: "text-purple-600",
             bg: "bg-purple-50 dark:bg-purple-900/10",
           },
@@ -1037,10 +1323,6 @@ export default function PngToJpg() {
     </div>
   </div>
 )}
-
-
-
-
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
@@ -1107,7 +1389,7 @@ export default function PngToJpg() {
       Frequently Asked Questions
     </h2>
     <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about converting PNG images to JPG files online
+      Everything you need to know about rotating images online
     </p>
   </div>
 
@@ -1129,7 +1411,6 @@ export default function PngToJpg() {
     ))}
   </div>
 </section>
-
            
           </motion.div>
         </div>
