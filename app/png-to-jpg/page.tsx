@@ -869,10 +869,63 @@ export default function PngToJpg() {
                       </motion.button>
                     )}
                   </div>
+                   <section
+      id="how-to-png-to-jpg"
+      className="mt-20 scroll-mt-24"
+    >
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Convert PNG to JPG Online
+      </h2>
+
+      <div className="grid gap-6 md:grid-cols-5">
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-pink-600 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Upload PNG Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Upload one or multiple PNG images using drag & drop or file picker.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-pink-600 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Review Files</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Check uploaded PNG images and remove any file if needed.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-pink-600 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Convert to JPG</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Click the convert button to change PNG images into JPG format.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-pink-600 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Preview Results</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Preview converted JPG images with reduced file size.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-pink-600 mb-2">5</div>
+          <h3 className="font-semibold text-lg">Download JPG Files</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download images individually or as a single ZIP archive.
+          </p>
+        </div>
+      </div>
+    </section>
                 </div>
               )}
+
+              
             </div>
 
+              
             {/* --- Results and Download Area --- */}
             {hasResults && (
               <motion.div

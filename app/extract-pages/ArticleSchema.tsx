@@ -1,48 +1,42 @@
 export default function ExtractPagesSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SoftwareApplication",
 
-    // 🔹 Core SEO
-    headline: "Extract Pages from PDF Online – Split PDF Quickly",
+    name: "Extract Pages from PDF Online",
     description:
-      "Extract pages from PDF online easily with PDFSwift. Split PDF files into individual pages or custom ranges quickly and securely.",
+      "Extract pages from PDF files online using PDFSwift. Split PDFs into individual pages or custom ranges securely and quickly.",
 
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/Extractor-Tool.png",
-    ],
+    operatingSystem: "Web",
+    applicationCategory: "PDFEditor",
+    isAccessibleForFree: true,
 
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/favicon.png",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
 
-    // ✅ FIXED DATES (ISO 8601 + timezone)
-    datePublished: "2026-01-13T00:00:00+05:30",
-    dateModified: "2026-01-17T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/extract-pages",
+      "@id": "https://www.pdfswift.online/extract-pages",
     },
 
-    // 🔹 Language
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
     inLanguage: "en",
   };
 

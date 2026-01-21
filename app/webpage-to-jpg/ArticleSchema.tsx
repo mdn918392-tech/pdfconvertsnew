@@ -1,48 +1,47 @@
 export default function WebpageToJpgSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SoftwareApplication",
 
-    // 🔹 Core SEO
-    headline: "Webpage to JPG Converter – Create High-Quality JPG Images",
+    name: "Webpage to JPG Converter",
     description:
-      "Convert webpage content into a high-quality JPG image instantly using PDFSwift. Fast, secure, and easy to use with no installation required.",
+      "Convert webpages into high-quality JPG images online using PDFSwift. Capture full webpages instantly with fast, secure, and free Webpage to JPG tool.",
 
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/resize-image-hero.png",
-    ],
+    operatingSystem: "Web",
+    applicationCategory: "ImageConverter",
+    isAccessibleForFree: true,
 
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/logo.png",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
 
-    // ✅ FIXED DATES (ISO 8601 + IST timezone)
-    datePublished: "2026-01-20T00:00:00+05:30",
-    dateModified: "2026-01-20T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/webpage-to-jpg",
+      "@id": "https://www.pdfswift.online/webpage-to-jpg",
     },
 
-    // 🔹 Language
+    image: [
+      "https://www.pdfswift.online/images/webpage-to-jpg-tool.png",
+    ],
+
+    // aaj 21-01-2026 ke hisaab se
+    datePublished: "2026-01-20T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
     inLanguage: "en",
   };
 

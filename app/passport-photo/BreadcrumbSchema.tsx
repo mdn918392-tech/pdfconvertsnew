@@ -7,14 +7,13 @@ export default function PassportPhotoBreadcrumbSchema() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://pdfswift.online",
+        item: "https://www.pdfswift.online",
       },
-      
       {
         "@type": "ListItem",
         position: 2,
         name: "Passport Size Photo",
-        item: "https://pdfswift.online/passport-photo",
+        item: "https://www.pdfswift.online/passport-photo",
       },
     ],
   };

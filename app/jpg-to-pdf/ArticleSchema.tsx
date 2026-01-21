@@ -1,48 +1,43 @@
 export default function JpgToPdfSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SoftwareApplication",
 
-    // 🔹 Core SEO
-    headline: "Convert JPG to PDF Online – Quick & Free",
+    name: "Convert JPG to PDF Online",
     description:
-      "Easily convert JPG images to PDF online using PDFSwift. Fast, secure, and free tool to convert multiple images into a single PDF document without losing quality.",
+      "Easily convert JPG images to PDF online using PDFSwift. Combine multiple images into a single high-quality PDF quickly, securely, and for free.",
 
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/jpg-to-pdf.png",
-    ],
+    operatingSystem: "Web",
+    applicationCategory: "PDFConverter",
+    isAccessibleForFree: true,
 
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/favicon.png",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
 
-    // ✅ FIXED DATES (ISO 8601 + timezone)
-    datePublished: "2026-01-13T00:00:00+05:30",
-    dateModified: "2026-01-17T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/jpg-to-pdf",
+      "@id": "https://www.pdfswift.online/jpg-to-pdf",
     },
 
-    // 🔹 Language
+    // aaj 21-01-2026 ke hisaab se
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
     inLanguage: "en",
   };
 

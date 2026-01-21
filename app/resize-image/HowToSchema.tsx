@@ -1,34 +1,50 @@
-export default function HowToSchema() {
-  const data = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to resize images online",
-    description:
-      "Step-by-step guide to resize images online quickly and securely while maintaining quality using PDFSwift.",
-    step: [
-      {
-        "@type": "HowToStep",
-        name: "Upload image file",
-        text: "Select and upload the image file you want to resize using the upload button.",
-      },
-      {
-        "@type": "HowToStep",
-        name: "Resize image",
-        text: "Set custom dimensions or maintain the aspect ratio to resize your image without losing quality.",
-      },
-      {
-        "@type": "HowToStep",
-        name: "Download resized image",
-        text: "Download your resized image in supported formats such as JPG, PNG, or WebP.",
-      },
-    ],
-  };
+import Script from "next/script";
 
+export default function HowToResizeImageSchema() {
   return (
-    <script
+    <Script
+      id="howto-resize-image"
       type="application/ld+json"
+      strategy="afterInteractive"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(data),
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          name: "How to Resize Images Online",
+          description:
+            "Step-by-step guide to resize JPG, PNG, and WebP images online using PDFSwift without losing quality.",
+          totalTime: "PT2M",
+          tool: {
+            "@type": "HowToTool",
+            name: "PDFSwift Image Resizer",
+          },
+          step: [
+            {
+              "@type": "HowToStep",
+              name: "Upload Image",
+              text:
+                "Upload your image using drag & drop or the upload button.",
+            },
+            {
+              "@type": "HowToStep",
+              name: "Choose Size & Settings",
+              text:
+                "Select preset sizes like Full HD, Instagram, or enter custom width and height. Choose format and quality.",
+            },
+            {
+              "@type": "HowToStep",
+              name: "Resize Image",
+              text:
+                "Click the resize button to instantly generate the resized image with live preview.",
+            },
+            {
+              "@type": "HowToStep",
+              name: "Download Image",
+              text:
+                "Download the resized image in JPG, PNG, or WebP format.",
+            },
+          ],
+        }),
       }}
     />
   );

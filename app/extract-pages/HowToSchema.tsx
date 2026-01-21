@@ -1,34 +1,51 @@
-export default function HowToSchema() {
-  const data = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to extract pages from PDF",
-    description:
-      "Step-by-step guide to extract specific pages from a PDF file quickly and securely using our online tool.",
-    step: [
-      {
-        "@type": "HowToStep",
-        name: "Upload PDF file",
-        text: "Select and upload the PDF file from which you want to extract pages using the upload button.",
-      },
-      {
-        "@type": "HowToStep",
-        name: "Select pages to extract",
-        text: "Choose the pages you want to extract from your PDF file.",
-      },
-      {
-        "@type": "HowToStep",
-        name: "Download extracted pages",
-        text: "Download the extracted pages as a new PDF file instantly.",
-      },
-    ],
-  };
+import Script from "next/script";
 
+export default function HowToExtractPagesSchema() {
   return (
-    <script
+    <Script
+      id="howto-extract-pages"
       type="application/ld+json"
+      strategy="afterInteractive"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(data),
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          name: "How to Extract Pages from PDF Online",
+          description:
+            "Step-by-step guide to extract selected pages from a PDF file online for free using PDFSwift.",
+          totalTime: "PT2M",
+          tool: {
+            "@type": "HowToTool",
+            name: "PDFSwift Extract Pages Tool",
+          },
+          step: [
+            {
+              "@type": "HowToStep",
+              name: "Upload PDF",
+              text: "Upload the PDF file from which you want to extract pages.",
+            },
+            {
+              "@type": "HowToStep",
+              name: "Select Pages",
+              text: "Click on pages to select or deselect them for extraction.",
+            },
+            {
+              "@type": "HowToStep",
+              name: "Quick Selection (Optional)",
+              text: "Use Select All or Deselect All options to quickly choose pages.",
+            },
+            {
+              "@type": "HowToStep",
+              name: "Extract Pages",
+              text: "Click the Extract button to create a new PDF with selected pages.",
+            },
+            {
+              "@type": "HowToStep",
+              name: "Download Extracted PDF",
+              text: "Download the newly created PDF instantly to your device.",
+            },
+          ],
+        }),
       }}
     />
   );

@@ -1029,6 +1029,7 @@ export default function CompressPdf() {
                           <FileCheck className="w-5 h-5 text-green-500" />
                         </div>
                         
+                        
                         {pdfPreview && (
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
@@ -1192,6 +1193,8 @@ export default function CompressPdf() {
                         </div>
                       )}
                     </div>
+
+                    
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl">
@@ -1253,6 +1256,8 @@ export default function CompressPdf() {
                         </p>
                       </div>
                     </div>
+
+                    
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                       <div className="p-5 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl border-2 border-blue-200 dark:border-blue-800">
@@ -1374,9 +1379,54 @@ export default function CompressPdf() {
                         </button>
                       </div>
                     </div>
+
+                    
                   </motion.div>
                 )}
+
+                 <section className="mt-20">
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Compress PDF Files Online
+      </h2>
+
+      <div className="grid gap-6 md:grid-cols-4">
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-orange-500 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Upload PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Upload your PDF file using drag & drop or the upload button.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-orange-500 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Choose Compression Level</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Select Low, Medium, High, or Extreme compression from the sidebar.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-orange-500 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Compress PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Click the compress button to reduce PDF size while keeping quality.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-orange-500 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Download PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download your compressed PDF instantly to your device.
+          </p>
+        </div>
+      </div>
+    </section>
               </div>
+
+
+
 
               <div className="space-y-6 md:space-y-8">
                 <motion.div
@@ -1480,7 +1530,7 @@ export default function CompressPdf() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
               className="mt-8 md:mt-12"
-            >
+             >
               <div className="text-center mb-8">
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
                   More PDF Tools

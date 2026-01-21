@@ -1,36 +1,35 @@
-export default function PassportPhotoHowToSchema() {
+export default function HowToPassportPhotoSchema() {
   const data = {
     "@context": "https://schema.org",
     "@type": "HowTo",
-    name: "How to Create a Passport Size Photo Online",
+    name: "How to Create Passport Size Photo Online",
     description:
-      "Step-by-step guide to create a passport size photo online using PDFSwift. Choose official size, background, DPI and download print-ready photos instantly.",
-
+      "Create passport size photos online for India, USA, UK and other countries. Choose official sizes, DPI, background color and download print-ready sheets instantly.",
     step: [
       {
         "@type": "HowToStep",
-        name: "Upload your photo",
-        text: "Upload a clear portrait photo from your device using the upload button.",
+        name: "Upload Photo",
+        text: "Upload a clear portrait photo using drag and drop or the upload button.",
       },
       {
         "@type": "HowToStep",
-        name: "Select passport size",
-        text: "Choose the required passport or visa photo size such as USA, India, UK, Canada, or Australia.",
+        name: "Select Passport Size",
+        text: "Choose your country passport size such as India, USA, or UK with official dimensions.",
       },
       {
         "@type": "HowToStep",
-        name: "Choose layout & quality",
-        text: "Select photo layout, background color, DPI, and quality settings according to your needs.",
+        name: "Adjust Quality & Layout",
+        text: "Select DPI, background color, photo quantity, paper size, spacing and margins.",
       },
       {
         "@type": "HowToStep",
-        name: "Create passport photo",
-        text: "Click the create button to generate your passport size photo instantly.",
+        name: "Generate Passport Photos",
+        text: "Click the create button to generate HD, print-ready passport photos.",
       },
       {
         "@type": "HowToStep",
-        name: "Download & print",
-        text: "Download the passport photo and print it or use it for online applications.",
+        name: "Download & Print",
+        text: "Download the generated passport photo sheet and print it instantly.",
       },
     ],
   };
@@ -38,7 +37,9 @@ export default function PassportPhotoHowToSchema() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(data),
+      }}
     />
   );
 }

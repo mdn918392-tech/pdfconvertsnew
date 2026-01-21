@@ -2282,12 +2282,56 @@ export default function PdfSplitRotatorTool() {
                       whileTap={{ scale: 0.98 }}
                       onClick={handleConvert}
                       className="w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1 sm:gap-2 md:gap-3"
-                    >
+                     >
                       <Scissors className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                       <span>Load PDF for Splitting</span>
                       <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                     </motion.button>
                   )}
+
+                     <section className="mt-20">
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Split PDF Files
+      </h2>
+
+      <div className="grid gap-6 md:grid-cols-4">
+        {/* Step 1 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Upload PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Upload your PDF file to start splitting pages.
+          </p>
+        </div>
+
+        {/* Step 2 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Select Pages</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Choose specific pages you want to split or download.
+          </p>
+        </div>
+
+        {/* Step 3 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Rotate Pages</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Rotate pages individually or rotate all pages together.
+          </p>
+        </div>
+
+        {/* Step 4 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Download Pages</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download selected pages, current view, or all pages instantly.
+          </p>
+        </div>
+      </div>
+    </section>
 
                   {/* Results */}
                   {converted && (
@@ -2844,9 +2888,8 @@ export default function PdfSplitRotatorTool() {
                 <span>View All</span>
               </Link>
             </div>
-          </div>
 
-          {/* Mobile Tips Banner */}
+            {/* Mobile Tips Banner */}
           {isMobile && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -2878,36 +2921,40 @@ export default function PdfSplitRotatorTool() {
             </motion.div>
           )}
 
-          {/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about splitting PDF files online
-    </p>
-  </div>
+             {/* Visible FAQ Section */}
+            <section className="max-w-3xl mx-auto my-8 sm:my-12 md:my-16 px-2 sm:px-3 md:px-4">
+              <div className="text-center mb-4 sm:mb-6 md:mb-8">
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
+                  Frequently Asked Questions
+                </h2>
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Everything you need to know about resizing images online
+                </p>
+              </div>
 
-  {/* FAQ List */}
-  <div className="space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
-      >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
-        </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
-      </details>
-    ))}
-  </div>
-</section>
+              <div className="space-y-2 sm:space-y-3 md:space-y-4">
+                {faqData.map((faq, index) => (
+                  <details
+                    key={index}
+                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 
+                    bg-white dark:bg-gray-800"
+                  >
+                    <summary className="cursor-pointer font-semibold text-sm sm:text-base md:text-lg text-gray-900 dark:text-white">
+                      {faq.question}
+                    </summary>
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </section>
+
+          </div>
+
+          
+
+      
         </motion.div>
       </div>
     </div>

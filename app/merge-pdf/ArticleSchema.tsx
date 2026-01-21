@@ -1,48 +1,43 @@
-export default function ArticleSchema() {
+export default function MergePdfSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SoftwareApplication",
 
-    // 🔹 Core SEO
-    headline: "Merge PDF Online – Combine PDF Files for Free",
+    name: "Merge PDF Online",
     description:
-      "Merge multiple PDF files into one document online quickly and securely using PDFSwift. Free, fast, and privacy-focused PDF merger tool.",
+      "Merge multiple PDF files into a single document online using PDFSwift. Fast, secure, and free PDF merger with no file upload required.",
 
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/merge-pdf-tool.png",
-    ],
+    operatingSystem: "Web",
+    applicationCategory: "PDFEditor",
+    isAccessibleForFree: true,
 
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/favicon.png",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
 
-    // ✅ FIXED DATES (ISO 8601 + timezone)
-    datePublished: "2026-01-13T00:00:00+05:30",
-    dateModified: "2026-01-17T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/merge-pdf",
+      "@id": "https://www.pdfswift.online/merge-pdf",
     },
 
-    // 🔹 Language
+    // aaj 21-01-2026 ke hisaab se
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
     inLanguage: "en",
   };
 

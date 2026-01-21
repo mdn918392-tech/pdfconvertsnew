@@ -1,48 +1,43 @@
 export default function PngToJpgSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SoftwareApplication",
 
-    // 🔹 Core SEO
-    headline: "Convert PNG to JPG Online – Free & Fast",
+    name: "Convert PNG to JPG Online",
     description:
-      "Easily convert PNG images to JPG format online using PDFSwift. Maintain image quality while reducing file size. No installation required, fast and secure.",
+      "Convert PNG images to JPG format online using PDFSwift. Reduce image file size while maintaining quality. Fast, secure, and free PNG to JPG converter.",
 
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/png-to-jpg-tool.png",
-    ],
+    operatingSystem: "Web",
+    applicationCategory: "ImageConverter",
+    isAccessibleForFree: true,
 
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/favicon.png",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
 
-    // ✅ FIXED DATES (ISO 8601 + IST timezone)
-    datePublished: "2026-01-13T00:00:00+05:30",
-    dateModified: "2026-01-17T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/png-to-jpg",
+      "@id": "https://www.pdfswift.online/png-to-jpg",
     },
 
-    // 🔹 Language
+    // aaj 21-01-2026 ke hisaab se
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
     inLanguage: "en",
   };
 

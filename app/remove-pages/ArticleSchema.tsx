@@ -1,48 +1,43 @@
 export default function RemovePagesSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SoftwareApplication",
 
-    // 🔹 Core SEO
-    headline: "Remove Pages from PDF Online – Free & Secure Tool",
+    name: "Remove Pages from PDF Online",
     description:
-      "Easily remove unwanted pages from PDF files online. Delete single or multiple pages instantly without losing quality. Fast, secure, and free PDF page remover.",
+      "Remove unwanted pages from PDF files online using PDFSwift. Delete single or multiple pages instantly without losing quality. Fast, secure, and free PDF page remover.",
 
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/remove-pages-pdf-tool.png",
-    ],
+    operatingSystem: "Web",
+    applicationCategory: "PDFEditor",
+    isAccessibleForFree: true,
 
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/favicon.png",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
 
-    // ✅ FIXED DATES (ISO 8601 + IST timezone)
-    datePublished: "2026-01-13T00:00:00+05:30",
-    dateModified: "2026-01-17T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/remove-pages",
+      "@id": "https://www.pdfswift.online/remove-pages",
     },
 
-    // 🔹 Language
+    // aaj 21-01-2026 ke hisaab se
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
     inLanguage: "en",
   };
 

@@ -19,7 +19,7 @@ export default function HowToSchema() {
       {
         "@type": "HowToStep",
         name: "Download compressed file",
-        text: "Download your compressed file in PDF or popular image formats like JPG or PNG.",
+        text: "Download compressed images individually, as a single PDF, or as a ZIP folder containing all files.",
       },
     ],
   };

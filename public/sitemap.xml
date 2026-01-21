@@ -14,57 +14,67 @@
 </url>
 <url>
   <loc>https://www.pdfswift.online/about</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
-  <priority>0.90</priority>
+  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
+  <priority>0.50</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/jpg-to-pdf</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
-  <priority>0.90</priority>
+  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
+  <priority>0.85</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/pdf-to-jpg</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
-  <priority>0.90</priority>
+  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
+  <priority>0.85</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/merge-pdf</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
-  <priority>0.90</priority>
+  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
+  <priority>0.85</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/split-pdf</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
-  <priority>0.90</priority>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
+  <priority>0.85</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/compress-pdf</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
-  <priority>0.90</priority>
+  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
+  <priority>0.80</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/extract-pages</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
   <priority>0.85</priority>
 </url>
 
 
 <url>
   <loc>https://www.pdfswift.online/webpage-to-jpg</loc>
-  <lastmod>2026-01-20T02:40:30+00:00</lastmod>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
   <priority>0.85</priority>
 </url>
 
 <url>
   <loc>https://www.pdfswift.online/resize-image</loc>
-  <lastmod>2026-01-20T11:18:30+00:00</lastmod>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
   <priority>0.85</priority>
 </url>
 
 
 <url>
   <loc>https://www.pdfswift.online/passport-photo</loc>
-  <lastmod>2026-01-20T08:18:30+00:00</lastmod>
+  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
   <priority>0.85</priority>
 </url>
 
@@ -72,7 +82,8 @@
   <loc>https://www.pdfswift.online/rotate-image</loc>
  
 
-  <lastmod>2025-01-20T02:08:30+00:00</lastmod>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
 
   <priority>0.85</priority>
 </url>
@@ -84,35 +95,41 @@
 
 <url>
   <loc>https://www.pdfswift.online/remove-pages</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
   <priority>0.90</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/rotate-pdf</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
   <priority>0.85</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/png-to-jpg</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
   <priority>0.90</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/compress-image</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
   <priority>0.90</priority>
 </url>
 
 <url>
   <loc>https://www.pdfswift.online/security</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
-  <priority>0.85</priority>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
+  <priority>0.40</priority>
 </url>
 
 <url>
   <loc>https://www.pdfswift.online/privacy</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
-  <priority>0.85</priority>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
+  <priority>0.50</priority>
 </url>
 
 
@@ -126,28 +143,28 @@
 
 <url>
   <loc>https://www.pdfswift.online/blog/how-to-convert-jpg-to-pdf</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
+   <lastmod>2026-01-21T00:00:00+00:00</lastmod>
   <priority>0.85</priority>
 </url>
 
 
 <url>
   <loc>https://www.pdfswift.online/blog/how-to-convert-pdf-to-jpg</loc>
-  <lastmod>2026-01-13T05:32:30+00:00</lastmod>
-  <priority>0.80</priority>
+ 
+  <priority>0.70</priority>
 </url>
 
 <url>
   <loc>https://www.pdfswift.online/blog/how-to-merge-pdf</loc>
   <lastmod>2026-01-15T11:18:30+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.70</priority>
 </url>
 
 <url>
   <loc>https://www.pdfswift.online/blog/how-to-extract-pdf-pages</loc>
   <lastmod>2026-01-15T11:08:00+00:00</lastmod>
 
-  <priority>0.80</priority>
+  <priority>0.70</priority>
 </url>
 
 <url>
@@ -158,31 +175,39 @@
 
 
 
-  <priority>0.80</priority>
+  <priority>0.70</priority>
 </url>
 
 <url>
   <loc>https://www.pdfswift.online/blog/how-to-compress-pdf-without-quality-loss</loc>
   <lastmod>2026-01-17T12:56:00+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.70</priority>
 </url>
 
 <url>
   <loc>https://www.pdfswift.online/blog/how-to-rotate-pdf-pages</loc>
   <lastmod>2026-01-18T12:40:00+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.70</priority>
 </url>
 
 <url>
   <loc>https://www.pdfswift.online/blog/how-to-remove-unwanted-pages-from-pdf</loc>
   <lastmod>2026-01-19T12:51:00+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.70</priority>
 </url>
 
 <url>
   <loc>https://www.pdfswift.online/blog/how-to-extract-specific-pages-from-pdf</loc>
   <lastmod>2026-01-19T02:40:00+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.70</priority>
+</url>
+
+
+<url>
+  <loc>https://www.pdfswift.online/blog/are-online-pdf-tools-safe</loc>
+ <lastmod>2026-01-21T00:00:00+00:00</lastmod>
+
+  <priority>0.70</priority>
 </url>
 
 

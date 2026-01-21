@@ -1,50 +1,35 @@
-export default function ArticleSchema() {
+export default function ResizeImageSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
-
-    // 🔹 Core SEO
-    headline:
-      "Resize Image Online – Free Image Resizer Without Losing Quality",
+    "@type": "SoftwareApplication",
+    name: "Resize Image Online",
     description:
-      "Resize JPG, PNG, and WebP images online using PDFSwift. Change image dimensions easily while maintaining quality. Fast, secure, and no signup required.",
-
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/resize-image-tool.png",
-    ],
-
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+      "Resize JPG, PNG, and WebP images online using PDFSwift. Change image dimensions without losing quality. Fast, secure, and no signup required.",
+    operatingSystem: "Web",
+    applicationCategory: "ImageEditor",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
-
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/favicon.ico",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
-
-    // 🔹 Dates (ISO 8601)
-    datePublished: "2026-01-20T00:00:00+05:30",
-    dateModified: "2026-01-20T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
       "@id": "https://www.pdfswift.online/resize-image",
     },
+   datePublished: "2026-01-20T00:00:00+05:30",
+  dateModified: "2026-01-21T00:00:00+05:30",
 
-    // 🔹 Language
-    inLanguage: "en",
   };
 
   return (

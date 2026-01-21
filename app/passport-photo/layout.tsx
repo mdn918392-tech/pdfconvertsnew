@@ -1,31 +1,55 @@
 import type { Metadata, Viewport } from "next";
 
+/* =========================
+   SEO METADATA
+   ========================= */
 export const metadata: Metadata = {
   title: "Passport Size Photo Maker Online – Free, HD & Print Ready | PDFSwift",
 
   description:
-    "Create passport size photos online instantly with PDFSwift. Choose official sizes for USA, India, UK, Canada & more. Select background color, DPI, and layouts to print multiple photos per page. Free, secure, and no signup required.",
+    "Create passport size photos online for free. Supports India, USA, UK, Canada & more official sizes. HD, print-ready photos with no signup required.",
 
   keywords: [
     "passport size photo maker online",
+    "passport photo maker",
     "passport photo generator",
-    "passport photo size online",
+    "passport photo size India",
     "USA passport photo 2x2",
-    "India passport photo 35x35 mm",
     "visa photo maker online",
-    "print passport photo online",
-    "passport photo background white",
-    "HD passport photo creator"
+    "print passport photo online"
   ],
+
+  alternates: {
+    canonical: "https://www.pdfswift.online/passport-photo",
+  },
+
+  openGraph: {
+    title: "Passport Size Photo Maker Online – Free & Print Ready",
+    description:
+      "Create passport size photos online instantly. Official sizes, HD quality, and print-ready photos. 100% free and secure.",
+    url: "https://www.pdfswift.online/passport-photo",
+    siteName: "PDFSwift",
+    type: "website",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
-// ✅ viewport must be exported separately
+/* =========================
+   VIEWPORT (SEPARATE EXPORT)
+   ========================= */
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
+  themeColor: "#ffffff",
 };
 
+/* =========================
+   LAYOUT COMPONENT
+   ========================= */
 export default function PassportPhotoLayout({
   children,
 }: {

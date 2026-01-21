@@ -7,13 +7,13 @@ export default function WebpageToJPGBreadcrumbSchema() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://pdfswift.online",
+        item: "https://www.pdfswift.online",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Webpage to JPG",
-        item: "https://pdfswift.online/webpage-to-jpg",
+        item: "https://www.pdfswift.online/webpage-to-jpg",
       },
     ],
   };

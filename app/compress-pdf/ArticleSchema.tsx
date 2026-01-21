@@ -1,49 +1,43 @@
-export default function ArticleSchema() {
+export default function CompressPdfSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SoftwareApplication",
 
-    // 🔹 Core SEO
-    headline:
-      "Compress PDF Online – Reduce PDF File Size Without Losing Quality",
+    name: "Compress PDF Online",
     description:
-      "Compress PDF files online quickly and securely using PDFSwift. Reduce PDF file size without noticeable quality loss. Free, fast, and privacy-focused PDF compression tool.",
+      "Compress PDF files online using PDFSwift. Reduce PDF file size without noticeable quality loss. Fast, free, and privacy-focused PDF compression tool.",
 
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/compress-pdf.png",
-    ],
+    operatingSystem: "Web",
+    applicationCategory: "PDFEditor",
+    isAccessibleForFree: true,
 
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/favicon.png",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
 
-    // 🔹 Dates (ISO 8601 with timezone – REQUIRED FORMAT)
-    datePublished: "2026-01-13T00:00:00+05:30",
-    dateModified: "2026-01-17T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/compress-pdf",
+      "@id": "https://www.pdfswift.online/compress-pdf",
     },
 
-    // 🔹 Language
+    // dates (aaj 21-01-2026 hai)
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
     inLanguage: "en",
   };
 

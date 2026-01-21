@@ -1,48 +1,43 @@
 export default function RotateImageSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SoftwareApplication",
 
-    // 🔹 Core SEO
-    headline: "Rotate Image Online – Rotate JPG, PNG & WebP Free",
+    name: "Rotate Image Online",
     description:
-      "Rotate images online for free using PDFSwift. Easily rotate JPG, PNG, and WebP images clockwise or counter-clockwise without losing quality. No signup required.",
+      "Rotate JPG, PNG, and WebP images online using PDFSwift. Rotate images clockwise or counter-clockwise without losing quality. Free, fast, and secure.",
 
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/rotate-image-tool.png",
-    ],
+    operatingSystem: "Web",
+    applicationCategory: "ImageEditor",
+    isAccessibleForFree: true,
 
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/favicon.ico",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
 
-    // ✅ Dates (ISO 8601 + IST)
-    datePublished: "2026-01-20T00:00:00+05:30",
-    dateModified: "2026-01-20T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/rotate-image",
+      "@id": "https://www.pdfswift.online/rotate-image",
     },
 
-    // 🔹 Language
+    // aaj 21-01-2026 ke hisaab se
+    datePublished: "2026-01-20T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
     inLanguage: "en",
   };
 

@@ -474,11 +474,16 @@ const ImagePreview = ({
               </motion.button>
             )}
           </div>
+
+          
         </div>
       </motion.div>
+      
     </>
   );
 };
+
+
 
 // --- Download Notification Component ---
 const DownloadNotification = ({
@@ -1056,6 +1061,74 @@ export default function RotateImage() {
                   </div>
                 </div>
               )}
+
+                 <section
+      id="how-to-rotate-image"
+      className="mt-20 scroll-mt-24"
+    >
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Rotate Images Online
+      </h2>
+
+      <div className="grid gap-6 md:grid-cols-6">
+
+        {/* Step 1 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Upload Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Upload one or multiple JPG, PNG, or WebP images from your device.
+          </p>
+        </div>
+
+        {/* Step 2 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Choose Rotation Angle</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Select 90°, 180°, or 270° rotation in clockwise or counter-clockwise direction.
+          </p>
+        </div>
+
+        {/* Step 3 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Rotate All Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Apply the selected rotation angle to all uploaded images at once.
+          </p>
+        </div>
+
+        {/* Step 4 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Rotate Individual Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Adjust rotation separately for each image using individual controls.
+          </p>
+        </div>
+
+        {/* Step 5 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">5</div>
+          <h3 className="font-semibold text-lg">Preview Changes</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Instantly preview the rotated images before final download.
+          </p>
+        </div>
+
+        {/* Step 6 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">6</div>
+          <h3 className="font-semibold text-lg">Download Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download rotated images individually or as a ZIP archive.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
             </div>
 
             {/* --- Rotation Options --- */}
@@ -1379,38 +1452,39 @@ export default function RotateImage() {
                   <span>View All</span>
                 </Link>
               </div>
+
+               {/* Visible FAQ Section */}
+            <section className="max-w-3xl mx-auto my-8 sm:my-12 md:my-16 px-2 sm:px-3 md:px-4">
+              <div className="text-center mb-4 sm:mb-6 md:mb-8">
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
+                  Frequently Asked Questions
+                </h2>
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Everything you need to know about resizing images online
+                </p>
+              </div>
+
+              <div className="space-y-2 sm:space-y-3 md:space-y-4">
+                {faqData.map((faq, index) => (
+                  <details
+                    key={index}
+                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 
+                    bg-white dark:bg-gray-800"
+                  >
+                    <summary className="cursor-pointer font-semibold text-sm sm:text-base md:text-lg text-gray-900 dark:text-white">
+                      {faq.question}
+                    </summary>
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </section>
+            
             </div>
 
-            {/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about rotating images online
-    </p>
-  </div>
 
-  {/* FAQ List */}
-  <div className="space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
-      >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
-        </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
-      </details>
-    ))}
-  </div>
-</section>
            
           </motion.div>
         </div>

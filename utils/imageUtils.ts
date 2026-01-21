@@ -13,20 +13,59 @@ export interface PdfSettings {
 
 /**
  * Compress an image file
+// imageUtils.ts में यह function update करें
+
+/**
+ * Compress an image file (PNG or JPG)
+ * PNG files are converted to JPG format
  */
 export async function compressImage(
-  file: File,
+  file: File | Blob,
   quality = 0.8
 ): Promise<Blob> {
-  const options = {
-    maxSizeMB: 1,
-    maxWidthOrHeight: 1920,
-    useWebWorker: true,
-    initialQuality: quality,
-  };
+  try {
+    // If it's a PNG file, convert to JPG first
+    if (file instanceof File && file.type === 'image/png') {
+      // First convert PNG to JPG
+      const jpgBlob = await convertPngToJpg(file);
+      
+      // Then compress the JPG
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        initialQuality: quality,
+      };
+      
+      const jpgFile = new File([jpgBlob], 'converted.jpg', { type: 'image/jpeg' });
+      const compressedFile = await imageCompression(jpgFile, options);
+      return compressedFile;
+    }
+    
+    // For JPG files, compress directly
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+      initialQuality: quality,
+    };
 
-  const compressedFile = await imageCompression(file, options);
-  return compressedFile;
+    let fileToCompress: File;
+    
+    if (file instanceof Blob && !(file instanceof File)) {
+      // Convert Blob to File
+      fileToCompress = new File([file], 'image.jpg', { type: 'image/jpeg' });
+    } else {
+      fileToCompress = file as File;
+    }
+    
+    const compressedFile = await imageCompression(fileToCompress, options);
+    return compressedFile;
+    
+  } catch (error) {
+    console.error('Compression error:', error);
+    throw new Error('Failed to compress image');
+  }
 }
 
 // Add this function to your imageUtils.ts
@@ -325,6 +364,7 @@ export async function pdfToImages(file: File): Promise<Blob[]> {
 
   return output;
 }
+
 
 
 // utils/imageUtils.ts में नया फ़ंक्शन जोड़ें

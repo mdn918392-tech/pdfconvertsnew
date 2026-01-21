@@ -1,48 +1,43 @@
 export default function PdfToJpgSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "SoftwareApplication",
 
-    // 🔹 Core SEO
-    headline: "Convert PDF to JPG Online – Fast & Free",
+    name: "Convert PDF to JPG Online",
     description:
-      "Easily convert PDF files to JPG images online using PDFSwift. Quickly extract high-quality images from your PDFs without any software installation.",
+      "Convert PDF files to high-quality JPG images online using PDFSwift. Extract pages as images quickly, securely, and for free without installing any software.",
 
-    // 🔹 Featured Image
-    image: [
-      "https://pdfswift.online/images/pdf-to-jpg-tool.png",
-    ],
+    operatingSystem: "Web",
+    applicationCategory: "PDFConverter",
+    isAccessibleForFree: true,
 
-    // 🔹 Author
-    author: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
     },
 
-    // 🔹 Publisher
     publisher: {
       "@type": "Organization",
       name: "PDFSwift",
+      url: "https://www.pdfswift.online",
       logo: {
         "@type": "ImageObject",
-        url: "https://pdfswift.online/favicon.png",
-        width: 600,
-        height: 60,
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
       },
     },
 
-    // ✅ FIXED DATES (ISO 8601 + IST timezone)
-    datePublished: "2026-01-13T00:00:00+05:30",
-    dateModified: "2026-01-17T00:00:00+05:30",
-
-    // 🔹 Canonical Page
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": "https://pdfswift.online/pdf-to-jpg",
+      "@id": "https://www.pdfswift.online/pdf-to-jpg",
     },
 
-    // 🔹 Language
+    // aaj 21-01-2026 ke hisaab se
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
     inLanguage: "en",
   };
 

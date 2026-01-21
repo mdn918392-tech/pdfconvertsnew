@@ -7,14 +7,13 @@ export default function BreadcrumbSchema() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://pdfswift.online",
+        item: "https://www.pdfswift.online",
       },
-      
       {
         "@type": "ListItem",
-        position: 3,
+        position: 2,
         name: "Compress PDF",
-        item: "https://pdfswift.online/compress-pdf",
+        item: "https://www.pdfswift.online/compress-pdf",
       },
     ],
   };

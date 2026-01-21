@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import Head from 'next/head';
+import Head from "next/head";
 import FAQSchema from "./FAQSchema";
 import { faqData } from "./faqData";
 import { motion, AnimatePresence } from "framer-motion";
@@ -320,9 +320,6 @@ import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
 
-
-
-
 // Import pdfjs-dist with proper configuration
 import * as pdfjsLib from "pdfjs-dist";
 
@@ -354,8 +351,6 @@ type Tool = {
   path: string;
 };
 
-
-
 const tool = {
   id: "extract-pages",
   name: "Extract Pages",
@@ -368,7 +363,6 @@ const tool = {
 };
 // Explore All Tools Data
 const exploreTools: Tool[] = [
-  
   {
     id: "split-pdf",
     name: "Split PDF",
@@ -1543,15 +1537,14 @@ export default function PdfPageExtractorTool() {
 
   return (
     <>
-     
       {/* SEO Schema */}
       <FAQSchema />
-        <BreadcrumbSchema />
-        {/* rest of page */}
-      
+      <BreadcrumbSchema />
+      {/* rest of page */}
+
       <HowToSchema />
       <ArticleSchema />
-      
+
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-4 sm:py-8 md:py-12">
         <div className="container mx-auto px-3 sm:px-4 max-w-6xl">
           <motion.div
@@ -1626,12 +1619,11 @@ export default function PdfPageExtractorTool() {
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent px-2">
                 Extract Pages from PDF Online Free
-
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                Extract specific pages from PDF files online free without watermark.
-
+                Extract specific pages from PDF files online free without
+                watermark.
                 <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
                   Select pages to extract and download them as a new PDF!
                 </span>
@@ -1799,6 +1791,67 @@ export default function PdfPageExtractorTool() {
                       </motion.button>
                     )}
 
+                    <section className="mt-20">
+                      <h2 className="text-3xl font-bold text-center mb-10">
+                        How to Extract Pages from PDF
+                      </h2>
+
+                      <div className="grid gap-6 md:grid-cols-4">
+                        {/* Step 1 */}
+                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                          <div className="text-4xl font-bold text-purple-600 mb-2">
+                            1
+                          </div>
+                          <h3 className="font-semibold text-lg">Upload PDF</h3>
+                          <p className="text-gray-600 text-sm mt-2">
+                            Upload the PDF file from which you want to extract
+                            pages.
+                          </p>
+                        </div>
+
+                        {/* Step 2 */}
+                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                          <div className="text-4xl font-bold text-purple-600 mb-2">
+                            2
+                          </div>
+                          <h3 className="font-semibold text-lg">
+                            Select Pages
+                          </h3>
+                          <p className="text-gray-600 text-sm mt-2">
+                            Click on pages to select or deselect them for
+                            extraction.
+                          </p>
+                        </div>
+
+                        {/* Step 3 */}
+                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                          <div className="text-4xl font-bold text-purple-600 mb-2">
+                            3
+                          </div>
+                          <h3 className="font-semibold text-lg">
+                            Extract Pages
+                          </h3>
+                          <p className="text-gray-600 text-sm mt-2">
+                            Click the extract button to create a new PDF with
+                            selected pages.
+                          </p>
+                        </div>
+
+                        {/* Step 4 */}
+                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                          <div className="text-4xl font-bold text-purple-600 mb-2">
+                            4
+                          </div>
+                          <h3 className="font-semibold text-lg">
+                            Download PDF
+                          </h3>
+                          <p className="text-gray-600 text-sm mt-2">
+                            Download the extracted pages as a new PDF instantly.
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+
                     {/* Results */}
                     {processed && (
                       <motion.div
@@ -1835,8 +1888,6 @@ export default function PdfPageExtractorTool() {
                             </div>
                           </div>
                         </div>
-
-                      
 
                         {/* Download Progress */}
                         {downloadingAll && (
@@ -2011,7 +2062,7 @@ export default function PdfPageExtractorTool() {
                           </div>
                         </div>
 
-                          {/* Pagination Controls - Responsive */}
+                        {/* Pagination Controls - Responsive */}
                         <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
                           <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
                             <div>
@@ -2094,7 +2145,7 @@ export default function PdfPageExtractorTool() {
                           </div>
                         </div>
 
-                          {/* Batch Selection Controls - Responsive */}
+                        {/* Batch Selection Controls - Responsive */}
                         <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-blue-200 dark:border-blue-800/30">
                           <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2">
                             <Grid3x3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
@@ -2134,8 +2185,6 @@ export default function PdfPageExtractorTool() {
                             Quick selection options for {pageData.length} pages
                           </p>
                         </div>
-
-                      
 
                         {/* Download Button Section - Responsive */}
                         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border-2 border-indigo-200 dark:border-indigo-800/50">
@@ -2233,8 +2282,6 @@ export default function PdfPageExtractorTool() {
               )}
             </div>
 
-            
-
             {/* Simple Zoom Modal */}
             <SimpleZoomModal
               isOpen={zoomModal.isOpen}
@@ -2254,9 +2301,6 @@ export default function PdfPageExtractorTool() {
               pageNumber={simpleZoomModal.pageNumber}
               fileName={simpleZoomModal.fileName}
             />
-
-
-
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
@@ -2313,38 +2357,69 @@ export default function PdfPageExtractorTool() {
                   <span>View All</span>
                 </Link>
               </div>
+
+              {/* --- FAQ Section --- */}
+              <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
+                {/* Header */}
+                <div className="text-center mb-6 sm:mb-8 md:mb-12">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
+                    Frequently Asked Questions
+                  </h2>
+                  <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Everything you need to know about editing PDFs online
+                  </p>
+                </div>
+
+                {/* FAQ Cards */}
+                <div className="space-y-3 sm:space-y-4">
+                  {faqData.map((faq, index) => (
+                    <details
+                      key={index}
+                      className="
+          group rounded-xl border border-gray-200 dark:border-gray-700
+          bg-white dark:bg-gray-900
+          transition-all duration-300
+          hover:border-blue-400/60 dark:hover:border-blue-500/60
+          open:shadow-lg open:border-blue-500
+        "
+                    >
+                      {/* Question */}
+                      <summary
+                        className="
+            flex cursor-pointer list-none items-center justify-between
+            px-4 sm:px-5 py-3 sm:py-4
+            text-sm sm:text-base md:text-lg
+            font-semibold text-gray-900 dark:text-white
+          "
+                      >
+                        <span>{faq.question}</span>
+
+                        {/* Arrow */}
+                        <span
+                          className="
+              ml-3 flex h-6 w-6 items-center justify-center
+              rounded-full bg-gray-100 dark:bg-gray-800
+              text-gray-500 dark:text-gray-400
+              transition-transform duration-300
+              group-open:rotate-180
+            "
+                        >
+                          ▼
+                        </span>
+                      </summary>
+
+                      {/* Answer */}
+                      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
+                        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                          {faq.answer}
+                        </p>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </section>
             </div>
 
-{/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-     Everything you need to know about extracting pages from PDF files online
-    </p>
-  </div>
-
-  {/* FAQ List */}
-  <div className="space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
-      >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
-        </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
-      </details>
-    ))}
-  </div>
-</section>
             {/* Info Footer - Responsive */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-center mt-6 sm:mt-8 md:mt-12">
               <div className="p-2 sm:p-3 md:p-4">

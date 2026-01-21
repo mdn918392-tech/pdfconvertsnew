@@ -38,6 +38,7 @@ import {
   convertPngToJpg,
   downloadFile,
   downloadAsZip,
+  compressImage, // New function for JPG compression
 } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
@@ -171,6 +172,8 @@ interface ConvertedFile {
   name: string;
   originalFile: File;
   timestamp: number;
+  originalSize: number;
+  compressedSize: number;
 }
 
 interface DownloadNotification {
@@ -189,6 +192,8 @@ const ImagePreview = ({
   isDownloadable = false,
   filename = "image.jpg",
   index,
+  originalSize,
+  compressedSize,
 }: {
   file: Blob | File;
   onRemove?: () => void;
@@ -196,6 +201,8 @@ const ImagePreview = ({
   isDownloadable?: boolean;
   filename: string;
   index: number;
+  originalSize?: number;
+  compressedSize?: number;
 }) => {
   const url = useMemo(() => createObjectURL(file), [file]);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -206,7 +213,7 @@ const ImagePreview = ({
   }, [url]);
 
   const statusColor =
-    status && status.includes("Converted")
+    status && status.includes("Compressed")
       ? "text-green-600 dark:text-green-400"
       : "text-blue-600 dark:text-blue-400";
 
@@ -214,47 +221,51 @@ const ImagePreview = ({
     downloadFile(file as Blob, filename);
   };
 
+  // Calculate compression percentage
+  const compressionPercent = originalSize && compressedSize
+    ? ((1 - compressedSize / originalSize) * 100).toFixed(1)
+    : null;
+
   return (
     <>
-     {/* Image Preview Modal */}
-<AnimatePresence>
-  {previewOpen && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-      onClick={() => setPreviewOpen(false)}
-    >
-      {/* OUTER WRAPPER */}
-      <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        exit={{ scale: 0.9 }}
-        className="relative"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* ❌ CLOSE BUTTON — IMAGE SE UPAR */}
-        <button
-          onClick={() => setPreviewOpen(false)}
-          className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-        >
-          <XCircle className="w-6 h-6" />
-        </button>
+      {/* Image Preview Modal */}
+      <AnimatePresence>
+        {previewOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setPreviewOpen(false)}
+          >
+            {/* OUTER WRAPPER */}
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* ❌ CLOSE BUTTON — IMAGE SE UPAR */}
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
 
-        {/* IMAGE CONTAINER */}
-        <div className="max-w-4xl max-h-[90vh]">
-          <img
-            src={url}
-            alt={filename}
-            className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-          />
-        </div>
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
-
+              {/* IMAGE CONTAINER */}
+              <div className="max-w-4xl max-h-[90vh]">
+                <img
+                  src={url}
+                  alt={filename}
+                  className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Preview Card */}
       <motion.div
@@ -300,17 +311,24 @@ const ImagePreview = ({
             <div className="flex items-center justify-between">
               <span
                 className={`text-xs px-3 py-1 rounded-full font-medium ${statusColor} bg-opacity-10 ${
-                  status.includes("Converted") ? "bg-green-500" : "bg-blue-500"
+                  status.includes("Compressed") ? "bg-green-500" : "bg-blue-500"
                 }`}
               >
                 {status}
               </span>
 
-              {/* File Size (if available) */}
-              {file.size && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {(file.size / 1024).toFixed(1)} KB
-                </span>
+              {/* File Size Info */}
+              {originalSize && compressedSize && (
+                <div className="flex flex-col items-end">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {(compressedSize / 1024).toFixed(1)} KB
+                  </span>
+                  {compressionPercent && (
+                    <span className="text-xs text-green-600 dark:text-green-400 font-bold">
+                      {compressionPercent}% smaller
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -398,8 +416,8 @@ const DownloadNotification = ({
             {isZip
               ? `All ${fileCount} files compressed into ZIP archive`
               : fileCount > 1
-              ? `${fileCount} PNG files converted to JPG`
-              : "PNG successfully converted to JPG"}
+              ? `${fileCount} images compressed`
+              : "Image successfully compressed"}
           </p>
           <div className="flex items-center gap-1 text-xs opacity-80">
             <Clock className="w-3 h-3" />
@@ -421,27 +439,29 @@ const DownloadNotification = ({
 };
 
 // --- Main Component ---
-export default function PngToJpg() {
+export default function CompressImage() {
   const [files, setFiles] = useState<File[]>([]);
-  const [converting, setConverting] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [jpgBlobs, setJpgBlobs] = useState<ConvertedFile[]>([]);
+  const [compressedBlobs, setCompressedBlobs] = useState<ConvertedFile[]>([]);
   const [showFeatures, setShowFeatures] = useState(true);
   const [downloadNotifications, setDownloadNotifications] = useState<
     DownloadNotification[]
   >([]);
   const [creatingZip, setCreatingZip] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const [compressionQuality, setCompressionQuality] = useState<number>(80);
 
   // Generate unique filename
   const generateUniqueFileName = (baseName: string, index: number) => {
     const timestamp = new Date().getTime();
     const randomId = Math.random().toString(36).substring(2, 9);
+    const extension = baseName.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
     const cleanBaseName = baseName
-      .replace(/\.png$/i, "")
+      .replace(/\.(png|jpg|jpeg)$/i, "")
       .replace(/\.[^/.]+$/, "");
     const sequence = (index + 1).toString().padStart(3, "0");
-    return `${cleanBaseName}_converted_${sequence}_${timestamp}_${randomId}.jpg`;
+    return `${cleanBaseName}_compressed_${sequence}_${timestamp}_${randomId}.jpg`;
   };
 
   // Auto-scroll notifications
@@ -452,25 +472,43 @@ export default function PngToJpg() {
     }
   }, [downloadNotifications]);
 
-  const handleConvert = async () => {
+  const handleCompress = async () => {
     if (files.length === 0) return;
 
-    setConverting(true);
+    setCompressing(true);
     setProgress(0);
-    setJpgBlobs([]);
+    setCompressedBlobs([]);
     setShowFeatures(false);
 
     try {
       const blobs: ConvertedFile[] = [];
       for (let i = 0; i < files.length; i++) {
-        const uniqueFilename = generateUniqueFileName(files[i].name, i);
-        const blob = await convertPngToJpg(files[i]);
+        const file = files[i];
+        const uniqueFilename = generateUniqueFileName(file.name, i);
+        
+        let compressedBlob: Blob;
+        const originalSize = file.size;
+
+        // Check file type and compress accordingly
+        if (file.type === 'image/png') {
+          // Convert PNG to JPG first, then compress
+          const jpgBlob = await convertPngToJpg(file);
+          compressedBlob = await compressImage(jpgBlob, compressionQuality);
+        } else if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
+          // Compress JPG directly
+          compressedBlob = await compressImage(file, compressionQuality);
+        } else {
+          // For other image types, try to compress as is
+          compressedBlob = await compressImage(file, compressionQuality);
+        }
 
         blobs.push({
-          blob: blob,
+          blob: compressedBlob,
           name: uniqueFilename,
-          originalFile: files[i],
+          originalFile: file,
           timestamp: Date.now(),
+          originalSize: originalSize,
+          compressedSize: compressedBlob.size,
         });
 
         // Animate progress smoothly
@@ -479,26 +517,26 @@ export default function PngToJpg() {
         // Small delay for smooth progress animation
         await new Promise((resolve) => setTimeout(resolve, 200));
       }
-      setJpgBlobs(blobs);
+      setCompressedBlobs(blobs);
     } catch (error) {
-      console.error("Conversion error:", error);
-      alert("Failed to convert PNG to JPG. Please try again.");
+      console.error("Compression error:", error);
+      alert("Failed to compress images. Please try again.");
     } finally {
-      setConverting(false);
+      setCompressing(false);
     }
   };
 
   const handleDownload = () => {
-    // Downloads all converted files individually
-    jpgBlobs.forEach((item) => {
+    // Downloads all compressed files individually
+    compressedBlobs.forEach((item) => {
       downloadFile(item.blob, item.name);
     });
 
     // Add download notification
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
-      fileName: jpgBlobs.length === 1 ? jpgBlobs[0].name : "Multiple files",
-      fileCount: jpgBlobs.length,
+      fileName: compressedBlobs.length === 1 ? compressedBlobs[0].name : "Multiple files",
+      fileCount: compressedBlobs.length,
       timestamp: new Date(),
       isZip: false,
     };
@@ -513,19 +551,19 @@ export default function PngToJpg() {
   };
 
   const handleDownloadAsZip = async () => {
-    if (jpgBlobs.length === 0) return;
+    if (compressedBlobs.length === 0) return;
 
     setCreatingZip(true);
 
     try {
       // Prepare files for ZIP
-      const filesForZip = jpgBlobs.map((item) => ({
+      const filesForZip = compressedBlobs.map((item) => ({
         name: item.name,
         blob: item.blob,
       }));
 
       // Generate ZIP filename
-      const zipFileName = `converted_images_${new Date().getTime()}.zip`;
+      const zipFileName = `compressed_images_${new Date().getTime()}.zip`;
 
       // Create and download ZIP
       await downloadAsZip(filesForZip, zipFileName);
@@ -534,7 +572,7 @@ export default function PngToJpg() {
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
         fileName: zipFileName,
-        fileCount: jpgBlobs.length,
+        fileCount: compressedBlobs.length,
         timestamp: new Date(),
         isZip: true,
       };
@@ -583,7 +621,7 @@ export default function PngToJpg() {
     setFiles((prevFiles) =>
       prevFiles.filter((_, index) => index !== indexToRemove)
     );
-    setJpgBlobs([]);
+    setCompressedBlobs([]);
     if (files.length === 1) {
       setShowFeatures(true);
     }
@@ -591,36 +629,36 @@ export default function PngToJpg() {
 
   const handleAddMoreFiles = (newFiles: File[]) => {
     setFiles((prevFiles) => [...prevFiles, ...newFiles]);
-    setJpgBlobs([]);
+    setCompressedBlobs([]);
     setShowFeatures(false);
   };
 
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
-    setJpgBlobs([]);
+    setCompressedBlobs([]);
     setShowFeatures(false);
   };
 
   const handleReset = () => {
     setFiles([]);
-    setJpgBlobs([]);
+    setCompressedBlobs([]);
     setProgress(0);
     setShowFeatures(true);
   };
 
   const hasFiles = files.length > 0;
-  const hasResults = jpgBlobs.length > 0;
-  const isReadyToConvert = hasFiles && !hasResults && !converting;
+  const hasResults = compressedBlobs.length > 0;
+  const isReadyToCompress = hasFiles && !hasResults && !compressing;
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
-  // Calculate total size of converted files
-  const convertedTotalSize = jpgBlobs.reduce(
-    (acc, item) => acc + item.blob.size,
+  // Calculate total size of compressed files
+  const compressedTotalSize = compressedBlobs.reduce(
+    (acc, item) => acc + item.compressedSize,
     0
   );
   const sizeReduction =
     totalSize > 0
-      ? (((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
+      ? (((totalSize - compressedTotalSize) / totalSize) * 100).toFixed(1)
       : "0";
 
   return (
@@ -628,8 +666,6 @@ export default function PngToJpg() {
       {/* SEO Schema */}
       <FAQSchema />
       <BreadcrumbSchema />
-      {/* rest of page */}
-
       <HowToSchema />
       <ArticleSchema />
 
@@ -714,13 +750,12 @@ export default function PngToJpg() {
                   {[
                     {
                       icon: Zap,
-                      title: "Fast Conversion",
-                      desc: "Convert multiple images to high-quality JPG in seconds using our optimized compression engine.",
+                      title: "Fast Compression",
+                      desc: "Compress multiple images quickly with our optimized compression engine.",
                       gradient: "from-orange-500 to-pink-600",
                       bg: "from-orange-50 to-pink-50",
                       border: "border-orange-200",
                     },
-
                     {
                       icon: Palette,
                       title: "Quality Preserved",
@@ -732,7 +767,7 @@ export default function PngToJpg() {
                     {
                       icon: Shield,
                       title: "Secure Processing",
-                      desc: "All conversions happen locally in your browser. Your images never leave your device",
+                      desc: "All compression happens locally in your browser. Your images never leave your device",
                       gradient: "from-green-500 to-emerald-600",
                       bg: "from-green-50 to-emerald-50",
                       border: "border-green-200",
@@ -740,7 +775,7 @@ export default function PngToJpg() {
                     {
                       icon: FolderArchive,
                       title: "ZIP Download",
-                      desc: "Download all converted images as a single ZIP file for easy organization and sharing",
+                      desc: "Download all compressed images as a single ZIP file for easy organization and sharing",
                       gradient: "from-purple-500 to-indigo-600",
                       bg: "from-purple-50 to-indigo-50",
                       border: "border-purple-200",
@@ -769,9 +804,9 @@ export default function PngToJpg() {
               )}
             </AnimatePresence>
 
-            {/* --- Main Converter Card --- */}
+            {/* --- Main Compressor Card --- */}
             <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
-              {/* Upload Section - हमेशा दिखेगा */}
+              {/* Upload Section */}
               <div className="mb-4 sm:mb-6 md:mb-8">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
                   <div className="p-1.5 sm:p-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-xl">
@@ -779,7 +814,7 @@ export default function PngToJpg() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                      {hasFiles ? "Add More PNG Images" : "Upload Images"}
+                      {hasFiles ? "Add More Images" : "Upload Images"}
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       Upload JPG or PNG images to compress and reduce file size
@@ -788,15 +823,44 @@ export default function PngToJpg() {
                   </div>
                 </div>
 
-                {/* FileUploader हमेशा दिखेगा */}
+                                {/* FileUploader always visible */}
                 <FileUploader
-                  accept="image/png"
+                  accept="image/png,image/jpeg,image/jpg"
                   multiple={true}
                   onFilesSelected={
                     hasFiles ? handleAddMoreFiles : handleFilesSelected
                   }
-                  key={files.length} // Reset करने के लिए key
+                  key={files.length}
                 />
+
+                {/* Compression Quality Slider */}
+                {hasFiles && (
+                  <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-700/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        Compression Quality: {compressionQuality}%
+                      </label>
+                      <span className="text-xs text-blue-600 dark:text-blue-400">
+                        {compressionQuality >= 80 ? "High Quality" : 
+                         compressionQuality >= 60 ? "Good Balance" : 
+                         compressionQuality >= 40 ? "Medium" : "High Compression"}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="95"
+                      step="5"
+                      value={compressionQuality}
+                      onChange={(e) => setCompressionQuality(Number(e.target.value))}
+                      className="w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 dark:[&::-webkit-slider-thumb]:bg-blue-400"
+                    />
+                    <div className="flex justify-between text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      <span>Smaller Size</span>
+                      <span>Better Quality</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Selected Files Summary */}
                 {hasFiles && (
@@ -808,11 +872,11 @@ export default function PngToJpg() {
                         </div>
                         <div>
                           <p className="font-medium text-orange-700 dark:text-orange-300">
-                            {files.length} PNG files selected
+                            {files.length} {files.length === 1 ? 'image' : 'images'} selected
                           </p>
                           <p className="text-xs text-orange-600 dark:text-orange-400">
                             Total size: {(totalSize / 1024 / 1024).toFixed(2)}{" "}
-                            MB
+                            MB • {files.filter(f => f.type === 'image/png').length} PNG • {files.filter(f => f.type.includes('jpeg')).length} JPG
                           </p>
                         </div>
                       </div>
@@ -829,15 +893,15 @@ export default function PngToJpg() {
                 )}
               </div>
 
-              {/* --- File Previews and Conversion Area --- */}
+              {/* --- File Previews and Compression Area --- */}
               {hasFiles && (
                 <div className="space-y-4 sm:space-y-6 md:space-y-8">
-                  {/* --- Input PNG Previews --- */}
+                  {/* --- Input Image Previews --- */}
                   <div className="space-y-3 sm:space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Image className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
-                        Uploaded PNG Images ({files.length})
+                        Uploaded Images ({files.length})
                       </h3>
                       <div className="flex gap-2">
                         <motion.button
@@ -861,48 +925,110 @@ export default function PngToJpg() {
                           file={file}
                           filename={file.name}
                           onRemove={() => handleRemoveFile(index)}
-                          status="Ready to Convert"
+                          status="Ready to Compress"
                           index={index}
+                          originalSize={file.size}
                         />
                       ))}
                     </div>
                   </div>
 
+    
+
+                  
+
                   {/* --- Progress and Action Buttons --- */}
                   <div className="space-y-4 sm:space-y-6">
-                    {converting && (
+                    {compressing && (
                       <div className="space-y-3 sm:space-y-4">
                         <ProgressBar
                           progress={progress}
-                          label={`Converting ${files.length} files...`}
+                          label={`Compressing ${files.length} files...`}
                         />
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing your images...
+                            Compressing your images...
                           </span>
                         </div>
                       </div>
                     )}
 
-                    {isReadyToConvert && (
+                    {isReadyToCompress && (
                       <motion.button
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={handleConvert}
+                        onClick={handleCompress}
                         className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                       >
                         <Image className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                        Convert {files.length} PNG to JPG
+                        Compress {files.length} Images
                         <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                       </motion.button>
                     )}
                   </div>
+                  <section className="mt-20">
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Compress Images Online
+      </h2>
+
+      <div className="grid gap-6 md:grid-cols-4">
+
+        {/* Step 1 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Upload Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Upload one or multiple images using drag & drop or the upload button.
+          </p>
+        </div>
+
+        {/* Step 2 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Select Compression Settings</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Use the sidebar to choose compression quality, output format
+            (PDF or image), and other optimization options.
+          </p>
+        </div>
+
+        {/* Step 3 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Compress Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Click the compress button to reduce image size while maintaining
+            visual quality.
+          </p>
+        </div>
+
+        {/* Step 4 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Download Files</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download compressed images individually, as a single PDF,
+            or as a ZIP folder.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+
                 </div>
               )}
+
+              
             </div>
+            
+
+            
+
+            
 
             {/* --- Results and Download Area --- */}
             {hasResults && (
@@ -910,50 +1036,51 @@ export default function PngToJpg() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-green-200 dark:border-green-800/50 p-3 sm:p-4 md:p-6 lg:p-8 shadow-lg sm:shadow-xl md:shadow-2xl mb-6 md:mb-8"
-              >
+               >
                 {/* Success Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
                   <div className="flex items-center justify-center sm:justify-start">
                     <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg sm:rounded-xl shadow-lg">
-                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
+                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md-h-8 text-white" />
                     </div>
                   </div>
                   <div className="flex-1 text-center sm:text-left">
                     <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
-                      Conversion Complete! 🎉
+                      Compression Complete! 🎉
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
-                      Successfully converted {files.length} PNG files to JPG
-                      format
+                      Successfully compressed {files.length} images
+                      {sizeReduction !== "0" && ` • ${sizeReduction}% average size reduction`}
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      {sizeReduction}% average size reduction • All files are
-                      ready for download
+                      All PNGs converted to JPG format • Files are ready for download
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
                     <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
-                      {jpgBlobs.length} Files
+                      {compressedBlobs.length} Files
                     </div>
                   </div>
                 </div>
 
-                {/* --- Output JPG Previews --- */}
+                {/* --- Output Compressed Images Previews --- */}
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                   <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                    Converted JPG Images
+                    Compressed JPG Images
                   </h3>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-green-100 dark:border-green-800/30">
-                    {jpgBlobs.map((item, index) => (
+                    {compressedBlobs.map((item, index) => (
                       <ImagePreview
                         key={index}
                         file={item.blob}
                         filename={item.name}
-                        status="Converted ✓"
+                        status="Compressed ✓"
                         isDownloadable={true}
                         index={index}
+                        originalSize={item.originalSize}
+                        compressedSize={item.compressedSize}
                       />
                     ))}
                   </div>
@@ -969,7 +1096,7 @@ export default function PngToJpg() {
                     className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                   >
                     <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                    Download All {jpgBlobs.length} JPG Files
+                    Download All {compressedBlobs.length} Images
                     <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                   </motion.button>
 
@@ -993,20 +1120,20 @@ export default function PngToJpg() {
                         <FolderArchive className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                         Download as ZIP File
                         <span className="text-xs px-2 py-1 bg-white/20 rounded-full">
-                          {jpgBlobs.length} files
+                          {compressedBlobs.length} files
                         </span>
                       </>
                     )}
                   </motion.button>
 
-                  {/* Convert More Button */}
+                  {/* Compress More Button */}
                   <div className="text-center">
                     <button
                       onClick={handleReset}
                       className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
                     >
                       <Image className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
-                      Convert More Images
+                      Compress More Images
                     </button>
                   </div>
                 </div>
@@ -1056,13 +1183,13 @@ export default function PngToJpg() {
                     },
                     {
                       value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`,
-                      label: "Total Size",
+                      label: "Original Size",
                       color: "text-blue-600",
                       bg: "bg-blue-50 dark:bg-blue-900/10",
                     },
                     {
-                      value: jpgBlobs.length,
-                      label: "Files Converted",
+                      value: compressedBlobs.length,
+                      label: "Files Compressed",
                       color: "text-green-600",
                       bg: "bg-green-50 dark:bg-green-900/10",
                     },
@@ -1096,51 +1223,71 @@ export default function PngToJpg() {
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* --- FAQ Section --- */}
-            <div className="mb-6 md:mb-8">
-              {/*
-  Additional Help
-  <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl border-2 border-blue-200 dark:border-blue-800/30 text-center">
-    <div className="inline-flex items-center gap-3 mb-3">
-      <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl">
-        <HelpCircle className="w-5 h-5 text-white" />
-      </div>
-      <h3 className="font-bold text-blue-700 dark:text-blue-300 text-lg">
-        Need More Help?
-      </h3>
-    </div>
-
-    <p className="text-blue-600 dark:text-blue-400 text-sm mb-4">
-      Check our comprehensive guide or contact support for assistance
+              {/* --- FAQ Section --- */}
+<section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
+  {/* Header */}
+  <div className="text-center mb-6 sm:mb-8 md:mb-12">
+    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
+      Frequently Asked Questions
+    </h2>
+    <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      Everything you need to know about editing PDFs online
     </p>
-
-    <div className="flex flex-wrap gap-3 justify-center">
-      <a
-        href="/help/image-compression-guide"
-        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all text-sm"
-      >
-        View Complete Guide
-      </a>
-
-      <a
-        href="/contact"
-        className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all text-sm"
-      >
-        Contact Support
-      </a>
-    </div>
   </div>
-  
-*/}
+
+  {/* FAQ Cards */}
+  <div className="space-y-3 sm:space-y-4">
+    {faqData.map((faq, index) => (
+      <details
+        key={index}
+        className="
+          group rounded-xl border border-gray-200 dark:border-gray-700
+          bg-white dark:bg-gray-900
+          transition-all duration-300
+          hover:border-blue-400/60 dark:hover:border-blue-500/60
+          open:shadow-lg open:border-blue-500
+        "
+      >
+        {/* Question */}
+        <summary
+          className="
+            flex cursor-pointer list-none items-center justify-between
+            px-4 sm:px-5 py-3 sm:py-4
+            text-sm sm:text-base md:text-lg
+            font-semibold text-gray-900 dark:text-white
+          "
+        >
+          <span>{faq.question}</span>
+
+          {/* Arrow */}
+          <span
+            className="
+              ml-3 flex h-6 w-6 items-center justify-center
+              rounded-full bg-gray-100 dark:bg-gray-800
+              text-gray-500 dark:text-gray-400
+              transition-transform duration-300
+              group-open:rotate-180
+            "
+          >
+            ▼
+          </span>
+        </summary>
+
+        {/* Answer */}
+        <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+            {faq.answer}
+          </p>
+        </div>
+      </details>
+    ))}
+  </div>
+</section>
+
             </div>
 
-
-
-
-
-    
+            
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
@@ -1198,37 +1345,6 @@ export default function PngToJpg() {
                 </Link>
               </div>
             </div>
-
-                     {/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about compressing images online
-    </p>
-  </div>
-
-  {/* FAQ List */}
-  <div className="space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
-      >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
-        </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
-      </details>
-    ))}
-  </div>
-</section>
           </motion.div>
         </div>
       </div>

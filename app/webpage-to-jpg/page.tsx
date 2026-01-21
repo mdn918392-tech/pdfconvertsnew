@@ -858,9 +858,73 @@ export default function WebpToJpg() {
                       </motion.button>
                     )}
                   </div>
+
+                    <section
+      id="how-to-webpage-to-jpg"
+      className="mt-20 scroll-mt-24"
+    >
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Convert Webpage to JPG Online
+      </h2>
+
+      <div className="grid gap-6 md:grid-cols-5">
+
+        {/* Step 1 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Enter Webpage URL</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Paste the website or webpage URL you want to convert into JPG.
+          </p>
+        </div>
+
+        {/* Step 2 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Load Webpage</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Let the tool securely load and capture the webpage content.
+          </p>
+        </div>
+
+        {/* Step 3 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Convert to JPG</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Click convert to generate high-quality JPG images instantly.
+          </p>
+        </div>
+
+        {/* Step 4 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Preview Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Preview the converted JPG images before downloading.
+          </p>
+        </div>
+
+        {/* Step 5 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-purple-600 mb-2">5</div>
+          <h3 className="font-semibold text-lg">Download JPG</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download images individually or as a ZIP archive.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
                 </div>
               )}
+
+              
             </div>
+
+
+            
 
             {/* --- Results and Download Area --- */}
             {hasResults && (
@@ -1081,36 +1145,39 @@ export default function WebpToJpg() {
                   <span>View All</span>
                 </Link>
               </div>
-            </div>
 
-            {/* Visible FAQ Section */}
-            <section className="max-w-3xl mx-auto my-16 px-4">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                 {/* Visible FAQ Section */}
+            <section className="max-w-3xl mx-auto my-8 sm:my-12 md:my-16 px-2 sm:px-3 md:px-4">
+              <div className="text-center mb-4 sm:mb-6 md:mb-8">
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
                   Frequently Asked Questions
                 </h2>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Everything you need to know about converting WebP images to JPG files online
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Everything you need to know about resizing images online
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-2 sm:space-y-3 md:space-y-4">
                 {faqData.map((faq, index) => (
                   <details
                     key={index}
-                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 
                     bg-white dark:bg-gray-800"
                   >
-                    <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+                    <summary className="cursor-pointer font-semibold text-sm sm:text-base md:text-lg text-gray-900 dark:text-white">
                       {faq.question}
                     </summary>
-                    <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
                       {faq.answer}
                     </p>
                   </details>
                 ))}
               </div>
             </section>
+            
+            </div>
+
+         
           </motion.div>
         </div>
       </div>

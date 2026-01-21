@@ -1286,7 +1286,56 @@ export default function PdfPageRemoverTool() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              
             </div>
+
+                <section className="mt-20">
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Remove Pages from PDF
+      </h2>
+
+      <div className="grid gap-6 md:grid-cols-4">
+        {/* Step 1 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-red-500 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Upload PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Upload your PDF file that contains pages you want to remove.
+          </p>
+        </div>
+
+        {/* Step 2 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-red-500 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Select Pages</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Click on pages to keep or remove. Use quick options like odd, even,
+            or select all pages.
+          </p>
+        </div>
+
+        {/* Step 3 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-red-500 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Review Changes</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Preview selected pages and check the estimated new PDF size.
+          </p>
+        </div>
+
+        {/* Step 4 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-red-500 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Download PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download the modified PDF with unwanted pages removed instantly.
+          </p>
+        </div>
+      </div>
+    </section>
+
+            
 
             {/* Content Area */}
             {files.length > 0 && (
@@ -1846,38 +1895,70 @@ export default function PdfPageRemoverTool() {
                   <span>View All</span>
                 </Link>
               </div>
-            </div>
 
-                  {/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+              {/* --- FAQ Section --- */}
+<section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
+  {/* Header */}
+  <div className="text-center mb-6 sm:mb-8 md:mb-12">
+    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
       Frequently Asked Questions
     </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-     Everything you need to know about removing pages from PDF files online
+    <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      Everything you need to know about editing PDFs online
     </p>
   </div>
 
-  {/* FAQ List */}
-  <div className="space-y-4">
+  {/* FAQ Cards */}
+  <div className="space-y-3 sm:space-y-4">
     {faqData.map((faq, index) => (
       <details
         key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
+        className="
+          group rounded-xl border border-gray-200 dark:border-gray-700
+          bg-white dark:bg-gray-900
+          transition-all duration-300
+          hover:border-blue-400/60 dark:hover:border-blue-500/60
+          open:shadow-lg open:border-blue-500
+        "
       >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
+        {/* Question */}
+        <summary
+          className="
+            flex cursor-pointer list-none items-center justify-between
+            px-4 sm:px-5 py-3 sm:py-4
+            text-sm sm:text-base md:text-lg
+            font-semibold text-gray-900 dark:text-white
+          "
+        >
+          <span>{faq.question}</span>
+
+          {/* Arrow */}
+          <span
+            className="
+              ml-3 flex h-6 w-6 items-center justify-center
+              rounded-full bg-gray-100 dark:bg-gray-800
+              text-gray-500 dark:text-gray-400
+              transition-transform duration-300
+              group-open:rotate-180
+            "
+          >
+            ▼
+          </span>
         </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
+
+        {/* Answer */}
+        <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
+          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+            {faq.answer}
+          </p>
+        </div>
       </details>
     ))}
   </div>
 </section>
+
+            </div>
+
 
           {/* Info Footer - Responsive */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-center mt-6 sm:mt-8 md:mt-12">

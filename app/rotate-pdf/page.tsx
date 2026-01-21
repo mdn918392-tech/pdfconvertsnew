@@ -1706,6 +1706,8 @@ export default function PdfRotatorTool() {
                         </div>
                       </div>
 
+                      
+
                         {/* Batch Rotation Controls - Responsive */}
                       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border-2 border-indigo-200 dark:border-indigo-800/30">
                         <h4 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-1 sm:gap-2">
@@ -1916,6 +1918,46 @@ export default function PdfRotatorTool() {
                           uploaded
                         </p>
                       </div>
+
+                          <section className="mt-20">
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Rotate PDF Pages Online
+      </h2>
+
+      <div className="grid gap-6 md:grid-cols-4">
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Upload PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Upload your PDF file that contains pages you want to rotate.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Rotate Pages</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Rotate individual pages or use batch options like 90°, 180°, or 270°.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Preview Changes</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Preview rotated pages to ensure the correct orientation.
+          </p>
+        </div>
+
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Download PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download all rotated pages as a single PDF or individually.
+          </p>
+        </div>
+      </div>
+    </section>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1990,38 +2032,39 @@ export default function PdfRotatorTool() {
                 <span>View All</span>
               </Link>
             </div>
+
+             {/* Visible FAQ Section */}
+            <section className="max-w-3xl mx-auto my-8 sm:my-12 md:my-16 px-2 sm:px-3 md:px-4">
+              <div className="text-center mb-4 sm:mb-6 md:mb-8">
+                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
+                  Frequently Asked Questions
+                </h2>
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Everything you need to know about resizing images online
+                </p>
+              </div>
+
+              <div className="space-y-2 sm:space-y-3 md:space-y-4">
+                {faqData.map((faq, index) => (
+                  <details
+                    key={index}
+                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 
+                    bg-white dark:bg-gray-800"
+                  >
+                    <summary className="cursor-pointer font-semibold text-sm sm:text-base md:text-lg text-gray-900 dark:text-white">
+                      {faq.question}
+                    </summary>
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </section>
+            
           </div>
 
-          {/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about rotating PDF pages online
-    </p>
-  </div>
-
-  {/* FAQ List */}
-  <div className="space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
-      >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
-        </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
-      </details>
-    ))}
-  </div>
-</section>
+   
 
           {/* Info Footer - Responsive */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 text-center mt-6 sm:mt-8 md:mt-12">

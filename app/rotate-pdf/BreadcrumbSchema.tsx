@@ -7,14 +7,13 @@ export default function BreadcrumbSchema() {
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://pdfswift.online",
+        item: "https://www.pdfswift.online",
       },
-     
       {
         "@type": "ListItem",
         position: 2,
         name: "Rotate PDF",
-        item: "https://pdfswift.online/rotate-pdf",
+        item: "https://www.pdfswift.online/rotate-pdf",
       },
     ],
   };

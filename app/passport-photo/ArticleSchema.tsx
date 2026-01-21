@@ -1,48 +1,47 @@
 export default function PassportPhotoSchema() {
   const data = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
 
-    // 🔹 App Info
     name: "Passport Size Photo Maker Online",
     description:
-      "Create passport size photos online for USA, India, UK, Canada & more. Choose official dimensions, background color, DPI and multiple photo layouts. Free, fast & print-ready.",
+      "Create passport size photos online for USA, India, UK, Canada & more. Choose official dimensions, background color, DPI, and multiple photo layouts. Free, fast, and print-ready.",
 
+    operatingSystem: "Web",
     applicationCategory: "MultimediaApplication",
-    operatingSystem: "All",
+    isAccessibleForFree: true,
 
-    // 🔹 Brand
-    publisher: {
-      "@type": "Organization",
-      name: "PDFSwift",
-      url: "https://pdfswift.online",
-      logo: {
-        "@type": "ImageObject",
-        url: "https://pdfswift.online/logo.png"
-      }
-    },
-
-    // 🔹 Page URL
-    url: "https://pdfswift.online/passport-photo",
-
-    // 🔹 Images
-    image: [
-      "https://pdfswift.online/images/passport-photo-tool.png"
-    ],
-
-    // 🔹 Dates (IST)
-    datePublished: "2026-01-13T00:00:00+05:30",
-    dateModified: "2026-01-20T00:00:00+05:30",
-
-    // 🔹 Language
-    inLanguage: "en",
-
-    // 🔹 Offers (Free Tool)
     offers: {
       "@type": "Offer",
       price: "0",
-      priceCurrency: "USD"
-    }
+      priceCurrency: "USD",
+    },
+
+    publisher: {
+      "@type": "Organization",
+      name: "PDFSwift",
+      url: "https://www.pdfswift.online",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://www.pdfswift.online/logo.png",
+        width: 512,
+        height: 512,
+      },
+    },
+
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": "https://www.pdfswift.online/passport-photo",
+    },
+
+    image: [
+      "https://www.pdfswift.online/images/passport-photo-tool.png",
+    ],
+
+    datePublished: "2026-01-13T00:00:00+05:30",
+    dateModified: "2026-01-21T00:00:00+05:30",
+
+    inLanguage: "en",
   };
 
   return (
