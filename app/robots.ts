@@ -8,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
       },
     ],
-    sitemap: "https://pdfswift.online/sitemap.xml",
+    sitemap: "https://www.pdfswift.online/sitemap.xml",
   };
 }
