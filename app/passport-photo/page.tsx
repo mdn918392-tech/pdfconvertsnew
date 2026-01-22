@@ -246,35 +246,220 @@ const layoutOptions = [
   { id: "6x4", name: "6×4 Sheet", grid: "6×4", value: 24, icon: Columns },
 ];
 
-// Paper Sizes for Print
+// COMPREHENSIVE PAPER SIZES (All standard sizes)
 const paperSizes = [
+  // Standard Photo Sizes
   {
     id: "4x6",
     name: "4×6 inches",
     width: 1200,
     height: 1800,
     description: "Standard photo print size",
+    category: "photo",
+    printWidth: 4,
+    printHeight: 6,
+    unit: "inches"
   },
   {
-    id: "letter",
-    name: "Letter (8.5×11)",
-    width: 2550,
-    height: 3300,
-    description: "US Letter paper",
+    id: "5x7",
+    name: "5×7 inches",
+    width: 1500,
+    height: 2100,
+    description: "Medium photo print",
+    category: "photo",
+    printWidth: 5,
+    printHeight: 7,
+    unit: "inches"
+  },
+  {
+    id: "6x8",
+    name: "6×8 inches",
+    width: 1800,
+    height: 2400,
+    description: "Large photo print",
+    category: "photo",
+    printWidth: 6,
+    printHeight: 8,
+    unit: "inches"
+  },
+  {
+    id: "8x10",
+    name: "8×10 inches",
+    width: 2400,
+    height: 3000,
+    description: "Portrait photo size",
+    category: "photo",
+    printWidth: 8,
+    printHeight: 10,
+    unit: "inches"
+  },
+  {
+    id: "10x12",
+    name: "10×12 inches",
+    width: 3000,
+    height: 3600,
+    description: "Large portrait size",
+    category: "photo",
+    printWidth: 10,
+    printHeight: 12,
+    unit: "inches"
+  },
+  // ISO A Series
+  {
+    id: "a8",
+    name: "A8 (52×74 mm)",
+    width: 614,
+    height: 874,
+    description: "Smallest A size",
+    category: "iso",
+    printWidth: 52,
+    printHeight: 74,
+    unit: "mm"
+  },
+  {
+    id: "a7",
+    name: "A7 (74×105 mm)",
+    width: 874,
+    height: 1241,
+    description: "Small size",
+    category: "iso",
+    printWidth: 74,
+    printHeight: 105,
+    unit: "mm"
+  },
+  {
+    id: "a6",
+    name: "A6 (105×148 mm)",
+    width: 1241,
+    height: 1748,
+    description: "Postcard size",
+    category: "iso",
+    printWidth: 105,
+    printHeight: 148,
+    unit: "mm"
+  },
+  {
+    id: "a5",
+    name: "A5 (148×210 mm)",
+    width: 1748,
+    height: 2480,
+    description: "Notebook size",
+    category: "iso",
+    printWidth: 148,
+    printHeight: 210,
+    unit: "mm"
   },
   {
     id: "a4",
-    name: "A4 Paper",
+    name: "A4 (210×297 mm)",
     width: 2480,
     height: 3508,
-    description: "International A4 paper (21×29.7 cm)",
+    description: "Standard office paper",
+    category: "iso",
+    printWidth: 210,
+    printHeight: 297,
+    unit: "mm"
   },
+  {
+    id: "a3",
+    name: "A3 (297×420 mm)",
+    width: 3508,
+    height: 4961,
+    description: "Large format printing",
+    category: "iso",
+    printWidth: 297,
+    printHeight: 420,
+    unit: "mm"
+  },
+  {
+    id: "a2",
+    name: "A2 (420×594 mm)",
+    width: 4961,
+    height: 7016,
+    description: "Poster size",
+    category: "iso",
+    printWidth: 420,
+    printHeight: 594,
+    unit: "mm"
+  },
+  {
+    id: "a1",
+    name: "A1 (594×841 mm)",
+    width: 7016,
+    height: 9933,
+    description: "Large poster",
+    category: "iso",
+    printWidth: 594,
+    printHeight: 841,
+    unit: "mm"
+  },
+  {
+    id: "a0",
+    name: "A0 (841×1189 mm)",
+    width: 9933,
+    height: 14043,
+    description: "Architectural drawings",
+    category: "iso",
+    printWidth: 841,
+    printHeight: 1189,
+    unit: "mm"
+  },
+  // North American Paper Sizes
+  {
+    id: "letter",
+    name: "Letter (8.5×11 in)",
+    width: 2550,
+    height: 3300,
+    description: "US Letter paper",
+    category: "na",
+    printWidth: 8.5,
+    printHeight: 11,
+    unit: "inches"
+  },
+  {
+    id: "legal",
+    name: "Legal (8.5×14 in)",
+    width: 2550,
+    height: 4200,
+    description: "US Legal paper",
+    category: "na",
+    printWidth: 8.5,
+    printHeight: 14,
+    unit: "inches"
+  },
+  {
+    id: "tabloid",
+    name: "Tabloid (11×17 in)",
+    width: 3300,
+    height: 5100,
+    description: "US Tabloid/ANSI B",
+    category: "na",
+    printWidth: 11,
+    printHeight: 17,
+    unit: "inches"
+  },
+  {
+    id: "ledger",
+    name: "Ledger (17×11 in)",
+    width: 5100,
+    height: 3300,
+    description: "US Ledger (landscape)",
+    category: "na",
+    printWidth: 17,
+    printHeight: 11,
+    unit: "inches"
+  },
+  // Custom Size
   {
     id: "custom",
     name: "Custom Size",
     width: 0,
     height: 0,
     description: "Set your own dimensions",
+    category: "custom",
+    printWidth: 0,
+    printHeight: 0,
+    unit: "pixels"
   },
 ];
 
@@ -296,6 +481,7 @@ interface ProcessedSheet {
   sheetNumber: number;
   totalSheets: number;
   photosInSheet: number;
+  paperSize: string;
 }
 
 interface DownloadNotification {
@@ -363,7 +549,7 @@ const ImagePreview = ({
               className="relative"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* CLOSE BUTTON — IMAGE SE JUST UPAR */}
+              {/* CLOSE BUTTON */}
               <button
                 onClick={() => setPreviewOpen(false)}
                 className="absolute -top-14 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
@@ -520,44 +706,43 @@ const SheetPreview = ({
   return (
     <>
       {/* Sheet Preview Modal */}
-     <AnimatePresence>
-  {previewOpen && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-      onClick={() => setPreviewOpen(false)}
-    >
-      {/* OUTER WRAPPER */}
-      <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        exit={{ scale: 0.9 }}
-        className="relative"
-        onClick={(e) => e.stopPropagation()}
-       >
-        {/* CLOSE BUTTON — IMAGE SE UPAR */}
-        <button
-          onClick={() => setPreviewOpen(false)}
-          className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-        >
-          <XCircle className="w-6 h-6" />
-        </button>
+      <AnimatePresence>
+        {previewOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setPreviewOpen(false)}
+          >
+            {/* OUTER WRAPPER */}
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* CLOSE BUTTON */}
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
 
-        {/* IMAGE CONTAINER */}
-        <div className="max-w-4xl max-h-[90vh]">
-          <img
-            src={url}
-            alt={sheet.name}
-            className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-          />
-        </div>
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
-
+              {/* IMAGE CONTAINER */}
+              <div className="max-w-4xl max-h-[90vh]">
+                <img
+                  src={url}
+                  alt={sheet.name}
+                  className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Sheet Preview Card */}
       <motion.div
@@ -605,7 +790,7 @@ const SheetPreview = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                 <File className="w-3 h-3" />
-                <span>A4 Sheet</span>
+                <span>{sheet.paperSize} Sheet</span>
               </div>
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 {(sheet.blob.size / 1024 / 1024).toFixed(2)} MB
@@ -706,13 +891,18 @@ export default function PassportPhotoMaker() {
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [photoQuality, setPhotoQuality] = useState(100);
   const [selectedLayout, setSelectedLayout] = useState(layoutOptions[0]);
-  const [selectedPaperSize, setSelectedPaperSize] = useState(paperSizes[2]); // Default to A4
-  const [customWidth, setCustomWidth] = useState<number>(300);
-  const [customHeight, setCustomHeight] = useState<number>(300);
+  const [selectedPaperSize, setSelectedPaperSize] = useState(() => {
+    // Find A4 paper size
+    const a4Size = paperSizes.find((paper) => paper.id === "a4");
+    return a4Size || paperSizes[0];
+  });
+  const [customWidth, setCustomWidth] = useState<number>(2480); // Default A4 width
+  const [customHeight, setCustomHeight] = useState<number>(3508); // Default A4 height
   const [spacing, setSpacing] = useState(20);
   const [margin, setMargin] = useState(50);
   const [isHD, setIsHD] = useState(true);
   const [dpi, setDpi] = useState(300);
+  const [selectedPaperCategory, setSelectedPaperCategory] = useState<string>("all"); // "all", "iso", "na", "photo"
 
   // New states for dynamic photo count and sheet management
   const [photoCount, setPhotoCount] = useState<number>(1);
@@ -723,6 +913,26 @@ export default function PassportPhotoMaker() {
     rows: number;
     photosPerSheet: number;
   }>({ cols: 1, rows: 1, photosPerSheet: 1 });
+
+  // Filter paper sizes by category
+  const filteredPaperSizes = paperSizes.filter((paper) => {
+    if (selectedPaperCategory === "all") return true;
+    return paper.category === selectedPaperCategory;
+  });
+
+  // Calculate effective paper dimensions
+  const getEffectivePaperDimensions = () => {
+    if (selectedPaperSize.id === "custom") {
+      return {
+        width: customWidth || 2480,
+        height: customHeight || 3508
+      };
+    }
+    return {
+      width: selectedPaperSize.width,
+      height: selectedPaperSize.height
+    };
+  };
 
   // Generate unique filename
   const generateUniqueFileName = (
@@ -743,18 +953,25 @@ export default function PassportPhotoMaker() {
     const sheetText = sheetNumber
       ? `_sheet${sheetNumber}_of_${totalSheets}`
       : "";
-    return `${cleanBaseName}_${countryCode}_${dimensions}${layoutText}${qualityText}${sheetText}_${timestamp}_${randomId}.jpg`;
+    const paperText = `_${selectedPaperSize.name.replace(/\s+/g, "_").toLowerCase()}`;
+    return `${cleanBaseName}_${countryCode}_${dimensions}${layoutText}${qualityText}${paperText}${sheetText}_${timestamp}_${randomId}.jpg`;
   };
 
-  // Calculate maximum photos that fit on A4 sheet
+  // Calculate maximum photos that fit on sheet
   const calculateMaxPhotosOnSheet = () => {
-    const paperWidth = selectedPaperSize.width;
-    const paperHeight = selectedPaperSize.height;
+    const paperDims = getEffectivePaperDimensions();
+    const paperWidth = paperDims.width;
+    const paperHeight = paperDims.height;
     const photoWidth = selectedSize.width + spacing;
     const photoHeight = selectedSize.height + spacing;
 
-    const maxCols = Math.floor((paperWidth - margin * 2) / photoWidth);
-    const maxRows = Math.floor((paperHeight - margin * 2) / photoHeight);
+    // Ensure paper dimensions are valid
+    if (paperWidth <= 0 || paperHeight <= 0) {
+      return { cols: 1, rows: 1, photosPerSheet: 1 };
+    }
+
+    const maxCols = Math.max(1, Math.floor((paperWidth - margin * 2) / photoWidth));
+    const maxRows = Math.max(1, Math.floor((paperHeight - margin * 2) / photoHeight));
 
     return {
       cols: maxCols,
@@ -779,7 +996,7 @@ export default function PassportPhotoMaker() {
       const sheetsNeeded = Math.ceil(photoCount / calculation.photosPerSheet);
       setTotalSheetsNeeded(sheetsNeeded);
     }
-  }, [file, selectedSize, selectedPaperSize, spacing, margin, photoCount]);
+  }, [file, selectedSize, selectedPaperSize, spacing, margin, photoCount, customWidth, customHeight]);
 
   // Function to create grid layout for a sheet
   const createGridLayoutForSheet = async (
@@ -795,8 +1012,14 @@ export default function PassportPhotoMaker() {
     if (!ctx) throw new Error("Canvas context not available");
 
     // Calculate total grid dimensions
-    const totalWidth = selectedPaperSize.width;
-    const totalHeight = selectedPaperSize.height;
+    const paperDims = getEffectivePaperDimensions();
+    const totalWidth = paperDims.width;
+    const totalHeight = paperDims.height;
+
+    // Validate dimensions
+    if (totalWidth <= 0 || totalHeight <= 0) {
+      throw new Error("Invalid paper dimensions");
+    }
 
     // Set canvas size
     canvas.width = totalWidth;
@@ -830,14 +1053,14 @@ export default function PassportPhotoMaker() {
     }
 
     // Convert canvas to blob with high quality
-    return new Promise<Blob>((resolve) => {
+    return new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (blob) => {
           if (blob) resolve(blob);
-          else throw new Error("Failed to create grid photo");
+          else reject(new Error("Failed to create grid photo - canvas is empty"));
         },
         "image/jpeg",
-        photoQuality / 100
+        Math.min(1, Math.max(0.8, photoQuality / 100))
       );
     });
   };
@@ -909,6 +1132,7 @@ export default function PassportPhotoMaker() {
           sheetNumber: currentSheet,
           totalSheets: totalSheetsNeeded,
           photosInSheet: photosInThisSheet,
+          paperSize: selectedPaperSize.name,
         });
 
         remainingPhotos -= photosInThisSheet;
@@ -920,7 +1144,7 @@ export default function PassportPhotoMaker() {
       await new Promise((resolve) => setTimeout(resolve, 200));
     } catch (error) {
       console.error("Passport photo creation error:", error);
-      alert("Failed to create passport photos. Please try again.");
+      alert("Failed to create passport photos. Please check paper size and try again.");
     } finally {
       setProcessing(false);
     }
@@ -944,6 +1168,12 @@ export default function PassportPhotoMaker() {
         canvas.width = Math.floor(selectedSize.width * scaleFactor);
         canvas.height = Math.floor(selectedSize.height * scaleFactor);
 
+        // Validate dimensions
+        if (canvas.width <= 0 || canvas.height <= 0) {
+          reject(new Error("Invalid photo dimensions"));
+          return;
+        }
+
         // Fill with background color
         ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -958,7 +1188,7 @@ export default function PassportPhotoMaker() {
             else reject(new Error("Failed to create passport photo"));
           },
           "image/jpeg",
-          photoQuality / 100
+          Math.min(1, Math.max(0.8, photoQuality / 100))
         );
       };
 
@@ -1058,6 +1288,15 @@ export default function PassportPhotoMaker() {
     { value: 600, label: "600 DPI (Professional)" },
   ];
 
+  // Paper size categories
+  const paperCategories = [
+    { id: "all", name: "All Sizes" },
+    { id: "iso", name: "ISO A Series" },
+    { id: "na", name: "North American" },
+    { id: "photo", name: "Photo Sizes" },
+    { id: "custom", name: "Custom" },
+  ];
+
   return (
     <>
       <FAQSchema />
@@ -1119,22 +1358,21 @@ export default function PassportPhotoMaker() {
                   </span>
                 </motion.div>
 
-               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black 
-               text-gray-900 dark:text-white 
-               mb-2 sm:mb-4 
-               bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 
-               bg-clip-text text-transparent 
-               px-2 leading-tight text-center">
-  Passport Size Photo Maker Online
-  <br className="hidden sm:block" />
-  <span className="font-extrabold">
-    – Free, HD & Print Ready
-  </span>
-  <span className="block text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mt-2">
-    | PDFSwift
-  </span>
-</h1>
-
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black 
+                  text-gray-900 dark:text-white 
+                  mb-2 sm:mb-4 
+                  bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 
+                  bg-clip-text text-transparent 
+                  px-2 leading-tight text-center">
+                  Passport Size Photo Maker Online
+                  <br className="hidden sm:block" />
+                  <span className="font-extrabold">
+                    – Free, HD & Print Ready
+                  </span>
+                  <span className="block text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mt-2">
+                    | PDFSwift
+                  </span>
+                </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
                   Create passport size photos online instantly with PDFSwift. Choose official sizes for USA, India, UK, Canada & more. Select background color, DPI, and layouts to print multiple photos per page. Free, secure, and no signup required.
@@ -1326,29 +1564,103 @@ export default function PassportPhotoMaker() {
 
                     {/* Paper Size Selection */}
                     <div>
-                      <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
-                        Paper Size
-                      </h4>
-                      <div className="grid grid-cols-2 gap-3">
-                        {paperSizes.map((paperSize) => (
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium text-gray-700 dark:text-gray-300">
+                          Paper Size
+                        </h4>
+                        <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                          {selectedPaperSize.name}
+                        </span>
+                      </div>
+
+                      {/* Paper Category Tabs */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {paperCategories.map((category) => (
+                          <button
+                            key={category.id}
+                            onClick={() => setSelectedPaperCategory(category.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              selectedPaperCategory === category.id
+                                ? "bg-purple-500 text-white"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            {category.name}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Paper Size Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-2">
+                        {filteredPaperSizes.map((paperSize) => (
                           <button
                             key={paperSize.id}
                             onClick={() => handlePaperSizeSelect(paperSize)}
-                            className={`p-4 rounded-xl border-2 text-left ${
+                            className={`p-3 rounded-xl border-2 text-left transition-all ${
                               selectedPaperSize.id === paperSize.id
-                                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-md"
                                 : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700"
                             }`}
                           >
                             <div className="font-bold text-purple-600 dark:text-purple-400 mb-1">
                               {paperSize.name}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                               {paperSize.description}
                             </div>
+                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                              {paperSize.width} × {paperSize.height}px
+                            </div>
+                            {paperSize.category !== "custom" && (
+                              <div className="text-xs text-gray-500 dark:text-gray-500">
+                                {paperSize.printWidth} × {paperSize.printHeight} {paperSize.unit}
+                              </div>
+                            )}
                           </button>
                         ))}
                       </div>
+
+                      {/* Custom Size Inputs */}
+                      {selectedPaperSize.id === "custom" && (
+                        <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+                          <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
+                            Custom Paper Dimensions (pixels)
+                          </h5>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">
+                                Width (px)
+                              </label>
+                              <input
+                                type="number"
+                                min="100"
+                                max="10000"
+                                value={customWidth}
+                                onChange={(e) => setCustomWidth(parseInt(e.target.value) || 2480)}
+                                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                                placeholder="Width in pixels"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">
+                                Height (px)
+                              </label>
+                              <input
+                                type="number"
+                                min="100"
+                                max="10000"
+                                value={customHeight}
+                                onChange={(e) => setCustomHeight(parseInt(e.target.value) || 3508)}
+                                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                                placeholder="Height in pixels"
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            Tip: For A4 at 300 DPI use 2480×3508 pixels
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Layout Calculation Display */}
@@ -1388,6 +1700,11 @@ export default function PassportPhotoMaker() {
                           </p>
                         </div>
                       </div>
+                      {selectedPaperSize.id !== "custom" && (
+                        <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                          Paper dimensions: {getEffectivePaperDimensions().width} × {getEffectivePaperDimensions().height}px
+                        </div>
+                      )}
                     </div>
 
                     {/* Grid Spacing Control */}
@@ -1555,153 +1872,146 @@ export default function PassportPhotoMaker() {
                 </div>
               )}
 
-             {/* --- Photo Preview and Processing Area --- */}
-{hasFile && (
-  <div className="space-y-4 sm:space-y-6 md:space-y-8">
+              {/* --- Photo Preview and Processing Area --- */}
+              {hasFile && (
+                <div className="space-y-4 sm:space-y-6 md:space-y-8">
+                  {/* --- Input Photo Preview --- */}
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                        Uploaded Photo
+                      </h3>
+                    </div>
 
-    {/* --- Input Photo Preview --- */}
-    <div className="space-y-3 sm:space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-          Uploaded Photo
-        </h3>
-      </div>
+                    {/* ✅ FIXED PREVIEW WRAPPER (MOBILE SAFE) */}
+                    <div
+                      className="
+                        w-full
+                        flex justify-center
+                        overflow-x-hidden
+                        p-2 sm:p-3 md:p-4
+                        bg-gradient-to-br from-gray-50 to-blue-50
+                        dark:from-gray-800 dark:to-blue-950/20
+                        rounded-lg sm:rounded-xl md:rounded-2xl
+                        border border-gray-200 dark:border-gray-700
+                      "
+                    >
+                      {/* ✅ WIDTH CONTROL (VERY IMPORTANT) */}
+                      <div className="w-full max-w-[480px]">
+                        <ImagePreview
+                          file={file}
+                          filename={file.name}
+                          onRemove={handleRemoveFile}
+                          status="Ready to Process"
+                          index={0}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-      {/* ✅ FIXED PREVIEW WRAPPER (MOBILE SAFE) */}
-      <div
-        className="
-          w-full
-          flex justify-center
-          overflow-x-hidden
-          p-2 sm:p-3 md:p-4
-          bg-gradient-to-br from-gray-50 to-blue-50
-          dark:from-gray-800 dark:to-blue-950/20
-          rounded-lg sm:rounded-xl md:rounded-2xl
-          border border-gray-200 dark:border-gray-700
-        "
-      >
-        {/* ✅ WIDTH CONTROL (VERY IMPORTANT) */}
-        <div className="w-full max-w-[480px]">
-          <ImagePreview
-            file={file}
-            filename={file.name}
-            onRemove={handleRemoveFile}
-            status="Ready to Process"
-            index={0}
-          />
-        </div>
-      </div>
-    </div>
+                  {/* --- Progress and Action Buttons --- */}
+                  <div className="space-y-4 sm:space-y-6">
+                    {processing && (
+                      <div className="space-y-3 sm:space-y-4">
+                        <ProgressBar
+                          progress={progress}
+                          label={`Creating ${photoCount} photos across ${totalSheetsNeeded} sheet${
+                            totalSheetsNeeded > 1 ? "s" : ""
+                          }...`}
+                        />
+                        <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
+                          <Sparkles className="w-4 h-4 animate-pulse" />
+                          <span className="text-xs sm:text-sm font-medium">
+                            Processing {selectedSize?.name || "passport"} photos...
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
-    {/* --- Progress and Action Buttons --- */}
-    <div className="space-y-4 sm:space-y-6">
-      {processing && (
-        <div className="space-y-3 sm:space-y-4">
-          <ProgressBar
-            progress={progress}
-            label={`Creating ${photoCount} photos across ${totalSheetsNeeded} sheet${
-              totalSheetsNeeded > 1 ? "s" : ""
-            }...`}
-          />
-          <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
-            <Sparkles className="w-4 h-4 animate-pulse" />
-            <span className="text-xs sm:text-sm font-medium">
-              Processing {selectedSize?.name || "passport"} photos...
-            </span>
-          </div>
-        </div>
-      )}
+                    {isReadyToProcess && selectedSize && (
+                      <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={createPassportPhotos}
+                        disabled={!selectedSize}
+                        className={`
+                          w-full
+                          py-2.5 sm:py-3 md:py-4
+                          px-3 sm:px-4 md:px-6
+                          bg-gradient-to-r from-blue-500 to-indigo-600
+                          hover:from-blue-600 hover:to-indigo-700
+                          text-white font-bold
+                          rounded-lg sm:rounded-xl md:rounded-2xl
+                          shadow-md sm:shadow-lg md:shadow-xl
+                          transition-all
+                          text-sm sm:text-base md:text-lg
+                          flex items-center justify-center gap-2 sm:gap-3
+                          ${!selectedSize ? "opacity-50 cursor-not-allowed" : ""}
+                        `}
+                      >
+                        <Camera className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                        {selectedSize ? (
+                          <>Create {photoCount} {selectedSize.name} Photos</>
+                        ) : (
+                          <>Select Passport Size First</>
+                        )}
+                        <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </motion.button>
+                    )}
+                  </div>
 
-      {isReadyToProcess && selectedSize && (
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={createPassportPhotos}
-          disabled={!selectedSize}
-          className={`
-            w-full
-            py-2.5 sm:py-3 md:py-4
-            px-3 sm:px-4 md:px-6
-            bg-gradient-to-r from-blue-500 to-indigo-600
-            hover:from-blue-600 hover:to-indigo-700
-            text-white font-bold
-            rounded-lg sm:rounded-xl md:rounded-2xl
-            shadow-md sm:shadow-lg md:shadow-xl
-            transition-all
-            text-sm sm:text-base md:text-lg
-            flex items-center justify-center gap-2 sm:gap-3
-            ${!selectedSize ? "opacity-50 cursor-not-allowed" : ""}
-          `}
-        >
-          <Camera className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-          {selectedSize ? (
-            <>Create {photoCount} {selectedSize.name} Photos</>
-          ) : (
-            <>Select Passport Size First</>
-          )}
-          <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
-        </motion.button>
-      )}
-    </div>
+                  <section className="mt-20">
+                    <h2 className="text-3xl font-bold text-center mb-10">
+                      How to Create Passport Size Photo Online
+                    </h2>
 
+                    <div className="grid gap-6 md:grid-cols-5">
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">1</div>
+                        <h3 className="font-semibold text-lg">Upload Photo</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Upload a clear portrait photo from your device.
+                        </p>
+                      </div>
 
-        <section className="mt-20">
-      <h2 className="text-3xl font-bold text-center mb-10">
-        How to Create Passport Size Photo Online
-      </h2>
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">2</div>
+                        <h3 className="font-semibold text-lg">Choose Country</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Select passport size for India, USA, UK or other countries.
+                        </p>
+                      </div>
 
-      <div className="grid gap-6 md:grid-cols-5">
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
+                        <h3 className="font-semibold text-lg">Customize Settings</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Set DPI, background color, photo quantity and paper size.
+                        </p>
+                      </div>
 
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-blue-600 mb-2">1</div>
-          <h3 className="font-semibold text-lg">Upload Photo</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Upload a clear portrait photo from your device.
-          </p>
-        </div>
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
+                        <h3 className="font-semibold text-lg">Generate Photos</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Create HD, print-ready passport photo sheets instantly.
+                        </p>
+                      </div>
 
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-blue-600 mb-2">2</div>
-          <h3 className="font-semibold text-lg">Choose Country</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Select passport size for India, USA, UK or other countries.
-          </p>
-        </div>
-
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
-          <h3 className="font-semibold text-lg">Customize Settings</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Set DPI, background color, photo quantity and paper size.
-          </p>
-        </div>
-
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
-          <h3 className="font-semibold text-lg">Generate Photos</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Create HD, print-ready passport photo sheets instantly.
-          </p>
-        </div>
-
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-blue-600 mb-2">5</div>
-          <h3 className="font-semibold text-lg">Download & Print</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Download and print your passport photos without signup.
-          </p>
-        </div>
-
-      </div>
-    </section>
-
-
-  </div>
-)}
-
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">5</div>
+                        <h3 className="font-semibold text-lg">Download & Print</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Download and print your passport photos without signup.
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              )}
             </div>
 
             {/* --- Results and Download Area --- */}
@@ -1724,7 +2034,7 @@ export default function PassportPhotoMaker() {
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
                       {photoCount} photos created across {totalSheetsNeeded}{" "}
-                      sheet{totalSheetsNeeded > 1 ? "s" : ""}
+                      sheet{totalSheetsNeeded > 1 ? "s" : ""} ({selectedPaperSize.name})
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
                       Layout: {layoutCalculation.cols} ×{" "}
@@ -1744,7 +2054,7 @@ export default function PassportPhotoMaker() {
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                   <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <File className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                    Generated A4 Sheets ({totalSheetsNeeded} sheets)
+                    Generated {selectedPaperSize.name} Sheets ({totalSheetsNeeded} sheets)
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1800,7 +2110,7 @@ export default function PassportPhotoMaker() {
                     {
                       icon: Grid3x3,
                       title: "Dynamic Photo Count",
-                      desc: "Select any number of photos (1-100+). Automatically split across multiple A4 sheets as needed",
+                      desc: "Select any number of photos (1-100+). Automatically split across multiple sheets as needed",
                       gradient: "from-blue-500 to-indigo-600",
                       bg: "from-blue-50 to-indigo-50",
                       border: "border-blue-200",
@@ -1808,15 +2118,15 @@ export default function PassportPhotoMaker() {
                     {
                       icon: Calculator,
                       title: "Smart Sheet Management",
-                      desc: "Automatically calculates optimal layout and creates multiple A4 sheets when photos overflow",
+                      desc: "Automatically calculates optimal layout and creates multiple sheets when photos overflow",
                       gradient: "from-purple-500 to-pink-600",
                       bg: "from-purple-50 to-pink-50",
                       border: "border-purple-200",
                     },
                     {
                       icon: Printer,
-                      title: "Print-Ready A4 Sheets",
-                      desc: "Standard 21×29.7 cm A4 format. Perfect for home or professional printing",
+                      title: "Multiple Paper Sizes",
+                      desc: "Supports A4, A3, Letter, Legal, Tabloid, and custom sizes for printing",
                       gradient: "from-green-500 to-emerald-600",
                       bg: "from-green-50 to-emerald-50",
                       border: "border-green-200",
@@ -1864,13 +2174,13 @@ export default function PassportPhotoMaker() {
                     },
                     {
                       value: totalSheetsNeeded,
-                      label: "A4 Sheets Needed",
+                      label: "Sheets Needed",
                       color: "text-green-600",
                       bg: "bg-green-50 dark:bg-green-900/10",
                     },
                     {
-                      value: `${layoutCalculation.cols}×${layoutCalculation.rows}`,
-                      label: "Layout Per Sheet",
+                      value: selectedPaperSize.name.split(" ")[0],
+                      label: "Paper Size",
                       color: "text-indigo-600",
                       bg: "bg-indigo-50 dark:bg-indigo-900/10",
                     },
@@ -1955,70 +2265,63 @@ export default function PassportPhotoMaker() {
                   <span>View All</span>
                 </Link>
               </div>
+              
               {/* --- FAQ Section --- */}
-<section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
-  {/* Header */}
-  <div className="text-center mb-6 sm:mb-8 md:mb-12">
-    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
-      Frequently Asked Questions
-    </h2>
-    <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about editing PDFs online
-    </p>
-  </div>
+              <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
+                <div className="text-center mb-6 sm:mb-8 md:mb-12">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
+                    Frequently Asked Questions
+                  </h2>
+                  <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Everything you need to know about editing PDFs online
+                  </p>
+                </div>
 
-  {/* FAQ Cards */}
-  <div className="space-y-3 sm:space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="
-          group rounded-xl border border-gray-200 dark:border-gray-700
-          bg-white dark:bg-gray-900
-          transition-all duration-300
-          hover:border-blue-400/60 dark:hover:border-blue-500/60
-          open:shadow-lg open:border-blue-500
-        "
-      >
-        {/* Question */}
-        <summary
-          className="
-            flex cursor-pointer list-none items-center justify-between
-            px-4 sm:px-5 py-3 sm:py-4
-            text-sm sm:text-base md:text-lg
-            font-semibold text-gray-900 dark:text-white
-          "
-        >
-          <span>{faq.question}</span>
+                <div className="space-y-3 sm:space-y-4">
+                  {faqData.map((faq, index) => (
+                    <details
+                      key={index}
+                      className="
+                        group rounded-xl border border-gray-200 dark:border-gray-700
+                        bg-white dark:bg-gray-900
+                        transition-all duration-300
+                        hover:border-blue-400/60 dark:hover:border-blue-500/60
+                        open:shadow-lg open:border-blue-500
+                      "
+                    >
+                      <summary
+                        className="
+                          flex cursor-pointer list-none items-center justify-between
+                          px-4 sm:px-5 py-3 sm:py-4
+                          text-sm sm:text-base md:text-lg
+                          font-semibold text-gray-900 dark:text-white
+                        "
+                      >
+                        <span>{faq.question}</span>
 
-          {/* Arrow */}
-          <span
-            className="
-              ml-3 flex h-6 w-6 items-center justify-center
-              rounded-full bg-gray-100 dark:bg-gray-800
-              text-gray-500 dark:text-gray-400
-              transition-transform duration-300
-              group-open:rotate-180
-            "
-          >
-            ▼
-          </span>
-        </summary>
+                        <span
+                          className="
+                            ml-3 flex h-6 w-6 items-center justify-center
+                            rounded-full bg-gray-100 dark:bg-gray-800
+                            text-gray-500 dark:text-gray-400
+                            transition-transform duration-300
+                            group-open:rotate-180
+                          "
+                        >
+                          ▼
+                        </span>
+                      </summary>
 
-        {/* Answer */}
-        <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
-          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-            {faq.answer}
-          </p>
-        </div>
-      </details>
-    ))}
-  </div>
-</section>
-
+                      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
+                        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                          {faq.answer}
+                        </p>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </section>
             </div>
-
-           
           </motion.div>
         </div>
       </div>

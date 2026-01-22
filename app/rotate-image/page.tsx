@@ -1062,75 +1062,7 @@ export default function RotateImage() {
                 </div>
               )}
 
-                 <section
-      id="how-to-rotate-image"
-      className="mt-20 scroll-mt-24"
-    >
-      <h2 className="text-3xl font-bold text-center mb-10">
-        How to Rotate Images Online
-      </h2>
-
-      <div className="grid gap-6 md:grid-cols-6">
-
-        {/* Step 1 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-blue-600 mb-2">1</div>
-          <h3 className="font-semibold text-lg">Upload Images</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Upload one or multiple JPG, PNG, or WebP images from your device.
-          </p>
-        </div>
-
-        {/* Step 2 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-blue-600 mb-2">2</div>
-          <h3 className="font-semibold text-lg">Choose Rotation Angle</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Select 90°, 180°, or 270° rotation in clockwise or counter-clockwise direction.
-          </p>
-        </div>
-
-        {/* Step 3 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
-          <h3 className="font-semibold text-lg">Rotate All Images</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Apply the selected rotation angle to all uploaded images at once.
-          </p>
-        </div>
-
-        {/* Step 4 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
-          <h3 className="font-semibold text-lg">Rotate Individual Images</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Adjust rotation separately for each image using individual controls.
-          </p>
-        </div>
-
-        {/* Step 5 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-blue-600 mb-2">5</div>
-          <h3 className="font-semibold text-lg">Preview Changes</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Instantly preview the rotated images before final download.
-          </p>
-        </div>
-
-        {/* Step 6 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-blue-600 mb-2">6</div>
-          <h3 className="font-semibold text-lg">Download Images</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Download rotated images individually or as a ZIP archive.
-          </p>
-        </div>
-
-      </div>
-    </section>
-
-            </div>
-
+              
             {/* --- Rotation Options --- */}
 {hasFiles && !hasResults && (
   <div className="mb-6 sm:mb-8 bg-gradient-to-br from-blue-50 to-cyan-50 
@@ -1208,6 +1140,76 @@ export default function RotateImage() {
     </div>
   </div>
 )}
+
+   <section
+      id="how-to-rotate-image"
+      className="mt-20 scroll-mt-24"
+    >
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Rotate Images Online
+      </h2>
+
+      <div className="grid gap-6 md:grid-cols-6">
+
+        {/* Step 1 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Upload Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Upload one or multiple JPG, PNG, or WebP images from your device.
+          </p>
+        </div>
+
+        {/* Step 2 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Choose Rotation Angle</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Select 90°, 180°, or 270° rotation in clockwise or counter-clockwise direction.
+          </p>
+        </div>
+
+        {/* Step 3 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Rotate All Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Apply the selected rotation angle to all uploaded images at once.
+          </p>
+        </div>
+
+        {/* Step 4 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Rotate Individual Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Adjust rotation separately for each image using individual controls.
+          </p>
+        </div>
+
+        {/* Step 5 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">5</div>
+          <h3 className="font-semibold text-lg">Preview Changes</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Instantly preview the rotated images before final download.
+          </p>
+        </div>
+
+        {/* Step 6 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+          <div className="text-4xl font-bold text-blue-600 mb-2">6</div>
+          <h3 className="font-semibold text-lg">Download Images</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download rotated images individually or as a ZIP archive.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+            </div>
+
 
             {/* --- Results and Download Area --- */}
             {hasResults && (

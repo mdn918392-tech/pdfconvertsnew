@@ -396,7 +396,144 @@
         "answer": "For highly sensitive or confidential documents, it is safer to use offline PDF software instead of online tools."
       }
     ]
+  },
+
+  {
+    "id": "passport-size-photo-maker-online",
+    "title": "How to Create Passport Size Photo Online",
+    "date": "Jan 23 2026",
+    "description": "Learn how to create passport size photos online using a free, fast, and secure passport photo maker. Choose country-specific sizes, background color, and download print-ready photos instantly.",
+    "slug": "passport-size-photo-maker-online",
+    "image": "/images/passport-photo-tool.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "Passport Size Photo Maker", "url": "/blog/passport-size-photo-maker-online" }
+    ],
+    "howto": {
+      "steps": [
+        "Open a trusted online passport size photo maker tool.",
+        "Upload your photo from mobile or desktop.",
+        "Select your country or required passport photo size.",
+        "Adjust background color, DPI, and photo layout if needed.",
+        "Preview and download the passport size photo instantly."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["Personal photo image"],
+      "tool": ["Online Passport Size Photo Maker"]
+    },
+    "faq": [
+      {
+        "question": "Is it safe to use an online passport size photo maker?",
+        "answer": "Yes, secure passport photo tools use HTTPS encryption and automatically delete uploaded photos after processing."
+      },
+      {
+        "question": "Can I create passport photos for different countries?",
+        "answer": "Yes, you can choose official passport photo sizes for India, USA, UK, Canada, and many other countries."
+      },
+      {
+        "question": "Do I need any photo editing skills?",
+        "answer": "No, the tool automatically adjusts size, background, and layout, making it easy for anyone to use."
+      },
+      {
+        "question": "Can I use this tool on mobile?",
+        "answer": "Yes, passport size photo makers work smoothly on mobile phones, tablets, and desktop devices."
+      }
+    ]
+  },
+
+  {
+    "id": "rotate-image-online",
+    "title": " How to Rotate Images Online Without Losing Quality: Complete 2026 Guide",
+    "date": "Jan 23 2026",
+    "description": "Learn how to rotate images online easily using a free, fast, and secure image rotation tool. Rotate JPG, PNG, and WebP images clockwise or counterclockwise without losing quality.",
+    "slug": "rotate-image-online",
+    "image": "/images/rotate-image-tool.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "Rotate Image Online", "url": "/blog/rotate-image-online" }
+    ],
+    "howto": {
+      "steps": [
+        "Open a trusted online image rotation tool.",
+        "Upload one or multiple images from your device.",
+        "Choose the rotation angle such as 90°, 180°, or 270°.",
+        "Rotate all images at once or adjust individual images.",
+        "Preview and download the rotated images instantly."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["Image files (JPG, PNG, WebP)"],
+      "tool": ["Online Image Rotation Tool"]
+    },
+    "faq": [
+      {
+        "question": "Is it safe to rotate images online?",
+        "answer": "Yes, secure image rotation tools use HTTPS encryption and do not store uploaded images permanently."
+      },
+      {
+        "question": "Will image quality be reduced after rotation?",
+        "answer": "No, rotating images does not reduce quality when done using reliable online tools."
+      },
+      {
+        "question": "Can I rotate multiple images at once?",
+        "answer": "Yes, most online image rotators allow batch rotation of multiple images."
+      },
+      {
+        "question": "Does the rotate image tool work on mobile devices?",
+        "answer": "Yes, image rotation tools work smoothly on mobile phones, tablets, and desktop devices."
+      }
+    ]
+  },
+
+  {
+    "id": "resize-image-online",
+    "title": "How to Resize Images Online Without Losing Quality",
+    "date": "Jan 23 2026",
+    "description": "Learn how to resize images online easily using a free, fast, and secure image resizer. Change image dimensions, pixels, or resolution without losing quality.",
+    "slug": "resize-image-online",
+    "image": "/images/resize-image-tool.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "Resize Image Online", "url": "/blog/resize-image-online" }
+    ],
+    "howto": {
+      "steps": [
+        "Open a trusted online image resizing tool.",
+        "Upload your image from mobile or desktop.",
+        "Enter custom width and height or choose preset sizes.",
+        "Maintain aspect ratio to avoid distortion.",
+        "Preview and download the resized image instantly."
+      ],
+      "estimatedTime": "PT2M",
+      "totalTime": "PT2M",
+      "supply": ["Image files (JPG, PNG, WebP)"],
+      "tool": ["Online Image Resizer"]
+    },
+    "faq": [
+      {
+        "question": "Is it safe to resize images online?",
+        "answer": "Yes, secure image resizing tools use HTTPS encryption and automatically delete uploaded files after processing."
+      },
+      {
+        "question": "Will resizing reduce image quality?",
+        "answer": "No, reliable image resizers preserve quality while adjusting dimensions, especially when aspect ratio is maintained."
+      },
+      {
+        "question": "Can I resize images for social media or documents?",
+        "answer": "Yes, you can resize images for websites, social media, passports, forms, and official documents."
+      },
+      {
+        "question": "Does the resize image tool work on mobile devices?",
+        "answer": "Yes, modern image resizing tools work smoothly on mobile phones, tablets, and desktop devices."
+      }
+    ]
   }
+  
+  
 
 
   
