@@ -46,7 +46,7 @@ export const metadata = {
   category: "Tools",
   other: {
     'article:published_time': '2026-01-23T09:00:00+00:00',
-    'article:modified_time': '2026-01-23T09:00:00+00:00',
+    'article:modified_time': '2026-01-24T09:00:00+00:00',
     'article:section': 'Tools',
     'article:tag': ['Image Editing', 'Photo Resize', 'Image Optimization'],
   }
@@ -251,7 +251,7 @@ export default function ResizeImageOnline() {
         </nav>
 
         <main className="max-w-4xl mx-auto px-4 py-8">
-          <article itemScope itemType="https://schema.org/Article" className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <article className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="p-6 md:p-8 lg:p-10">
               <header className="mb-10">
                 {/* Category Badges */}
@@ -268,7 +268,7 @@ export default function ResizeImageOnline() {
                 </div>
                 
                 {/* Main Title */}
-                <h1 itemProp="headline" className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-5 leading-tight tracking-tight">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-5 leading-tight tracking-tight">
                   How to Resize Images Online Without Losing Quality: Complete 2026 Guide
                 </h1>
                 
@@ -276,11 +276,11 @@ export default function ResizeImageOnline() {
                 <div className="flex flex-wrap items-center text-gray-600 mb-8 gap-4">
                   <div className="flex items-center">
                     <CalendarDays className="w-5 h-5 mr-2 text-gray-500" aria-hidden="true" />
-                    <time itemProp="datePublished" dateTime="2026-01-23" className="font-medium">January 23, 2026</time>
+                    <time dateTime="2026-01-23" className="font-medium">January 23, 2026</time>
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-5 h-5 mr-2 text-gray-500" aria-hidden="true" />
-                    <span itemProp="timeRequired" className="font-medium">7 minute read</span>
+                    <span className="font-medium">7 minute read</span>
                   </div>
                   <div className="flex items-center">
                     <FileImage className="w-5 h-5 mr-2 text-gray-500" aria-hidden="true" />
@@ -303,7 +303,7 @@ export default function ResizeImageOnline() {
               </header>
 
               {/* Article Content - 1200+ Words */}
-              <div itemProp="articleBody" className="space-y-10">
+              <div className="space-y-10">
                 
                 {/* Introduction Section */}
                 <section className="space-y-4">
@@ -371,356 +371,321 @@ export default function ResizeImageOnline() {
                 </section>
 
                 {/* Step-by-Step Guide */}
-                <section id="step-by-step" itemType="https://schema.org/HowTo" itemScope className="space-y-8">
+                <section id="step-by-step" className="space-y-8">
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Complete Step-by-Step Guide to Image Resizing</h2>
 
                   <div className="space-y-8">
-                   {/* Step 1 */}
-<div
-  id="step1"
-  className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-blue-50"
-  itemProp="step"
-  itemScope
-  itemType="https://schema.org/HowToStep"
->
-  <div className="flex flex-col md:flex-row items-start">
-    <div className="flex-shrink-0 w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
-      1
-    </div>
+                    {/* Step 1 */}
+                    <div id="step1" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-blue-50">
+                      <div className="flex flex-col md:flex-row items-start">
+                        <div className="flex-shrink-0 w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
+                          1
+                        </div>
 
-    <div className="flex-1">
-      <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">
-        Choose a Reliable Online Image Resizer
-      </h3>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                            Choose a Reliable Online Image Resizer
+                          </h3>
 
-      <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
-        Start by selecting a trusted online image resizer that offers essential features for accurate and high-quality resizing.
-      </p>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
+                            Start by selecting a trusted online image resizer that offers essential features for accurate and high-quality resizing.
+                          </p>
 
-      <ul className="space-y-3 mb-4">
-        <li className="flex items-start">
-          <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5" />
-          <span><strong>Batch resizing:</strong> Resize multiple images at once</span>
-        </li>
-        <li className="flex items-start">
-          <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5" />
-          <span><strong>Multiple formats:</strong> JPG, PNG, WebP, and GIF support</span>
-        </li>
-        <li className="flex items-start">
-          <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5" />
-          <span><strong>Quality control:</strong> Resize without noticeable quality loss</span>
-        </li>
-        <li className="flex items-start">
-          <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5" />
-          <span><strong>Privacy focus:</strong> Files handled securely and deleted automatically</span>
-        </li>
-      </ul>
+                          <ul className="space-y-3 mb-4">
+                            <li className="flex items-start">
+                              <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5" />
+                              <span><strong>Batch resizing:</strong> Resize multiple images at once</span>
+                            </li>
+                            <li className="flex items-start">
+                              <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5" />
+                              <span><strong>Multiple formats:</strong> JPG, PNG, WebP, and GIF support</span>
+                            </li>
+                            <li className="flex items-start">
+                              <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5" />
+                              <span><strong>Quality control:</strong> Resize without noticeable quality loss</span>
+                            </li>
+                            <li className="flex items-start">
+                              <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5" />
+                              <span><strong>Privacy focus:</strong> Files handled securely and deleted automatically</span>
+                            </li>
+                          </ul>
 
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-        <p className="text-blue-700 font-medium">
-          <Shield className="w-5 h-5 inline mr-2" />
-          <strong>Privacy Tip:</strong> Browser-based tools like PDFSwift process images securely without long-term storage.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
+                          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                            <p className="text-blue-700 font-medium">
+                              <Shield className="w-5 h-5 inline mr-2" />
+                              <strong>Privacy Tip:</strong> Browser-based tools like PDFSwift process images securely without long-term storage.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
+                    {/* Step 2 */}
+                    <div id="step2" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-green-50">
+                      <div className="flex flex-col md:flex-row items-start">
+                        <div className="flex-shrink-0 w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
+                          2
+                        </div>
 
-                   {/* Step 2 */}
-<div
-  id="step2"
-  className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-green-50"
-  itemProp="step"
-  itemScope
-  itemType="https://schema.org/HowToStep"
->
-  <div className="flex flex-col md:flex-row items-start">
-    <div className="flex-shrink-0 w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
-      2
-    </div>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                            Upload Your Image Files
+                          </h3>
 
-    <div className="flex-1">
-      <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">
-        Upload Your Image Files
-      </h3>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
+                            Upload one or multiple images using the available upload options provided by the tool.
+                          </p>
 
-      <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
-        Upload one or multiple images using the available upload options provided by the tool.
-      </p>
+                          <div className="grid md:grid-cols-2 gap-6 mb-4">
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2 text-lg">Upload Options:</h4>
+                              <ul className="space-y-2">
+                                <li className="flex items-start">
+                                  <Upload className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                                  <span>Drag and drop images</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <Upload className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                                  <span>Select files from your device</span>
+                                </li>
+                              </ul>
+                            </div>
 
-      <div className="grid md:grid-cols-2 gap-6 mb-4">
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-2 text-lg">Upload Options:</h4>
-          <ul className="space-y-2">
-            <li className="flex items-start">
-              <Upload className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
-              <span>Drag and drop images</span>
-            </li>
-            <li className="flex items-start">
-              <Upload className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
-              <span>Select files from your device</span>
-            </li>
-          </ul>
-        </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2 text-lg">Supported Formats:</h4>
+                              <ul className="space-y-2">
+                                <li className="flex items-start">
+                                  <Image className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
+                                  <span>JPG / JPEG</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <Image className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
+                                  <span>PNG (with transparency)</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <Image className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
+                                  <span>WebP</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <Image className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
+                                  <span>GIF</span>
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
 
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-2 text-lg">Supported Formats:</h4>
-          <ul className="space-y-2">
-            <li className="flex items-start">
-              <Image className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
-              <span>JPG / JPEG</span>
-            </li>
-            <li className="flex items-start">
-              <Image className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
-              <span>PNG (with transparency)</span>
-            </li>
-            <li className="flex items-start">
-              <Image className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
-              <span>WebP</span>
-            </li>
-            <li className="flex items-start">
-              <Image className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
-              <span>GIF</span>
-            </li>
-          </ul>
-        </div>
-      </div>
+                          <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                            <p className="text-green-700 font-medium">
+                              <Image className="w-5 h-5 inline mr-2" />
+                              <strong>Tip:</strong> You can upload multiple images together to resize them in one go.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-      <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-        <p className="text-green-700 font-medium">
-          <Image className="w-5 h-5 inline mr-2" />
-          <strong>Tip:</strong> You can upload multiple images together to resize them in one go.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
+                    {/* Step 3 */}
+                    <div id="step3" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-purple-50">
+                      <div className="flex flex-col md:flex-row items-start">
+                        <div className="flex-shrink-0 w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
+                          3
+                        </div>
 
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                            Set Image Dimensions Based on Your Use Case
+                          </h3>
 
-                   {/* Step 3 */}
-<div
-  id="step3"
-  className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-purple-50"
-  itemProp="step"
-  itemScope
-  itemType="https://schema.org/HowToStep"
->
-  <div className="flex flex-col md:flex-row items-start">
-    <div className="flex-shrink-0 w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
-      3
-    </div>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
+                            Choose the correct width, height, and aspect ratio depending on where the image will be used. Different platforms have different size requirements.
+                          </p>
 
-    <div className="flex-1">
-      <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">
-        Set Image Dimensions Based on Your Use Case
-      </h3>
+                          <div className="overflow-x-auto mb-4">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Use Case</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Recommended Size</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Aspect Ratio</th>
+                                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Suggested File Size</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200 bg-white">
+                                <tr>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Website Banner</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">1920 × 1080 px</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">16:9</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">≤ 500 KB</td>
+                                </tr>
+                                <tr>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Instagram Post</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">1080 × 1080 px</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">1:1</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">≤ 8 MB</td>
+                                </tr>
+                                <tr>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Facebook Cover</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">820 × 312 px</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">2.63:1</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">≤ 100 KB</td>
+                                </tr>
+                                <tr>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">LinkedIn Post</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">1200 × 627 px</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">1.91:1</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">≤ 5 MB</td>
+                                </tr>
+                                <tr>
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">Email Image</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">600 × 400 px</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">3:2</td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">≤ 200 KB</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
 
-      <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
-        Choose the correct width, height, and aspect ratio depending on where the image will be used. Different platforms have different size requirements.
-      </p>
+                          <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                            <p className="text-purple-700 font-medium">
+                              <Settings className="w-5 h-5 inline mr-2" />
+                              <strong>Tip:</strong> Many image resizers provide ready-made presets for popular platforms, making it easier to select the correct dimensions.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-      <div className="overflow-x-auto mb-4">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Use Case</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Recommended Size</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Aspect Ratio</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Suggested File Size</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
-            <tr>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">Website Banner</td>
-              <td className="px-4 py-3 text-sm text-gray-700">1920 × 1080 px</td>
-              <td className="px-4 py-3 text-sm text-gray-700">16:9</td>
-              <td className="px-4 py-3 text-sm text-gray-700">≤ 500 KB</td>
-            </tr>
-            <tr>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">Instagram Post</td>
-              <td className="px-4 py-3 text-sm text-gray-700">1080 × 1080 px</td>
-              <td className="px-4 py-3 text-sm text-gray-700">1:1</td>
-              <td className="px-4 py-3 text-sm text-gray-700">≤ 8 MB</td>
-            </tr>
-            <tr>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">Facebook Cover</td>
-              <td className="px-4 py-3 text-sm text-gray-700">820 × 312 px</td>
-              <td className="px-4 py-3 text-sm text-gray-700">2.63:1</td>
-              <td className="px-4 py-3 text-sm text-gray-700">≤ 100 KB</td>
-            </tr>
-            <tr>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">LinkedIn Post</td>
-              <td className="px-4 py-3 text-sm text-gray-700">1200 × 627 px</td>
-              <td className="px-4 py-3 text-sm text-gray-700">1.91:1</td>
-              <td className="px-4 py-3 text-sm text-gray-700">≤ 5 MB</td>
-            </tr>
-            <tr>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">Email Image</td>
-              <td className="px-4 py-3 text-sm text-gray-700">600 × 400 px</td>
-              <td className="px-4 py-3 text-sm text-gray-700">3:2</td>
-              <td className="px-4 py-3 text-sm text-gray-700">≤ 200 KB</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                    {/* Step 4 */}
+                    <div id="step4" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-yellow-50">
+                      <div className="flex flex-col md:flex-row items-start">
+                        <div className="flex-shrink-0 w-16 h-16 bg-yellow-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
+                          4
+                        </div>
 
-      <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-        <p className="text-purple-700 font-medium">
-          <Settings className="w-5 h-5 inline mr-2" />
-          <strong>Tip:</strong> Many image resizers provide ready-made presets for popular platforms, making it easier to select the correct dimensions.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                            Adjust Image Quality and File Size
+                          </h3>
 
+                          <p className="text-gray-700 mb-4 leading-relaxed">
+                            After resizing, fine-tune the image quality to balance visual clarity and loading speed.
+                          </p>
 
-                   {/* Step 4 */}
-<div
-  id="step4"
-  className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-yellow-50"
-  itemProp="step"
-  itemScope
-  itemType="https://schema.org/HowToStep"
->
-  <div className="flex flex-col md:flex-row items-start">
-    <div className="flex-shrink-0 w-16 h-16 bg-yellow-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
-      4
-    </div>
+                          <div className="space-y-4 mb-4">
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Quality Levels:</h4>
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-700">High (90–100%)</span>
+                                  <span className="text-gray-600 text-sm">Best for printing</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-700">Medium (70–89%)</span>
+                                  <span className="text-gray-600 text-sm">Best for websites</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-700">Optimized (50–69%)</span>
+                                  <span className="text-gray-600 text-sm">Ideal for social media</span>
+                                </div>
+                              </div>
+                            </div>
 
-    <div className="flex-1">
-      <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">
-        Adjust Image Quality and File Size
-      </h3>
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Choose the Right Format:</h4>
+                              <ul className="space-y-2">
+                                <li className="flex items-start">
+                                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                                  <span><strong>WebP:</strong> Smaller size for modern browsers</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                                  <span><strong>JPG:</strong> Best compatibility for photos</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                                  <span><strong>PNG:</strong> Ideal for transparency</span>
+                                </li>
+                                <li className="flex items-start">
+                                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                                  <span><strong>AVIF:</strong> Efficient next-generation format (browser dependent)</span>
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
 
-      <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
-        After resizing, fine-tune the image quality to balance visual clarity and loading speed.
-      </p>
+                          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+                            <p className="text-yellow-700 font-medium">
+                              <Crop className="w-5 h-5 inline mr-2" />
+                              <strong>Best Practice:</strong> Always preview the resized image before downloading to ensure the quality meets your needs.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-      <div className="space-y-4 mb-4">
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-2">Quality Levels:</h4>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-700">High (90–100%)</span>
-              <span className="text-gray-600 text-sm">Best for printing</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-700">Medium (70–89%)</span>
-              <span className="text-gray-600 text-sm">Best for websites</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-700">Optimized (50–69%)</span>
-              <span className="text-gray-600 text-sm">Ideal for social media</span>
-            </div>
-          </div>
-        </div>
+                    {/* Step 5 */}
+                    <div id="step5" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-red-50">
+                      <div className="flex flex-col md:flex-row items-start">
+                        <div className="flex-shrink-0 w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
+                          5
+                        </div>
 
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-2">Choose the Right Format:</h4>
-          <ul className="space-y-2">
-            <li className="flex items-start">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
-              <span><strong>WebP:</strong> Smaller size for modern browsers</span>
-            </li>
-            <li className="flex items-start">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
-              <span><strong>JPG:</strong> Best compatibility for photos</span>
-            </li>
-            <li className="flex items-start">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
-              <span><strong>PNG:</strong> Ideal for transparency</span>
-            </li>
-            <li className="flex items-start">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
-              <span><strong>AVIF:</strong> Efficient next-generation format (browser dependent)</span>
-            </li>
-          </ul>
-        </div>
-      </div>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                            Download and Use Your Resized Images
+                          </h3>
 
-      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
-        <p className="text-yellow-700 font-medium">
-          <Crop className="w-5 h-5 inline mr-2" />
-          <strong>Best Practice:</strong> Always preview the resized image before downloading to ensure the quality meets your needs.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
+                            Once resizing is complete, download the images in your preferred format and use them confidently for web, social media, or printing.
+                          </p>
 
+                          <div className="space-y-4">
+                            {/* Download options */}
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">
+                                Available Download Options:
+                              </h4>
+                              <ul className="space-y-2">
+                                <li className="flex items-start">
+                                  <Download className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                                  <span>
+                                    <strong>Single image download:</strong> Best when resizing one image at a time
+                                  </span>
+                                </li>
+                                <li className="flex items-start">
+                                  <Download className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                                  <span>
+                                    <strong>ZIP file download:</strong> Ideal for batch resizing and keeping files organized
+                                  </span>
+                                </li>
+                              </ul>
+                            </div>
 
-                   {/* Step 5 */}
-<div
-  id="step5"
-  className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-red-50"
-  itemProp="step"
-  itemScope
-  itemType="https://schema.org/HowToStep"
->
-  <div className="flex flex-col md:flex-row items-start">
-    <div className="flex-shrink-0 w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
-      5
-    </div>
+                            {/* Checklist */}
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">
+                                Final Checklist Before Use:
+                              </h4>
+                              <ol className="space-y-2 list-decimal list-inside text-gray-700">
+                                <li>Confirm the image dimensions match your requirement</li>
+                                <li>Ensure file size is optimized for speed or storage</li>
+                                <li>Preview the image on desktop and mobile screens</li>
+                                <li>Test loading speed if used on a website</li>
+                                <li>Keep a backup of the original image if needed</li>
+                              </ol>
+                            </div>
+                          </div>
 
-    <div className="flex-1">
-      <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">
-        Download and Use Your Resized Images
-      </h3>
-
-      <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
-        Once resizing is complete, download the images in your preferred format and use them confidently for web, social media, or printing.
-      </p>
-
-      <div className="space-y-4">
-        {/* Download options */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-2">
-            Available Download Options:
-          </h4>
-          <ul className="space-y-2">
-            <li className="flex items-start">
-              <Download className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span>
-                <strong>Single image download:</strong> Best when resizing one image at a time
-              </span>
-            </li>
-            <li className="flex items-start">
-              <Download className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span>
-                <strong>ZIP file download:</strong> Ideal for batch resizing and keeping files organized
-              </span>
-            </li>
-          </ul>
-        </div>
-
-        {/* Checklist */}
-        <div>
-          <h4 className="font-semibold text-gray-900 mb-2">
-            Final Checklist Before Use:
-          </h4>
-          <ol className="space-y-2 list-decimal list-inside text-gray-700">
-            <li>Confirm the image dimensions match your requirement</li>
-            <li>Ensure file size is optimized for speed or storage</li>
-            <li>Preview the image on desktop and mobile screens</li>
-            <li>Test loading speed if used on a website</li>
-            <li>Keep a backup of the original image if needed</li>
-          </ol>
-        </div>
-      </div>
-
-      <div className="bg-red-50 p-4 rounded-lg border border-red-100 mt-4">
-        <p className="text-red-700 font-medium">
-          <Printer className="w-5 h-5 inline mr-2" />
-          <strong>Note:</strong> For printing, use images with at least 300 DPI.
-          For online use, DPI is less important—focus on correct pixel size and format.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
-
+                          <div className="bg-red-50 p-4 rounded-lg border border-red-100 mt-4">
+                            <p className="text-red-700 font-medium">
+                              <Printer className="w-5 h-5 inline mr-2" />
+                              <strong>Note:</strong> For printing, use images with at least 300 DPI.
+                              For online use, DPI is less important—focus on correct pixel size and format.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </section>
 
@@ -799,19 +764,19 @@ export default function ResizeImageOnline() {
                 </section>
 
                 {/* FAQ Section */}
-                <section id="faq" itemType="https://schema.org/FAQPage" itemScope className="space-y-8">
+                <section id="faq" className="space-y-8">
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center">
                     <HelpCircle className="w-7 h-7 mr-3 text-purple-500" aria-hidden="true" />
                     Frequently Asked Questions (Detailed Answers)
                   </h2>
 
                   <div className="space-y-6">
-                    <div itemProp="mainEntity" itemScope itemType="https://schema.org/Question" className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-                      <h3 itemProp="name" className="text-xl font-bold text-gray-900 mb-4">
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
                         Does resizing images reduce their quality? How can I maintain quality while resizing?
                       </h3>
-                      <div itemProp="acceptedAnswer" itemScope itemType="https://schema.org/Answer">
-                        <p itemProp="text" className="text-gray-700 mb-3">
+                      <div>
+                        <p className="text-gray-700 mb-3">
                           This is the most common concern. Proper resizing with modern algorithms can maintain excellent quality if done correctly:
                         </p>
                         <ul className="space-y-2 mb-3 text-gray-700">
@@ -838,12 +803,12 @@ export default function ResizeImageOnline() {
                       </div>
                     </div>
 
-                    <div itemProp="mainEntity" itemScope itemType="https://schema.org/Question" className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-                      <h3 itemProp="name" className="text-xl font-bold text-gray-900 mb-4">
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
                         What are the optimal image sizes for different platforms in 2026, and do they change frequently?
                       </h3>
-                      <div itemProp="acceptedAnswer" itemScope itemType="https://schema.org/Answer">
-                        <p itemProp="text" className="text-gray-700 mb-3">
+                      <div>
+                        <p className="text-gray-700 mb-3">
                           Platform requirements do evolve, but core principles remain. Here's the 2026 landscape with stability indicators:
                         </p>
                         <div className="overflow-x-auto mb-3">
@@ -890,12 +855,12 @@ export default function ResizeImageOnline() {
                       </div>
                     </div>
 
-                    <div itemProp="mainEntity" itemScope itemType="https://schema.org/Question" className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-                      <h3 itemProp="name" className="text-xl font-bold text-gray-900 mb-4">
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
                         Can I resize multiple images at once with consistent results?
                       </h3>
-                      <div itemProp="acceptedAnswer" itemScope itemType="https://schema.org/Answer">
-                        <p itemProp="text" className="text-gray-700 mb-3">
+                      <div>
+                        <p className="text-gray-700 mb-3">
                           Absolutely. Batch resizing is where online tools truly shine compared to manual software:
                         </p>
                         <div className="space-y-3 mb-3">
@@ -925,12 +890,12 @@ export default function ResizeImageOnline() {
                       </div>
                     </div>
 
-                    <div itemProp="mainEntity" itemScope itemType="https://schema.org/Question" className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-                      <h3 itemProp="name" className="text-xl font-bold text-gray-900 mb-4">
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
                         What's the best image format for different use cases after resizing?
                       </h3>
-                      <div itemProp="acceptedAnswer" itemScope itemType="https://schema.org/Answer">
-                        <p itemProp="text" className="text-gray-700 mb-3">
+                      <div>
+                        <p className="text-gray-700 mb-3">
                           Format choice significantly impacts quality and file size. Here's the 2026 format guide:
                         </p>
                         <div className="grid md:grid-cols-2 gap-6 mb-3">
@@ -987,77 +952,74 @@ export default function ResizeImageOnline() {
                   </div>
                 </section>
 
-              {/* Conclusion Section */}
-<section className="space-y-6">
-  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-    Conclusion: Mastering Image Resizing in the Digital Age
-  </h2>
+                {/* Conclusion Section */}
+                <section className="space-y-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                    Conclusion: Mastering Image Resizing in the Digital Age
+                  </h2>
 
-  <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-xl p-8">
-    <p className="text-gray-800 text-lg mb-4 leading-relaxed">
-      Image resizing has evolved from a technical challenge into a core digital skill. 
-      With the right online tools, anyone can resize images professionally—without 
-      sacrificing quality or spending hours on manual editing.
-    </p>
+                  <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-xl p-8">
+                    <p className="text-gray-800 text-lg mb-4 leading-relaxed">
+                      Image resizing has evolved from a technical challenge into a core digital skill. 
+                      With the right online tools, anyone can resize images professionally—without 
+                      sacrificing quality or spending hours on manual editing.
+                    </p>
 
-    <p className="text-gray-800 mb-4 leading-relaxed">
-      Here are the key takeaways from this comprehensive guide:
-    </p>
+                    <p className="text-gray-800 mb-4 leading-relaxed">
+                      Here are the key takeaways from this comprehensive guide:
+                    </p>
 
-    <ol className="space-y-3 mb-5">
-      <li className="flex items-start">
-        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3 mt-0.5">
-          1
-        </span>
-        <span>
-          <strong>High-quality resizing is absolutely possible</strong> using modern 
-          algorithms and proper compression techniques.
-        </span>
-      </li>
+                    <ol className="space-y-3 mb-5">
+                      <li className="flex items-start">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3 mt-0.5">
+                          1
+                        </span>
+                        <span>
+                          <strong>High-quality resizing is absolutely possible</strong> using modern 
+                          algorithms and proper compression techniques.
+                        </span>
+                      </li>
 
-      <li className="flex items-start">
-        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3 mt-0.5">
-          2
-        </span>
-        <span>
-          <strong>Batch image processing saves significant time</strong> while ensuring 
-          consistent output across large image sets.
-        </span>
-      </li>
+                      <li className="flex items-start">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3 mt-0.5">
+                          2
+                        </span>
+                        <span>
+                          <strong>Batch image processing saves significant time</strong> while ensuring 
+                          consistent output across large image sets.
+                        </span>
+                      </li>
 
-      <li className="flex items-start">
-        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3 mt-0.5">
-          3
-        </span>
-        <span>
-          <strong>Choosing the right image format matters</strong> — WebP for modern 
-          websites, JPG for compatibility, and PNG for transparency.
-        </span>
-      </li>
+                      <li className="flex items-start">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3 mt-0.5">
+                          3
+                        </span>
+                        <span>
+                          <strong>Choosing the right image format matters</strong> — WebP for modern 
+                          websites, JPG for compatibility, and PNG for transparency.
+                        </span>
+                      </li>
 
-      <li className="flex items-start">
-        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3 mt-0.5">
-          4
-        </span>
-        <span>
-          <strong>Platform-specific dimensions maximize impact</strong> on social media, 
-          websites, and digital marketing campaigns.
-        </span>
-      </li>
-    </ol>
+                      <li className="flex items-start">
+                        <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3 mt-0.5">
+                          4
+                        </span>
+                        <span>
+                          <strong>Platform-specific dimensions maximize impact</strong> on social media, 
+                          websites, and digital marketing campaigns.
+                        </span>
+                      </li>
+                    </ol>
 
-    <p className="text-gray-800 leading-relaxed">
-      As digital content continues to dominate communication and marketing, properly 
-      resized and optimized images will remain essential for performance, accessibility, 
-      and user engagement. Modern online image resizers have made this process fast, 
-      accurate, and accessible—empowering anyone to create professional-quality visuals 
-      in minutes.
-    </p>
-
-   
-  </div>
-</section>
-
+                    <p className="text-gray-800 leading-relaxed">
+                      As digital content continues to dominate communication and marketing, properly 
+                      resized and optimized images will remain essential for performance, accessibility, 
+                      and user engagement. Modern online image resizers have made this process fast, 
+                      accurate, and accessible—empowering anyone to create professional-quality visuals 
+                      in minutes.
+                    </p>
+                  </div>
+                </section>
               </div>
 
               {/* Call to Action */}

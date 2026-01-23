@@ -46,7 +46,7 @@ export const metadata = {
   category: "Tools",
   other: {
     'article:published_time': '2026-01-23T09:00:00+00:00',
-    'article:modified_time': '2026-01-23T09:00:00+00:00',
+    'article:modified_time': '2026-01-24T09:00:00+00:00',
     'article:section': 'Tools',
     'article:tag': ['Passport Photo', 'Photo Editing', 'Document Preparation'],
   }
@@ -263,7 +263,7 @@ export default function PassportPhotoMaker() {
         </nav>
 
         <main className="max-w-4xl mx-auto px-4 py-8">
-          <article itemScope itemType="https://schema.org/Article" className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <article className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="p-6 md:p-8 lg:p-10">
               <header className="mb-10">
                 {/* Category Badges */}
@@ -280,7 +280,7 @@ export default function PassportPhotoMaker() {
                 </div>
                 
                 {/* Main Title */}
-                <h1 itemProp="headline" className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-5 leading-tight tracking-tight">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-5 leading-tight tracking-tight">
                   How to Create Perfect Passport Size Photos Online: Complete 2026 Guide
                 </h1>
                 
@@ -288,11 +288,11 @@ export default function PassportPhotoMaker() {
                 <div className="flex flex-wrap items-center text-gray-600 mb-8 gap-4">
                   <div className="flex items-center">
                     <CalendarDays className="w-5 h-5 mr-2 text-gray-500" aria-hidden="true" />
-                    <time itemProp="datePublished" dateTime="2026-01-23" className="font-medium">January 23, 2026</time>
+                    <time dateTime="2026-01-23" className="font-medium">January 23, 2026</time>
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-5 h-5 mr-2 text-gray-500" aria-hidden="true" />
-                    <span itemProp="timeRequired" className="font-medium">8 minute read</span>
+                    <span className="font-medium">8 minute read</span>
                   </div>
                   <div className="flex items-center">
                     <Eye className="w-5 h-5 mr-2 text-gray-500" aria-hidden="true" />
@@ -315,108 +315,107 @@ export default function PassportPhotoMaker() {
               </header>
 
               {/* Article Content - 1200+ Words */}
-              <div itemProp="articleBody" className="space-y-10">
+              <div className="space-y-10">
                 
-              {/* Introduction Section */}
-<section className="space-y-4">
-  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-    The Evolution of Passport Photos: From Photo Studios to Your Smartphone
-  </h2>
+                {/* Introduction Section */}
+                <section className="space-y-4">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                    The Evolution of Passport Photos: From Photo Studios to Your Smartphone
+                  </h2>
 
-  <p className="text-gray-700 text-lg leading-relaxed">
-    Not long ago, getting passport photos usually meant visiting a photo studio,
-    working around business hours, and hoping the final photo met official
-    requirements. Today, creating passport size photos has become a simple
-    task that can be completed in just a few minutes using a smartphone and
-    reliable online tools.
-  </p>
+                  <p className="text-gray-700 text-lg leading-relaxed">
+                    Not long ago, getting passport photos usually meant visiting a photo studio,
+                    working around business hours, and hoping the final photo met official
+                    requirements. Today, creating passport size photos has become a simple
+                    task that can be completed in just a few minutes using a smartphone and
+                    reliable online tools.
+                  </p>
 
-  <p className="text-gray-700 leading-relaxed">
-    With the global shift toward digital document processing, online passport
-    photo creation is now more common than ever. Many countries accept digital
-    photo uploads for passport and visa applications, making properly formatted
-    photos essential. This guide explains how to create passport photos online
-    while following official size and quality guidelines.
-  </p>
+                  <p className="text-gray-700 leading-relaxed">
+                    With the global shift toward digital document processing, online passport
+                    photo creation is now more common than ever. Many countries accept digital
+                    photo uploads for passport and visa applications, making properly formatted
+                    photos essential. This guide explains how to create passport photos online
+                    while following official size and quality guidelines.
+                  </p>
 
-  <p className="text-gray-700 leading-relaxed">
-    A large number of passport photo rejections happen due to basic formatting
-    issues such as incorrect size, unsuitable background, or poor image clarity.
-    Using dedicated online passport photo tools helps reduce these common
-    mistakes and increases the chances of meeting official requirements.
-  </p>
-</section>
+                  <p className="text-gray-700 leading-relaxed">
+                    A large number of passport photo rejections happen due to basic formatting
+                    issues such as incorrect size, unsuitable background, or poor image clarity.
+                    Using dedicated online passport photo tools helps reduce these common
+                    mistakes and increases the chances of meeting official requirements.
+                  </p>
+                </section>
 
-              {/* Why Online Tools Are Better */}
-<section className="space-y-6">
-  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-    Why Online Passport Photo Makers Are a Better Choice
-  </h2>
+                {/* Why Online Tools Are Better */}
+                <section className="space-y-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                    Why Online Passport Photo Makers Are a Better Choice
+                  </h2>
 
-  <div className="grid md:grid-cols-2 gap-6">
-    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-      <div className="flex items-center mb-4">
-        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
-          <DollarSign className="w-6 h-6 text-green-600" aria-hidden="true" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900">
-          Cost-Effective Solution
-        </h3>
-      </div>
-      <p className="text-gray-700">
-        Visiting a traditional photo studio can be expensive, especially when
-        multiple passport photos are needed. Online passport photo makers help
-        reduce these costs by allowing users to create photos digitally without
-        studio visits. You can also retake photos as many times as needed until
-        you are satisfied.
-      </p>
-    </div>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <div className="flex items-center mb-4">
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                          <DollarSign className="w-6 h-6 text-green-600" aria-hidden="true" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          Cost-Effective Solution
+                        </h3>
+                      </div>
+                      <p className="text-gray-700">
+                        Visiting a traditional photo studio can be expensive, especially when
+                        multiple passport photos are needed. Online passport photo makers help
+                        reduce these costs by allowing users to create photos digitally without
+                        studio visits. You can also retake photos as many times as needed until
+                        you are satisfied.
+                      </p>
+                    </div>
 
-    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-      <div className="flex items-center mb-4">
-        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
-          <Clock className="w-6 h-6 text-blue-600" aria-hidden="true" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900">
-          Save Time and Effort
-        </h3>
-      </div>
-      <p className="text-gray-700">
-        Online tools eliminate the need for appointments, travel, and waiting
-        time. The entire process can be completed within minutes, allowing you
-        to create passport photos anytime, from anywhere, using your smartphone
-        or computer.
-      </p>
-    </div>
-  </div>
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <div className="flex items-center mb-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                          <Clock className="w-6 h-6 text-blue-600" aria-hidden="true" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          Save Time and Effort
+                        </h3>
+                      </div>
+                      <p className="text-gray-700">
+                        Online tools eliminate the need for appointments, travel, and waiting
+                        time. The entire process can be completed within minutes, allowing you
+                        to create passport photos anytime, from anywhere, using your smartphone
+                        or computer.
+                      </p>
+                    </div>
+                  </div>
 
-  <div className="bg-gray-50 p-5 rounded-lg">
-    <h3 className="font-semibold text-gray-900 mb-2">
-      Practical Use Case
-    </h3>
-    <p className="text-gray-700">
-      Many users prefer online passport photo tools when applying for passports
-      or visas for multiple family members. Instead of visiting a studio,
-      they can generate properly sized photos at home, review them instantly,
-      and proceed with printing or digital submission according to official
-      requirements.
-    </p>
-  </div>
-</section>
-
+                  <div className="bg-gray-50 p-5 rounded-lg">
+                    <h3 className="font-semibold text-gray-900 mb-2">
+                      Practical Use Case
+                    </h3>
+                    <p className="text-gray-700">
+                      Many users prefer online passport photo tools when applying for passports
+                      or visas for multiple family members. Instead of visiting a studio,
+                      they can generate properly sized photos at home, review them instantly,
+                      and proceed with printing or digital submission according to official
+                      requirements.
+                    </p>
+                  </div>
+                </section>
 
                 {/* Step-by-Step Guide */}
-                <section id="step-by-step" itemType="https://schema.org/HowTo" itemScope className="space-y-8">
+                <section id="step-by-step" className="space-y-8">
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Complete Step-by-Step Guide to Perfect Passport Photos</h2>
 
                   <div className="space-y-8">
                     {/* Step 1 */}
-                    <div id="step1" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-blue-50" itemProp="step" itemScope itemType="https://schema.org/HowToStep">
+                    <div id="step1" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-blue-50">
                       <div className="flex flex-col md:flex-row items-start">
                         <div className="flex-shrink-0 w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">1</div>
                         <div className="flex-1">
-                          <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">Choose the Right Online Tool</h3>
-                          <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">Choose the Right Online Tool</h3>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
                             Not all online photo tools are created equal. Look for these essential features when choosing a passport photo maker:
                           </p>
                           <ul className="space-y-3 mb-4">
@@ -448,12 +447,12 @@ export default function PassportPhotoMaker() {
                     </div>
 
                     {/* Step 2 */}
-                    <div id="step2" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-green-50" itemProp="step" itemScope itemType="https://schema.org/HowToStep">
+                    <div id="step2" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-green-50">
                       <div className="flex flex-col md:flex-row items-start">
                         <div className="flex-shrink-0 w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">2</div>
                         <div className="flex-1">
-                          <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">Taking the Perfect Source Photo</h3>
-                          <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">Taking the Perfect Source Photo</h3>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
                             Your starting photo quality determines your final result. Follow these professional guidelines:
                           </p>
                           
@@ -513,12 +512,12 @@ export default function PassportPhotoMaker() {
                     </div>
 
                     {/* Step 3 */}
-                    <div id="step3" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-purple-50" itemProp="step" itemScope itemType="https://schema.org/HowToStep">
+                    <div id="step3" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-purple-50">
                       <div className="flex flex-col md:flex-row items-start">
                         <div className="flex-shrink-0 w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">3</div>
                         <div className="flex-1">
-                          <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">Country-Specific Requirements Demystified</h3>
-                          <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">Country-Specific Requirements Demystified</h3>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
                             Different countries have different requirements. Here's a detailed breakdown of major countries:
                           </p>
                           
@@ -578,88 +577,73 @@ export default function PassportPhotoMaker() {
                     </div>
 
                     {/* Step 4 */}
-                    {/* Step 4 */}
-<div
-  id="step4"
-  className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-yellow-50"
-  itemProp="step"
-  itemScope
-  itemType="https://schema.org/HowToStep"
->
-  <div className="flex flex-col md:flex-row items-start">
-    <div className="flex-shrink-0 w-16 h-16 bg-yellow-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
-      4
-    </div>
+                    <div id="step4" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-yellow-50">
+                      <div className="flex flex-col md:flex-row items-start">
+                        <div className="flex-shrink-0 w-16 h-16 bg-yellow-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
+                          4
+                        </div>
 
-    <div className="flex-1">
-      <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">
-        Adjust Size & Preview Photo
-      </h3>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                            Adjust Size & Preview Photo
+                          </h3>
 
-      <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
-        After uploading your photo, adjust the required passport size and
-        preview the result before downloading.
-      </p>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
+                            After uploading your photo, adjust the required passport size and
+                            preview the result before downloading.
+                          </p>
 
-      <ul className="space-y-2 text-gray-700">
-        <li>• Select the correct passport photo dimensions</li>
-        <li>• Ensure the face is clearly visible and centered</li>
-        <li>• Check background color and photo clarity</li>
-        <li>• Preview the final output before saving</li>
-      </ul>
+                          <ul className="space-y-2 text-gray-700">
+                            <li>• Select the correct passport photo dimensions</li>
+                            <li>• Ensure the face is clearly visible and centered</li>
+                            <li>• Check background color and photo clarity</li>
+                            <li>• Preview the final output before saving</li>
+                          </ul>
 
-      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 mt-4">
-        <p className="text-yellow-700 font-medium">
-          <strong>Tip:</strong> Always preview the photo carefully to avoid
-          incorrect size or alignment issues during printing.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
+                          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 mt-4">
+                            <p className="text-yellow-700 font-medium">
+                              <strong>Tip:</strong> Always preview the photo carefully to avoid
+                              incorrect size or alignment issues during printing.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
+                    {/* Step 5 */}
+                    <div id="step5" className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-red-50">
+                      <div className="flex flex-col md:flex-row items-start">
+                        <div className="flex-shrink-0 w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
+                          5
+                        </div>
 
-                  {/* Step 5 */}
-<div
-  id="step5"
-  className="border border-gray-200 rounded-xl p-6 bg-gradient-to-r from-white to-red-50"
-  itemProp="step"
-  itemScope
-  itemType="https://schema.org/HowToStep"
->
-  <div className="flex flex-col md:flex-row items-start">
-    <div className="flex-shrink-0 w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center text-white font-bold text-2xl mb-4 md:mb-0 md:mr-6">
-      5
-    </div>
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                            Download & Final Check
+                          </h3>
 
-    <div className="flex-1">
-      <h3 itemProp="name" className="text-2xl font-bold text-gray-900 mb-3">
-        Download & Final Check
-      </h3>
+                          <p className="text-gray-700 mb-4 leading-relaxed">
+                            After previewing your passport size photo, download it in high quality
+                            and verify the final details before printing or submission.
+                          </p>
 
-      <p itemProp="text" className="text-gray-700 mb-4 leading-relaxed">
-        After previewing your passport size photo, download it in high quality
-        and verify the final details before printing or submission.
-      </p>
+                          <ul className="space-y-2 text-gray-700">
+                            <li>• Download the photo in the highest available resolution</li>
+                            <li>• Ensure the photo size matches official requirements</li>
+                            <li>• Check that the background is clean and evenly colored</li>
+                            <li>• Make sure the photo is clear and not blurry</li>
+                          </ul>
 
-      <ul className="space-y-2 text-gray-700">
-        <li>• Download the photo in the highest available resolution</li>
-        <li>• Ensure the photo size matches official requirements</li>
-        <li>• Check that the background is clean and evenly colored</li>
-        <li>• Make sure the photo is clear and not blurry</li>
-      </ul>
-
-      <div className="bg-red-50 p-4 rounded-lg border border-red-100 mt-4">
-        <p className="text-red-700 font-medium">
-          <strong>Important:</strong> Always review the downloaded photo carefully.
-          Incorrect size or low quality photos may be rejected during printing
-          or official submission.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
-
+                          <div className="bg-red-50 p-4 rounded-lg border border-red-100 mt-4">
+                            <p className="text-red-700 font-medium">
+                              <strong>Important:</strong> Always review the downloaded photo carefully.
+                              Incorrect size or low quality photos may be rejected during printing
+                              or official submission.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </section>
 
@@ -738,19 +722,19 @@ export default function PassportPhotoMaker() {
                 </section>
 
                 {/* FAQ Section */}
-                <section id="faq" itemType="https://schema.org/FAQPage" itemScope className="space-y-8">
+                <section id="faq" className="space-y-8">
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center">
                     <HelpCircle className="w-7 h-7 mr-3 text-purple-500" aria-hidden="true" />
                     Frequently Asked Questions (Detailed Answers)
                   </h2>
 
                   <div className="space-y-6">
-                    <div itemProp="mainEntity" itemScope itemType="https://schema.org/Question" className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-                      <h3 itemProp="name" className="text-xl font-bold text-gray-900 mb-4">
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
                         Is it safe to use an online passport size photo maker? What about privacy concerns?
                       </h3>
-                      <div itemProp="acceptedAnswer" itemScope itemType="https://schema.org/Answer">
-                        <p itemProp="text" className="text-gray-700 mb-3">
+                      <div>
+                        <p className="text-gray-700 mb-3">
                           This is the most common concern, and rightly so. Passport photos are sensitive documents. Here's what you need to know about safety:
                         </p>
                         <ul className="space-y-2 mb-3 text-gray-700">
@@ -777,12 +761,12 @@ export default function PassportPhotoMaker() {
                       </div>
                     </div>
 
-                    <div itemProp="mainEntity" itemScope itemType="https://schema.org/Question" className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-                      <h3 itemProp="name" className="text-xl font-bold text-gray-900 mb-4">
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
                         What are the most common reasons for passport photo rejection, and how can I avoid them?
                       </h3>
-                      <div itemProp="acceptedAnswer" itemScope itemType="https://schema.org/Answer">
-                        <p itemProp="text" className="text-gray-700 mb-3">
+                      <div>
+                        <p className="text-gray-700 mb-3">
                           Immigration authorities are strict about passport photos. Based on data from major embassies, here are the top rejection reasons with prevention strategies:
                         </p>
                         <div className="overflow-x-auto mb-3">
@@ -829,12 +813,12 @@ export default function PassportPhotoMaker() {
                       </div>
                     </div>
 
-                    <div itemProp="mainEntity" itemScope itemType="https://schema.org/Question" className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-                      <h3 itemProp="name" className="text-xl font-bold text-gray-900 mb-4">
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
                         Can I use an old photo for my passport application, or do I need a new one?
                       </h3>
-                      <div itemProp="acceptedAnswer" itemScope itemType="https://schema.org/Answer">
-                        <p itemProp="text" className="text-gray-700 mb-3">
+                      <div>
+                        <p className="text-gray-700 mb-3">
                           This depends on several factors, but here's the comprehensive answer:
                         </p>
                         <div className="space-y-3 mb-3">
@@ -864,12 +848,12 @@ export default function PassportPhotoMaker() {
                       </div>
                     </div>
 
-                    <div itemProp="mainEntity" itemScope itemType="https://schema.org/Question" className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
-                      <h3 itemProp="name" className="text-xl font-bold text-gray-900 mb-4">
+                    <div className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow duration-300">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
                         What's the difference between biometric and regular passport photos, and why does it matter?
                       </h3>
-                      <div itemProp="acceptedAnswer" itemScope itemType="https://schema.org/Answer">
-                        <p itemProp="text" className="text-gray-700 mb-3">
+                      <div>
+                        <p className="text-gray-700 mb-3">
                           This is crucial for modern passport applications. Biometric photos are required by most countries now:
                         </p>
                         <div className="grid md:grid-cols-2 gap-6 mb-3">
