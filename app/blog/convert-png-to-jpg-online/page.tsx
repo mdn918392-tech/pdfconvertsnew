@@ -65,36 +65,33 @@ export default function ConvertPngToJpgOnline() {
         "dateModified": "2026-01-24T09:00:00+00:00",
         "author": {
           "@type": "Organization",
-          "@id": "https://www.pdfswift.online#organization",
+          "name": "PDFSwift Team",
+          "url": "https://www.pdfswift.online"
+        },
+        "publisher": {
+          "@type": "Organization",
           "name": "PDFSwift",
-          "url": "https://www.pdfswift.online",
           "logo": {
             "@type": "ImageObject",
-            "@id": "https://www.pdfswift.online#logo",
             "url": "https://www.pdfswift.online/logo.png",
             "width": 300,
             "height": 60
           }
         },
-        "publisher": {
-          "@id": "https://www.pdfswift.online#organization"
-        },
         "mainEntityOfPage": {
           "@type": "WebPage",
           "@id": "https://www.pdfswift.online/blog/convert-png-to-jpg-online"
         },
+        "image": [
+          "https://www.pdfswift.online/images/png-to-jpg-tool.png",
+          "https://www.pdfswift.online/logo.png"
+        ],
         "wordCount": 1250,
         "timeRequired": "PT5M",
         "articleSection": "Tools",
         "articleBody": `Complete 1200+ word guide on converting PNG to JPG online while maintaining quality. Covers step-by-step process, batch conversion, quality preservation techniques, format differences, and optimization for various use cases.`,
         "keywords": "convert png to jpg, png to jpg converter, image conversion online, batch convert png to jpg, maintain image quality, format converter",
-        "thumbnailUrl": "https://www.pdfswift.online/images/png-to-jpg-tool.png",
-        "image": {
-          "@type": "ImageObject",
-          "url": "https://www.pdfswift.online/images/png-to-jpg-tool.png",
-          "width": 1200,
-          "height": 630
-        }
+        "thumbnailUrl": "https://www.pdfswift.online/images/png-to-jpg-tool.png"
       },
       {
         "@type": "HowTo",
@@ -158,7 +155,7 @@ export default function ConvertPngToJpgOnline() {
       },
       {
         "@type": "FAQPage",
-        "@id": "https://www.pdfswift.online/blog/convert-png-to-jpg-online#faq",
+        "@id": "https://www.pdfswift.online/blog/convert-png-to-jpg-online#faqpage",
         "mainEntity": [
           {
             "@type": "Question",
@@ -276,7 +273,7 @@ export default function ConvertPngToJpgOnline() {
                 <div className="flex flex-wrap items-center text-gray-600 mb-8 gap-4">
                   <div className="flex items-center">
                     <CalendarDays className="w-5 h-5 mr-2 text-gray-500" aria-hidden="true" />
-                    <time itemProp="datePublished" dateTime="2026-01-24" className="font-medium">January 24, 2026</time>
+                    <time itemProp="datePublished" dateTime="2026-01-24T09:00:00+00:00" className="font-medium">January 24, 2026</time>
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-5 h-5 mr-2 text-gray-500" aria-hidden="true" />
@@ -285,6 +282,19 @@ export default function ConvertPngToJpgOnline() {
                   <div className="flex items-center">
                     <FileImage className="w-5 h-5 mr-2 text-gray-500" aria-hidden="true" />
                     <span className="font-medium">1200+ words</span>
+                  </div>
+                </div>
+                
+                {/* Author Information */}
+                <div className="flex items-center mb-6">
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                      <Image className="w-5 h-5 text-blue-600" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <span itemProp="author" className="block font-medium">PDFSwift Team</span>
+                      <span className="text-sm text-gray-500">Image Conversion Expert</span>
+                    </div>
                   </div>
                 </div>
                 
@@ -312,7 +322,7 @@ export default function ConvertPngToJpgOnline() {
   </h2>
 
   <p className="text-gray-700 text-lg leading-relaxed">
-    In today’s digital world, choosing the right image format plays a crucial role
+    In today's digital world, choosing the right image format plays a crucial role
     in website performance, storage efficiency, and overall user experience.
     Different image formats serve different purposes, and understanding these
     differences helps you make smarter optimization decisions.
