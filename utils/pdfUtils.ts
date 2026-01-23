@@ -256,6 +256,59 @@ function createPlaceholderPage(
     }
 }
 
+// utils/pdfUtils.ts
+
+// यदि downloadAsZip function नहीं है, तो इसे add करें:
+
+import JSZip from 'jszip';
+
+export const downloadAsZip = async (files: { name: string; blob: Blob }[], zipName: string) => {
+  const zip = new JSZip();
+  
+  // Add each file to the zip
+  files.forEach((file, index) => {
+    zip.file(file.name, file.blob);
+  });
+  
+  // Generate the zip file
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  
+  // Create download link
+  const url = URL.createObjectURL(zipBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = zipName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  
+  // Clean up
+  URL.revokeObjectURL(url);
+};
+
+export const downloadFile = (blob: Blob, fileName: string) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+// अन्य PDF related functions...
+export const addPagesToPDF = async (mainPDF: File, pagesToAdd: any[]) => {
+  // PDF processing logic यहाँ implement करें
+  // आप pdf-lib library का use कर सकते हैं
+  return new Blob([], { type: 'application/pdf' });
+};
+
+export const mergePDFs = async (pdfFiles: File[]) => {
+  // Merge PDFs logic
+  return new Blob([], { type: 'application/pdf' });
+};
+
 /* ============================================================
     IMAGE → PDF with REAL Compression and Margin Support
 ============================================================ */
