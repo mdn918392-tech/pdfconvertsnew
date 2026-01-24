@@ -214,12 +214,7 @@ export default function Home() {
   ];
 
   const stats = [
-    {
-      value: "50K+",
-      label: "Daily Users",
-      icon: "users",
-      gradient: "from-blue-500 to-cyan-500",
-    },
+  
     {
       value: "100%",
       label: "Free Forever",
@@ -374,48 +369,55 @@ export default function Home() {
         </motion.div>
 
         {/* Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-16"
-        >
-          {stats.map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className="group bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl p-5 border-2 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 transition-all duration-300 hover:scale-105 hover:shadow-xl"
-            >
-              <div
-                className={`bg-gradient-to-br ${stat.gradient} p-3 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform shadow-lg`}
-              >
-                <div className="text-white">
-                  {stat.icon === "users" && (
-                    <div className="w-6 h-6 bg-white rounded-full" />
-                  )}
-                  {stat.icon === "free" && (
-                    <div className="w-6 h-6 border-2 border-white rounded-full" />
-                  )}
-                  {stat.icon === "zap" && <Zap className="w-6 h-6" />}
-                  {stat.icon === "clock" && (
-                    <div className="w-6 h-6 border-2 border-white rounded-full relative">
-                      <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full -translate-x-1/2 -translate-y-1/2" />
-                    </div>
-                  )}
-                  {stat.icon === "shield" && <Shield className="w-6 h-6" />}
-                </div>
-              </div>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {stat.value}
-              </div>
-              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                {stat.label}
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.1 }}
+  className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16"
+>
+  {stats.map((stat, index) => (
+    <motion.div
+      key={index}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.1 }}
+      className="group bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl p-5 
+                 border-2 border-gray-100 dark:border-gray-800 
+                 hover:border-gray-200 dark:hover:border-gray-700 
+                 transition-all duration-300 hover:scale-105 hover:shadow-xl"
+    >
+      {/* Icon */}
+      <div
+        className={`bg-gradient-to-br ${stat.gradient} p-3 rounded-xl w-fit mb-4 
+                    group-hover:scale-110 transition-transform shadow-lg`}
+      >
+        <div className="text-white">
+          {stat.icon === "free" && (
+            <div className="w-6 h-6 border-2 border-white rounded-full" />
+          )}
+          {stat.icon === "zap" && <Zap className="w-6 h-6" />}
+          {stat.icon === "clock" && (
+            <div className="w-6 h-6 border-2 border-white rounded-full relative">
+              <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full 
+                              -translate-x-1/2 -translate-y-1/2" />
+            </div>
+          )}
+          {stat.icon === "shield" && <Shield className="w-6 h-6" />}
+        </div>
+      </div>
+
+      {/* Value */}
+      <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+        {stat.value}
+      </div>
+
+      {/* Label */}
+      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+        {stat.label}
+      </div>
+    </motion.div>
+  ))}
+</motion.div>
 
         {/* Category Tabs */}
         <motion.div
@@ -453,6 +455,7 @@ export default function Home() {
               </button>
             ))}
           </div>
+
 
           {/* Tools Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

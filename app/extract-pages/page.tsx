@@ -1148,7 +1148,6 @@ export default function PdfPageExtractorTool() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(6);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -1165,6 +1164,9 @@ export default function PdfPageExtractorTool() {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Responsive items per page - 12 for desktop, 6 for mobile
+  const itemsPerPage = isMobile ? 6 : 12;
 
   // Calculate pagination
   const totalPages = Math.ceil(pageData.length / itemsPerPage);
@@ -1532,8 +1534,11 @@ export default function PdfPageExtractorTool() {
     }
   };
 
-  // Items per page options - responsive
-  const itemsPerPageOptions = isMobile ? [4, 6, 8] : [6, 9, 12];
+  // Responsive grid columns
+  const getGridColumns = () => {
+    if (isMobile) return "grid-cols-1";
+    return "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+  };
 
   return (
     <>
@@ -1935,7 +1940,8 @@ export default function PdfPageExtractorTool() {
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+                          {/* Responsive Grid - 12 items for desktop, 6 for mobile */}
+                          <div className={`grid ${getGridColumns()} gap-3 sm:gap-4 md:gap-6`}>
                             {currentPageData.map((page, index) => {
                               const actualIndex = startIndex + index;
                               return (
@@ -2003,11 +2009,11 @@ export default function PdfPageExtractorTool() {
                                         <div className="space-y-1.5 sm:space-y-2 md:space-y-3">
                                           <span
                                             id={`status-${actualIndex}`}
-                                            className="text-xs font-medium ${
-                                                                                        page.isSelected 
-                                                                                            ? 'text-green-600 dark:text-green-400' 
-                                                                                            : 'text-blue-600 dark:text-blue-400'
-                                                                                    }"
+                                            className={`text-xs font-medium ${
+                                              page.isSelected 
+                                                ? 'text-green-600 dark:text-green-400' 
+                                                : 'text-blue-600 dark:text-blue-400'
+                                            }`}
                                           >
                                             {page.isSelected
                                               ? "✓ Ready to extract"
@@ -2071,7 +2077,7 @@ export default function PdfPageExtractorTool() {
                                 {pageData.length} pages
                               </h4>
                               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                                Navigate through pages using pagination
+                                {isMobile ? "6" : "12"} items per page • Navigate through pages
                               </p>
                             </div>
 
@@ -2079,19 +2085,9 @@ export default function PdfPageExtractorTool() {
                               <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
                                 Items per page:
                               </label>
-                              <select
-                                value={itemsPerPage}
-                                onChange={(e) =>
-                                  setItemsPerPage(Number(e.target.value))
-                                }
-                                className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm"
-                              >
-                                {itemsPerPageOptions.map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
+                              <div className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium">
+                                {isMobile ? "6" : "12"} (Auto)
+                              </div>
                             </div>
                           </div>
 
@@ -2246,11 +2242,11 @@ export default function PdfPageExtractorTool() {
 
                             <p
                               id="status-all-1"
-                              className="text-xs sm:text-sm font-medium mt-2 sm:mt-3 ${
-                                                        selectedPagesCount === 0 
-                                                            ? 'text-red-600 dark:text-red-400'
-                                                            : 'text-green-600 dark:text-green-400'
-                                                    }"
+                              className={`text-xs sm:text-sm font-medium mt-2 sm:mt-3 ${
+                                selectedPagesCount === 0 
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : 'text-green-600 dark:text-green-400'
+                              }`}
                             >
                               {selectedPagesCount === 0
                                 ? "✗ Please select at least one page to extract"

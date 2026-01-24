@@ -4,8 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
+import JSZip from "jszip";
+
+// ... [Keep all the existing imports] ...
 
 import {
+  // ... [Keep all existing lucide icons] ...
   Download,
   Grid,
   ArrowRight,
@@ -1359,10 +1363,13 @@ export default function PdfSplitRotatorTool() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(6);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
+
+  // ZIP download state
+  const [downloadingZip, setDownloadingZip] = useState(false);
+  const [zipProgress, setZipProgress] = useState(0);
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
@@ -1376,6 +1383,9 @@ export default function PdfSplitRotatorTool() {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Responsive items per page - 12 for desktop, 6 for mobile
+  const itemsPerPage = isMobile ? 6 : 12;
 
   // Calculate pagination
   const totalPages = Math.ceil(pageData.length / itemsPerPage);
@@ -1881,6 +1891,178 @@ export default function PdfSplitRotatorTool() {
     }
   };
 
+  // Download selected pages as ZIP
+  const handleDownloadZip = async () => {
+    if (!pdfData) {
+      alert("PDF not available.");
+      return;
+    }
+
+    const selectedPages = pageData.filter((page) => page.selected);
+    if (selectedPages.length === 0) {
+      setDownloadSuccess("✗ Please select at least one page to create ZIP.");
+      setTimeout(() => setDownloadSuccess(null), 3000);
+      return;
+    }
+
+    setDownloadingZip(true);
+    setZipProgress(0);
+
+    try {
+      // Create a new ZIP instance
+      const zip = new JSZip();
+      
+      // Convert base64 back to Uint8Array
+      const binaryString = atob(pdfData.base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Load original PDF
+      const pdfDoc = await PDFDocument.load(bytes);
+
+      for (let i = 0; i < selectedPages.length; i++) {
+        const pageInfo = selectedPages[i];
+        const pageIndex = pageInfo.pageNumber - 1;
+
+        // Create single page PDF
+        const newPdf = await PDFDocument.create();
+        const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageIndex]);
+
+        // Apply rotation to the page
+        if (pageInfo.rotation !== 0) {
+          copiedPage.setRotation(degrees(pageInfo.rotation));
+        }
+
+        newPdf.addPage(copiedPage);
+
+        // Save single page PDF
+        const pdfBytes = await newPdf.save();
+        
+        // Add file to ZIP
+        zip.file(pageInfo.fileName, pdfBytes);
+
+        // Update progress
+        const progress = Math.round(((i + 1) / selectedPages.length) * 100);
+        setZipProgress(progress);
+
+        // Small delay for better UX
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+
+      // Create download link for ZIP
+      const zipUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = zipUrl;
+      a.download = `split_pages_${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(zipUrl);
+
+      // Success message
+      setDownloadSuccess(
+        `✓ Successfully created ZIP with ${selectedPages.length} pages!`
+      );
+      setTimeout(() => setDownloadSuccess(null), 5000);
+    } catch (error) {
+      console.error("Error creating ZIP:", error);
+      setDownloadSuccess(
+        "✗ Failed to create ZIP file. Please try again."
+      );
+      setTimeout(() => setDownloadSuccess(null), 3000);
+    } finally {
+      setDownloadingZip(false);
+      setZipProgress(0);
+    }
+  };
+
+  // Download all pages as ZIP
+  const handleDownloadAllZip = async () => {
+    if (!pdfData || pageData.length === 0) {
+      alert("PDF not available.");
+      return;
+    }
+
+    setDownloadingZip(true);
+    setZipProgress(0);
+
+    try {
+      // Create a new ZIP instance
+      const zip = new JSZip();
+      
+      // Convert base64 back to Uint8Array
+      const binaryString = atob(pdfData.base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Load original PDF
+      const pdfDoc = await PDFDocument.load(bytes);
+
+      for (let i = 0; i < pageData.length; i++) {
+        const pageInfo = pageData[i];
+
+        // Create single page PDF
+        const newPdf = await PDFDocument.create();
+        const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
+
+        // Apply rotation to the page
+        if (pageInfo.rotation !== 0) {
+          copiedPage.setRotation(degrees(pageInfo.rotation));
+        }
+
+        newPdf.addPage(copiedPage);
+
+        // Save single page PDF
+        const pdfBytes = await newPdf.save();
+        
+        // Add file to ZIP
+        zip.file(pageInfo.fileName, pdfBytes);
+
+        // Update progress
+        const progress = Math.round(((i + 1) / pageData.length) * 100);
+        setZipProgress(progress);
+
+        // Small delay for better UX
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+
+      // Create download link for ZIP
+      const zipUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = zipUrl;
+      a.download = `all_split_pages_${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(zipUrl);
+
+      // Success message
+      setDownloadSuccess(
+        `✓ Successfully created ZIP with all ${pageData.length} pages!`
+      );
+      setTimeout(() => setDownloadSuccess(null), 5000);
+    } catch (error) {
+      console.error("Error creating ZIP:", error);
+      setDownloadSuccess(
+        "✗ Failed to create ZIP file. Please try again."
+      );
+      setTimeout(() => setDownloadSuccess(null), 3000);
+    } finally {
+      setDownloadingZip(false);
+      setZipProgress(0);
+    }
+  };
+
   const handleFilesSelected = (newFiles: File[]) => {
     setFiles(newFiles);
     setConverted(false);
@@ -2024,8 +2206,11 @@ export default function PdfSplitRotatorTool() {
     }
   };
 
-  // Items per page options - responsive
-  const itemsPerPageOptions = isMobile ? [4, 6, 8] : [6, 9, 12];
+  // Responsive grid columns
+  const getGridColumns = () => {
+    if (isMobile) return "grid-cols-1";
+    return "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+  };
 
   // Count selected pages
   const selectedCount = pageData.filter((page) => page.selected).length;
@@ -2082,7 +2267,7 @@ export default function PdfSplitRotatorTool() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
             <a
               href="/"
-              className="inline-flex items-center gap-2 sm:gap-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium group"
+              className="inline-flex items-center gap-2 sm:gap-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium"
             >
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
               <span className="text-sm sm:text-base">Back to Tools</span>
@@ -2375,7 +2560,7 @@ export default function PdfSplitRotatorTool() {
                      
 
                       {/* Download All Progress */}
-                      {downloadingAll && (
+                      {(downloadingAll || downloadingZip) && (
                         <motion.div
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -2383,24 +2568,27 @@ export default function PdfSplitRotatorTool() {
                         >
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-medium text-blue-700 dark:text-blue-300 text-xs sm:text-sm">
-                              Downloading {downloadProgress}% complete
+                              {downloadingZip ? "Creating ZIP" : "Downloading"} {downloadingZip ? zipProgress : downloadProgress}% complete
                             </span>
                             <span className="text-xs text-gray-600 dark:text-gray-400">
-                              {Math.round(
-                                (downloadProgress / 100) * pageData.length
-                              )}{" "}
-                              of {pageData.length} pages
+                              {downloadingZip 
+                                ? `${Math.round((zipProgress / 100) * pageData.length)} of ${pageData.length} pages added`
+                                : `${Math.round((downloadProgress / 100) * pageData.length)} of ${pageData.length} pages`
+                              }
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 sm:h-2">
                             <motion.div
                               initial={{ width: 0 }}
-                              animate={{ width: `${downloadProgress}%` }}
+                              animate={{ width: `${downloadingZip ? zipProgress : downloadProgress}%` }}
                               className="h-1.5 sm:h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
                             />
                           </div>
                           <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">
-                            Please wait while pages are being downloaded...
+                            {downloadingZip 
+                              ? "Please wait while ZIP file is being created..." 
+                              : "Please wait while pages are being downloaded..."
+                            }
                           </p>
                         </motion.div>
                       )}
@@ -2420,7 +2608,8 @@ export default function PdfSplitRotatorTool() {
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+                        {/* Responsive Grid - 12 items for desktop, 6 for mobile */}
+                        <div className={`grid ${getGridColumns()} gap-3 sm:gap-4 md:gap-6`}>
                           {currentPageData.map((page, index) => {
                             const actualIndex = startIndex + index;
                             return (
@@ -2551,7 +2740,7 @@ export default function PdfSplitRotatorTool() {
                               {pageData.length} pages
                             </h4>
                             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                              Navigate through pages using pagination
+                              {isMobile ? "6" : "12"} items per page • Navigate through pages
                             </p>
                           </div>
 
@@ -2559,19 +2748,9 @@ export default function PdfSplitRotatorTool() {
                             <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
                               Items per page:
                             </label>
-                            <select
-                              value={itemsPerPage}
-                              onChange={(e) =>
-                                setItemsPerPage(Number(e.target.value))
-                              }
-                              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm"
-                            >
-                              {itemsPerPageOptions.map((option) => (
-                                <option key={option} value={option}>
-                                  {option}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs sm:text-sm font-medium">
+                              {isMobile ? "6" : "12"} (Auto)
+                            </div>
                           </div>
                         </div>
 
@@ -2702,57 +2881,82 @@ export default function PdfSplitRotatorTool() {
                         </p>
                       </div>
 
-                      {/* Download Options Section - Responsive */}
+                      {/* Download Options Section - Responsive with ZIP feature */}
                       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 lg:p-8 border-2 border-indigo-200 dark:border-indigo-800/50">
                         <div className="text-center mb-3 sm:mb-4 md:mb-6">
-                          <h4 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
+                          <h4 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2 flex items-center justify-center gap-2">
+                            <FileArchive className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-blue-600" />
                             Batch Download Options
                           </h4>
                           <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">
-                            Choose how you want to download pages
+                            Choose how you want to download pages - individually, as ZIP, or in batches
                           </p>
 
                           <div className="space-y-3 sm:space-y-4">
                             {/* Download Selected Button */}
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={handleDownloadSelected}
-                              disabled={downloadingAll || selectedCount === 0}
-                              className="w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3"
-                            >
-                              {downloadingAll ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                                  <span>Processing...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                                  <span>
-                                    Download Selected ({selectedCount} pages)
-                                  </span>
-                                </>
-                              )}
-                            </motion.button>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handleDownloadSelected}
+                                disabled={downloadingAll || downloadingZip || selectedCount === 0}
+                                className="w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3"
+                              >
+                                {downloadingAll ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                                    <span>Processing...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                    <span>
+                                      Download Selected ({selectedCount} pages)
+                                    </span>
+                                  </>
+                                )}
+                              </motion.button>
+
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handleDownloadZip}
+                                disabled={downloadingAll || downloadingZip || selectedCount === 0}
+                                className="w-full py-2.5 sm:py-3 md:py-4 px-4 sm:px-5 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3"
+                              >
+                                {downloadingZip ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                                    <span>Creating ZIP...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileArchive className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                    <span>
+                                      Download as ZIP ({selectedCount} pages)
+                                    </span>
+                                  </>
+                                )}
+                              </motion.button>
+                            </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                               <div className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl border border-blue-200 dark:border-blue-700">
-                                <h5 className="font-bold text-gray-900 dark:text-white mb-1 text-xs sm:text-sm">
-                                  Current View
+                                <h5 className="font-bold text-gray-900 dark:text-white mb-1 text-xs sm:text-sm flex items-center gap-1">
+                                  <FileArchive className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                                  All Pages ZIP
                                 </h5>
                                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                                  Download {endIndex - startIndex} pages from
-                                  current view
+                                  Download all {pageData.length} pages as single ZIP file
                                 </p>
                                 <motion.button
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
-                                  onClick={handleDownloadCurrentPage}
-                                  disabled={downloadingAll}
+                                  onClick={handleDownloadAllZip}
+                                  disabled={downloadingAll || downloadingZip}
                                   className="w-full mt-2 py-1.5 px-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
-                                  Download {endIndex - startIndex} Pages
+                                  Download ZIP ({pageData.length} pages)
                                 </motion.button>
                               </div>
 
@@ -2761,13 +2965,13 @@ export default function PdfSplitRotatorTool() {
                                   All Pages
                                 </h5>
                                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                                  Download all {pageData.length} pages in one go
+                                  Download all {pageData.length} pages individually
                                 </p>
                                 <motion.button
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
                                   onClick={handleDownloadAll}
-                                  disabled={downloadingAll}
+                                  disabled={downloadingAll || downloadingZip}
                                   className="w-full mt-2 py-1.5 px-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                   Download All {pageData.length} Pages
@@ -2780,9 +2984,34 @@ export default function PdfSplitRotatorTool() {
                             id="status-all-1"
                             className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 font-medium mt-2 sm:mt-3"
                           >
-                            Ready for batch download • {selectedCount} pages
-                            selected
+                            Ready for batch download • {selectedCount} pages selected
                           </p>
+
+                          {/* ZIP Download Tips */}
+                          <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg sm:rounded-xl border border-green-200 dark:border-green-800/30">
+                            <div className="flex items-start gap-2">
+                              <FileArchive className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400 mt-0.5" />
+                              <div>
+                                <h6 className="font-medium text-green-800 dark:text-green-300 text-xs sm:text-sm mb-1">
+                                  ZIP Download Benefits:
+                                </h6>
+                                <ul className="text-xs text-green-700/80 dark:text-green-400/80 space-y-1">
+                                  <li className="flex items-start gap-1">
+                                    <span className="text-green-600">•</span>
+                                    <span>Download multiple pages as a single file</span>
+                                  </li>
+                                  <li className="flex items-start gap-1">
+                                    <span className="text-green-600">•</span>
+                                    <span>Preserves rotation settings for each page</span>
+                                  </li>
+                                  <li className="flex items-start gap-1">
+                                    <span className="text-green-600">•</span>
+                                    <span>Faster download with fewer files to manage</span>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
@@ -2796,8 +3025,7 @@ export default function PdfSplitRotatorTool() {
                           Split Another PDF
                         </button>
                         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                          All processing happens in your browser • No files are
-                          uploaded
+                          All processing happens in your browser • No files are uploaded
                         </p>
                       </div>
                     </motion.div>
@@ -2915,7 +3143,7 @@ export default function PdfSplitRotatorTool() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-blue-600">•</span>
-                  <span>Use global controls for batch operations</span>
+                  <span>Use ZIP download for multiple pages</span>
                 </li>
               </ul>
             </motion.div>
@@ -2928,7 +3156,7 @@ export default function PdfSplitRotatorTool() {
                   Frequently Asked Questions
                 </h2>
                 <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Everything you need to know about resizing images online
+                  Everything you need to know about splitting PDF files
                 </p>
               </div>
 

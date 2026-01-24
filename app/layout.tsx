@@ -137,7 +137,7 @@ export default function RootLayout({
     "@type": "Organization",
     name: "PDFSwift",
     url: "https://pdfswift.online",
-    logo: "https://pdfswift.online/icons/icon-192.png",
+    logo: "https://pdfswift.online/icons/favicon.ico",
     sameAs: [
       "https://twitter.com/pdfswift", // optional
       "https://github.com/pdfswift",  // optional
