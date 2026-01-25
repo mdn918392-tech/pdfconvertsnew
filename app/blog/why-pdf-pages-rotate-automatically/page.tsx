@@ -13,7 +13,7 @@ export const metadata = {
     url: "https://www.pdfswift.online/blog/why-pdf-pages-rotate-automatically",
     title: "Why PDF Pages Rotate Automatically (And How to Fix It)",
     description: "Complete guide explaining why PDF pages rotate automatically and providing practical solutions to fix and prevent this frustrating issue.",
-    images: [{ url: "https://www.pdfswift.online/images/pdf-rotation-guide.png", width: 1200, height: 630 }],
+    images: [{ url: "https://www.pdfswift.online/images/pdf-rotation-guide2.png", width: 1200, height: 630 }],
     siteName: "PDFSwift",
     locale: "en_US",
     publishedTime: "2026-01-26T10:00:00+00:00",
@@ -24,7 +24,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "Why PDF Pages Rotate Automatically (And How to Fix It)",
     description: "Solve the mystery of rotating PDF pages with this comprehensive troubleshooting guide",
-    images: ["https://www.pdfswift.online/images/pdf-rotation-guide.png"],
+    images: ["https://www.pdfswift.online/images/pdf-rotation-guide2.png"],
   },
   robots: { 
     index: true, 
@@ -88,7 +88,7 @@ export default function WhyPDFPagesRotate() {
         "articleSection": "Troubleshooting",
         "articleBody": `Detailed explanation of why PDF pages rotate automatically, covering orientation metadata, viewer settings, scanning issues, and device-specific behavior. Includes step-by-step solutions and preventive measures.`,
         "keywords": "PDF rotation, automatic rotation, PDF orientation fix, PDF viewer issues, document rotation, PDF metadata, scanning problems",
-        "thumbnailUrl": "https://www.pdfswift.online/images/pdf-rotation-guide.png",
+        "thumbnailUrl": "https://www.pdfswift.online/images/pdf-rotation-guide2.png",
         "image": {
           "@type": "ImageObject",
           "url": "https://www.pdfswift.online/images/pdf-rotation-guide.png",
