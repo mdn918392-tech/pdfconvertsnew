@@ -622,6 +622,55 @@
         "answer": "Yes, PDFSwift's image compression tool is completely free with no sign-up required. You can compress as many images as you need."
       }
     ]
+  },
+
+  {
+    "id": "why-pdf-pages-rotate-automatically",
+    "title": "Why PDF Pages Rotate Automatically (And How to Fix It)",
+    "date": "Jan 26 2026",
+    "description": "Learn why PDF pages rotate automatically and discover simple solutions to fix and prevent this common issue on mobile and PC. Understand metadata, viewer settings, and scanning errors.",
+    "slug": "why-pdf-pages-rotate-automatically",
+    "image": "/images/pdf-rotation-guide.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "Why PDF Pages Rotate Automatically", "url": "/blog/why-pdf-pages-rotate-automatically" }
+    ],
+    "howto": {
+      "steps": [
+        "Identify the cause of automatic rotation (metadata or viewer settings)",
+        "Use online PDF rotation tools to manually correct page orientation",
+        "Adjust PDF viewer settings to prevent automatic rotation",
+        "Fix scanning orientation issues at the source",
+        "Save the corrected PDF with new orientation settings"
+      ],
+      "estimatedTime": "PT3M",
+      "totalTime": "PT3M",
+      "supply": ["PDF file with rotation issues"],
+      "tool": ["PDF rotation tool", "PDF viewer"]
+    },
+    "faq": [
+      {
+        "question": "Why do PDF pages rotate automatically when opened?",
+        "answer": "PDF pages rotate automatically due to orientation metadata embedded in the file, viewer settings that auto-rotate based on device position, or incorrect scanning orientation. The PDF format stores rotation information that some viewers apply automatically."
+      },
+      {
+        "question": "How can I permanently fix rotated PDF pages?",
+        "answer": "Use an online PDF rotation tool to manually set the correct orientation for each page, then save the PDF. This permanently embeds the correct rotation metadata so all viewers display pages correctly."
+      },
+      {
+        "question": "Why do PDF pages look fine on one device but rotated on another?",
+        "answer": "Different PDF viewers interpret rotation metadata differently. Some viewers ignore it, some apply it automatically, and others have their own rotation settings. This causes inconsistent display across devices."
+      },
+      {
+        "question": "Can I prevent PDF pages from rotating automatically?",
+        "answer": "Yes, you can disable auto-rotation in your PDF viewer settings, use PDF editing tools to remove rotation metadata, or create PDFs with correct orientation from the beginning."
+      },
+      {
+        "question": "Is it safe to use online tools to fix PDF rotation?",
+        "answer": "Yes, reputable online PDF rotation tools use secure connections and automatically delete files after processing. For sensitive documents, use offline software or browser-based tools that process files locally."
+      }
+    ]
   }
   
   

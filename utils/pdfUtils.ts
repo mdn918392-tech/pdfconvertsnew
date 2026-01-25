@@ -316,7 +316,8 @@ export async function imageToPdf(
     files: File[], 
     paperSize: PaperSize, 
     orientation: Orientation,
-    marginPoints?: number // Add margin parameter (in points, 1 inch = 72 points)
+    marginPoints?: number,
+    addPageNumbers: boolean = false // नया पैरामीटर जोड़ें
 ): Promise<Blob> {
     const pdfDoc = await PDFDocument.create();
     
@@ -398,8 +399,8 @@ export async function imageToPdf(
                     height: scaledHeight,
                 });
                 
-                // Add page number in the margin area if there's enough space
-                if (margin >= 36) {
+                // FIXED: पेज नंबर केवल तभी जोड़ें जब addPageNumbers true हो
+                if (addPageNumbers && margin >= 36) {
                     const pageNumber = successCount + 1;
                     page.drawText(
                         `Page ${pageNumber}`,
