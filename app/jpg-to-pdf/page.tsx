@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
 import Link from "next/link";
 import {
   Download,
@@ -37,6 +36,8 @@ import {
   Columns,
   Square,
   Expand,
+  Replace,
+
 } from "lucide-react";
 
 // Make sure these components are client components
@@ -64,6 +65,7 @@ interface FileWithPreview {
   aspectRatio: "free" | "1:1" | "4:3" | "16:9" | "A4";
   previewError?: boolean;
   compressedSize?: number;
+  originalOrder?: number;
 }
 
 interface DownloadNotification {
@@ -631,6 +633,137 @@ const MarginPreview = ({ marginSize }: { marginSize: MarginSize }) => {
   );
 };
 
+// Replace Image Modal Component
+const ReplaceImageModal = ({
+  onReplace,
+  onCancel,
+  imageName,
+}: {
+  onReplace: (file: File) => void;
+  onCancel: () => void;
+  imageName: string;
+}) => {
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onReplace(file);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) {
+      onReplace(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                Replace Image
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Replace: <span className="font-medium">{imageName}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="p-6">
+          <div
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+              dragOver
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                : "border-gray-300 dark:border-gray-700 hover:border-blue-400"
+            }`}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <div className="mb-4">
+              <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
+                <Upload className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+              </div>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              {dragOver ? "Drop image here" : "Click or drag to replace"}
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Select a new image to replace the current one
+            </p>
+            <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <span>JPG</span>
+              <span>•</span>
+              <span>PNG</span>
+              <span>•</span>
+              <span>WEBP</span>
+              <span>•</span>
+              <span>Max 100MB</span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-3 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 font-medium transition-all flex items-center justify-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Choose File
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 export default function JpgToPdf() {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [paperSize, setPaperSize] = useState<PaperSize>("A4");
@@ -642,6 +775,9 @@ export default function JpgToPdf() {
   const [expandedImage, setExpandedImage] = useState<{
     url: string;
     rotation: number;
+    naturalWidth?: number;
+    naturalHeight?: number;
+    id: string;
   } | null>(null);
   const [rotatedUrls, setRotatedUrls] = useState<Record<string, string>>({});
   const [downloadNotifications, setDownloadNotifications] = useState<
@@ -659,6 +795,10 @@ export default function JpgToPdf() {
   const [customQualityValue, setCustomQualityValue] = useState<number>(85);
   const [showChangesWarning, setShowChangesWarning] = useState(false);
   const [originalStateHash, setOriginalStateHash] = useState<string>("");
+  const [replacingImageId, setReplacingImageId] = useState<string | null>(null);
+  const [showReplaceOptions, setShowReplaceOptions] = useState<string | null>(
+    null
+  );
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   // Function to calculate hash of current state
@@ -782,6 +922,52 @@ export default function JpgToPdf() {
     [rotatedUrls, setPdfBlobWithState]
   );
 
+  // Handle Replace Image
+  const handleReplaceImage = useCallback(
+    async (id: string, newFile: File) => {
+      const fileIndex = files.findIndex((f) => f.id === id);
+      if (fileIndex === -1) return;
+
+      // नया file object बनाएं
+      const newFileWithPreview: FileWithPreview = {
+        file: newFile,
+        id: Math.random().toString(36).substr(2, 9),
+        rotation: 0,
+        scale: 1,
+        aspectRatio: "free",
+        previewError: false,
+        previewUrl: URL.createObjectURL(newFile),
+        originalOrder: files[fileIndex].originalOrder || fileIndex,
+      };
+
+      // पुरानी file cleanup
+      const oldFile = files[fileIndex];
+      if (oldFile.previewUrl) URL.revokeObjectURL(oldFile.previewUrl);
+      if (rotatedUrls[oldFile.id]) {
+        if (rotatedUrls[oldFile.id].startsWith("data:")) {
+          URL.revokeObjectURL(rotatedUrls[oldFile.id]);
+        }
+        setRotatedUrls((prev) => {
+          const newUrls = { ...prev };
+          delete newUrls[oldFile.id];
+          return newUrls;
+        });
+      }
+
+      // Update files array
+      const updatedFiles = [...files];
+      updatedFiles[fileIndex] = newFileWithPreview;
+      setFiles(updatedFiles);
+
+      // Reset states
+      setPdfBlobWithState(null);
+      setProgress(0);
+      setReplacingImageId(null);
+      setShowReplaceOptions(null);
+    },
+    [files, rotatedUrls, setPdfBlobWithState]
+  );
+
   // Drag and Drop Handlers
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
@@ -864,8 +1050,15 @@ export default function JpgToPdf() {
           return newUrls;
         });
       }
+
+      // Update expanded image if it's the same file
+      if (expandedImage?.id === id) {
+        setExpandedImage((prev) =>
+          prev ? { ...prev, rotation: newRotation } : null
+        );
+      }
     },
-    [files, rotatedUrls, setPdfBlobWithState]
+    [files, rotatedUrls, setPdfBlobWithState, expandedImage]
   );
 
   const handleRotateAll = useCallback(
@@ -897,13 +1090,15 @@ export default function JpgToPdf() {
       setCompressing(true);
 
       try {
-        const filesWithIds: FileWithPreview[] = newFiles.map((file) => ({
+        const filesWithIds: FileWithPreview[] = newFiles.map((file, index) => ({
           file: file,
           id: Math.random().toString(36).substr(2, 9),
           rotation: 0,
           scale: 1,
           aspectRatio: "free",
           previewError: false,
+          previewUrl: URL.createObjectURL(file),
+          originalOrder: files.length + index,
         }));
 
         let filesToSet = filesWithIds;
@@ -915,19 +1110,8 @@ export default function JpgToPdf() {
           filesToSet = filesWithIds.slice(0, MAX_PAGES_COUNT);
         }
 
-        // Create preview URLs for new files only
-        const filesWithPreviews = filesToSet.map((file) => {
-          try {
-            const previewUrl = URL.createObjectURL(file.file);
-            return { ...file, previewUrl, previewError: false };
-          } catch (error) {
-            console.error("Failed to create preview URL:", error);
-            return { ...file, previewError: true };
-          }
-        });
-
         // Add only new files to the existing files
-        setFiles((prev) => [...prev, ...filesWithPreviews]);
+        setFiles((prev) => [...prev, ...filesToSet]);
         setPdfBlobWithState(null);
         setProgress(0);
       } catch (error) {
@@ -937,7 +1121,7 @@ export default function JpgToPdf() {
         setCompressing(false);
       }
     },
-    [setPdfBlobWithState]
+    [files.length, setPdfBlobWithState]
   );
 
   const handleImageError = useCallback((id: string) => {
@@ -961,6 +1145,11 @@ export default function JpgToPdf() {
     try {
       // Prepare files in current order
       let filesToConvert = [...files];
+
+      // FIX: Apply reverse order when converting to PDF
+      if (reverseOrder) {
+        filesToConvert = [...files].reverse();
+      }
 
       // Show compression progress
       setProgress(10);
@@ -1064,8 +1253,11 @@ export default function JpgToPdf() {
             }`
           );
           console.log(`Margin Setting: ${marginSize}`);
+          console.log(`Reverse Order: ${reverseOrder}`);
           console.log(
-            `Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`
+            `Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(
+              2
+            )} MB`
           );
           console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
           console.log(`Total change: ${totalCompressionRatio}%`);
@@ -1150,6 +1342,10 @@ export default function JpgToPdf() {
   const displayFiles = reverseOrder ? [...files].reverse() : files;
 
   const getPageNumber = (displayIndex: number) => {
+    if (reverseOrder) {
+      // When in reverse order, the first displayed item is actually the last original item
+      return files.length - displayIndex;
+    }
     return displayIndex + 1;
   };
 
@@ -1160,67 +1356,118 @@ export default function JpgToPdf() {
     return file.previewUrl;
   };
 
-  const handleExpandImage = async (file: FileWithPreview) => {
-    if (!file.previewUrl || file.previewError) return;
+ const handleExpandImage = async (file: FileWithPreview) => {
+  if (!file.previewUrl || file.previewError) return;
 
-    try {
-      if (file.rotation === 0) {
-        setExpandedImage({
-          url: file.previewUrl,
-          rotation: 0,
-        });
-        return;
+  try {
+    const img = new Image();
+    
+    img.onload = () => {
+      let displayWidth = img.naturalWidth;
+      let displayHeight = img.naturalHeight;
+      
+      // Rotated dimensions calculate करें
+      if (file.rotation === 90 || file.rotation === 270) {
+        displayWidth = img.naturalHeight;
+        displayHeight = img.naturalWidth;
       }
-
-      if (!rotatedUrls[file.id]) {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        const img = new Image();
-
-        img.onload = () => {
-          if (file.rotation === 90 || file.rotation === 270) {
-            canvas.width = img.height;
-            canvas.height = img.width;
-          } else {
-            canvas.width = img.width;
-            canvas.height = img.height;
-          }
-
-          if (ctx) {
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate((file.rotation * Math.PI) / 180);
-            ctx.drawImage(img, -img.width / 2, -img.height / 2);
-
-            const rotatedUrl = canvas.toDataURL("image/jpeg", 0.8);
-            setRotatedUrls((prev) => ({
-              ...prev,
-              [file.id]: rotatedUrl,
-            }));
-            setExpandedImage({
-              url: rotatedUrl,
-              rotation: file.rotation,
-            });
-          }
-        };
-
-        img.src = file.previewUrl;
+      
+      // Viewport के according scale calculate करें
+      const viewportWidth = window.innerWidth * 0.9;
+      const viewportHeight = window.innerHeight * 0.8;
+      
+      let scale = 1;
+      if (displayWidth > viewportWidth) {
+        scale = Math.min(scale, viewportWidth / displayWidth);
+      }
+      if (displayHeight > viewportHeight) {
+        scale = Math.min(scale, viewportHeight / displayHeight);
+      }
+      
+      const finalWidth = Math.floor(displayWidth * scale);
+      const finalHeight = Math.floor(displayHeight * scale);
+      
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      
+      // Canvas size original rotated dimensions पर set करें
+      if (file.rotation === 90 || file.rotation === 270) {
+        canvas.width = finalHeight;  // Note: यहाँ swap है
+        canvas.height = finalWidth;  // Note: यहाँ swap है
       } else {
+        canvas.width = finalWidth;
+        canvas.height = finalHeight;
+      }
+      
+      if (ctx) {
+        // White background
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // High quality rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        
+        // Rotate और draw करें
+        ctx.save();
+        
+        // Canvas के center में move करें
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        
+        // Rotate apply करें
+        ctx.rotate((file.rotation * Math.PI) / 180);
+        
+        // Image draw करें (centered)
+        ctx.drawImage(
+          img,
+          -finalWidth / 2,
+          -finalHeight / 2,
+          finalWidth,
+          finalHeight
+        );
+        
+        ctx.restore();
+        
+        const rotatedUrl = canvas.toDataURL("image/jpeg", 0.95);
+        setRotatedUrls((prev) => ({
+          ...prev,
+          [file.id]: rotatedUrl,
+        }));
+        
+        // सही dimensions pass करें
         setExpandedImage({
-          url: rotatedUrls[file.id],
+          url: rotatedUrl,
           rotation: file.rotation,
+          naturalWidth: canvas.width,  // Canvas width use करें
+          naturalHeight: canvas.height, // Canvas height use करें
+          id: file.id,
         });
       }
-    } catch (error) {
-      console.error("Failed to prepare expanded image:", error);
+    };
+    
+    img.onerror = () => {
+      // Fallback
       setExpandedImage({
-        url: file.previewUrl,
+        url: file.previewUrl!,
         rotation: 0,
+        naturalWidth: 0,
+        naturalHeight: 0,
+        id: file.id,
       });
-    }
-  };
+    };
+    
+    img.src = file.previewUrl;
+  } catch (error) {
+    console.error("Failed to prepare expanded image:", error);
+    setExpandedImage({
+      url: file.previewUrl!,
+      rotation: 0,
+      naturalWidth: 0,
+      naturalHeight: 0,
+      id: file.id,
+    });
+  }
+};
 
   const handleConvertMore = () => {
     files.forEach((file) => {
@@ -1240,6 +1487,8 @@ export default function JpgToPdf() {
     setReverseOrder(false);
     setShowCompressionInfo(false);
     setShowChangesWarning(false);
+    setReplacingImageId(null);
+    setShowReplaceOptions(null);
   };
 
   // Function to handle changes and show warning
@@ -1253,16 +1502,59 @@ export default function JpgToPdf() {
     }
   };
 
+  // Handle image rotation in full screen mode
+  const handleRotateInFullScreen = (degrees: number) => {
+    if (!expandedImage) return;
+
+    const newRotation = (expandedImage.rotation + degrees) % 360;
+    const fileId = expandedImage.id;
+
+    // Update the file's rotation
+    setFiles((prev) =>
+      prev.map((f) =>
+        f.id === fileId ? { ...f, rotation: newRotation } : f
+      )
+    );
+
+    // Update expanded image rotation
+    setExpandedImage((prev) =>
+      prev ? { ...prev, rotation: newRotation } : null
+    );
+
+    // Clear cached rotated URL
+    if (rotatedUrls[fileId]) {
+      URL.revokeObjectURL(rotatedUrls[fileId]);
+      setRotatedUrls((prev) => {
+        const newUrls = { ...prev };
+        delete newUrls[fileId];
+        return newUrls;
+      });
+    }
+
+    setPdfBlobWithState(null);
+  };
+
   if (!isClient) return null;
 
   return (
     <>
       <FAQSchema />
       <BreadcrumbSchema />
-      {/* rest of page */}
-
       <HowToSchema />
       <ArticleSchema />
+
+      {/* Replace Image Modal */}
+      <AnimatePresence>
+        {replacingImageId && (
+          <ReplaceImageModal
+            imageName={
+              files.find((f) => f.id === replacingImageId)?.file.name || ""
+            }
+            onReplace={(file) => handleReplaceImage(replacingImageId, file)}
+            onCancel={() => setReplacingImageId(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
         <div
@@ -1294,43 +1586,64 @@ export default function JpgToPdf() {
         showWarning={showChangesWarning}
       />
 
-      <AnimatePresence>
-        {expandedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setExpandedImage(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-full max-h-[90vh]"
-            >
-              <img
-                src={expandedImage.url}
-                alt="Expanded preview"
-                className="max-w-full max-h-[90vh] object-contain rounded-lg bg-white"
-                style={{
-                  transform:
-                    expandedImage.rotation !== 0
-                      ? `rotate(${expandedImage.rotation}deg)`
-                      : "none",
-                }}
-                onError={() => setExpandedImage(null)}
-              />
-            </motion.div>
-            <button
-              className="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-full transition-colors"
-              onClick={() => setExpandedImage(null)}
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+<AnimatePresence>
+  {expandedImage && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      style={{
+        overflow: 'hidden', // यह add करें
+      }}
+    >
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        {/* ... rotation buttons ... */}
+        <button
+          className="p-3 bg-white/20 hover:bg-white/30 text-white rounded-full transition-colors"
+          onClick={() => setExpandedImage(null)}
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.9 }}
+        className="relative max-w-full max-h-full flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          height: '100%',
+          overflow: 'auto', // यह add करें
+        }}
+      >
+        <div className="flex items-center justify-center w-full h-full">
+          <img
+            src={expandedImage.url}
+            alt="Expanded preview"
+            className="max-w-full max-h-full object-contain rounded-lg bg-white"
+            style={{
+              transform: `rotate(${expandedImage.rotation}deg)`,
+              maxHeight: '90vh', // यह add करें
+              maxWidth: '90vw',  // यह add करें
+            }}
+            onError={() => setExpandedImage(null)}
+          />
+        </div>
+      </motion.div>
+
+      {/* Mobile close button */}
+      <button
+        className="absolute bottom-4 left-1/2 transform -translate-x-1/2 md:hidden p-3 bg-white/20 hover:bg-white/30 text-white rounded-full transition-colors"
+        onClick={() => setExpandedImage(null)}
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </motion.div>
+  )}
+</AnimatePresence>
 
       {/* Changes Warning Banner */}
       <AnimatePresence>
@@ -1566,7 +1879,7 @@ export default function JpgToPdf() {
                     </div>
                   </div>
 
-                  {/* Images Grid/List View */}
+                  {/* Images Grid/List View - CORRECTED IMAGE CONTAINER */}
                   <div
                     className={`${
                       viewMode === "grid"
@@ -1613,11 +1926,12 @@ export default function JpgToPdf() {
                               </div>
                             )}
 
+                            {/* CORRECTED IMAGE CONTAINER - FIXED HEIGHT & OBJECT-FIT */}
                             <div
                               className={`relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer ${
                                 viewMode === "list"
                                   ? "w-20 h-20 flex-shrink-0"
-                                  : "aspect-square"
+                                  : "w-full h-48 md:h-56 lg:h-64"
                               }`}
                               onClick={() => handleExpandImage(item)}
                             >
@@ -1626,12 +1940,7 @@ export default function JpgToPdf() {
                                   <img
                                     src={imageUrl}
                                     alt={item.file.name}
-                                    className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${
-                                      item.rotation !== 0 &&
-                                      !rotatedUrls[item.id]
-                                        ? "transform"
-                                        : ""
-                                    }`}
+                                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
                                     style={
                                       item.rotation !== 0 &&
                                       !rotatedUrls[item.id]
@@ -1705,15 +2014,50 @@ export default function JpgToPdf() {
                                   >
                                     <RotateCw className="w-3 h-3" />
                                   </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemoveFile(item);
-                                    }}
-                                    className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/30 rounded-lg transition-colors ml-auto"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
+                                  <div className="relative ml-auto">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowReplaceOptions(
+                                          showReplaceOptions === item.id
+                                            ? null
+                                            : item.id
+                                        );
+                                      }}
+                                      className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                      title="Replace image"
+                                    >
+                                      <Replace className="w-3 h-3" />
+                                    </button>
+
+                                    {/* Replace Options Dropdown */}
+                                    {showReplaceOptions === item.id && (
+                                      <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setReplacingImageId(item.id);
+                                            setShowReplaceOptions(null);
+                                          }}
+                                          className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                                        >
+                                         
+                                          Replace this image
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRemoveFile(item);
+                                            setShowReplaceOptions(null);
+                                          }}
+                                          className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-2"
+                                        >
+                                          <X className="w-3 h-3" />
+                                          Remove image
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -1729,6 +2073,18 @@ export default function JpgToPdf() {
                                   aria-label={`Remove ${item.file.name}`}
                                 >
                                   <X className="w-3 h-3" />
+                                </button>
+
+                                {/* Replace Button for Grid View */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReplacingImageId(item.id);
+                                  }}
+                                  className="absolute -top-2 -left-2 bg-blue-500 text-white p-1.5 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-10"
+                                  title="Replace image"
+                                >
+                                  <Replace className="w-3 h-3" />
                                 </button>
 
                                 <div className="absolute bottom-2 left-2 flex gap-1">
@@ -1761,6 +2117,7 @@ export default function JpgToPdf() {
                                       e.stopPropagation();
                                       handleExpandImage(item);
                                     }}
+                                    title="Expand image"
                                   >
                                     <Maximize2 className="w-3 h-3" />
                                   </button>
@@ -1770,7 +2127,7 @@ export default function JpgToPdf() {
 
                             {reverseOrder && viewMode === "grid" && (
                               <div
-                                className="absolute -top-2 -left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                className="absolute -top-2 left-8 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <ArrowUpDown className="w-2 h-2" />R
@@ -2577,6 +2934,9 @@ export default function JpgToPdf() {
                                 ? "Small"
                                 : "Big"}
                             </span>
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Order: {reverseOrder ? "Reverse" : "Normal"}
+                            </span>
                             {compressionQuality !== "none" && (
                               <span className="text-blue-600 dark:text-blue-400 font-semibold">
                                 {compressionQuality === "custom"
@@ -2646,6 +3006,7 @@ export default function JpgToPdf() {
                                 ? `${customQualityValue}%`
                                 : compressionQuality
                             } quality)`}
+                          {!showChangesWarning && reverseOrder && " (Reverse Order)"}
                         </button>
 
                         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
@@ -2656,21 +3017,21 @@ export default function JpgToPdf() {
                               changes.
                             </span>
                           ) : compressionQuality === "none" ? (
-                            `Images will be converted with maximum 100% quality and ${
+                            `Images will be converted with maximum 100% quality, ${
                               marginSize === "no-margin"
                                 ? "no margin"
                                 : marginSize + " margin"
-                            } for professional output`
+                            } and ${reverseOrder ? "reverse" : "normal"} order for professional output`
                           ) : (
                             `Images will be converted with ${
                               compressionQuality === "custom"
                                 ? `${customQualityValue}%`
                                 : compressionQuality
-                            } quality and ${
+                            } quality, ${
                               marginSize === "no-margin"
                                 ? "no margin"
                                 : marginSize + " margin"
-                            } for optimal results`
+                            } and ${reverseOrder ? "reverse" : "normal"} order for optimal results`
                           )}
                         </p>
                       </motion.div>
@@ -2807,68 +3168,65 @@ export default function JpgToPdf() {
           </div>
 
           {/* --- FAQ Section --- */}
-<section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
-  {/* Header */}
-  <div className="text-center mb-6 sm:mb-8 md:mb-12">
-    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
-      Frequently Asked Questions
-    </h2>
-    <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about editing PDFs online
-    </p>
-  </div>
+          <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
+            {/* Header */}
+            <div className="text-center mb-6 sm:mb-8 md:mb-12">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
+                Frequently Asked Questions
+              </h2>
+              <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                Everything you need to know about editing PDFs online
+              </p>
+            </div>
 
-  {/* FAQ Cards */}
-  <div className="space-y-3 sm:space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="
+            {/* FAQ Cards */}
+            <div className="space-y-3 sm:space-y-4">
+              {faqData.map((faq, index) => (
+                <details
+                  key={index}
+                  className="
           group rounded-xl border border-gray-200 dark:border-gray-700
           bg-white dark:bg-gray-900
           transition-all duration-300
           hover:border-blue-400/60 dark:hover:border-blue-500/60
           open:shadow-lg open:border-blue-500
         "
-      >
-        {/* Question */}
-        <summary
-          className="
+                >
+                  {/* Question */}
+                  <summary
+                    className="
             flex cursor-pointer list-none items-center justify-between
             px-4 sm:px-5 py-3 sm:py-4
             text-sm sm:text-base md:text-lg
             font-semibold text-gray-900 dark:text-white
           "
-        >
-          <span>{faq.question}</span>
+                  >
+                    <span>{faq.question}</span>
 
-          {/* Arrow */}
-          <span
-            className="
+                    {/* Arrow */}
+                    <span
+                      className="
               ml-3 flex h-6 w-6 items-center justify-center
               rounded-full bg-gray-100 dark:bg-gray-800
               text-gray-500 dark:text-gray-400
               transition-transform duration-300
               group-open:rotate-180
             "
-          >
-            ▼
-          </span>
-        </summary>
+                    >
+                      ▼
+                    </span>
+                  </summary>
 
-        {/* Answer */}
-        <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
-          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-            {faq.answer}
-          </p>
-        </div>
-      </details>
-    ))}
-  </div>
-</section>
-
-
-          
+                  {/* Answer */}
+                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
+                    <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </div>
+                </details>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     </>
