@@ -980,7 +980,7 @@
   {
     "id": "how-to-convert-images-to-pdf-online-free",
     "title": "How to Convert JPG & PNG to PDF Online (Free & High Quality)",
-    "date": "Jan 29 2026",
+    "date": "Jan 30 2026",
     "description": "Step-by-step guide to convert JPG and PNG images to PDF online for free. Learn how to control margins, quality, layout and create professional PDFs from photos.",
     "slug": "how-to-convert-images-to-pdf-online-free",
     "image": "/images/convert-images-to-pdf.png",
@@ -1024,6 +1024,55 @@
         "answer": "The converter supports A4, A3, Legal, and other standard paper sizes in both portrait and landscape orientations."
       }
     ]
+},
+
+{
+  "id": "how-to-change-pdf-page-size",
+  "title": "How to Change PDF Page Size (A4, A3, Letter,Legal) - Complete Guide",
+  "date": "Jan 30 2026",
+  "description": "Professional guide on changing PDF page size from A4 to A3, Letter, Legal and custom sizes. Learn how to resize PDF pages for government, office, and professional document requirements.",
+  "slug": "how-to-change-pdf-page-size",
+  "image": "/images/change-pdf-page-size.png",
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "How to Change PDF Page Size", "url": "/blog/how-to-change-pdf-page-size" }
+  ],
+  "howto": {
+    "steps": [
+      "Upload your PDF document to the resizing tool",
+      "Select target page size (A4, A3, Letter, Legal, Custom)",
+      "Choose scaling options (Fit to page, Actual size, Custom scale)",
+      "Adjust margins and orientation settings",
+      "Preview changes and download resized PDF"
+    ],
+    "estimatedTime": "PT4M",
+    "totalTime": "PT4M",
+    "supply": ["PDF document", "Web browser"],
+    "tool": ["PDFSwift Page Size Changer", "Professional PDF tools"]
+  },
+  "faq": [
+    {
+      "question": "Can I change PDF page size from A4 to A3 without losing quality?",
+      "answer": "Yes, PDFSwift maintains vector quality when resizing PDF pages. Text and graphics remain crisp when scaling between standard paper sizes like A4 to A3."
+    },
+    {
+      "question": "What page sizes are supported for government documents?",
+      "answer": "All standard government sizes: A4 (210×297mm), A3 (297×420mm), Letter (8.5×11\"), Legal (8.5×14\"), and custom dimensions for specific requirements."
+    },
+    {
+      "question": "How do I resize PDF for printing on different paper sizes?",
+      "answer": "Select the target paper size, choose 'Fit to page' scaling, adjust margins for printing, and preview before downloading. The tool automatically optimizes for professional printing."
+    },
+    {
+      "question": "Can I resize only specific pages in a multi-page PDF?",
+      "answer": "Yes, you can select individual pages to resize while keeping other pages at their original size. This is useful for documents with mixed content types."
+    },
+    {
+      "question": "Is PDF page resizing secure for confidential documents?",
+      "answer": "Absolutely. All processing happens locally in your browser. No files are uploaded to servers, ensuring complete security for government and confidential documents."
+    }
+  ]
 }
   
   

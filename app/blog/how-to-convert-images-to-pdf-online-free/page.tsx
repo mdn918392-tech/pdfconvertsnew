@@ -16,7 +16,7 @@ export const metadata = {
     images: [{ url: "https://www.pdfswift.online/images/convert-images-to-pdf.png", width: 1200, height: 630 }],
     siteName: "PDFSwift",
     locale: "en_US",
-    publishedTime: "2026-01-29T10:00:00+00:00",
+    publishedTime: "2026-01-30T10:00:00+00:00",
     authors: ["PDFSwift Team"],
     tags: ["JPG to PDF", "PNG to PDF", "PDF Conversion", "Image Conversion", "Free Tools"],
   },
@@ -45,8 +45,8 @@ export const metadata = {
   },
   category: "Tutorial",
   other: {
-    'article:published_time': '2026-01-29T10:00:00+00:00',
-    'article:modified_time': '2026-01-29T10:00:00+00:00',
+    'article:published_time': '2026-01-30T10:00:00+00:00',
+    'article:modified_time': '2026-01-30T10:00:00+00:00',
     'article:section': 'Tutorial',
     'article:tag': ['JPG to PDF', 'PNG to PDF', 'Image Conversion', 'Document Creation'],
   }
