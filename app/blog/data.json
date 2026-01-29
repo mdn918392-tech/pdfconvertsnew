@@ -975,7 +975,60 @@
         "answer": "PDF rotation is better for documents, forms, and scanned files. Image rotation is only suitable for photos or single-image files."
       }
     ]
-  }
+  },
+
+  {
+    "id": "how-to-convert-images-to-pdf-online-free",
+    "title": "How to Convert JPG & PNG to PDF Online (Free & High Quality)",
+    "date": "Jan 29 2026",
+    "description": "Step-by-step guide to convert JPG and PNG images to PDF online for free. Learn how to control margins, quality, layout and create professional PDFs from photos.",
+    "slug": "how-to-convert-images-to-pdf-online-free",
+    "image": "/images/convert-images-to-pdf.png",
+    "breadcrumbs": [
+      { "name": "Home", "url": "/" },
+      { "name": "Blog", "url": "/blog" },
+      { "name": "How to Convert Images to PDF Online Free", "url": "/blog/how-to-convert-images-to-pdf-online-free" }
+    ],
+    "howto": {
+      "steps": [
+        "Upload your JPG or PNG images to the online converter",
+        "Adjust page margins for printing and readability",
+        "Set image quality and compression settings",
+        "Choose paper size and orientation (Portrait/Landscape)",
+        "Review preview and download your professional PDF"
+      ],
+      "estimatedTime": "PT3M",
+      "totalTime": "PT3M",
+      "supply": ["JPG or PNG images (Max 100MB each)", "Web browser"],
+      "tool": ["PDFSwift Image to PDF Converter", "Online PDF tools"]
+    },
+    "faq": [
+      {
+        "question": "Can I convert both JPG and PNG to PDF?",
+        "answer": "Yes, PDFSwift supports both JPG and PNG image formats. You can mix different image types in a single conversion session."
+      },
+      {
+        "question": "What's the maximum file size for image to PDF conversion?",
+        "answer": "You can upload image files up to 100MB each. Multiple files are supported in a single conversion session with drag & drop reordering."
+      },
+      {
+        "question": "Can I control the margins when converting images to PDF?",
+        "answer": "Yes, you can choose between No Margin (0\"), Small Margin (0.5\"), or Big Margin (1\") for optimal printing and readability."
+      },
+      {
+        "question": "Will converting images to PDF reduce quality?",
+        "answer": "No, you can select Maximum Quality (100% original) or adjust quality settings from 70% to 100% to balance quality and file size."
+      },
+      {
+        "question": "What paper sizes are supported for PDF output?",
+        "answer": "The converter supports A4, A3, Legal, and other standard paper sizes in both portrait and landscape orientations."
+      }
+    ]
+}
+  
+  
+
+  
   
   
   
