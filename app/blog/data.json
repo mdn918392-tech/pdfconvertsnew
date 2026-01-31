@@ -1122,6 +1122,55 @@
       "answer": "For professional printing: PDF (print-ready with fonts embedded). For photo printing: High-quality JPG or PNG. For large format printing: PDF or high-resolution PNG. Always use 300 DPI minimum for print quality."
     }
   ]
+},
+
+{
+  "id": "how-to-extract-pages-2-5-from-pdf",
+  "title": "How to Extract Pages 2–5 from PDF (Exact Page Range Explained)",
+  "date": "Feb 1 2026",
+  "description": "Clear guide showing how to extract specific pages 2-5 from PDFs. Perfect for reports, chapters, or sections - extract exactly what you need without the whole document.",
+  "slug": "how-to-extract-pages-2-5-from-pdf",
+  "image": "/images/extract-pdf-pages-guide.png",
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "How to Extract Pages 2–5 from PDF", "url": "/blog/how-to-extract-pages-2-5-from-pdf" }
+  ],
+  "howto": {
+    "steps": [
+      "Upload your PDF document",
+      "Identify which pages you need (pages 2-5)",
+      "Select those specific pages",
+      "Extract them into a new PDF",
+      "Download your smaller, focused document"
+    ],
+    "estimatedTime": "PT3M",
+    "totalTime": "PT3M",
+    "supply": ["PDF document", "Web browser"],
+    "tool": ["PDFSwift PDF Extractor"]
+  },
+  "faq": [
+    {
+      "question": "Why would I need just pages 2-5 from a PDF?",
+      "answer": "Many times you only need a specific section - like a single chapter from a long report, just the application form from a document packet, or specific pages from a scanned book. Extracting pages 2-5 gives you exactly what you need without the rest of the document getting in the way."
+    },
+    {
+      "question": "What if I need different pages, like 3-7 or 10-15?",
+      "answer": "The same process works for any page range. You just select whatever pages you actually need. It's really handy when you only want part of a document, not the whole thing."
+    },
+    {
+      "question": "Does extracting pages 2-5 change the original PDF?",
+      "answer": "No, your original document stays exactly the same. The extraction creates a brand new PDF with just the pages you selected. Your original file remains untouched, so you can always go back to it if needed."
+    },
+    {
+      "question": "Can I extract non-consecutive pages, like pages 2, 5, and 7?",
+      "answer": "Yes, you can pick any pages you want, in any order. Some tools let you click individual pages, others let you type the page numbers you need. Either way, you get just the pages you actually want."
+    },
+    {
+      "question": "Is this useful for sharing files on WhatsApp or email?",
+      "answer": "Very useful. Instead of sending a huge 50-page PDF when you only need 4 pages, you extract just pages 2-5 and send that smaller file. It loads faster, uses less data, and the person gets exactly what they need without scrolling through unrelated pages."
+    }
+  ]
 }
   
   

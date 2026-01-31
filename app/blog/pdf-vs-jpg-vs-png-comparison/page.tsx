@@ -1640,3 +1640,5 @@ export default function PDFvsJPGvsPNGComparison() {
     </>
   );
 }
+
+
