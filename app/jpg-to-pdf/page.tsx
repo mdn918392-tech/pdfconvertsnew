@@ -1051,25 +1051,28 @@ export default function JpgToPdf() {
     };
   }, [files]);
 
-  // Handle setting PDF blob and resetting warning
+  // Handle setting PDF blob and resetting warning - FIXED VERSION
   const setPdfBlobWithState = useCallback(
     (blob: Blob | null) => {
       setPdfBlob(blob);
       if (blob) {
         setOriginalStateHash(calculateStateHash());
         setShowChangesWarning(false);
+        setProgress(100);
       } else {
         setOriginalStateHash("");
         setShowChangesWarning(false);
+        setProgress(0); // यहाँ progress reset करें
       }
     },
     [calculateStateHash]
   );
 
-  // Handle margin change
+  // Handle margin change - FIXED VERSION
   const handleMarginChange = (margin: MarginSize) => {
     setMarginSize(margin);
     setPdfBlobWithState(null);
+    setProcessingError(null);
   };
 
   const handleRemoveFile = useCallback(
@@ -1325,6 +1328,7 @@ export default function JpgToPdf() {
     setPdfBlobWithState(null);
     setShowCompressionInfo(true);
     setProcessingError(null);
+    setProgress(0); // Progress शुरू से शुरू करें
 
     try {
       // Prepare files in current order
@@ -1489,6 +1493,7 @@ export default function JpgToPdf() {
       setProgress(0);
       setConverting(false);
       setShowCompressionInfo(false);
+      setPdfBlobWithState(null); // Error के case में भी PDF blob clear करें
       
       // Mobile के लिए specific error message
       if (isMobile) {
@@ -1533,28 +1538,28 @@ export default function JpgToPdf() {
     setProcessingError(null);
   };
 
-  // Handle quality change
+  // Handle quality change - FIXED VERSION
   const handleCompressionQualityChange = (quality: CompressionQuality) => {
     setCompressionQuality(quality);
     setPdfBlobWithState(null);
     setProcessingError(null);
   };
 
-  // Handle custom quality change
+  // Handle custom quality change - FIXED VERSION
   const handleCustomQualityChange = (value: number) => {
     setCustomQualityValue(value);
     setPdfBlobWithState(null);
     setProcessingError(null);
   };
 
-  // Handle paper size change
+  // Handle paper size change - FIXED VERSION
   const handlePaperSizeChange = (size: PaperSize) => {
     setPaperSize(size);
     setPdfBlobWithState(null);
     setProcessingError(null);
   };
 
-  // Handle orientation change
+  // Handle orientation change - FIXED VERSION
   const handleOrientationChange = (orient: Orientation) => {
     setOrientation(orient);
     setPdfBlobWithState(null);
@@ -1720,18 +1725,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setReplacingImageId(null);
     setShowReplaceOptions(null);
-    setProcessingError(null);
-  };
-
-  // Function to handle changes and show warning
-  const handleSettingChange = (
-    setter: React.Dispatch<React.SetStateAction<any>>,
-    value: any
-  ) => {
-    setter(value);
-    if (pdfBlob) {
-      setShowChangesWarning(true);
-    }
     setProcessingError(null);
   };
 
