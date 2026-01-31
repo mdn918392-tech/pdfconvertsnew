@@ -37,7 +37,6 @@ import {
   Square,
   Expand,
   Replace,
-
 } from "lucide-react";
 
 // Make sure these components are client components
@@ -259,13 +258,28 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// Enhanced compression function with quality options and white background
+// Enhanced compression function with mobile optimization
 const compressImageForPdf = async (
   file: File,
   rotation: number = 0,
   quality: CompressionQuality = "medium",
-  customQualityValue: number = 85
+  customQualityValue: number = 85,
+  isMobile: boolean = false
 ): Promise<File> => {
+  // Mobile devices के लिए optimization
+  if (isMobile) {
+    console.log("Mobile device detected, using original file for:", file.name);
+    return file;
+  }
+
+  // Low memory devices के लिए check
+  const isLowMemoryDevice = /Android.*(2|3|4|5|6\.0)|iPhone.*(6|7|8|SE)/i.test(navigator.userAgent);
+  
+  if (isLowMemoryDevice && file.size > 5 * 1024 * 1024) { // 5MB से बड़ी files
+    console.log("Low memory device detected, using original file for large image:", file.name);
+    return file;
+  }
+
   return new Promise((resolve, reject) => {
     // If quality is "none", return original file
     if (quality === "none") {
@@ -330,6 +344,11 @@ const compressImageForPdf = async (
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
+        if (!ctx) {
+          reject(new Error("Failed to get canvas context"));
+          return;
+        }
+
         // Set canvas size based on rotation
         if (rotation === 90 || rotation === 270) {
           canvas.width = newHeight;
@@ -339,88 +358,92 @@ const compressImageForPdf = async (
           canvas.height = newHeight;
         }
 
-        if (ctx) {
-          // Set white background for the entire canvas
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Set white background for the entire canvas
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // Set image smoothing for better quality
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
+        // Set image smoothing for better quality
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
 
-          // If rotation needed, apply it
-          if (rotation !== 0) {
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate((rotation * Math.PI) / 180);
-            ctx.drawImage(
-              img,
-              -newWidth / 2,
-              -newHeight / 2,
-              newWidth,
-              newHeight
-            );
-            ctx.restore();
-          } else {
-            // No rotation, just draw with scaling
-            ctx.drawImage(img, 0, 0, newWidth, newHeight);
-          }
-
-          // Use appropriate format
-          const outputFormat = file.type.includes("png")
-            ? "image/png"
-            : "image/jpeg";
-
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const compressedFile = new File([blob], file.name, {
-                  type: outputFormat,
-                  lastModified: Date.now(),
-                });
-
-                // Log compression results
-                const compressionRatio = (
-                  ((file.size - blob.size) / file.size) *
-                  100
-                ).toFixed(1);
-                const isLarger = blob.size > file.size;
-
-                console.log(
-                  `${
-                    quality === "custom"
-                      ? `${customQualityValue}%`
-                      : quality.toUpperCase()
-                  } Compression: ${file.name}`
-                );
-                console.log(
-                  `Original: ${(file.size / 1024 / 1024).toFixed(
-                    2
-                  )}MB → Compressed: ${(blob.size / 1024 / 1024).toFixed(2)}MB`
-                );
-                console.log(
-                  `Change: ${isLarger ? "+" : ""}${compressionRatio}% (${
-                    isLarger ? "larger" : "reduced"
-                  })`
-                );
-
-                resolve(compressedFile);
-              } else {
-                reject(new Error("Failed to create blob"));
-              }
-            },
-            outputFormat,
-            outputFormat === "image/jpeg" ? qualityValue : 0.95
+        // If rotation needed, apply it
+        if (rotation !== 0) {
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate((rotation * Math.PI) / 180);
+          ctx.drawImage(
+            img,
+            -newWidth / 2,
+            -newHeight / 2,
+            newWidth,
+            newHeight
           );
+          ctx.restore();
         } else {
-          reject(new Error("Failed to get canvas context"));
+          // No rotation, just draw with scaling
+          ctx.drawImage(img, 0, 0, newWidth, newHeight);
         }
+
+        // Use appropriate format
+        const outputFormat = file.type.includes("png")
+          ? "image/png"
+          : "image/jpeg";
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: outputFormat,
+                lastModified: Date.now(),
+              });
+
+              // Log compression results
+              const compressionRatio = (
+                ((file.size - blob.size) / file.size) *
+                100
+              ).toFixed(1);
+              const isLarger = blob.size > file.size;
+
+              console.log(
+                `${
+                  quality === "custom"
+                    ? `${customQualityValue}%`
+                    : quality.toUpperCase()
+                } Compression: ${file.name}`
+              );
+              console.log(
+                `Original: ${(file.size / 1024 / 1024).toFixed(
+                  2
+                )}MB → Compressed: ${(blob.size / 1024 / 1024).toFixed(2)}MB`
+              );
+              console.log(
+                `Change: ${isLarger ? "+" : ""}${compressionRatio}% (${
+                  isLarger ? "larger" : "reduced"
+                })`
+              );
+
+              resolve(compressedFile);
+            } else {
+              // Canvas toBlob failed, return original file
+              console.warn("Canvas toBlob failed, returning original file");
+              resolve(file);
+            }
+          },
+          outputFormat,
+          outputFormat === "image/jpeg" ? qualityValue : 0.95
+        );
       };
 
-      img.onerror = () => reject(new Error("Image loading failed"));
+      img.onerror = () => {
+        console.warn(`Image loading failed for ${file.name}, using original file`);
+        resolve(file); // Fallback to original file
+      };
     };
 
-    reader.onerror = () => reject(new Error("File reading failed"));
+    reader.onerror = () => {
+      console.warn(`File reading failed for ${file.name}, using original file`);
+      resolve(file); // Fallback to original file
+    };
   });
 };
 
@@ -689,7 +712,6 @@ const ReplaceImageModal = ({
         {/* Header */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-3">
-            
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                 Replace Image
@@ -764,6 +786,150 @@ const ReplaceImageModal = ({
   );
 };
 
+// Updated Mobile-Friendly ImageToPdf Utility
+const imageToPdfMobileFriendly = async (
+  images: File[],
+  paperSize: PaperSize,
+  orientation: Orientation,
+  marginPoints: number,
+  isMobile: boolean
+): Promise<Blob> => {
+  try {
+    // Dynamic import for jsPDF to reduce initial bundle size
+    const { jsPDF } = await import("jspdf");
+    
+    // Create PDF
+    const pdf = new jsPDF({
+      orientation: orientation === "Landscape" ? "landscape" : "portrait",
+      unit: "mm",
+      format: paperSize.toLowerCase(),
+    });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    // Calculate available space after margins
+    const margin = marginPoints / 2.834; // Convert points to mm
+    const availableWidth = pageWidth - (margin * 2);
+    const availableHeight = pageHeight - (margin * 2);
+
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      
+      try {
+        // Convert image to base64 with error handling
+        const imgData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            if (e.target?.result) {
+              resolve(e.target.result as string);
+            } else {
+              reject(new Error("Failed to read image"));
+            }
+          };
+          reader.onerror = () => reject(new Error("Failed to read image file"));
+          
+          // Mobile के लिए timeout set करें
+          if (isMobile) {
+            setTimeout(() => {
+              if (reader.readyState !== 2) { // DONE state
+                reject(new Error("Image read timeout"));
+              }
+            }, 10000); // 10 seconds timeout for mobile
+          }
+          
+          reader.readAsDataURL(image);
+        });
+
+        // Add page for each image except first
+        if (i > 0) {
+          pdf.addPage();
+        }
+
+        // Calculate image dimensions to fit within available space
+        const tempImg = new Image();
+        await new Promise<void>((resolve, reject) => {
+          tempImg.onload = () => {
+            const imgWidth = tempImg.width;
+            const imgHeight = tempImg.height;
+            
+            // Calculate aspect ratio
+            const imgAspectRatio = imgWidth / imgHeight;
+            const availableAspectRatio = availableWidth / availableHeight;
+            
+            let finalWidth, finalHeight;
+            
+            if (imgAspectRatio > availableAspectRatio) {
+              // Image is wider than available space
+              finalWidth = availableWidth;
+              finalHeight = availableWidth / imgAspectRatio;
+            } else {
+              // Image is taller than available space
+              finalHeight = availableHeight;
+              finalWidth = availableHeight * imgAspectRatio;
+            }
+            
+            // Center the image
+            const x = margin + (availableWidth - finalWidth) / 2;
+            const y = margin + (availableHeight - finalHeight) / 2;
+            
+            // Add image to PDF
+            pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+            resolve();
+          };
+          
+          tempImg.onerror = () => {
+            console.warn(`Failed to load image ${image.name}, skipping...`);
+            resolve(); // Skip this image but continue
+          };
+          
+          tempImg.src = imgData;
+          
+          // Mobile के लिए timeout
+          if (isMobile) {
+            setTimeout(() => {
+              if (!tempImg.complete) {
+                console.warn(`Image load timeout for ${image.name}`);
+                resolve();
+              }
+            }, 15000); // 15 seconds timeout
+          }
+        });
+
+      } catch (imgError) {
+        console.warn(`Failed to process image ${image.name}:`, imgError);
+        // Skip this image but continue with others
+        if (i > 0) {
+          pdf.addPage();
+        }
+        pdf.text(`Failed to load image: ${image.name}`, margin, margin + 10);
+      }
+    }
+
+    // Generate PDF blob
+    const pdfBlob = pdf.output('blob');
+    
+    if (!pdfBlob || pdfBlob.size === 0) {
+      throw new Error("Generated PDF is empty");
+    }
+    
+    return pdfBlob;
+    
+  } catch (error) {
+    console.error("PDF generation failed:", error);
+    
+    // Fallback: Create a simple PDF with error message
+    try {
+      const { jsPDF } = await import("jspdf");
+      const pdf = new jsPDF();
+      pdf.text("Failed to generate PDF. Please try again with fewer images or lower resolution.", 10, 10);
+      return pdf.output('blob');
+    } catch (fallbackError) {
+      throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+};
+
 export default function JpgToPdf() {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [paperSize, setPaperSize] = useState<PaperSize>("A4");
@@ -800,6 +966,7 @@ export default function JpgToPdf() {
     null
   );
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const [processingError, setProcessingError] = useState<string | null>(null);
 
   // Function to calculate hash of current state
   const calculateStateHash = useCallback(() => {
@@ -853,7 +1020,10 @@ export default function JpgToPdf() {
     setIsClient(true);
 
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const mobileCheck = window.innerWidth < 768 || 
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobileCheck);
+      console.log("Is Mobile:", mobileCheck, "Window width:", window.innerWidth);
     };
 
     checkMobile();
@@ -918,6 +1088,7 @@ export default function JpgToPdf() {
       }
       setPdfBlobWithState(null);
       setProgress(0);
+      setProcessingError(null);
     },
     [rotatedUrls, setPdfBlobWithState]
   );
@@ -964,6 +1135,7 @@ export default function JpgToPdf() {
       setProgress(0);
       setReplacingImageId(null);
       setShowReplaceOptions(null);
+      setProcessingError(null);
     },
     [files, rotatedUrls, setPdfBlobWithState]
   );
@@ -992,6 +1164,7 @@ export default function JpgToPdf() {
       setFiles(newFiles);
       setDraggedIndex(null);
       setPdfBlobWithState(null);
+      setProcessingError(null);
     },
     [files, draggedIndex, setPdfBlobWithState]
   );
@@ -1007,6 +1180,7 @@ export default function JpgToPdf() {
       ];
       setFiles(newFiles);
       setPdfBlobWithState(null);
+      setProcessingError(null);
     },
     [files, setPdfBlobWithState]
   );
@@ -1022,6 +1196,7 @@ export default function JpgToPdf() {
       ];
       setFiles(newFiles);
       setPdfBlobWithState(null);
+      setProcessingError(null);
     },
     [files, setPdfBlobWithState]
   );
@@ -1038,6 +1213,7 @@ export default function JpgToPdf() {
       );
 
       setPdfBlobWithState(null);
+      setProcessingError(null);
 
       // Clear rotated URL for this file since rotation changed
       if (rotatedUrls[id]) {
@@ -1071,6 +1247,7 @@ export default function JpgToPdf() {
       );
 
       setPdfBlobWithState(null);
+      setProcessingError(null);
 
       // Clear all rotated URLs
       Object.values(rotatedUrls).forEach((url) => {
@@ -1088,8 +1265,18 @@ export default function JpgToPdf() {
       if (newFiles.length === 0) return;
 
       setCompressing(true);
+      setProcessingError(null);
 
       try {
+        // Mobile के लिए files को limit करें
+        const maxFiles = isMobile ? 20 : MAX_PAGES_COUNT;
+        if (newFiles.length > maxFiles) {
+          alert(
+            `Maximum ${maxFiles} files allowed on ${isMobile ? 'mobile' : 'desktop'}. Only first ${maxFiles} are used.`
+          );
+          newFiles = newFiles.slice(0, maxFiles);
+        }
+
         const filesWithIds: FileWithPreview[] = newFiles.map((file, index) => ({
           file: file,
           id: Math.random().toString(36).substr(2, 9),
@@ -1101,27 +1288,23 @@ export default function JpgToPdf() {
           originalOrder: files.length + index,
         }));
 
-        let filesToSet = filesWithIds;
-
-        if (filesWithIds.length > MAX_PAGES_COUNT) {
-          alert(
-            `Maximum ${MAX_PAGES_COUNT} files allowed. Only first ${MAX_PAGES_COUNT} are used.`
-          );
-          filesToSet = filesWithIds.slice(0, MAX_PAGES_COUNT);
-        }
-
         // Add only new files to the existing files
-        setFiles((prev) => [...prev, ...filesToSet]);
+        setFiles((prev) => [...prev, ...filesWithIds]);
         setPdfBlobWithState(null);
         setProgress(0);
+        
+        // Mobile पर warning show करें
+        if (isMobile && (files.length + newFiles.length) > 10) {
+          alert("Mobile पर 10 से अधिक images process करने में समय लग सकता है। धैर्य रखें।");
+        }
       } catch (error) {
         console.error("File processing error:", error);
-        alert("Error processing files. Please try again.");
+        setProcessingError("Error processing files. Please try again.");
       } finally {
         setCompressing(false);
       }
     },
-    [files.length, setPdfBlobWithState]
+    [files.length, setPdfBlobWithState, isMobile]
   );
 
   const handleImageError = useCallback((id: string) => {
@@ -1141,6 +1324,7 @@ export default function JpgToPdf() {
     setConverting(true);
     setPdfBlobWithState(null);
     setShowCompressionInfo(true);
+    setProcessingError(null);
 
     try {
       // Prepare files in current order
@@ -1154,6 +1338,22 @@ export default function JpgToPdf() {
       // Show compression progress
       setProgress(10);
 
+      // Mobile के लिए optimization
+      console.log("Converting on mobile:", isMobile);
+      console.log("Number of files:", filesToConvert.length);
+      
+      // Mobile पर fewer files process करें
+      if (isMobile && filesToConvert.length > 15) {
+        const shouldContinue = window.confirm(
+          `Mobile पर ${filesToConvert.length} images process करने में समय लग सकता है। क्या आप जारी रखना चाहते हैं?`
+        );
+        if (!shouldContinue) {
+          setConverting(false);
+          setShowCompressionInfo(false);
+          return;
+        }
+      }
+
       // First, compress all images (with rotation applied)
       let cleanup: (() => void) | null = null;
       cleanup = simulateProgress(setProgress, 10, 50, 3000);
@@ -1165,12 +1365,13 @@ export default function JpgToPdf() {
             const fileProgress = 10 + (index / filesToConvert.length) * 40;
             setProgress(Math.floor(fileProgress));
 
-            // Compress image with rotation applied
+            // Compress image with rotation applied and mobile detection
             const compressedFile = await compressImageForPdf(
               fileWithPreview.file,
               fileWithPreview.rotation,
               compressionQuality,
-              customQualityValue
+              customQualityValue,
+              isMobile
             );
 
             // Calculate compression ratio
@@ -1220,18 +1421,24 @@ export default function JpgToPdf() {
           big: 72, // 1 inch = 72 points
         }[marginSize];
 
-        // Update the imageToPdf function call to include margin
-        const blob = await imageToPdf(
+        // Mobile-friendly PDF creation
+        console.log("Creating PDF with mobile-friendly method...");
+        const blob = await imageToPdfMobileFriendly(
           compressedFiles,
           paperSize,
           orientation,
-          marginPoints // Pass margin to your pdf utility
+          marginPoints,
+          isMobile
         );
 
         if (cleanup) cleanup();
         setProgress(100);
 
         setTimeout(() => {
+          if (!blob || blob.size === 0) {
+            throw new Error("Generated PDF is empty");
+          }
+          
           setPdfBlobWithState(blob);
           setConverting(false);
 
@@ -1247,6 +1454,7 @@ export default function JpgToPdf() {
           ).toFixed(1);
 
           console.log(`\n=== PDF Generation Complete ===`);
+          console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
           console.log(
             `Quality Setting: ${compressionQuality}${
               compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""
@@ -1261,6 +1469,7 @@ export default function JpgToPdf() {
           );
           console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
           console.log(`Total change: ${totalCompressionRatio}%`);
+          console.log(`PDF created successfully on ${isMobile ? 'mobile' : 'desktop'}!`);
 
           // Hide compression info after 3 seconds
           setTimeout(() => {
@@ -1269,14 +1478,22 @@ export default function JpgToPdf() {
         }, 500);
       } catch (err) {
         if (cleanup) cleanup();
+        console.error("PDF creation error:", err);
         throw err;
       }
     } catch (err) {
       console.error("Conversion error:", err);
-      alert("Failed to convert images to PDF. Please try again.");
+      setProcessingError(
+        `Failed to convert images to PDF. ${isMobile ? 'Mobile पर कम images का प्रयोग करें।' : 'Please try again.'}`
+      );
       setProgress(0);
       setConverting(false);
       setShowCompressionInfo(false);
+      
+      // Mobile के लिए specific error message
+      if (isMobile) {
+        alert("Mobile पर PDF creation में समस्या आई। कृपया कम images के साथ प्रयास करें या desktop का प्रयोग करें।");
+      }
     }
   };
 
@@ -1313,30 +1530,35 @@ export default function JpgToPdf() {
   const toggleReverseOrder = () => {
     setReverseOrder(!reverseOrder);
     setPdfBlobWithState(null);
+    setProcessingError(null);
   };
 
   // Handle quality change
   const handleCompressionQualityChange = (quality: CompressionQuality) => {
     setCompressionQuality(quality);
     setPdfBlobWithState(null);
+    setProcessingError(null);
   };
 
   // Handle custom quality change
   const handleCustomQualityChange = (value: number) => {
     setCustomQualityValue(value);
     setPdfBlobWithState(null);
+    setProcessingError(null);
   };
 
   // Handle paper size change
   const handlePaperSizeChange = (size: PaperSize) => {
     setPaperSize(size);
     setPdfBlobWithState(null);
+    setProcessingError(null);
   };
 
   // Handle orientation change
   const handleOrientationChange = (orient: Orientation) => {
     setOrientation(orient);
     setPdfBlobWithState(null);
+    setProcessingError(null);
   };
 
   const displayFiles = reverseOrder ? [...files].reverse() : files;
@@ -1390,59 +1612,68 @@ export default function JpgToPdf() {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       
+      if (!ctx) {
+        setExpandedImage({
+          url: file.previewUrl!,
+          rotation: 0,
+          naturalWidth: 0,
+          naturalHeight: 0,
+          id: file.id,
+        });
+        return;
+      }
+      
       // Canvas size original rotated dimensions पर set करें
       if (file.rotation === 90 || file.rotation === 270) {
-        canvas.width = finalHeight;  // Note: यहाँ swap है
-        canvas.height = finalWidth;  // Note: यहाँ swap है
+        canvas.width = finalHeight;
+        canvas.height = finalWidth;
       } else {
         canvas.width = finalWidth;
         canvas.height = finalHeight;
       }
       
-      if (ctx) {
-        // White background
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // High quality rendering
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        
-        // Rotate और draw करें
-        ctx.save();
-        
-        // Canvas के center में move करें
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        
-        // Rotate apply करें
-        ctx.rotate((file.rotation * Math.PI) / 180);
-        
-        // Image draw करें (centered)
-        ctx.drawImage(
-          img,
-          -finalWidth / 2,
-          -finalHeight / 2,
-          finalWidth,
-          finalHeight
-        );
-        
-        ctx.restore();
-        
-        const rotatedUrl = canvas.toDataURL("image/jpeg", 0.95);
-        setRotatedUrls((prev) => ({
-          ...prev,
-          [file.id]: rotatedUrl,
-        }));
-        
-        // सही dimensions pass करें
-        setExpandedImage({
-          url: rotatedUrl,
-          rotation: file.rotation,
-          naturalWidth: canvas.width,  // Canvas width use करें
-          naturalHeight: canvas.height, // Canvas height use करें
-          id: file.id,
-        });
-      }
+      // White background
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // High quality rendering
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      
+      // Rotate और draw करें
+      ctx.save();
+      
+      // Canvas के center में move करें
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      
+      // Rotate apply करें
+      ctx.rotate((file.rotation * Math.PI) / 180);
+      
+      // Image draw करें (centered)
+      ctx.drawImage(
+        img,
+        -finalWidth / 2,
+        -finalHeight / 2,
+        finalWidth,
+        finalHeight
+      );
+      
+      ctx.restore();
+      
+      const rotatedUrl = canvas.toDataURL("image/jpeg", 0.95);
+      setRotatedUrls((prev) => ({
+        ...prev,
+        [file.id]: rotatedUrl,
+      }));
+      
+      // सही dimensions pass करें
+      setExpandedImage({
+        url: rotatedUrl,
+        rotation: file.rotation,
+        naturalWidth: canvas.width,
+        naturalHeight: canvas.height,
+        id: file.id,
+      });
     };
     
     img.onerror = () => {
@@ -1489,6 +1720,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setReplacingImageId(null);
     setShowReplaceOptions(null);
+    setProcessingError(null);
   };
 
   // Function to handle changes and show warning
@@ -1500,6 +1732,7 @@ export default function JpgToPdf() {
     if (pdfBlob) {
       setShowChangesWarning(true);
     }
+    setProcessingError(null);
   };
 
   // Handle image rotation in full screen mode
@@ -1532,6 +1765,7 @@ export default function JpgToPdf() {
     }
 
     setPdfBlobWithState(null);
+    setProcessingError(null);
   };
 
   if (!isClient) return null;
@@ -1594,7 +1828,7 @@ export default function JpgToPdf() {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
       style={{
-        overflow: 'hidden', // यह add करें
+        overflow: 'hidden',
       }}
     >
       <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
@@ -1616,7 +1850,7 @@ export default function JpgToPdf() {
         style={{
           width: '100%',
           height: '100%',
-          overflow: 'auto', // यह add करें
+          overflow: 'auto',
         }}
       >
         <div className="flex items-center justify-center w-full h-full">
@@ -1626,8 +1860,8 @@ export default function JpgToPdf() {
             className="max-w-full max-h-full object-contain rounded-lg bg-white"
             style={{
               transform: `rotate(${expandedImage.rotation}deg)`,
-              maxHeight: '90vh', // यह add करें
-              maxWidth: '90vw',  // यह add करें
+              maxHeight: '90vh',
+              maxWidth: '90vw',
             }}
             onError={() => setExpandedImage(null)}
           />
@@ -1644,6 +1878,38 @@ export default function JpgToPdf() {
     </motion.div>
   )}
 </AnimatePresence>
+
+      {/* Processing Error Banner */}
+      <AnimatePresence>
+        {processingError && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-red-500 to-orange-600 text-white p-4 shadow-lg"
+          >
+            <div className="container mx-auto max-w-7xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 animate-pulse" />
+                  <div>
+                    <h3 className="font-bold text-lg">Processing Error</h3>
+                    <p className="text-sm opacity-90">
+                      {processingError}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setProcessingError(null)}
+                  className="px-4 py-2 bg-white text-red-700 font-semibold rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Changes Warning Banner */}
       <AnimatePresence>
@@ -1694,6 +1960,25 @@ export default function JpgToPdf() {
               <span className="text-base">Back to Home</span>
             </a>
 
+            {/* Device Info Banner */}
+            {isMobile && (
+              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold">📱</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-800 dark:text-gray-200">
+                      Mobile Mode Activated
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Optimized for mobile performance. For best results with many images, use desktop.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="text-center mb-10">
               <motion.div
                 initial={{ scale: 0.5 }}
@@ -1716,6 +2001,11 @@ export default function JpgToPdf() {
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                 Convert JPG images to a professional PDF with maximum quality,
                 margin control, and clean layout.
+                {isMobile && (
+                  <span className="block text-sm text-blue-600 dark:text-blue-400 mt-2">
+                    📱 Mobile optimized - Best with up to 15 images
+                  </span>
+                )}
               </p>
             </div>
 
@@ -1726,19 +2016,24 @@ export default function JpgToPdf() {
                   <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
                     Upload Images
                   </h2>
+                  {isMobile && (
+                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full">
+                      Mobile
+                    </span>
+                  )}
                 </div>
 
                 <FileUploader
                   accept="image/jpeg,image/jpg,image/png,image/webp"
                   multiple={true}
                   onFilesSelected={handleFilesUpdate}
-                  maxSize={100}
+                  maxSize={isMobile ? 50 : 100} // Mobile पर smaller max size
                 />
 
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Maximum Quality</span>
+                    <span>{isMobile ? "Mobile Optimized" : "Maximum Quality"}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -1757,13 +2052,57 @@ export default function JpgToPdf() {
                 {compressing && (
                   <div className="mt-4 flex items-center gap-2 text-blue-600 dark:text-blue-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Processing images...</span>
+                    <span className="text-sm">
+                      {isMobile ? "Processing images for mobile..." : "Processing images..."}
+                    </span>
                   </div>
                 )}
               </div>
 
               {files.length > 0 && (
                 <div className="space-y-8">
+                  {/* Processing Error Box */}
+                  {processingError && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center">
+                            <AlertTriangle className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-red-800 dark:text-red-300 mb-1">
+                            Processing Error
+                          </h3>
+                          <p className="text-red-700 dark:text-red-400 mb-3">
+                            {processingError}
+                          </p>
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              onClick={handleConvert}
+                              className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-orange-700 transition-all shadow-md flex items-center gap-2"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              Try Again
+                            </button>
+                            {isMobile && files.length > 10 && (
+                              <button
+                                onClick={handleConvertMore}
+                                className="px-5 py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                Clear All & Start Over
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {/* Changes Warning Box */}
                   {showChangesWarning && (
                     <motion.div
@@ -1811,6 +2150,11 @@ export default function JpgToPdf() {
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
                         Selected Images ({files.length})
+                        {isMobile && files.length > 10 && (
+                          <span className="ml-2 text-sm text-amber-600 dark:text-amber-400">
+                            (Mobile: Consider reducing)
+                          </span>
+                        )}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         Drag to reorder • Click to preview • Rotate to adjust
@@ -2041,7 +2385,6 @@ export default function JpgToPdf() {
                                           }}
                                           className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                                         >
-                                         
                                           Replace this image
                                         </button>
                                         <button
@@ -2384,6 +2727,11 @@ export default function JpgToPdf() {
                       <Target className="w-7 h-7 text-blue-500" />
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
                         Quality Control Settings
+                        {isMobile && (
+                          <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
+                            (Mobile Optimized)
+                          </span>
+                        )}
                       </h3>
                     </div>
 
@@ -2401,7 +2749,7 @@ export default function JpgToPdf() {
                                 value: "none",
                                 label: "Maximum Quality",
                                 icon: ZapOff,
-                                desc: "100% Original",
+                                desc: isMobile ? "Original" : "100% Original",
                                 color: "from-emerald-500 to-green-600",
                               },
                               {
@@ -2415,21 +2763,21 @@ export default function JpgToPdf() {
                                 value: "high",
                                 label: "High Quality",
                                 icon: Zap,
-                                desc: "95% Quality",
+                                desc: isMobile ? "Optimized" : "95% Quality",
                                 color: "from-cyan-500 to-blue-600",
                               },
                               {
                                 value: "medium",
                                 label: "Balanced",
                                 icon: Layers,
-                                desc: "85% Quality",
+                                desc: isMobile ? "Recommended" : "85% Quality",
                                 color: "from-amber-500 to-orange-600",
                               },
                               {
                                 value: "low",
                                 label: "Small Size",
                                 icon: Zap,
-                                desc: "70% Quality",
+                                desc: isMobile ? "Fast" : "70% Quality",
                                 color: "from-rose-500 to-pink-600",
                               },
                             ] as const
@@ -2455,11 +2803,30 @@ export default function JpgToPdf() {
                                   <span className="text-xs opacity-90">
                                     {option.desc}
                                   </span>
+                                  {isMobile && option.value === "medium" && (
+                                    <span className="text-[10px] text-blue-500">
+                                      Mobile Best
+                                    </span>
+                                  )}
                                 </div>
                               </button>
                             );
                           })}
                         </div>
+
+                        {/* Mobile Optimization Note */}
+                        {isMobile && (
+                          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+                            <div className="flex items-start gap-2">
+                              <span className="text-blue-500">💡</span>
+                              <div>
+                                <p className="text-sm text-blue-700 dark:text-blue-300">
+                                  <strong>Mobile Tip:</strong> For faster processing on mobile, use "Balanced" or "Small Size" quality settings.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Custom Quality Slider */}
                         {compressionQuality === "custom" && (
@@ -2602,15 +2969,27 @@ export default function JpgToPdf() {
                               Recommended For
                             </div>
                             <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                              {compressionQuality === "none"
-                                ? "Print & Professional"
-                                : compressionQuality === "custom"
-                                ? "Specific Requirements"
-                                : compressionQuality === "high"
-                                ? "High-Quality Display"
-                                : compressionQuality === "medium"
-                                ? "General Use"
-                                : "Web & Email"}
+                              {isMobile ? (
+                                compressionQuality === "none"
+                                  ? "Few images only"
+                                  : compressionQuality === "custom"
+                                  ? "Specific needs"
+                                  : compressionQuality === "high"
+                                  ? "Best quality"
+                                  : compressionQuality === "medium"
+                                  ? "Mobile best"
+                                  : "Fastest"
+                              ) : (
+                                compressionQuality === "none"
+                                  ? "Print & Professional"
+                                  : compressionQuality === "custom"
+                                  ? "Specific Requirements"
+                                  : compressionQuality === "high"
+                                  ? "High-Quality Display"
+                                  : compressionQuality === "medium"
+                                  ? "General Use"
+                                  : "Web & Email"
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2752,6 +3131,9 @@ export default function JpgToPdf() {
                           </span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
                             {files.length}
+                            {isMobile && files.length > 10 && (
+                              <span className="text-amber-600 ml-1">⚠️</span>
+                            )}
                           </span>
                         </div>
                         <div className="text-sm">
@@ -2885,6 +3267,13 @@ export default function JpgToPdf() {
                               : "Creating professional PDF..."}
                           </span>
                         </div>
+                        {isMobile && files.length > 10 && (
+                          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                            <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
+                              ⏳ Mobile पर {files.length} images process होने में समय लग सकता है। कृपया धैर्य रखें...
+                            </p>
+                          </div>
+                        )}
                       </motion.div>
                     )}
 
@@ -2948,6 +3337,11 @@ export default function JpgToPdf() {
                             <span className="text-purple-600 dark:text-purple-400 font-semibold">
                               Professional Layout
                             </span>
+                            {isMobile && (
+                              <span className="text-green-600 dark:text-green-400 font-semibold">
+                                ✓ Mobile Optimized
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -3016,6 +3410,8 @@ export default function JpgToPdf() {
                               Click above to convert again with the latest
                               changes.
                             </span>
+                          ) : isMobile ? (
+                            `Mobile optimized conversion with ${files.length} images. ${files.length > 10 ? 'May take some time...' : ''}`
                           ) : compressionQuality === "none" ? (
                             `Images will be converted with maximum 100% quality, ${
                               marginSize === "no-margin"
@@ -3073,11 +3469,12 @@ export default function JpgToPdf() {
                     <Target className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Maximum Quality
+                    {isMobile ? "Mobile Optimized" : "Maximum Quality"}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Choose 100% original quality for print-ready PDFs with no
-                    compression loss
+                    {isMobile 
+                      ? "Optimized for mobile devices with fast processing and reliable results"
+                      : "Choose 100% original quality for print-ready PDFs with no compression loss"}
                   </p>
                 </div>
 
