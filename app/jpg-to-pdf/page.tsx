@@ -78,15 +78,12 @@ interface DownloadNotification {
 // Compression Quality Options
 type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 
-// Page limits
-const MAX_PAGES_DESKTOP = 10000; // Desktop unlimited (10,000 pages)
-const MAX_PAGES_MOBILE = 100;    // Mobile 100 pages
-
-// File size limits in bytes
-const MAX_SIZE_DESKTOP = 500 * 1024 * 1024; // 500MB for desktop
-const MAX_SIZE_MOBILE = 100 * 1024 * 1024;  // 100MB for mobile
-const MAX_TOTAL_SIZE_DESKTOP = 2000 * 1024 * 1024; // 2GB total for desktop
-const MAX_TOTAL_SIZE_MOBILE = 500 * 1024 * 1024;  // 500MB total for mobile
+// REMOVED ALL PAGE LIMITS - Allow unlimited uploads
+// File size limits in bytes - Increased for better user experience
+const MAX_SIZE_DESKTOP = 1000 * 1024 * 1024; // 1GB for desktop
+const MAX_SIZE_MOBILE = 500 * 1024 * 1024;   // 500MB for mobile
+const MAX_TOTAL_SIZE_DESKTOP = 5000 * 1024 * 1024; // 5GB total for desktop
+const MAX_TOTAL_SIZE_MOBILE = 2000 * 1024 * 1024;  // 2GB total for mobile
 
 const simulateProgress = (
   callback: (p: number) => void,
@@ -266,7 +263,7 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// Enhanced compression function with mobile optimization
+// Enhanced compression function with guaranteed size reduction
 const compressImageForPdf = async (
   file: File,
   rotation: number = 0,
@@ -274,27 +271,18 @@ const compressImageForPdf = async (
   customQualityValue: number = 85,
   isMobile: boolean = false
 ): Promise<File> => {
-  // Mobile devices optimization
-  if (isMobile) {
-    console.log("Mobile device detected, using original file for:", file.name);
+  // If quality is "none", return original file
+  if (quality === "none") {
     return file;
   }
 
-  // Low memory devices check
-  const isLowMemoryDevice = /Android.*(2|3|4|5|6\.0)|iPhone.*(6|7|8|SE)/i.test(navigator.userAgent);
-  
-  if (isLowMemoryDevice && file.size > 5 * 1024 * 1024) { // Files larger than 5MB
-    console.log("Low memory device detected, using original file for large image:", file.name);
+  // For very small files (< 500KB), skip compression as it might increase size
+  if (file.size < 500 * 1024) {
+    console.log("Small file detected, skipping compression:", file.name);
     return file;
   }
 
   return new Promise((resolve, reject) => {
-    // If quality is "none", return original file
-    if (quality === "none") {
-      resolve(file);
-      return;
-    }
-
     const reader = new FileReader();
     reader.readAsDataURL(file);
 
@@ -303,36 +291,27 @@ const compressImageForPdf = async (
       img.src = e.target?.result as string;
 
       img.onload = () => {
-        // Calculate dimensions based on quality setting
+        // Calculate target dimensions based on quality setting
         let maxDimension = 4096;
         let qualityValue = 1.0;
-        let additionalScale = 1.0;
 
+        // Set target dimensions and quality based on setting
         switch (quality) {
           case "custom":
             maxDimension = 4096;
-            qualityValue = customQualityValue / 100;
-            additionalScale =
-              customQualityValue >= 90
-                ? 1.0
-                : customQualityValue >= 75
-                ? 0.95
-                : 0.9;
+            qualityValue = Math.max(0.1, customQualityValue / 100); // Ensure minimum 10%
             break;
           case "high":
-            maxDimension = 4096;
-            qualityValue = 0.95;
-            additionalScale = 1.0;
+            maxDimension = 2048;
+            qualityValue = 0.85; // 85% quality
             break;
           case "medium":
-            maxDimension = 2048;
-            qualityValue = 0.85;
-            additionalScale = 0.9;
+            maxDimension = 1200;
+            qualityValue = 0.75; // 75% quality
             break;
           case "low":
-            maxDimension = 1024;
-            qualityValue = 0.7;
-            additionalScale = 0.8;
+            maxDimension = 800;
+            qualityValue = 0.60; // 60% quality
             break;
         }
 
@@ -343,8 +322,10 @@ const compressImageForPdf = async (
           scale = maxDimension / largerDimension;
         }
 
-        // Apply additional scale for medium/low quality
-        scale *= additionalScale;
+        // For very small original files, don't upscale
+        if (largerDimension < 800) {
+          scale = Math.min(1, scale);
+        }
 
         const newWidth = Math.floor(img.width * scale);
         const newHeight = Math.floor(img.height * scale);
@@ -392,14 +373,26 @@ const compressImageForPdf = async (
           ctx.drawImage(img, 0, 0, newWidth, newHeight);
         }
 
-        // Use appropriate format
-        const outputFormat = file.type.includes("png")
-          ? "image/png"
-          : "image/jpeg";
+        // Determine output format
+        // Always use JPEG for compression (better compression than PNG for photos)
+        const outputFormat = "image/jpeg";
+        
+        // For PNG files, reduce quality more aggressively
+        const adjustedQuality = file.type.includes("png") 
+          ? Math.max(0.1, qualityValue * 0.6) // PNG to JPEG needs lower quality
+          : qualityValue;
 
         canvas.toBlob(
           (blob) => {
             if (blob) {
+              // Check if compression actually reduced size - if not, return original
+              if (blob.size >= file.size * 0.95) { // Less than 5% reduction
+                console.log(`Compression didn't reduce size for ${file.name}, using original`);
+                console.log(`Original: ${(file.size / 1024 / 1024).toFixed(2)}MB, Compressed: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+                resolve(file);
+                return;
+              }
+
               const compressedFile = new File([blob], file.name, {
                 type: outputFormat,
                 lastModified: Date.now(),
@@ -410,7 +403,6 @@ const compressImageForPdf = async (
                 ((file.size - blob.size) / file.size) *
                 100
               ).toFixed(1);
-              const isLarger = blob.size > file.size;
 
               console.log(
                 `${
@@ -425,20 +417,19 @@ const compressImageForPdf = async (
                 )}MB → Compressed: ${(blob.size / 1024 / 1024).toFixed(2)}MB`
               );
               console.log(
-                `Change: ${isLarger ? "+" : ""}${compressionRatio}% (${
-                  isLarger ? "larger" : "reduced"
-                })`
+                `Reduction: ${compressionRatio}% (reduced)`
               );
+              console.log(`Dimensions: ${newWidth}x${newHeight} (${scale.toFixed(2)}x scale)`);
+              console.log(`Quality: ${adjustedQuality.toFixed(2)}`);
 
               resolve(compressedFile);
             } else {
-              // Canvas toBlob failed, return original file
               console.warn("Canvas toBlob failed, returning original file");
               resolve(file);
             }
           },
           outputFormat,
-          outputFormat === "image/jpeg" ? qualityValue : 0.95
+          adjustedQuality
         );
       };
 
@@ -453,6 +444,25 @@ const compressImageForPdf = async (
       resolve(file); // Fallback to original file
     };
   });
+};
+
+// Function to estimate compressed size
+const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQuality, customValue?: number): number => {
+  if (files.length === 0) return 0;
+  
+  let reductionFactor = 1.0;
+  switch (quality) {
+    case "none": reductionFactor = 1.0; break;
+    case "custom": 
+      reductionFactor = customValue ? (customValue / 100) * 0.7 : 0.7; 
+      break;
+    case "high": reductionFactor = 0.5; break;
+    case "medium": reductionFactor = 0.3; break;
+    case "low": reductionFactor = 0.2; break;
+  }
+  
+  const totalOriginalSize = files.reduce((sum, f) => sum + f.file.size, 0);
+  return Math.max(totalOriginalSize * reductionFactor, 1024); // At least 1KB
 };
 
 const DownloadNotification = ({
@@ -522,9 +532,9 @@ const FloatingPageCounter = ({
   const qualityLabels = {
     none: "100% Quality",
     custom: `${customQualityValue}% Quality`,
-    high: "High Quality (95%)",
-    medium: "Medium Quality (85%)",
-    low: "Low Quality (70%)",
+    high: "High Quality (85%)",
+    medium: "Medium Quality (75%)",
+    low: "Low Quality (60%)",
   };
 
   const marginLabels = {
@@ -532,6 +542,20 @@ const FloatingPageCounter = ({
     small: "Small Margin",
     big: "Big Margin",
   };
+
+  // Calculate estimated size
+  const estimatedSize = estimateCompressedSize(
+    Array.from({ length: count }, (_, i) => ({
+      file: new File([], `image${i}.jpg`),
+      id: `${i}`,
+      rotation: 0,
+      scale: 1,
+      aspectRatio: "free",
+      previewError: false,
+    })) as FileWithPreview[],
+    compressionQuality,
+    customQualityValue
+  );
 
   return (
     <motion.div
@@ -556,14 +580,15 @@ const FloatingPageCounter = ({
         )}
         <div className="text-center">
           <div className="text-3xl font-bold">{count}</div>
-          <div className="text-sm opacity-90">
-            {isMobile ? "Pages (Max 100)" : "Pages"}
-          </div>
+          <div className="text-sm opacity-90">Pages</div>
           <div className="text-xs opacity-80 mt-1">
             {qualityLabels[compressionQuality]}
           </div>
           <div className="text-xs opacity-80 mt-1">
             {marginLabels[marginSize]}
+          </div>
+          <div className="text-xs opacity-80 mt-1">
+            Est. PDF: {(estimatedSize / (1024 * 1024)).toFixed(1)}MB
           </div>
           {reverseOrder && (
             <div className="text-xs opacity-80 mt-1 flex items-center justify-center gap-1">
@@ -571,9 +596,9 @@ const FloatingPageCounter = ({
               Reverse Order
             </div>
           )}
-          {isMobile && count > 100 && count <= 100 && (
+          {isMobile && count > 100 && (
             <div className="text-xs text-amber-300 mt-1">
-              ⚠️ Processing may be slow
+              ⚠️ Large conversion on mobile
             </div>
           )}
         </div>
@@ -585,6 +610,9 @@ const FloatingPageCounter = ({
           Quality: {qualityLabels[compressionQuality]}
         </div>
         <div className="text-xs mt-1">Margin: {marginLabels[marginSize]}</div>
+        <div className="text-xs mt-1">
+          Est. PDF Size: {(estimatedSize / (1024 * 1024)).toFixed(2)}MB
+        </div>
         {reverseOrder && (
           <div className="text-xs mt-1">• Images in Reverse Order</div>
         )}
@@ -595,7 +623,7 @@ const FloatingPageCounter = ({
         )}
         {isMobile && (
           <div className="text-xs mt-1 text-blue-300">
-            • Mobile: Max 100 pages, 100MB per file
+            • Mobile: Max {MAX_SIZE_MOBILE / (1024 * 1024)}MB per file
           </div>
         )}
       </div>
@@ -740,7 +768,7 @@ const ReplaceImageModal = ({
               <span>•</span>
               <span>WEBP</span>
               <span>•</span>
-              <span>Max 100MB</span>
+              <span>Max {MAX_SIZE_MOBILE / (1024 * 1024)}MB (mobile)</span>
             </div>
           </div>
 
@@ -765,7 +793,7 @@ const ReplaceImageModal = ({
   );
 };
 
-// Updated Mobile-Friendly ImageToPdf Utility
+// Updated Mobile-Friendly ImageToPdf Utility with better error handling
 const imageToPdfMobileFriendly = async (
   images: File[],
   paperSize: PaperSize,
@@ -792,6 +820,9 @@ const imageToPdfMobileFriendly = async (
     const availableWidth = pageWidth - (margin * 2);
     const availableHeight = pageHeight - (margin * 2);
 
+    let processedCount = 0;
+    let failedCount = 0;
+
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
       
@@ -808,14 +839,13 @@ const imageToPdfMobileFriendly = async (
           };
           reader.onerror = () => reject(new Error("Failed to read image file"));
           
-          // Set timeout for mobile
-          if (isMobile) {
-            setTimeout(() => {
-              if (reader.readyState !== 2) { // DONE state
-                reject(new Error("Image read timeout"));
-              }
-            }, 10000); // 10 seconds timeout for mobile
-          }
+          // Set timeout
+          setTimeout(() => {
+            if (reader.readyState !== 2) { // DONE state
+              reader.abort();
+              reject(new Error("Image read timeout"));
+            }
+          }, 30000); // 30 seconds timeout
           
           reader.readAsDataURL(image);
         });
@@ -826,9 +856,12 @@ const imageToPdfMobileFriendly = async (
         }
 
         // Calculate image dimensions to fit within available space
-        const tempImg = new Image();
         await new Promise<void>((resolve, reject) => {
+          const tempImg = new Image();
+          let loadTimeout: NodeJS.Timeout;
+          
           tempImg.onload = () => {
+            if (loadTimeout) clearTimeout(loadTimeout);
             const imgWidth = tempImg.width;
             const imgHeight = tempImg.height;
             
@@ -853,26 +886,41 @@ const imageToPdfMobileFriendly = async (
             const y = margin + (availableHeight - finalHeight) / 2;
             
             // Add image to PDF
-            pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
-            resolve();
+            try {
+              pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+              processedCount++;
+              resolve();
+            } catch (addImageError) {
+              console.warn(`Failed to add image ${image.name} to PDF:`, addImageError);
+              // Add error message instead
+              pdf.text(`Failed to load image: ${image.name}`, margin, margin + 10);
+              failedCount++;
+              resolve();
+            }
           };
           
           tempImg.onerror = () => {
+            if (loadTimeout) clearTimeout(loadTimeout);
             console.warn(`Failed to load image ${image.name}, skipping...`);
-            resolve(); // Skip this image but continue
+            // Add error message for failed image
+            if (i > 0) pdf.addPage();
+            pdf.text(`Failed to load image: ${image.name}`, margin, margin + 10);
+            failedCount++;
+            resolve();
           };
           
           tempImg.src = imgData;
           
-          // Mobile timeout
-          if (isMobile) {
-            setTimeout(() => {
-              if (!tempImg.complete) {
-                console.warn(`Image load timeout for ${image.name}`);
-                resolve();
-              }
-            }, 15000); // 15 seconds timeout
-          }
+          // Timeout
+          loadTimeout = setTimeout(() => {
+            console.warn(`Image load timeout for ${image.name}`);
+            tempImg.src = '';
+            // Add error message for timeout
+            if (i > 0) pdf.addPage();
+            pdf.text(`Image load timeout: ${image.name}`, margin, margin + 10);
+            failedCount++;
+            resolve();
+          }, 30000); // 30 seconds timeout
         });
 
       } catch (imgError) {
@@ -881,8 +929,14 @@ const imageToPdfMobileFriendly = async (
         if (i > 0) {
           pdf.addPage();
         }
-        pdf.text(`Failed to load image: ${image.name}`, margin, margin + 10);
+        pdf.text(`Failed to process image: ${image.name}`, margin, margin + 10);
+        failedCount++;
       }
+    }
+
+    // Check if we processed any images successfully
+    if (processedCount === 0 && failedCount > 0) {
+      throw new Error(`Failed to process all ${failedCount} images. Please check image formats and try again.`);
     }
 
     // Generate PDF blob
@@ -891,6 +945,9 @@ const imageToPdfMobileFriendly = async (
     if (!pdfBlob || pdfBlob.size === 0) {
       throw new Error("Generated PDF is empty");
     }
+    
+    // Log processing results
+    console.log(`PDF Generation Complete: Processed ${processedCount} images, ${failedCount} failed`);
     
     return pdfBlob;
     
@@ -902,6 +959,7 @@ const imageToPdfMobileFriendly = async (
       const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF();
       pdf.text("Failed to generate PDF. Please try again with fewer images or lower resolution.", 10, 10);
+      pdf.text("Error: " + (error instanceof Error ? error.message : 'Unknown error'), 10, 20);
       return pdf.output('blob');
     } catch (fallbackError) {
       throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -936,8 +994,8 @@ export default function JpgToPdf() {
   const [showCompressionInfo, setShowCompressionInfo] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [compressionQuality, setCompressionQuality] =
-    useState<CompressionQuality>("none");
-  const [customQualityValue, setCustomQualityValue] = useState<number>(85);
+    useState<CompressionQuality>("medium");
+  const [customQualityValue, setCustomQualityValue] = useState<number>(75);
   const [showChangesWarning, setShowChangesWarning] = useState(false);
   const [originalStateHash, setOriginalStateHash] = useState<string>("");
   const [replacingImageId, setReplacingImageId] = useState<string | null>(null);
@@ -946,9 +1004,9 @@ export default function JpgToPdf() {
   );
   const notificationsRef = useRef<HTMLDivElement>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [sizeLimitExceeded, setSizeLimitExceeded] = useState(false);
 
-  // Limits definition
-  const maxPages = isMobile ? MAX_PAGES_MOBILE : MAX_PAGES_DESKTOP;
+  // Limits definition - REMOVED PAGE LIMITS, KEPT ONLY SIZE LIMITS
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
   const maxTotalSize = isMobile ? MAX_TOTAL_SIZE_MOBILE : MAX_TOTAL_SIZE_DESKTOP;
 
@@ -1035,7 +1093,7 @@ export default function JpgToPdf() {
     };
   }, [files]);
 
-  // Handle margin change - CORRECTED VERSION
+  // Handle margin change
   const handleMarginChange = (margin: MarginSize) => {
     setMarginSize(margin);
     setPdfBlob(null);
@@ -1045,7 +1103,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle quality change - CORRECTED VERSION
+  // Handle quality change
   const handleCompressionQualityChange = (quality: CompressionQuality) => {
     setCompressionQuality(quality);
     setPdfBlob(null);
@@ -1055,7 +1113,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle custom quality change - CORRECTED VERSION
+  // Handle custom quality change
   const handleCustomQualityChange = (value: number) => {
     setCustomQualityValue(value);
     setPdfBlob(null);
@@ -1065,7 +1123,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle paper size change - CORRECTED VERSION
+  // Handle paper size change
   const handlePaperSizeChange = (size: PaperSize) => {
     setPaperSize(size);
     setPdfBlob(null);
@@ -1075,7 +1133,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle orientation change - CORRECTED VERSION
+  // Handle orientation change
   const handleOrientationChange = (orient: Orientation) => {
     setOrientation(orient);
     setPdfBlob(null);
@@ -1085,7 +1143,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Toggle reverse order - CORRECTED VERSION
+  // Toggle reverse order
   const toggleReverseOrder = () => {
     setReverseOrder(!reverseOrder);
     setPdfBlob(null);
@@ -1123,6 +1181,12 @@ export default function JpgToPdf() {
     async (id: string, newFile: File) => {
       const fileIndex = files.findIndex((f) => f.id === id);
       if (fileIndex === -1) return;
+
+      // Check file size limit
+      if (newFile.size > maxSizePerFile) {
+        alert(`File size exceeds ${maxSizePerFile / (1024 * 1024)}MB limit. Maximum file size allowed is ${maxSizePerFile / (1024 * 1024)}MB.`);
+        return;
+      }
 
       // New file object
       const newFileWithPreview: FileWithPreview = {
@@ -1164,7 +1228,7 @@ export default function JpgToPdf() {
       setReplacingImageId(null);
       setShowReplaceOptions(null);
     },
-    [files, rotatedUrls]
+    [files, rotatedUrls, maxSizePerFile]
   );
 
   // Drag and Drop Handlers
@@ -1308,26 +1372,14 @@ export default function JpgToPdf() {
 
       setCompressing(true);
       setProcessingError(null);
+      setSizeLimitExceeded(false);
 
       try {
-        // 1. Page limit check
-        const totalPagesAfterAdd = files.length + newFiles.length;
-        if (totalPagesAfterAdd > maxPages) {
-          alert(
-            `Maximum ${maxPages} pages allowed on ${isMobile ? 'mobile' : 'desktop'}. You already have ${files.length} pages, can only add ${maxPages - files.length} more.`
-          );
-          newFiles = newFiles.slice(0, maxPages - files.length);
-          if (newFiles.length === 0) {
-            setCompressing(false);
-            return;
-          }
-        }
-
-        // 2. File size check per file
+        // 1. File size check per file
         const oversizedFiles = newFiles.filter(file => file.size > maxSizePerFile);
         if (oversizedFiles.length > 0) {
           alert(
-            `${oversizedFiles.length} file(s) exceed maximum ${isMobile ? '100MB' : '500MB'} size limit on ${isMobile ? 'mobile' : 'desktop'}. They will not be added.`
+            `${oversizedFiles.length} file(s) exceed maximum ${maxSizePerFile / (1024 * 1024)}MB size limit on ${isMobile ? 'mobile' : 'desktop'}. They will not be added.`
           );
           newFiles = newFiles.filter(file => file.size <= maxSizePerFile);
           if (newFiles.length === 0) {
@@ -1336,15 +1388,16 @@ export default function JpgToPdf() {
           }
         }
 
-        // 3. Total size check
+        // 2. Total size check
         const currentTotalSize = files.reduce((sum, f) => sum + f.file.size, 0);
         const newFilesTotalSize = newFiles.reduce((sum, f) => sum + f.size, 0);
         const totalSizeAfterAdd = currentTotalSize + newFilesTotalSize;
         
         if (totalSizeAfterAdd > maxTotalSize) {
           alert(
-            `Maximum total size ${isMobile ? '500MB' : '2GB'} exceeded on ${isMobile ? 'mobile' : 'desktop'}. Current total: ${(currentTotalSize / 1024 / 1024).toFixed(2)}MB. Can only add ${((maxTotalSize - currentTotalSize) / 1024 / 1024).toFixed(2)}MB more.`
+            `Maximum total size ${maxTotalSize / (1024 * 1024)}MB exceeded on ${isMobile ? 'mobile' : 'desktop'}. Current total: ${(currentTotalSize / 1024 / 1024).toFixed(2)}MB. Can only add ${((maxTotalSize - currentTotalSize) / 1024 / 1024).toFixed(2)}MB more.`
           );
+          setSizeLimitExceeded(true);
           // Calculate how many files we can add
           let addedSize = 0;
           const allowedFiles: File[] = [];
@@ -1382,14 +1435,12 @@ export default function JpgToPdf() {
         setProcessingError(null);
         setProgress(0);
         
-        // Show mobile warning for many pages
-        if (isMobile) {
-          const totalPages = files.length + newFiles.length;
-          if (totalPages > 50 && totalPages <= 100) {
-            setTimeout(() => {
-              alert("⚠️ Processing more than 50 pages on mobile may take some time. For best performance, consider using desktop for large conversions.");
-            }, 500);
-          }
+        // Show warning for many files
+        const totalFiles = files.length + newFiles.length;
+        if (totalFiles > 100) {
+          setTimeout(() => {
+            alert(`You have uploaded ${totalFiles} images. Processing may take some time. For best performance, consider using lower quality settings.`);
+          }, 500);
         }
       } catch (error) {
         console.error("File processing error:", error);
@@ -1398,7 +1449,7 @@ export default function JpgToPdf() {
         setCompressing(false);
       }
     },
-    [files, isMobile, maxPages, maxSizePerFile, maxTotalSize]
+    [files, isMobile, maxSizePerFile, maxTotalSize]
   );
 
   const handleImageError = useCallback((id: string) => {
@@ -1420,6 +1471,7 @@ export default function JpgToPdf() {
     setOriginalStateHash("");
     setShowCompressionInfo(true);
     setProcessingError(null);
+    setSizeLimitExceeded(false);
     setProgress(0);
 
     try {
@@ -1434,15 +1486,12 @@ export default function JpgToPdf() {
       // Show compression progress
       setProgress(10);
 
-      // Mobile optimization
-      console.log("Converting on mobile:", isMobile);
-      console.log("Number of files:", filesToConvert.length);
-      console.log("Page limit:", maxPages);
+      // Show warning for many files
+      console.log("Converting files:", filesToConvert.length);
       
-      // Mobile warning for many pages
-      if (isMobile && filesToConvert.length > 50 && filesToConvert.length <= 100) {
+      if (filesToConvert.length > 50) {
         const shouldContinue = window.confirm(
-          `Processing ${filesToConvert.length} images on mobile may take time. Continue?`
+          `⚠️ Processing ${filesToConvert.length} images may take time.\n\nFor faster conversion:\n1. Use lower quality settings\n2. Reduce number of images\n3. Close other tabs for better performance\n\nContinue anyway?`
         );
         if (!shouldContinue) {
           setConverting(false);
@@ -1462,7 +1511,7 @@ export default function JpgToPdf() {
             const fileProgress = 10 + (index / filesToConvert.length) * 40;
             setProgress(Math.floor(fileProgress));
 
-            // Compress image with rotation applied and mobile detection
+            // Compress image with rotation applied
             const compressedFile = await compressImageForPdf(
               fileWithPreview.file,
               fileWithPreview.rotation,
@@ -1518,8 +1567,8 @@ export default function JpgToPdf() {
           big: 72, // 1 inch = 72 points
         }[marginSize];
 
-        // Mobile-friendly PDF creation
-        console.log("Creating PDF with mobile-friendly method...");
+        // PDF creation
+        console.log("Creating PDF...");
         const blob = await imageToPdfMobileFriendly(
           compressedFiles,
           paperSize,
@@ -1540,6 +1589,7 @@ export default function JpgToPdf() {
           setOriginalStateHash(calculateStateHash());
           setShowChangesWarning(false);
           setConverting(false);
+          setSizeLimitExceeded(false);
 
           // Log final PDF size
           const totalOriginalSize = filesToConvert.reduce(
@@ -1554,9 +1604,8 @@ export default function JpgToPdf() {
 
           console.log(`\n=== PDF Generation Complete ===`);
           console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
-          console.log(`Page Limit: ${maxPages} pages allowed`);
-          console.log(`File Size Limit: ${isMobile ? '100MB' : '500MB'} per file`);
-          console.log(`Total Size Limit: ${isMobile ? '500MB' : '2GB'}`);
+          console.log(`File Size Limit: ${maxSizePerFile / (1024 * 1024)}MB per file`);
+          console.log(`Total Size Limit: ${maxTotalSize / (1024 * 1024)}MB`);
           console.log(
             `Quality Setting: ${compressionQuality}${
               compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""
@@ -1571,7 +1620,7 @@ export default function JpgToPdf() {
           );
           console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
           console.log(`Total change: ${totalCompressionRatio}%`);
-          console.log(`PDF created successfully on ${isMobile ? 'mobile' : 'desktop'}!`);
+          console.log(`PDF created successfully!`);
 
           // Hide compression info after 3 seconds
           setTimeout(() => {
@@ -1581,23 +1630,27 @@ export default function JpgToPdf() {
       } catch (err) {
         if (cleanup) cleanup();
         console.error("PDF creation error:", err);
-        throw err;
+        
+        setProcessingError(
+          `Failed to convert images to PDF. Please try again with fewer images or lower quality settings.`
+        );
+        
+        setProgress(0);
+        setConverting(false);
+        setShowCompressionInfo(false);
+        setPdfBlob(null);
+        setOriginalStateHash("");
       }
     } catch (err) {
       console.error("Conversion error:", err);
       setProcessingError(
-        `Failed to convert images to PDF. ${isMobile ? 'Please use fewer images on mobile.' : 'Please try again.'}`
+        `Failed to convert images to PDF. Please try again with fewer images or lower quality settings.`
       );
       setProgress(0);
       setConverting(false);
       setShowCompressionInfo(false);
       setPdfBlob(null);
       setOriginalStateHash("");
-      
-      // Mobile specific error message
-      if (isMobile) {
-        alert("PDF creation failed on mobile. Please try with fewer images or use desktop for better performance.");
-      }
     }
   };
 
@@ -1792,6 +1845,7 @@ export default function JpgToPdf() {
     setReplacingImageId(null);
     setShowReplaceOptions(null);
     setProcessingError(null);
+    setSizeLimitExceeded(false);
   };
 
   // Handle image rotation in full screen mode
@@ -1831,6 +1885,9 @@ export default function JpgToPdf() {
   };
 
   if (!isClient) return null;
+
+  // Calculate estimated PDF size
+  const estimatedPdfSize = estimateCompressedSize(files, compressionQuality, customQualityValue);
 
   return (
     <>
@@ -1955,6 +2012,38 @@ export default function JpgToPdf() {
         )}
       </AnimatePresence>
 
+      {/* Size Limit Exceeded Banner */}
+      <AnimatePresence>
+        {sizeLimitExceeded && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 shadow-lg"
+          >
+            <div className="container mx-auto max-w-7xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 animate-pulse" />
+                  <div>
+                    <h3 className="font-bold text-lg">Storage Limit Warning</h3>
+                    <p className="text-sm opacity-90">
+                      You're approaching the total size limit. Max total: {maxTotalSize / (1024 * 1024)}MB on {isMobile ? 'mobile' : 'desktop'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSizeLimitExceeded(false)}
+                  className="px-4 py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Processing Error Banner */}
       <AnimatePresence>
         {processingError && (
@@ -1970,7 +2059,7 @@ export default function JpgToPdf() {
                   <AlertTriangle className="w-6 h-6 animate-pulse" />
                   <div>
                     <h3 className="font-bold text-lg">Processing Error</h3>
-                    <p className="text-sm opacity-90">
+                    <p className="text-sm opacity-90 whitespace-pre-line">
                       {processingError}
                     </p>
                   </div>
@@ -2035,8 +2124,6 @@ export default function JpgToPdf() {
               <span className="text-base">Back to Home</span>
             </a>
 
-           
-
            <div className="text-center mb-10">
               <motion.div
                 initial={{ scale: 0.5 }}
@@ -2066,44 +2153,40 @@ export default function JpgToPdf() {
                   <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
                     Upload Images
                   </h2>
-                  {isMobile && (
-                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full">
-                      Mobile
-                    </span>
-                  )}
+                  
                 </div>
 
-                <FileUploader
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  multiple={true}
-                  onFilesSelected={handleFilesUpdate}
-                  maxSize={isMobile ? 100 : 500} // Mobile 100MB, Desktop 500MB
-                />
+               <FileUploader
+  accept="image/jpeg,image/jpg,image/png,image/webp"
+  multiple={true}
+  onFilesSelected={handleFilesUpdate}
+  maxSize={isMobile ? 500 : 1000} // Mobile 500MB, Desktop 1GB
+/>
 
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>{isMobile ? "Mobile Optimized" : "Maximum Quality"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Drag & Drop Reorder</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Professional Layout</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Margin Control</span>
-                  </div>
-                </div>
+<div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400">
+  <div className="flex items-center gap-2">
+    <CheckCircle className="w-5 h-5 text-green-500" />
+    <span>Unlimited Pages</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <CheckCircle className="w-5 h-5 text-green-500" />
+    <span>Drag & Drop Reorder</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <CheckCircle className="w-5 h-5 text-green-500" />
+    <span>Professional Layout</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <CheckCircle className="w-5 h-5 text-green-500" />
+    <span>Size Reduction up to 80%</span>
+  </div>
+</div>
 
                 {compressing && (
                   <div className="mt-4 flex items-center gap-2 text-blue-600 dark:text-blue-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm">
-                      {isMobile ? "Processing images for mobile..." : "Processing images..."}
+                      Processing images...
                     </span>
                   </div>
                 )}
@@ -2111,18 +2194,18 @@ export default function JpgToPdf() {
 
               {files.length > 0 && (
                 <div className="space-y-8">
-                  {/* Page Limit Warning */}
-                  {isMobile && files.length > 50 && files.length <= 100 && (
+                  {/* Size Limit Warning */}
+                  {sizeLimitExceeded && (
                     <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                       <div className="flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                         <div>
                           <h4 className="font-bold text-amber-800 dark:text-amber-300">
-                            Mobile Performance Notice
+                            ⚠️ Storage Limit Warning
                           </h4>
                           <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                            You have {files.length} pages. Processing more than 50 pages on mobile may take time. 
-                            For faster conversion, consider using desktop or reducing the number of images.
+                            You're approaching the total size limit of {maxTotalSize / (1024 * 1024)}MB on {isMobile ? 'mobile' : 'desktop'}.
+                            Current total: {(files.reduce((sum, f) => sum + f.file.size, 0) / 1024 / 1024).toFixed(2)}MB
                           </p>
                         </div>
                       </div>
@@ -2146,7 +2229,7 @@ export default function JpgToPdf() {
                           <h3 className="text-lg font-bold text-red-800 dark:text-red-300 mb-1">
                             Processing Error
                           </h3>
-                          <p className="text-red-700 dark:text-red-400 mb-3">
+                          <p className="text-red-700 dark:text-red-400 mb-3 whitespace-pre-line">
                             {processingError}
                           </p>
                           <div className="flex flex-wrap gap-3">
@@ -2157,14 +2240,12 @@ export default function JpgToPdf() {
                               <RefreshCw className="w-4 h-4" />
                               Try Again
                             </button>
-                            {isMobile && files.length > 50 && (
-                              <button
-                                onClick={handleConvertMore}
-                                className="px-5 py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-                              >
-                                Clear All & Start Over
-                              </button>
-                            )}
+                            <button
+                              onClick={() => setProcessingError(null)}
+                              className="px-5 py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              Dismiss
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -2189,9 +2270,7 @@ export default function JpgToPdf() {
                             Changes Detected - Convert Again Required
                           </h3>
                           <p className="text-amber-700 dark:text-amber-400 mb-3">
-                            You've made changes to your images or settings. Your
-                            current PDF is outdated. Click the button below to
-                            convert again with the latest changes.
+                            You've made changes to your images or settings. Your current PDF is outdated. Click the button below to convert again with the latest changes.
                           </p>
                           <div className="flex flex-wrap gap-3">
                             <button
@@ -2218,9 +2297,9 @@ export default function JpgToPdf() {
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
                         Selected Images ({files.length})
-                        {isMobile && files.length > 50 && (
+                        {files.length > 100 && (
                           <span className="ml-2 text-sm text-amber-600 dark:text-amber-400">
-                            (Mobile: May be slow)
+                            (Large conversion)
                           </span>
                         )}
                       </h3>
@@ -2228,7 +2307,7 @@ export default function JpgToPdf() {
                         Drag to reorder • Click to preview • Rotate to adjust
                         {isMobile && (
                           <span className="block text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            Mobile limit: 100 pages, 100MB per file
+                            Max {MAX_SIZE_MOBILE / (1024 * 1024)}MB per file, {MAX_TOTAL_SIZE_MOBILE / (1024 * 1024)}MB total
                           </span>
                         )}
                       </p>
@@ -2822,7 +2901,7 @@ export default function JpgToPdf() {
                                 value: "none",
                                 label: "Maximum Quality",
                                 icon: ZapOff,
-                                desc: isMobile ? "Original" : "100% Original",
+                                desc: "100% Original",
                                 color: "from-emerald-500 to-green-600",
                               },
                               {
@@ -2836,21 +2915,21 @@ export default function JpgToPdf() {
                                 value: "high",
                                 label: "High Quality",
                                 icon: Zap,
-                                desc: isMobile ? "Optimized" : "95% Quality",
+                                desc: "85% Quality",
                                 color: "from-cyan-500 to-blue-600",
                               },
                               {
                                 value: "medium",
                                 label: "Balanced",
                                 icon: Layers,
-                                desc: isMobile ? "Recommended" : "85% Quality",
+                                desc: "75% Quality",
                                 color: "from-amber-500 to-orange-600",
                               },
                               {
                                 value: "low",
                                 label: "Small Size",
                                 icon: Zap,
-                                desc: isMobile ? "Fast" : "70% Quality",
+                                desc: "60% Quality",
                                 color: "from-rose-500 to-pink-600",
                               },
                             ] as const
@@ -2876,9 +2955,9 @@ export default function JpgToPdf() {
                                   <span className="text-xs opacity-90">
                                     {option.desc}
                                   </span>
-                                  {isMobile && option.value === "medium" && (
+                                  {compressionQuality === option.value && (
                                     <span className="text-[10px] text-blue-500">
-                                      Mobile Best
+                                      ✓ Selected
                                     </span>
                                   )}
                                 </div>
@@ -2944,7 +3023,7 @@ export default function JpgToPdf() {
                             <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mt-3">
                               <span className="flex flex-col items-center">
                                 <span>10%</span>
-                                <span className="text-[10px]">Smallest</span>
+                                <span className="text-[10px]">Smallest Size</span>
                               </span>
                               <span className="flex flex-col items-center">
                                 <span>50%</span>
@@ -2963,8 +3042,7 @@ export default function JpgToPdf() {
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
                               <span className="font-semibold">
-                                Higher percentage = Better quality = Larger file
-                                size
+                                Higher percentage = Better quality = Larger file size
                               </span>
                             </p>
                           </motion.div>
@@ -3003,54 +3081,34 @@ export default function JpgToPdf() {
                                 : compressionQuality === "custom"
                                 ? `${customQualityValue}%`
                                 : compressionQuality === "high"
-                                ? "95%"
-                                : compressionQuality === "medium"
                                 ? "85%"
-                                : "70%"}
+                                : compressionQuality === "medium"
+                                ? "75%"
+                                : "60%"}
                             </div>
                           </div>
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
                             <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              File Size Impact
+                              Est. Size Reduction
                             </div>
                             <div className="text-lg font-bold text-green-600 dark:text-green-400">
                               {compressionQuality === "none"
-                                ? "Largest"
+                                ? "0%"
                                 : compressionQuality === "custom"
-                                ? "Variable"
+                                ? `${Math.round((1 - (customQualityValue/100 * 0.7)) * 100)}%`
                                 : compressionQuality === "high"
-                                ? "Large"
+                                ? "50%"
                                 : compressionQuality === "medium"
-                                ? "Medium"
-                                : "Small"}
+                                ? "70%"
+                                : "80%"}
                             </div>
                           </div>
                           <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
                             <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              Recommended For
+                              Est. PDF Size
                             </div>
-                            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                              {isMobile ? (
-                                compressionQuality === "none"
-                                  ? "Few images only"
-                                  : compressionQuality === "custom"
-                                  ? "Specific needs"
-                                  : compressionQuality === "high"
-                                  ? "Best quality"
-                                  : compressionQuality === "medium"
-                                  ? "Mobile best"
-                                  : "Fastest"
-                              ) : (
-                                compressionQuality === "none"
-                                  ? "Print & Professional"
-                                  : compressionQuality === "custom"
-                                  ? "Specific Requirements"
-                                  : compressionQuality === "high"
-                                  ? "High-Quality Display"
-                                  : compressionQuality === "medium"
-                                  ? "General Use"
-                                  : "Web & Email"
-                              )}
+                            <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                              {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
                             </div>
                           </div>
                         </div>
@@ -3193,7 +3251,7 @@ export default function JpgToPdf() {
                           </span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
                             {files.length}
-                            {isMobile && files.length > 50 && (
+                            {files.length > 100 && (
                               <span className="text-amber-600 ml-1">⚠️</span>
                             )}
                           </span>
@@ -3228,10 +3286,10 @@ export default function JpgToPdf() {
                               : compressionQuality === "custom"
                               ? `${customQualityValue}% Custom`
                               : compressionQuality === "high"
-                              ? "High (95%)"
+                              ? "High (85%)"
                               : compressionQuality === "medium"
-                              ? "Medium (85%)"
-                              : "Low (70%)"}
+                              ? "Medium (75%)"
+                              : "Low (60%)"}
                           </span>
                         </div>
                         <div className="text-sm">
@@ -3259,22 +3317,10 @@ export default function JpgToPdf() {
                         </div>
                         <div className="text-sm">
                           <span className="text-gray-600 dark:text-gray-400">
-                            Expected PDF Size:
+                            Est. PDF Size:
                           </span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {compressionQuality === "none"
-                              ? "Large"
-                              : compressionQuality === "custom"
-                              ? customQualityValue >= 80
-                                ? "Large"
-                                : customQualityValue >= 50
-                                ? "Medium"
-                                : "Small"
-                              : compressionQuality === "high"
-                              ? "Large"
-                              : compressionQuality === "medium"
-                              ? "Medium"
-                              : "Small"}
+                            {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
                           </span>
                         </div>
                         <div className="text-sm">
@@ -3329,10 +3375,10 @@ export default function JpgToPdf() {
                               : "Creating professional PDF..."}
                           </span>
                         </div>
-                        {isMobile && files.length > 50 && files.length <= 100 && (
+                        {files.length > 50 && (
                           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                             <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
-                              ⏳ Processing {files.length} pages on mobile may take time. Please be patient...
+                              ⏳ Processing {files.length} images may take time. Please be patient...
                             </p>
                           </div>
                         )}
@@ -3468,12 +3514,9 @@ export default function JpgToPdf() {
                         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
                           {showChangesWarning ? (
                             <span className="text-amber-600 dark:text-amber-400 font-semibold">
-                              ⚠️ You have made changes to images or settings.
-                              Click above to convert again with the latest
+                              ⚠️ You have made changes to images or settings. Click above to convert again with the latest
                               changes.
                             </span>
-                          ) : isMobile ? (
-                            `Mobile optimized conversion with ${files.length} images. ${files.length > 50 ? 'May take some time...' : ''}`
                           ) : compressionQuality === "none" ? (
                             `Images will be converted with maximum 100% quality, ${
                               marginSize === "no-margin"
@@ -3485,7 +3528,7 @@ export default function JpgToPdf() {
                               compressionQuality === "custom"
                                 ? `${customQualityValue}%`
                                 : compressionQuality
-                            } quality, ${
+                            } quality (${compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality === "high" ? "85%" : compressionQuality === "medium" ? "75%" : "60%"} compression), ${
                               marginSize === "no-margin"
                                 ? "no margin"
                                 : marginSize + " margin"
@@ -3506,12 +3549,10 @@ export default function JpgToPdf() {
                     <Target className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    {isMobile ? "Mobile Optimized" : "Maximum Quality"}
+                    Unlimited Uploads
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {isMobile 
-                      ? "Optimized for mobile devices with fast processing and reliable results. Max 100 pages, 100MB per file."
-                      : "Choose 100% original quality for print-ready PDFs with no compression loss. Unlimited pages, 500MB per file."}
+                    Upload unlimited images on both mobile and desktop. Max {maxSizePerFile / (1024 * 1024)}MB per file, {maxTotalSize / (1024 * 1024)}MB total.
                   </p>
                 </div>
 
@@ -3533,11 +3574,10 @@ export default function JpgToPdf() {
                     <Columns className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Margin Control
+                    Smart Size Reduction
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Choose between no margin, small margin, or big margin for
-                    perfect printing and display
+                    Reduce PDF file size up to 80% with smart compression while maintaining quality
                   </p>
                 </div>
               </div>
