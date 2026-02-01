@@ -78,12 +78,11 @@ interface DownloadNotification {
 // Compression Quality Options
 type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 
-// REMOVED ALL PAGE LIMITS - Allow unlimited uploads
-// File size limits in bytes - Increased for better user experience
-const MAX_SIZE_DESKTOP = 1000 * 1024 * 1024; // 1GB for desktop
-const MAX_SIZE_MOBILE = 500 * 1024 * 1024;   // 500MB for mobile
-const MAX_TOTAL_SIZE_DESKTOP = 5000 * 1024 * 1024; // 5GB total for desktop
-const MAX_TOTAL_SIZE_MOBILE = 2000 * 1024 * 1024;  // 2GB total for mobile
+// REMOVED ALL LIMITS - Completely Free Service
+const MAX_SIZE_DESKTOP = Infinity; // No limit at all
+const MAX_SIZE_MOBILE = Infinity;  // No limit at all
+const MAX_TOTAL_SIZE_DESKTOP = Infinity; // No limit at all
+const MAX_TOTAL_SIZE_MOBILE = Infinity;  // No limit at all
 
 const simulateProgress = (
   callback: (p: number) => void,
@@ -694,11 +693,6 @@ const FloatingPageCounter = ({
               Reverse Order
             </div>
           )}
-          {isMobile && count > 100 && (
-            <div className="text-xs text-amber-300 mt-1">
-              ⚠️ Large conversion on mobile
-            </div>
-          )}
         </div>
       </div>
 
@@ -717,11 +711,6 @@ const FloatingPageCounter = ({
         {showWarning && (
           <div className="text-xs mt-1 text-amber-300 font-semibold">
             • Changes detected - Convert Again
-          </div>
-        )}
-        {isMobile && (
-          <div className="text-xs mt-1 text-blue-300">
-            • Mobile: Max {MAX_SIZE_MOBILE / (1024 * 1024)}MB per file
           </div>
         )}
       </div>
@@ -865,8 +854,6 @@ const ReplaceImageModal = ({
               <span>PNG</span>
               <span>•</span>
               <span>WEBP</span>
-              <span>•</span>
-              <span>Max {MAX_SIZE_MOBILE / (1024 * 1024)}MB (mobile)</span>
             </div>
           </div>
 
@@ -930,9 +917,9 @@ export default function JpgToPdf() {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [sizeLimitExceeded, setSizeLimitExceeded] = useState(false);
 
-  // Limits definition - REMOVED PAGE LIMITS, KEPT ONLY SIZE LIMITS
-  const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
-  const maxTotalSize = isMobile ? MAX_TOTAL_SIZE_MOBILE : MAX_TOTAL_SIZE_DESKTOP;
+  // REMOVED SIZE LIMITS - Completely Free Service
+  const maxSizePerFile = Infinity; // No limit
+  const maxTotalSize = Infinity; // No limit
 
   // Function to calculate hash of current state
   const calculateStateHash = useCallback(() => {
@@ -1105,11 +1092,7 @@ export default function JpgToPdf() {
       const fileIndex = files.findIndex((f) => f.id === id);
       if (fileIndex === -1) return;
 
-      // Check file size limit
-      if (newFile.size > maxSizePerFile) {
-        alert(`File size exceeds ${maxSizePerFile / (1024 * 1024)}MB limit. Maximum file size allowed is ${maxSizePerFile / (1024 * 1024)}MB.`);
-        return;
-      }
+      // NO FILE SIZE CHECK - Completely free
 
       // New file object
       const newFileWithPreview: FileWithPreview = {
@@ -1151,7 +1134,7 @@ export default function JpgToPdf() {
       setReplacingImageId(null);
       setShowReplaceOptions(null);
     },
-    [files, rotatedUrls, maxSizePerFile]
+    [files, rotatedUrls] // REMOVED maxSizePerFile
   );
 
   // Drag and Drop Handlers
@@ -1298,47 +1281,8 @@ export default function JpgToPdf() {
       setSizeLimitExceeded(false);
 
       try {
-        // 1. File size check per file
-        const oversizedFiles = newFiles.filter(file => file.size > maxSizePerFile);
-        if (oversizedFiles.length > 0) {
-          alert(
-            `${oversizedFiles.length} file(s) exceed maximum ${maxSizePerFile / (1024 * 1024)}MB size limit on ${isMobile ? 'mobile' : 'desktop'}. They will not be added.`
-          );
-          newFiles = newFiles.filter(file => file.size <= maxSizePerFile);
-          if (newFiles.length === 0) {
-            setCompressing(false);
-            return;
-          }
-        }
-
-        // 2. Total size check
-        const currentTotalSize = files.reduce((sum, f) => sum + f.file.size, 0);
-        const newFilesTotalSize = newFiles.reduce((sum, f) => sum + f.size, 0);
-        const totalSizeAfterAdd = currentTotalSize + newFilesTotalSize;
+        // NO FILE SIZE CHECKS - Accept all files
         
-        if (totalSizeAfterAdd > maxTotalSize) {
-          alert(
-            `Maximum total size ${maxTotalSize / (1024 * 1024)}MB exceeded on ${isMobile ? 'mobile' : 'desktop'}. Current total: ${(currentTotalSize / 1024 / 1024).toFixed(2)}MB. Can only add ${((maxTotalSize - currentTotalSize) / 1024 / 1024).toFixed(2)}MB more.`
-          );
-          setSizeLimitExceeded(true);
-          // Calculate how many files we can add
-          let addedSize = 0;
-          const allowedFiles: File[] = [];
-          for (const file of newFiles) {
-            if (addedSize + file.size <= maxTotalSize - currentTotalSize) {
-              allowedFiles.push(file);
-              addedSize += file.size;
-            } else {
-              break;
-            }
-          }
-          newFiles = allowedFiles;
-          if (newFiles.length === 0) {
-            setCompressing(false);
-            return;
-          }
-        }
-
         const filesWithIds: FileWithPreview[] = newFiles.map((file, index) => ({
           file: file,
           id: Math.random().toString(36).substr(2, 9),
@@ -1358,13 +1302,7 @@ export default function JpgToPdf() {
         setProcessingError(null);
         setProgress(0);
         
-        // Show warning for many files
-        const totalFiles = files.length + newFiles.length;
-        if (totalFiles > 100) {
-          setTimeout(() => {
-            alert(`You have uploaded ${totalFiles} images. Processing may take some time. For best performance, consider using lower quality settings.`);
-          }, 500);
-        }
+        // NO WARNING FOR MANY FILES - Completely free
       } catch (error) {
         console.error("File processing error:", error);
         setProcessingError("Error processing files. Please try again.");
@@ -1372,7 +1310,7 @@ export default function JpgToPdf() {
         setCompressing(false);
       }
     },
-    [files, isMobile, maxSizePerFile, maxTotalSize]
+    [files] // REMOVED isMobile, maxSizePerFile, maxTotalSize
   );
 
   const handleImageError = useCallback((id: string) => {
@@ -1413,17 +1351,8 @@ export default function JpgToPdf() {
       // Show warning for many files
       console.log("Converting files:", filesToProcess.length);
       
-      if (filesToProcess.length > 50) {
-        const shouldContinue = window.confirm(
-          `⚠️ Processing ${filesToProcess.length} images may take time.\n\nFor faster conversion:\n1. Use lower quality settings\n2. Reduce number of images\n3. Close other tabs for better performance\n\nContinue anyway?`
-        );
-        if (!shouldContinue) {
-          setConverting(false);
-          setShowCompressionInfo(false);
-          return;
-        }
-      }
-
+      // REMOVED PERFORMANCE WARNING - Completely free
+      
       // Clear previous progress interval
       let cleanup: (() => void) | null = null;
       cleanup = simulateProgress(setProgress, 10, 50, 3000);
@@ -1925,37 +1854,7 @@ export default function JpgToPdf() {
         )}
       </AnimatePresence>
 
-      {/* Size Limit Exceeded Banner */}
-      <AnimatePresence>
-        {sizeLimitExceeded && (
-          <motion.div
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 shadow-lg"
-          >
-            <div className="container mx-auto max-w-7xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-6 h-6 animate-pulse" />
-                  <div>
-                    <h3 className="font-bold text-lg">Storage Limit Warning</h3>
-                    <p className="text-sm opacity-90">
-                      You're approaching the total size limit. Max total: {maxTotalSize / (1024 * 1024)}MB on {isMobile ? 'mobile' : 'desktop'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSizeLimitExceeded(false)}
-                  className="px-4 py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* REMOVED Size Limit Exceeded Banner */}
 
       {/* Processing Error Banner */}
       <AnimatePresence>
@@ -2056,7 +1955,9 @@ export default function JpgToPdf() {
                 Convert JPG to PDF Online Free
               </h1>
 
-              
+              <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-3xl mx-auto">
+                Convert unlimited images to PDF with professional layout. No limits, no watermarks, completely free forever.
+              </p>
             </div>
 
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
@@ -2073,17 +1974,20 @@ export default function JpgToPdf() {
   accept="image/jpeg,image/jpg,image/png,image/webp"
   multiple={true}
   onFilesSelected={handleFilesUpdate}
-  maxSize={isMobile ? 500 : 1000} // Mobile 500MB, Desktop 1GB
 />
 
-<div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400">
+<div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm text-gray-600 dark:text-gray-400">
+  <div className="flex items-center gap-2">
+    <CheckCircle className="w-5 h-5 text-green-500" />
+    <span>100% Free</span>
+  </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
     <span>Unlimited Pages</span>
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>Drag & Drop Reorder</span>
+    <span>No Size Limits</span>
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -2091,7 +1995,7 @@ export default function JpgToPdf() {
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>Size Reduction up to 80%</span>
+    <span>Drag & Drop Reorder</span>
   </div>
 </div>
 
@@ -2107,23 +2011,7 @@ export default function JpgToPdf() {
 
               {files.length > 0 && (
                 <div className="space-y-8">
-                  {/* Size Limit Warning */}
-                  {sizeLimitExceeded && (
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h4 className="font-bold text-amber-800 dark:text-amber-300">
-                            ⚠️ Storage Limit Warning
-                          </h4>
-                          <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                            You're approaching the total size limit of {maxTotalSize / (1024 * 1024)}MB on {isMobile ? 'mobile' : 'desktop'}.
-                            Current total: {(files.reduce((sum, f) => sum + f.file.size, 0) / 1024 / 1024).toFixed(2)}MB
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* REMOVED Size Limit Warning */}
 
                   {/* Processing Error Box */}
                   {processingError && (
@@ -2210,19 +2098,9 @@ export default function JpgToPdf() {
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
                         Selected Images ({files.length})
-                        {files.length > 100 && (
-                          <span className="ml-2 text-sm text-amber-600 dark:text-amber-400">
-                            (Large conversion)
-                          </span>
-                        )}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         Drag to reorder • Click to preview • Rotate to adjust
-                        {isMobile && (
-                          <span className="block text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            Max {MAX_SIZE_MOBILE / (1024 * 1024)}MB per file, {MAX_TOTAL_SIZE_MOBILE / (1024 * 1024)}MB total
-                          </span>
-                        )}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -3164,9 +3042,6 @@ export default function JpgToPdf() {
                           </span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
                             {files.length}
-                            {files.length > 100 && (
-                              <span className="text-amber-600 ml-1">⚠️</span>
-                            )}
                           </span>
                         </div>
                         <div className="text-sm">
@@ -3288,13 +3163,7 @@ export default function JpgToPdf() {
                               : "Creating professional PDF..."}
                           </span>
                         </div>
-                        {files.length > 50 && (
-                          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                            <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
-                              ⏳ Processing {files.length} images may take time. Please be patient...
-                            </p>
-                          </div>
-                        )}
+                        {/* REMOVED PERFORMANCE WARNING */}
                       </motion.div>
                     )}
 
@@ -3411,7 +3280,7 @@ export default function JpgToPdf() {
                               <ImageIcon className="w-6 h-6" />
                               {`Convert ${files.length} Image${
                                 files.length !== 1 ? "s" : ""
-                              } to Professional PDF`}
+                              } to PDF - 100% Free`}
                             </>
                           )}
                           {!showChangesWarning &&
@@ -3462,10 +3331,10 @@ export default function JpgToPdf() {
                     <Target className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Unlimited Uploads
+                    Completely Free
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Upload unlimited images on both mobile and desktop. Max {maxSizePerFile / (1024 * 1024)}MB per file, {maxTotalSize / (1024 * 1024)}MB total.
+                    100% free forever with unlimited uploads and conversions. No hidden charges or watermarks.
                   </p>
                 </div>
 
@@ -3487,10 +3356,10 @@ export default function JpgToPdf() {
                     <Columns className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Smart Size Reduction
+                    No Size Limits
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Reduce PDF file size up to 80% with smart compression while maintaining quality
+                    Upload unlimited images without any size restrictions. Perfect for large projects.
                   </p>
                 </div>
               </div>
