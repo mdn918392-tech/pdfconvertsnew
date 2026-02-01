@@ -544,7 +544,7 @@ export default function Home() {
   transition={{ delay: 0.5 }}
   className="mb-16"
   id="faq"
->
+ >
   <div className="text-center mb-12">
     <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
       Frequently Asked Questions
