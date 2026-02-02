@@ -1220,6 +1220,55 @@
       "answer": "Very useful. Social media platforms often work better with JPG files. Converting your website screenshot to JPG before posting can make it upload faster and display better on platforms like Facebook, Twitter, or Instagram."
     }
   ]
+},
+
+{
+  "id": "combine-multiple-images-into-one-pdf",
+  "title": "How to Combine Multiple Images into One PDF Online (Step-by-Step)",
+  "date": "Feb 3 2026",
+  "description": "Practical guide showing how to combine multiple images into a single PDF file. Learn how to organize photos, screenshots, or documents into one neat file for sharing, printing, or archiving.",
+  "slug": "combine-multiple-images-into-one-pdf",
+  "image": "/images/combine-images-pdf-guide.png",
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Combine Multiple Images into One PDF", "url": "/blog/combine-multiple-images-into-one-pdf" }
+  ],
+  "howto": {
+    "steps": [
+      "Gather all the images you want to combine",
+      "Upload your images to a PDF combiner tool",
+      "Arrange them in the right order",
+      "Choose your PDF settings (size, quality, margins)",
+      "Combine and download your new PDF file"
+    ],
+    "estimatedTime": "PT3M",
+    "totalTime": "PT3M",
+    "supply": ["Multiple image files", "Web browser"],
+    "tool": ["PDFSwift Image to PDF Combiner"]
+  },
+  "faq": [
+    {
+      "question": "Why would I combine images into one PDF instead of sending them separately?",
+      "answer": "When you combine images into one PDF, everything stays together in the right order. The person receiving it doesn't have to open ten different files or try to figure out what goes where. It's just one clean file that opens easily on any device."
+    },
+    {
+      "question": "What image formats can I combine into a PDF?",
+      "answer": "Most tools work with common image formats like JPG, PNG, and WebP. Basically, if you can view it as a picture on your computer or phone, you can probably combine it into a PDF."
+    },
+    {
+      "question": "Will the image quality get worse when combined into PDF?",
+      "answer": "Not if you use the right settings. Good tools let you choose the quality level. For most purposes, you can keep the quality looking just fine while making the file size reasonable for sharing."
+    },
+    {
+      "question": "Can I rearrange the images after uploading them?",
+      "answer": "Yes, that's the whole point of using a good combiner tool. You should be able to drag images around to get them in the exact order you want before creating the PDF."
+    },
+    {
+      "question": "Is this useful for things like printing photo collages?",
+      "answer": "Very useful. Instead of printing ten separate photos and hoping they come out in order, you combine them into one PDF and print it as a single document. Everything stays together perfectly."
+    }
+  ]
 }
   
   
