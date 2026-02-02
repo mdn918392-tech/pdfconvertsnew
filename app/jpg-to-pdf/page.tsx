@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -1324,7 +1326,7 @@ export default function JpgToPdf() {
     );
   }, []);
 
-  // FIXED: handleConvert function - Now working correctly
+  // FIXED: handleConvert function - Removed the blocking error messages
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -1473,8 +1475,9 @@ export default function JpgToPdf() {
         if (cleanup) cleanup();
         console.error("PDF creation error:", err);
         
+        // CHANGED: Removed the specific error message about "fewer images or lower quality settings"
         setProcessingError(
-          `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again with fewer images or lower quality settings.`
+          `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`
         );
         
         setProgress(0);
@@ -1485,8 +1488,9 @@ export default function JpgToPdf() {
       }
     } catch (err) {
       console.error("Conversion error:", err);
+      // CHANGED: Removed the specific error message about "fewer images or lower quality settings"
       setProcessingError(
-        `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again with fewer images or lower quality settings.`
+        `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`
       );
       setProgress(0);
       setConverting(false);
@@ -3486,5 +3490,5 @@ export default function JpgToPdf() {
         </div>
       </div>
     </>
-  );
-}
+  );  
+}  
