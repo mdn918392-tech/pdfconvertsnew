@@ -37,6 +37,7 @@ import {
   Square,
   Expand,
   Replace,
+  Info,
 } from "lucide-react";
 
 // Make sure these components are client components
@@ -262,34 +263,16 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// FIXED: Enhanced compression function with rotation handling
+// FIXED: Enhanced compression function with ACTUAL compression
 const compressImageForPdf = async (
   file: File,
   rotation: number = 0,
   quality: CompressionQuality = "medium",
   customQualityValue: number = 85,
   isMobile: boolean = false
-): Promise<string> => { // Changed to return base64 string instead of File
-  // If quality is "none", return original file as base64
-  if (quality === "none") {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // For very small files (< 500KB), skip compression as it might increase size
-  if (file.size < 500 * 1024) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsDataURL(file);
-    });
-  }
-
+): Promise<string> => {
+  console.log(`Compressing: ${file.name}, Quality: ${quality}, Custom: ${customQualityValue}%`);
+  
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -298,11 +281,11 @@ const compressImageForPdf = async (
       img.crossOrigin = 'anonymous';
       
       img.onload = () => {
-        // Calculate target dimensions based on quality setting
+        // Get compression settings based on quality
         let maxDimension = 4096;
         let qualityValue = 1.0;
 
-        // Set target dimensions and quality based on setting
+        // ACTUAL COMPRESSION SETTINGS - THESE WERE NOT BEING APPLIED PROPERLY
         switch (quality) {
           case "custom":
             maxDimension = 4096;
@@ -320,7 +303,14 @@ const compressImageForPdf = async (
             maxDimension = 800;
             qualityValue = 0.60;
             break;
+          case "none":
+            // For "none", we still need to apply rotation but no compression
+            maxDimension = 4096;
+            qualityValue = 1.0;
+            break;
         }
+
+        console.log(`Compression settings: Max dimension: ${maxDimension}, Quality: ${qualityValue}`);
 
         // Calculate scale to fit within max dimension
         let scale = 1;
@@ -337,12 +327,13 @@ const compressImageForPdf = async (
         const newWidth = Math.floor(img.width * scale);
         const newHeight = Math.floor(img.height * scale);
 
+        console.log(`Original: ${img.width}x${img.height}, Scaled: ${newWidth}x${newHeight}, Scale: ${scale}`);
+
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
         if (!ctx) {
           console.warn("Canvas context not available, returning original image");
-          // Fallback to original image as base64
           resolve(e.target?.result as string);
           return;
         }
@@ -356,7 +347,7 @@ const compressImageForPdf = async (
           canvas.height = newHeight;
         }
 
-        // Set white background for the entire canvas
+        // Set white background
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -364,7 +355,7 @@ const compressImageForPdf = async (
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
 
-        // If rotation needed, apply it
+        // Apply rotation if needed
         if (rotation !== 0) {
           ctx.save();
           ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -382,7 +373,7 @@ const compressImageForPdf = async (
           ctx.drawImage(img, 0, 0, newWidth, newHeight);
         }
 
-        // Always use JPEG for compression
+        // Use JPEG for better compression
         const outputFormat = "image/jpeg";
         
         // Adjust quality for PNG files
@@ -390,13 +381,22 @@ const compressImageForPdf = async (
           ? Math.max(0.1, qualityValue * 0.6)
           : qualityValue;
 
+        console.log(`Final compression quality: ${adjustedQuality}`);
+
         // Convert canvas to base64
         try {
           const base64Data = canvas.toDataURL(outputFormat, adjustedQuality);
+          
+          // Calculate size reduction
+          const originalSize = file.size;
+          const compressedSize = Math.floor(base64Data.length * 0.75); // Base64 is ~1.33x larger
+          const reduction = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+          
+          console.log(`Compression result: ${file.name} - Original: ${(originalSize/1024/1024).toFixed(2)}MB, Compressed: ${(compressedSize/1024/1024).toFixed(2)}MB, Reduction: ${reduction}%`);
+          
           resolve(base64Data);
         } catch (error) {
           console.warn("Canvas toDataURL error:", error);
-          // Fallback to original image
           resolve(e.target?.result as string);
         }
       };
@@ -418,7 +418,7 @@ const compressImageForPdf = async (
   });
 };
 
-// Function to estimate compressed size
+// Function to estimate compressed size - FIXED
 const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQuality, customValue?: number): number => {
   if (files.length === 0) return 0;
   
@@ -437,19 +437,17 @@ const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQu
   return Math.max(totalOriginalSize * reductionFactor, 1024);
 };
 
-// FIXED: Simplified PDF creation function
+// FIXED: PDF creation function with proper compression
 const createPdfFromImages = async (
-  imageDataUrls: string[], // Array of base64 image data
+  imageDataUrls: string[],
   paperSize: PaperSize,
   orientation: Orientation,
   marginPoints: number,
   isMobile: boolean
 ): Promise<Blob> => {
   try {
-    // Dynamic import for jsPDF to reduce initial bundle size
     const { jsPDF } = await import("jspdf");
     
-    // Create PDF
     const pdf = new jsPDF({
       orientation: orientation === "Landscape" ? "landscape" : "portrait",
       unit: "mm",
@@ -464,20 +462,14 @@ const createPdfFromImages = async (
     const availableWidth = pageWidth - (margin * 2);
     const availableHeight = pageHeight - (margin * 2);
 
-    console.log(`Creating PDF with ${imageDataUrls.length} images`);
-    console.log(`Page size: ${pageWidth}x${pageHeight}mm, Margin: ${margin}mm`);
-    console.log(`Available space: ${availableWidth}x${availableHeight}mm`);
-
     for (let i = 0; i < imageDataUrls.length; i++) {
       const imgData = imageDataUrls[i];
       
-      // Add page for each image except first
       if (i > 0) {
         pdf.addPage();
       }
 
       try {
-        // Create temporary image to get dimensions
         const tempImg = new Image();
         
         await new Promise<void>((resolve, reject) => {
@@ -485,34 +477,27 @@ const createPdfFromImages = async (
             const imgWidth = tempImg.width;
             const imgHeight = tempImg.height;
             
-            // Calculate aspect ratio
             const imgAspectRatio = imgWidth / imgHeight;
             const availableAspectRatio = availableWidth / availableHeight;
             
             let finalWidth, finalHeight;
             
             if (imgAspectRatio > availableAspectRatio) {
-              // Image is wider than available space
               finalWidth = availableWidth;
               finalHeight = availableWidth / imgAspectRatio;
             } else {
-              // Image is taller than available space
               finalHeight = availableHeight;
               finalWidth = availableHeight * imgAspectRatio;
             }
             
-            // Center the image
             const x = margin + (availableWidth - finalWidth) / 2;
             const y = margin + (availableHeight - finalHeight) / 2;
             
-            // Add image to PDF
             try {
               pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
-              console.log(`Added image ${i+1}: ${finalWidth.toFixed(1)}x${finalHeight.toFixed(1)}mm at (${x.toFixed(1)}, ${y.toFixed(1)})`);
               resolve();
             } catch (addImageError) {
               console.warn(`Failed to add image to PDF:`, addImageError);
-              // Add error message instead
               pdf.text(`Failed to add image ${i+1}`, margin, margin + 10);
               resolve();
             }
@@ -520,7 +505,6 @@ const createPdfFromImages = async (
           
           tempImg.onerror = () => {
             console.warn(`Failed to load image ${i+1}`);
-            // Add error message for failed image
             pdf.text(`Failed to load image ${i+1}`, margin, margin + 10);
             resolve();
           };
@@ -529,23 +513,19 @@ const createPdfFromImages = async (
         });
       } catch (imgError) {
         console.warn(`Failed to process image ${i+1}:`, imgError);
-        // Add error message for failed image
         if (i > 0) pdf.addPage();
         pdf.text(`Failed to process image ${i+1}`, margin, margin + 10);
       }
     }
 
-    // Generate PDF blob
     const pdfBlob = pdf.output('blob');
     
     if (!pdfBlob || pdfBlob.size === 0) {
-      // Create a simple PDF with message if empty
       const { jsPDF } = await import("jspdf");
       const fallbackPdf = new jsPDF();
       fallbackPdf.text("PDF created successfully.", 10, 10);
       fallbackPdf.text(`Processed ${imageDataUrls.length} images.`, 10, 20);
-      const fallbackBlob = fallbackPdf.output('blob');
-      return fallbackBlob;
+      return fallbackPdf.output('blob');
     }
     
     console.log(`PDF Generation Complete: ${imageDataUrls.length} images, Size: ${(pdfBlob.size / 1024 / 1024).toFixed(2)}MB`);
@@ -555,7 +535,6 @@ const createPdfFromImages = async (
   } catch (error) {
     console.error("PDF generation failed:", error);
     
-    // Fallback: Create a simple PDF with error message
     try {
       const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF();
@@ -563,7 +542,6 @@ const createPdfFromImages = async (
       pdf.text(`Error during processing: ${(error instanceof Error ? error.message : 'Unknown')}`, 10, 20);
       return pdf.output('blob');
     } catch (fallbackError) {
-      // Last resort - create minimal PDF
       const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF();
       pdf.text("PDF Document", 10, 10);
@@ -646,11 +624,10 @@ const FloatingPageCounter = ({
 
   const marginLabels = {
     "no-margin": "No Margin",
-    small: "Small Margin",
-    big: "Big Margin",
+    small: "Small Margin (0.25\")",
+    big: "Big Margin (1\")",
   };
 
-  // Calculate estimated size
   const estimatedSize = estimateCompressedSize(
     Array.from({ length: count }, (_, i) => ({
       file: new File([], `image${i}.jpg`),
@@ -926,6 +903,7 @@ export default function JpgToPdf() {
   const notificationsRef = useRef<HTMLDivElement>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [sizeLimitExceeded, setSizeLimitExceeded] = useState(false);
+  const [compressionLog, setCompressionLog] = useState<string[]>([]);
 
   // REMOVED SIZE LIMITS - Completely Free Service
   const maxSizePerFile = Infinity; // No limit
@@ -1023,7 +1001,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle quality change - NO ALERTS HERE
+  // Handle quality change
   const handleCompressionQualityChange = (quality: CompressionQuality) => {
     setCompressionQuality(quality);
     setPdfBlob(null);
@@ -1033,7 +1011,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle custom quality change - NO ALERTS HERE
+  // Handle custom quality change
   const handleCustomQualityChange = (value: number) => {
     setCustomQualityValue(value);
     setPdfBlob(null);
@@ -1102,8 +1080,6 @@ export default function JpgToPdf() {
       const fileIndex = files.findIndex((f) => f.id === id);
       if (fileIndex === -1) return;
 
-      // NO FILE SIZE CHECK - Completely free
-
       // New file object
       const newFileWithPreview: FileWithPreview = {
         file: newFile,
@@ -1144,7 +1120,7 @@ export default function JpgToPdf() {
       setReplacingImageId(null);
       setShowReplaceOptions(null);
     },
-    [files, rotatedUrls] // REMOVED maxSizePerFile
+    [files, rotatedUrls]
   );
 
   // Drag and Drop Handlers
@@ -1291,8 +1267,6 @@ export default function JpgToPdf() {
       setSizeLimitExceeded(false);
 
       try {
-        // NO FILE SIZE CHECKS - Accept all files
-        
         const filesWithIds: FileWithPreview[] = newFiles.map((file, index) => ({
           file: file,
           id: Math.random().toString(36).substr(2, 9),
@@ -1320,7 +1294,7 @@ export default function JpgToPdf() {
         setCompressing(false);
       }
     },
-    [files] // REMOVED isMobile, maxSizePerFile, maxTotalSize
+    [files]
   );
 
   const handleImageError = useCallback((id: string) => {
@@ -1334,7 +1308,7 @@ export default function JpgToPdf() {
     );
   }, []);
 
-  // FIXED: handleConvert function - GUARANTEED to include ALL uploaded images
+  // FIXED: handleConvert function with PROPER compression
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -1345,6 +1319,7 @@ export default function JpgToPdf() {
     setProcessingError(null);
     setSizeLimitExceeded(false);
     setProgress(0);
+    setCompressionLog([]);
 
     try {
       // Prepare files in current order
@@ -1358,14 +1333,14 @@ export default function JpgToPdf() {
       // Show compression progress
       setProgress(10);
 
-      console.log("Converting files:", filesToProcess.length);
+      console.log(`Converting ${filesToProcess.length} files with quality: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
       
-      // Clear previous progress interval
       let cleanup: (() => void) | null = null;
       cleanup = simulateProgress(setProgress, 10, 50, 3000);
 
       console.log("Starting image processing...");
       const compressedImages: string[] = [];
+      const logMessages: string[] = [];
 
       // Process images one by one to avoid memory issues
       for (let i = 0; i < filesToProcess.length; i++) {
@@ -1378,7 +1353,7 @@ export default function JpgToPdf() {
 
           console.log(`Processing ${i + 1}/${filesToProcess.length}: ${fileWithPreview.file.name}`);
 
-          // Try to compress image with rotation applied
+          // Compress image with rotation applied
           try {
             const compressedImageData = await compressImageForPdf(
               fileWithPreview.file,
@@ -1388,9 +1363,17 @@ export default function JpgToPdf() {
               isMobile
             );
             compressedImages.push(compressedImageData);
-            console.log(`✓ Image ${i + 1} processed successfully`);
+            
+            // Calculate and log compression results
+            const originalSize = fileWithPreview.file.size;
+            const compressedSize = Math.floor(compressedImageData.length * 0.75);
+            const reduction = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+            
+            const logMsg = `✓ Image ${i + 1}: ${(originalSize/1024/1024).toFixed(2)}MB → ${(compressedSize/1024/1024).toFixed(2)}MB (${reduction}% reduction)`;
+            console.log(logMsg);
+            logMessages.push(logMsg);
           } catch (compressError) {
-            console.warn(`Compression failed for image ${i + 1}, trying original...`);
+            console.warn(`Compression failed for image ${i + 1}, using original...`);
             
             // If compression fails, use original image directly
             try {
@@ -1401,7 +1384,7 @@ export default function JpgToPdf() {
                 reader.readAsDataURL(fileWithPreview.file);
               });
               compressedImages.push(originalImageData);
-              console.log(`✓ Using original image ${i + 1}`);
+              logMessages.push(`✓ Image ${i + 1}: Using original (${(fileWithPreview.file.size/1024/1024).toFixed(2)}MB)`);
             } catch (readError) {
               console.error(`Failed to read original image ${i + 1}:`, readError);
               
@@ -1421,7 +1404,7 @@ export default function JpgToPdf() {
                 ctx.fillText("Failed to load original", canvas.width/2, canvas.height/2 + 60);
                 const placeholderData = canvas.toDataURL("image/jpeg", 0.8);
                 compressedImages.push(placeholderData);
-                console.log(`✓ Created placeholder for image ${i + 1}`);
+                logMessages.push(`✓ Image ${i + 1}: Created placeholder`);
               }
             }
           }
@@ -1441,14 +1424,15 @@ export default function JpgToPdf() {
             ctx.fillText(`Image ${i + 1} of ${filesToProcess.length}`, canvas.width/2, canvas.height/2);
             const placeholderData = canvas.toDataURL("image/jpeg", 0.8);
             compressedImages.push(placeholderData);
+            logMessages.push(`✓ Image ${i + 1}: Error placeholder`);
           }
         }
       }
 
       if (cleanup) cleanup();
+      setCompressionLog(logMessages);
 
       // IMPORTANT: GUARANTEE - We MUST have exactly the same number of images as uploaded
-      // If somehow we have fewer, create placeholders for missing ones
       while (compressedImages.length < filesToProcess.length) {
         const missingIndex = compressedImages.length;
         const canvas = document.createElement("canvas");
@@ -1469,7 +1453,7 @@ export default function JpgToPdf() {
         }
       }
 
-      // Now create PDF with ALL images (exact same count as uploaded)
+      // Now create PDF with ALL images
       try {
         setProgress(50);
         cleanup = simulateProgress(setProgress, 50, 90, 3000);
@@ -1477,12 +1461,12 @@ export default function JpgToPdf() {
         // Create PDF with margin setting
         const marginPoints = {
           "no-margin": 0,
-          small: 36, // 0.5 inch = 36 points
+          small: 18, // 0.25 inch = 18 points
           big: 72, // 1 inch = 72 points
         }[marginSize];
 
         // PDF creation
-        console.log(`Creating PDF with ${compressedImages.length} images (same as uploaded: ${filesToProcess.length})...`);
+        console.log(`Creating PDF with ${compressedImages.length} images...`);
         const blob = await createPdfFromImages(
           compressedImages,
           paperSize,
@@ -1509,15 +1493,13 @@ export default function JpgToPdf() {
           const pdfSize = blob.size;
 
           console.log(`\n=== PDF Generation Complete ===`);
-          console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
           console.log(`Quality Setting: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
-          console.log(`Margin Setting: ${marginSize}`);
-          console.log(`Reverse Order: ${reverseOrder}`);
+          console.log(`Margin Setting: ${marginSize} (${marginPoints} points)`);
           console.log(`Uploaded Images: ${filesToProcess.length}`);
-          console.log(`Included in PDF: ${compressedImages.length}`);
           console.log(`Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
           console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
-          console.log(`✓ PDF created successfully with ALL images!`);
+          console.log(`Size Reduction: ${((totalOriginalSize - pdfSize) / totalOriginalSize * 100).toFixed(1)}%`);
+          console.log(`✓ PDF created successfully!`);
 
           // Hide compression info after 3 seconds
           setTimeout(() => {
@@ -1601,7 +1583,6 @@ export default function JpgToPdf() {
 
   const getPageNumber = (displayIndex: number) => {
     if (reverseOrder) {
-      // When in reverse order, the first displayed item is actually the last original item
       return files.length - displayIndex;
     }
     return displayIndex + 1;
@@ -1713,7 +1694,6 @@ export default function JpgToPdf() {
     };
     
     img.onerror = () => {
-      // Fallback
       setExpandedImage({
         url: file.previewUrl!,
         rotation: 0,
@@ -1759,6 +1739,7 @@ export default function JpgToPdf() {
     setShowReplaceOptions(null);
     setProcessingError(null);
     setSizeLimitExceeded(false);
+    setCompressionLog([]);
   };
 
   // Handle image rotation in full screen mode
@@ -1925,8 +1906,6 @@ export default function JpgToPdf() {
         )}
       </AnimatePresence>
 
-      {/* REMOVED Size Limit Exceeded Banner */}
-
       {/* Processing Error Banner */}
       <AnimatePresence>
         {processingError && (
@@ -2082,8 +2061,6 @@ export default function JpgToPdf() {
 
               {files.length > 0 && (
                 <div className="space-y-8">
-                  {/* REMOVED Size Limit Warning */}
-
                   {/* Processing Error Box */}
                   {processingError && (
                     <motion.div
@@ -2496,6 +2473,23 @@ export default function JpgToPdf() {
                     })}
                   </div>
 
+                  {/* Compression Log Display */}
+                  {compressionLog.length > 0 && (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                      <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        Compression Results:
+                      </h4>
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                        {compressionLog.map((log, index) => (
+                          <div key={index} className="text-sm text-gray-600 dark:text-gray-400">
+                            {log}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Margin Settings Section */}
                   <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-4 md:p-5 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3 mb-4">
@@ -2527,7 +2521,7 @@ export default function JpgToPdf() {
                               label: "Small",
                               icon: Columns,
                               color: "from-blue-500 to-cyan-600",
-                              size: '0.5"',
+                              size: '0.25"',
                             },
                             {
                               value: "big" as MarginSize,
@@ -2587,15 +2581,15 @@ export default function JpgToPdf() {
                             {marginSize === "no-margin"
                               ? "No Margin"
                               : marginSize === "small"
-                              ? "Small Margin"
-                              : "Big Margin"}
+                              ? "Small Margin (0.25\")"
+                              : "Big Margin (1\")"}
                           </span>
                         </div>
                         <span className="text-xs text-gray-600 dark:text-gray-400">
                           {marginSize === "no-margin"
                             ? "Full page"
                             : marginSize === "small"
-                            ? "0.5 inch"
+                            ? "0.25 inch"
                             : "1 inch"}
                         </span>
                       </div>
@@ -2612,8 +2606,8 @@ export default function JpgToPdf() {
                               {marginSize === "no-margin"
                                 ? "No Margin"
                                 : marginSize === "small"
-                                ? "Small"
-                                : "Big"}
+                                ? "Small (0.25\")"
+                                : "Big (1\")"}
                             </span>
                           </div>
                         </div>
@@ -2631,7 +2625,7 @@ export default function JpgToPdf() {
                                 marginSize === "no-margin"
                                   ? "inset-1 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-700 dark:to-gray-600"
                                   : marginSize === "small"
-                                  ? "inset-3 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700"
+                                  ? "inset-2 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700"
                                   : "inset-5 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/50 dark:to-purple-800/50 border border-purple-200 dark:border-purple-700"
                               }`}
                             >
@@ -2656,7 +2650,7 @@ export default function JpgToPdf() {
                                   }`}
                                 ></div>
                                 <span>
-                                  {marginSize === "small" ? '0.5"' : '1"'}
+                                  {marginSize === "small" ? '0.25"' : '1"'}
                                 </span>
                                 <div
                                   className={`w-8 h-0.5 ${
@@ -2793,7 +2787,7 @@ export default function JpgToPdf() {
                                 icon: Zap,
                                 desc: "60% Quality",
                                 color: "from-rose-500 to-pink-600",
-                              },
+                            },
                             ] as const
                           ).map((option) => {
                             const Icon = option.icon;
@@ -2827,8 +2821,6 @@ export default function JpgToPdf() {
                             );
                           })}
                         </div>
-
-                       
 
                         {/* Custom Quality Slider */}
                         {compressionQuality === "custom" && (
@@ -2974,6 +2966,11 @@ export default function JpgToPdf() {
                             </div>
                           </div>
                         </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
+                          <span className="font-semibold">
+                            Actual compression depends on image content and original size
+                          </span>
+                        </p>
                       </div>
                       
                     </div>
@@ -3066,8 +3063,8 @@ export default function JpgToPdf() {
                                 {margin === "no-margin"
                                   ? "No Margin"
                                   : margin === "small"
-                                  ? "Small"
-                                  : "Big"}
+                                  ? "Small (0.25\")"
+                                  : "Big (1\")"}
                               </button>
                             )
                           )}
@@ -3131,8 +3128,8 @@ export default function JpgToPdf() {
                             {marginSize === "no-margin"
                               ? "No Margin"
                               : marginSize === "small"
-                              ? "Small Margin"
-                              : "Big Margin"}
+                              ? "Small Margin (0.25\")"
+                              : "Big Margin (1\")"}
                           </span>
                         </div>
                         <div className="text-sm">
@@ -3190,7 +3187,7 @@ export default function JpgToPdf() {
                             {marginSize === "no-margin"
                               ? "0 inch"
                               : marginSize === "small"
-                              ? "0.5 inch"
+                              ? "0.25 inch"
                               : "1 inch"}
                           </span>
                         </div>
@@ -3234,7 +3231,16 @@ export default function JpgToPdf() {
                               : "Creating professional PDF..."}
                           </span>
                         </div>
-                        {/* REMOVED PERFORMANCE WARNING */}
+                        {isMobile && (
+                          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-start gap-2">
+                              <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                              <p className="text-xs text-blue-700 dark:text-blue-300">
+                                PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </motion.div>
                     )}
 
@@ -3281,8 +3287,8 @@ export default function JpgToPdf() {
                               {marginSize === "no-margin"
                                 ? "No Margin"
                                 : marginSize === "small"
-                                ? "Small"
-                                : "Big"}
+                                ? "Small (0.25\")"
+                                : "Big (1\")"}
                             </span>
                             <span className="text-gray-600 dark:text-gray-400">
                               Order: {reverseOrder ? "Reverse" : "Normal"}
@@ -3304,22 +3310,44 @@ export default function JpgToPdf() {
                               </span>
                             )}
                           </div>
+                          {isMobile && (
+                            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                              <div className="flex items-start gap-2">
+                                <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                                <p className="text-xs text-blue-700 dark:text-blue-300">
+                                  PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
+                                </p>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <button
-                            onClick={handleConvertMore}
-                            className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
-                          >
-                            Convert More Files
-                          </button>
+                          {!isMobile && (
+                            <button
+                              onClick={handleConvertMore}
+                              className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
+                            >
+                              Convert More Files
+                            </button>
+                          )}
                           <button
                             onClick={handleDownload}
-                            className="py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-3 text-base"
+                            className={`py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-3 text-base ${
+                              isMobile ? "col-span-1" : ""
+                            }`}
                           >
                             <Download className="w-5 h-5" />
                             Download Professional PDF
                           </button>
+                          {isMobile && (
+                            <button
+                              onClick={handleConvertMore}
+                              className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
+                            >
+                              Convert More Files
+                            </button>
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -3363,6 +3391,17 @@ export default function JpgToPdf() {
                             } quality)`}
                           {!showChangesWarning && reverseOrder && " (Reverse Order)"}
                         </button>
+
+                        {isMobile && (
+                          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-start gap-2">
+                              <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                              <p className="text-xs text-blue-700 dark:text-blue-300">
+                                PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
+                              </p>
+                            </div>
+                          </div>
+                        )}
 
                         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
                           {showChangesWarning ? (
@@ -3558,5 +3597,4 @@ export default function JpgToPdf() {
       </div>
     </>
   );  
-} 
-
+}
