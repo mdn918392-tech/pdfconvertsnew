@@ -2141,1297 +2141,1172 @@ export default function JpgToPdf() {
                     </motion.div>
                   )}
 
-                  {/* Selected Images Section */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        Selected Images ({files.length})
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Drag to reorder • Click to preview • Rotate to adjust
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-                        <button
-                          onClick={() => setViewMode("grid")}
-                          className={`px-3 py-1.5 rounded-md transition-colors ${
-                            viewMode === "grid"
-                              ? "bg-white dark:bg-gray-700 shadow-sm"
-                              : "hover:bg-gray-200 dark:hover:bg-gray-700"
-                          }`}
-                        >
-                          <Grid className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setViewMode("list")}
-                          className={`px-3 py-1.5 rounded-md transition-colors ${
-                            viewMode === "list"
-                              ? "bg-white dark:bg-gray-700 shadow-sm"
-                              : "hover:bg-gray-200 dark:hover:bg-gray-700"
-                          }`}
-                        >
-                          <List className="w-4 h-4" />
-                        </button>
-                      </div>
+                  {/* Selected Images Section - ONLY SHOW WHEN NO PDF OR ON DESKTOP */}
+                  {(!pdfBlob || !isMobile) && (
+                    <>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                            Selected Images ({files.length})
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Drag to reorder • Click to preview • Rotate to adjust
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                            <button
+                              onClick={() => setViewMode("grid")}
+                              className={`px-3 py-1.5 rounded-md transition-colors ${
+                                viewMode === "grid"
+                                  ? "bg-white dark:bg-gray-700 shadow-sm"
+                                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
+                              }`}
+                            >
+                              <Grid className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setViewMode("list")}
+                              className={`px-3 py-1.5 rounded-md transition-colors ${
+                                viewMode === "list"
+                                  ? "bg-white dark:bg-gray-700 shadow-sm"
+                                  : "hover:bg-gray-200 dark:hover:bg-gray-700"
+                              }`}
+                            >
+                              <List className="w-4 h-4" />
+                            </button>
+                          </div>
 
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleRotateAll(-90)}
-                          className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                          title="Rotate all counter-clockwise"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleRotateAll(90)}
-                          className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                          title="Rotate all clockwise"
-                        >
-                          <RotateCw className="w-4 h-4" />
-                        </button>
-                      </div>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleRotateAll(-90)}
+                              className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              title="Rotate all counter-clockwise"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleRotateAll(90)}
+                              className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              title="Rotate all clockwise"
+                            >
+                              <RotateCw className="w-4 h-4" />
+                            </button>
+                          </div>
 
-                      <button
-                        onClick={toggleReverseOrder}
-                        className={`px-4 py-2 flex items-center gap-2 rounded-xl transition-all text-sm ${
-                          reverseOrder
-                            ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-md"
-                            : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        <ArrowUpDown className="w-4 h-4" />
-                        {reverseOrder ? "Normal Order" : "Reverse Order"}
-                      </button>
-
-                      <button
-                        onClick={handleConvertMore}
-                        className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                        Clear All
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Images Grid/List View */}
-                  <div
-                    className={`${
-                      viewMode === "grid"
-                        ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
-                        : "space-y-3"
-                    }`}
-                  >
-                    {displayFiles.map((item, displayIndex) => {
-                      const pageNumber = getPageNumber(displayIndex);
-                      const imageUrl = getImageUrl(item);
-
-                      return (
-                        <DraggableItem
-                          key={item.id}
-                          index={displayIndex}
-                          onDragStart={handleDragStart}
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          isDragging={draggedIndex === displayIndex}
-                        >
-                          <div
-                            className={`group relative ${
-                              viewMode === "list"
-                                ? "flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl ml-6"
-                                : ""
+                          <button
+                            onClick={toggleReverseOrder}
+                            className={`px-4 py-2 flex items-center gap-2 rounded-xl transition-all text-sm ${
+                              reverseOrder
+                                ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-md"
+                                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                             }`}
                           >
-                            {viewMode === "list" && (
-                              <div className="flex flex-col gap-1">
-                                <button
-                                  onClick={() => handleMoveUp(displayIndex)}
-                                  disabled={displayIndex === 0}
-                                  className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
-                                >
-                                  <ChevronUp className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => handleMoveDown(displayIndex)}
-                                  disabled={displayIndex === files.length - 1}
-                                  className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
-                                >
-                                  <ChevronDown className="w-3 h-3" />
-                                </button>
-                              </div>
-                            )}
+                            <ArrowUpDown className="w-4 h-4" />
+                            {reverseOrder ? "Normal Order" : "Reverse Order"}
+                          </button>
 
-                            {/* Image Container */}
-                            <div
-                              className={`relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer ${
-                                viewMode === "list"
-                                  ? "w-20 h-20 flex-shrink-0"
-                                  : "w-full h-48 md:h-56 lg:h-64"
-                              }`}
-                              onClick={() => handleExpandImage(item)}
+                          <button
+                            onClick={handleConvertMore}
+                            className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                            Clear All
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Images Grid/List View */}
+                      <div
+                        className={`${
+                          viewMode === "grid"
+                            ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+                            : "space-y-3"
+                        }`}
+                      >
+                        {displayFiles.map((item, displayIndex) => {
+                          const pageNumber = getPageNumber(displayIndex);
+                          const imageUrl = getImageUrl(item);
+
+                          return (
+                            <DraggableItem
+                              key={item.id}
+                              index={displayIndex}
+                              onDragStart={handleDragStart}
+                              onDragOver={handleDragOver}
+                              onDrop={handleDrop}
+                              isDragging={draggedIndex === displayIndex}
                             >
-                              {imageUrl && !item.previewError ? (
-                                <>
-                                  <img
-                                    src={imageUrl}
-                                    alt={item.file.name}
-                                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
-                                    style={
-                                      item.rotation !== 0 &&
-                                      !rotatedUrls[item.id]
-                                        ? {
-                                            transform: `rotate(${item.rotation}deg)`,
-                                          }
-                                        : undefined
-                                    }
-                                    onError={() => handleImageError(item.id)}
-                                    loading="lazy"
-                                  />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                                </>
-                              ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-3">
-                                  <div className="relative mb-2">
-                                    <ImageIcon className="w-8 h-8 text-gray-400" />
-                                    {item.previewError && (
-                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                                        <X className="w-2 h-2 text-white" />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
                               <div
-                                className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full"
-                                onClick={(e) => e.stopPropagation()}
+                                className={`group relative ${
+                                  viewMode === "list"
+                                    ? "flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl ml-6"
+                                    : ""
+                                }`}
                               >
-                                {pageNumber}
-                              </div>
+                                {viewMode === "list" && (
+                                  <div className="flex flex-col gap-1">
+                                    <button
+                                      onClick={() => handleMoveUp(displayIndex)}
+                                      disabled={displayIndex === 0}
+                                      className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
+                                    >
+                                      <ChevronUp className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleMoveDown(displayIndex)}
+                                      disabled={displayIndex === files.length - 1}
+                                      className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
+                                    >
+                                      <ChevronDown className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )}
 
-                              {item.rotation !== 0 && (
+                                {/* Image Container */}
                                 <div
-                                  className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
-                                  onClick={(e) => e.stopPropagation()}
+                                  className={`relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer ${
+                                    viewMode === "list"
+                                      ? "w-20 h-20 flex-shrink-0"
+                                      : "w-full h-48 md:h-56 lg:h-64"
+                                  }`}
+                                  onClick={() => handleExpandImage(item)}
                                 >
-                                  <RotateCw className="w-2 h-2" />
-                                  {item.rotation}°
-                                </div>
-                              )}
-                            </div>
+                                  {imageUrl && !item.previewError ? (
+                                    <>
+                                      <img
+                                        src={imageUrl}
+                                        alt={item.file.name}
+                                        className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                                        style={
+                                          item.rotation !== 0 &&
+                                          !rotatedUrls[item.id]
+                                            ? {
+                                                transform: `rotate(${item.rotation}deg)`,
+                                              }
+                                            : undefined
+                                        }
+                                        onError={() => handleImageError(item.id)}
+                                        loading="lazy"
+                                      />
+                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                                    </>
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center p-3">
+                                      <div className="relative mb-2">
+                                        <ImageIcon className="w-8 h-8 text-gray-400" />
+                                        {item.previewError && (
+                                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                                            <X className="w-2 h-2 text-white" />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
 
-                            {viewMode === "list" && (
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
-                                  {item.file.name}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {(item.file.size / 1024 / 1024).toFixed(2)} MB
-                                </p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, -90);
-                                    }}
-                                    className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                    title="Rotate counter-clockwise"
+                                  <div
+                                    className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    <RotateCcw className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, 90);
-                                    }}
-                                    className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                    title="Rotate clockwise"
-                                  >
-                                    <RotateCw className="w-3 h-3" />
-                                  </button>
-                                  <div className="relative ml-auto">
+                                    {pageNumber}
+                                  </div>
+
+                                  {item.rotation !== 0 && (
+                                    <div
+                                      className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <RotateCw className="w-2 h-2" />
+                                      {item.rotation}°
+                                    </div>
+                                  )}
+                                </div>
+
+                                {viewMode === "list" && (
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
+                                      {item.file.name}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRotateFile(item.id, -90);
+                                        }}
+                                        className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                        title="Rotate counter-clockwise"
+                                      >
+                                        <RotateCcw className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRotateFile(item.id, 90);
+                                        }}
+                                        className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                        title="Rotate clockwise"
+                                      >
+                                        <RotateCw className="w-3 h-3" />
+                                      </button>
+                                      <div className="relative ml-auto">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowReplaceOptions(
+                                              showReplaceOptions === item.id
+                                                ? null
+                                                : item.id
+                                            );
+                                          }}
+                                          className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                          title="Replace image"
+                                        >
+                                          <Replace className="w-3 h-3" />
+                                        </button>
+
+                                        {/* Replace Options Dropdown */}
+                                        {showReplaceOptions === item.id && (
+                                          <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setReplacingImageId(item.id);
+                                                setShowReplaceOptions(null);
+                                              }}
+                                              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                                            >
+                                              Replace this image
+                                            </button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRemoveFile(item);
+                                                setShowReplaceOptions(null);
+                                              }}
+                                              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-2"
+                                            >
+                                              <X className="w-3 h-3" />
+                                              Remove image
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {viewMode === "grid" && (
+                                  <>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setShowReplaceOptions(
-                                          showReplaceOptions === item.id
-                                            ? null
-                                            : item.id
-                                        );
+                                        handleRemoveFile(item);
                                       }}
-                                      className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                      className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
+                                      aria-label={`Remove ${item.file.name}`}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+
+                                    {/* Replace Button for Grid View */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setReplacingImageId(item.id);
+                                      }}
+                                      className="absolute -top-2 -left-2 bg-blue-500 text-white p-1.5 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-10"
                                       title="Replace image"
                                     >
                                       <Replace className="w-3 h-3" />
                                     </button>
 
-                                    {/* Replace Options Dropdown */}
-                                    {showReplaceOptions === item.id && (
-                                      <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setReplacingImageId(item.id);
-                                            setShowReplaceOptions(null);
-                                          }}
-                                          className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                                        >
-                                          Replace this image
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleRemoveFile(item);
-                                            setShowReplaceOptions(null);
-                                          }}
-                                          className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-2"
-                                        >
-                                          <X className="w-3 h-3" />
-                                          Remove image
-                                        </button>
-                                      </div>
+                                    <div className="absolute bottom-2 left-2 flex gap-1">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRotateFile(item.id, -90);
+                                        }}
+                                        className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
+                                        title="Rotate counter-clockwise"
+                                      >
+                                        <RotateCcw className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRotateFile(item.id, 90);
+                                        }}
+                                        className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
+                                        title="Rotate clockwise"
+                                      >
+                                        <RotateCw className="w-3 h-3" />
+                                      </button>
+                                    </div>
+
+                                    {imageUrl && !item.previewError && (
+                                      <button
+                                        className="absolute bottom-2 right-2 p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleExpandImage(item);
+                                        }}
+                                        title="Expand image"
+                                      >
+                                        <Maximize2 className="w-3 h-3" />
+                                      </button>
                                     )}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {viewMode === "grid" && (
-                              <>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveFile(item);
-                                  }}
-                                  className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
-                                  aria-label={`Remove ${item.file.name}`}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-
-                                {/* Replace Button for Grid View */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setReplacingImageId(item.id);
-                                  }}
-                                  className="absolute -top-2 -left-2 bg-blue-500 text-white p-1.5 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-10"
-                                  title="Replace image"
-                                >
-                                  <Replace className="w-3 h-3" />
-                                </button>
-
-                                <div className="absolute bottom-2 left-2 flex gap-1">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, -90);
-                                    }}
-                                    className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
-                                    title="Rotate counter-clockwise"
-                                  >
-                                    <RotateCcw className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, 90);
-                                    }}
-                                    className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
-                                    title="Rotate clockwise"
-                                  >
-                                    <RotateCw className="w-3 h-3" />
-                                  </button>
-                                </div>
-
-                                {imageUrl && !item.previewError && (
-                                  <button
-                                    className="absolute bottom-2 right-2 p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleExpandImage(item);
-                                    }}
-                                    title="Expand image"
-                                  >
-                                    <Maximize2 className="w-3 h-3" />
-                                  </button>
+                                  </>
                                 )}
-                              </>
-                            )}
 
-                            {reverseOrder && viewMode === "grid" && (
-                              <div
-                                className="absolute -top-2 left-8 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ArrowUpDown className="w-2 h-2" />R
+                                {reverseOrder && viewMode === "grid" && (
+                                  <div
+                                    className="absolute -top-2 left-8 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <ArrowUpDown className="w-2 h-2" />R
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </DraggableItem>
-                      );
-                    })}
-                  </div>
-
-                  {/* Compression Log Display */}
-                  {compressionLog.length > 0 && (
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                      <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
-                        <Zap className="w-4 h-4" />
-                        Compression Results:
-                      </h4>
-                      <div className="space-y-1 max-h-40 overflow-y-auto">
-                        {compressionLog.map((log, index) => (
-                          <div key={index} className="text-sm text-gray-600 dark:text-gray-400">
-                            {log}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Margin Settings Section */}
-                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-4 md:p-5 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Columns className="w-5 h-5 md:w-6 md:h-6 text-blue-500 flex-shrink-0" />
-                      <div>
-                        <h3 className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200">
-                          Page Margins
-                        </h3>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                          Choose margin size for printing & readability
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* Compact Margin Options */}
-                      <div className="grid grid-cols-3 gap-2 md:gap-3">
-                        {(
-                          [
-                            {
-                              value: "no-margin" as MarginSize,
-                              label: "No",
-                              icon: Expand,
-                              color: "from-gray-500 to-gray-700",
-                              size: '0"',
-                            },
-                            {
-                              value: "small" as MarginSize,
-                              label: "Small",
-                              icon: Columns,
-                              color: "from-blue-500 to-cyan-600",
-                              size: '0.25"',
-                            },
-                            {
-                              value: "big" as MarginSize,
-                              label: "Big",
-                              icon: Square,
-                              color: "from-purple-500 to-pink-600",
-                              size: '1"',
-                            },
-                          ] as const
-                        ).map((option) => {
-                          const Icon = option.icon;
-                          return (
-                            <button
-                              key={option.value}
-                              onClick={() => handleMarginChange(option.value)}
-                              className={`flex flex-col items-center p-3 md:p-4 rounded-xl border transition-all ${
-                                marginSize === option.value
-                                  ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-md`
-                                  : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                              }`}
-                            >
-                              <div
-                                className={`p-2 rounded-lg mb-2 ${
-                                  marginSize === option.value
-                                    ? "bg-white/20"
-                                    : "bg-gray-100 dark:bg-gray-700"
-                                }`}
-                              >
-                                <Icon className="w-4 h-4 md:w-5 md:h-5" />
-                              </div>
-                              <div className="text-center">
-                                <span className="font-semibold text-sm">
-                                  {option.label}
-                                </span>
-                                <div className="text-xs opacity-80 mt-0.5">
-                                  {option.size}
-                                </div>
-                              </div>
-                            </button>
+                            </DraggableItem>
                           );
                         })}
                       </div>
 
-                      {/* Current Selection Indicator */}
-                      <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              marginSize === "no-margin"
-                                ? "bg-gray-500"
-                                : marginSize === "small"
-                                ? "bg-blue-500"
-                                : "bg-purple-500"
-                            }`}
-                          />
-                          <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                            {marginSize === "no-margin"
-                              ? "No Margin"
-                              : marginSize === "small"
-                              ? "Small Margin (0.25\")"
-                              : "Big Margin (1\")"}
-                          </span>
-                        </div>
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                          {marginSize === "no-margin"
-                            ? "Full page"
-                            : marginSize === "small"
-                            ? "0.25 inch"
-                            : "1 inch"}
-                        </span>
-                      </div>
-
-                      {/* Compact Margin Preview */}
-                      <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200">
-                            Preview
+                      {/* Compression Log Display */}
+                      {compressionLog.length > 0 && (
+                        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                          <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
+                            <Zap className="w-4 h-4" />
+                            Compression Results:
                           </h4>
-                          <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                            <span className="hidden sm:inline">Current:</span>
-                            <span className="font-medium">
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {compressionLog.map((log, index) => (
+                              <div key={index} className="text-sm text-gray-600 dark:text-gray-400">
+                                {log}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Settings Sections - ALWAYS SHOW (EVEN ON MOBILE AFTER CONVERSION) */}
+                  {(!pdfBlob || !isMobile) && (
+                    <>
+                      {/* Margin Settings Section */}
+                      <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-4 md:p-5 border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Columns className="w-5 h-5 md:w-6 md:h-6 text-blue-500 flex-shrink-0" />
+                          <div>
+                            <h3 className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                              Page Margins
+                            </h3>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                              Choose margin size for printing & readability
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          {/* Compact Margin Options */}
+                          <div className="grid grid-cols-3 gap-2 md:gap-3">
+                            {(
+                              [
+                                {
+                                  value: "no-margin" as MarginSize,
+                                  label: "No",
+                                  icon: Expand,
+                                  color: "from-gray-500 to-gray-700",
+                                  size: '0"',
+                                },
+                                {
+                                  value: "small" as MarginSize,
+                                  label: "Small",
+                                  icon: Columns,
+                                  color: "from-blue-500 to-cyan-600",
+                                  size: '0.25"',
+                                },
+                                {
+                                  value: "big" as MarginSize,
+                                  label: "Big",
+                                  icon: Square,
+                                  color: "from-purple-500 to-pink-600",
+                                  size: '1"',
+                                },
+                              ] as const
+                            ).map((option) => {
+                              const Icon = option.icon;
+                              return (
+                                <button
+                                  key={option.value}
+                                  onClick={() => handleMarginChange(option.value)}
+                                  className={`flex flex-col items-center p-3 md:p-4 rounded-xl border transition-all ${
+                                    marginSize === option.value
+                                      ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-md`
+                                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                  }`}
+                                >
+                                  <div
+                                    className={`p-2 rounded-lg mb-2 ${
+                                      marginSize === option.value
+                                        ? "bg-white/20"
+                                        : "bg-gray-100 dark:bg-gray-700"
+                                    }`}
+                                  >
+                                    <Icon className="w-4 h-4 md:w-5 md:h-5" />
+                                  </div>
+                                  <div className="text-center">
+                                    <span className="font-semibold text-sm">
+                                      {option.label}
+                                    </span>
+                                    <div className="text-xs opacity-80 mt-0.5">
+                                      {option.size}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Current Selection Indicator */}
+                          <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  marginSize === "no-margin"
+                                    ? "bg-gray-500"
+                                    : marginSize === "small"
+                                    ? "bg-blue-500"
+                                    : "bg-purple-500"
+                                }`}
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                {marginSize === "no-margin"
+                                  ? "No Margin"
+                                  : marginSize === "small"
+                                  ? "Small Margin (0.25\")"
+                                  : "Big Margin (1\")"}
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">
                               {marginSize === "no-margin"
-                                ? "No Margin"
+                                ? "Full page"
                                 : marginSize === "small"
-                                ? "Small (0.25\")"
-                                : "Big (1\")"}
+                                ? "0.25 inch"
+                                : "1 inch"}
                             </span>
                           </div>
                         </div>
-
-                        {/* Interactive Mini Preview */}
-                        <div
-                          className="relative mx-auto"
-                          style={{ maxWidth: "200px" }}
-                        >
-                          {/* Page */}
-                          <div className="relative w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-lg border-2 border-gray-300 dark:border-gray-600">
-                            {/* Margin Area */}
-                            <div
-                              className={`absolute rounded-md transition-all duration-200 ${
-                                marginSize === "no-margin"
-                                  ? "inset-1 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-700 dark:to-gray-600"
-                                  : marginSize === "small"
-                                  ? "inset-2 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700"
-                                  : "inset-5 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/50 dark:to-purple-800/50 border border-purple-200 dark:border-purple-700"
-                              }`}
-                            >
-                              {/* Image Placeholder */}
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-10 h-12 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 rounded flex items-center justify-center">
-                                  <ImageIcon className="w-4 h-4 text-blue-400 dark:text-blue-300" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Margin Indicator */}
-                          {marginSize !== "no-margin" && (
-                            <div className="mt-2 flex items-center justify-center">
-                              <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                                <div
-                                  className={`w-8 h-0.5 ${
-                                    marginSize === "small"
-                                      ? "bg-blue-500"
-                                      : "bg-purple-500"
-                                  }`}
-                                ></div>
-                                <span>
-                                  {marginSize === "small" ? '0.25"' : '1"'}
-                                </span>
-                                <div
-                                  className={`w-8 h-0.5 ${
-                                    marginSize === "small"
-                                      ? "bg-blue-500"
-                                      : "bg-purple-500"
-                                  }`}
-                                ></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Usage Tips - Compact */}
-                        <div className="mt-3 grid grid-cols-3 gap-2">
-                          <div className="text-center">
-                            <div
-                              className={`text-xs font-medium ${
-                                marginSize === "no-margin"
-                                  ? "text-gray-700 dark:text-gray-300"
-                                  : "text-gray-600 dark:text-gray-400"
-                              }`}
-                            >
-                              Digital
-                            </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-500">
-                              Screens
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div
-                              className={`text-xs font-medium ${
-                                marginSize === "small"
-                                  ? "text-blue-600 dark:text-blue-400"
-                                  : "text-gray-600 dark:text-gray-400"
-                              }`}
-                            >
-                              Standard
-                            </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-500">
-                              Documents
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div
-                              className={`text-xs font-medium ${
-                                marginSize === "big"
-                                  ? "text-purple-600 dark:text-purple-400"
-                                  : "text-gray-600 dark:text-gray-400"
-                              }`}
-                            >
-                              Print
-                            </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-500">
-                              Notes
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Quick Tip */}
-                        <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-start gap-2">
-                            <Target className="w-3 h-3 text-blue-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <div className="font-medium text-[10px] text-blue-700 dark:text-blue-300">
-                                {marginSize === "no-margin"
-                                  ? "Best for digital viewing"
-                                  : marginSize === "small"
-                                  ? "Ideal for general documents"
-                                  : "Perfect for printing"}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Advanced Settings Section */}
-                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-3 mb-6">
-                      <Target className="w-7 h-7 text-blue-500" />
-                      <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        Quality Control Settings
-                        {isMobile && (
-                          <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
-                            (Mobile Optimized)
-                          </span>
-                        )}
-                      </h3>
-                    </div>
-
-                    <div className="space-y-6">
-                      {/* Quality Settings */}
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                          <Palette className="w-4 h-4" />
-                          Image Quality Preset
-                        </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                          {(
-                            [
-                              {
-                                value: "none",
-                                label: "Maximum Quality",
-                                icon: ZapOff,
-                                desc: "100% Original",
-                                color: "from-emerald-500 to-green-600",
-                              },
-                              {
-                                value: "custom",
-                                label: "Custom Quality",
-                                icon: Percent,
-                                desc: "Precise Control",
-                                color: "from-blue-500 to-purple-600",
-                              },
-                              {
-                                value: "high",
-                                label: "High Quality",
-                                icon: Zap,
-                                desc: "85% Quality",
-                                color: "from-cyan-500 to-blue-600",
-                              },
-                              {
-                                value: "medium",
-                                label: "Balanced",
-                                icon: Layers,
-                                desc: "75% Quality",
-                                color: "from-amber-500 to-orange-600",
-                              },
-                              {
-                                value: "low",
-                                label: "Small Size",
-                                icon: Zap,
-                                desc: "60% Quality",
-                                color: "from-rose-500 to-pink-600",
-                            },
-                            ] as const
-                          ).map((option) => {
-                            const Icon = option.icon;
-                            return (
-                              <button
-                                key={option.value}
-                                onClick={() =>
-                                  handleCompressionQualityChange(option.value)
-                                }
-                                className={`px-4 py-4 rounded-xl border transition-all transform hover:scale-[1.02] ${
-                                  compressionQuality === option.value
-                                    ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-lg scale-[1.02]`
-                                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                                }`}
-                              >
-                                <div className="flex flex-col items-center gap-2">
-                                  <Icon className="w-6 h-6 mb-1" />
-                                  <span className="font-semibold">
-                                    {option.label}
-                                  </span>
-                                  <span className="text-xs opacity-90">
-                                    {option.desc}
-                                  </span>
-                                  {compressionQuality === option.value && (
-                                    <span className="text-[10px] text-blue-500">
-                                      ✓ Selected
-                                    </span>
-                                  )}
-                                </div>
-                              </button>
-                            );
-                          })}
+                      {/* Advanced Settings Section */}
+                      <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-3 mb-6">
+                          <Target className="w-7 h-7 text-blue-500" />
+                          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                            Quality Control Settings
+                            {isMobile && (
+                              <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
+                                (Mobile Optimized)
+                              </span>
+                            )}
+                          </h3>
                         </div>
 
-                        {/* Custom Quality Slider */}
-                        {compressionQuality === "custom" && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl border border-blue-200 dark:border-blue-800"
-                          >
-                            <div className="flex items-center justify-between mb-4">
-                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                <Target className="w-4 h-4" />
-                                Custom Quality: {customQualityValue}%
-                              </label>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() =>
-                                    handleCustomQualityChange(
-                                      Math.max(10, customQualityValue - 5)
-                                    )
-                                  }
-                                  className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
-                                >
-                                  <span className="text-sm font-medium">
-                                    -5%
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleCustomQualityChange(
-                                      Math.min(100, customQualityValue + 5)
-                                    )
-                                  }
-                                  className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
-                                >
-                                  <span className="text-sm font-medium">
-                                    +5%
-                                  </span>
-                                </button>
-                              </div>
+                        <div className="space-y-6">
+                          {/* Quality Settings */}
+                          <div className="space-y-3">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                              <Palette className="w-4 h-4" />
+                              Image Quality Preset
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                              {(
+                                [
+                                  {
+                                    value: "none",
+                                    label: "Maximum Quality",
+                                    icon: ZapOff,
+                                    desc: "100% Original",
+                                    color: "from-emerald-500 to-green-600",
+                                  },
+                                  {
+                                    value: "custom",
+                                    label: "Custom Quality",
+                                    icon: Percent,
+                                    desc: "Precise Control",
+                                    color: "from-blue-500 to-purple-600",
+                                  },
+                                  {
+                                    value: "high",
+                                    label: "High Quality",
+                                    icon: Zap,
+                                    desc: "85% Quality",
+                                    color: "from-cyan-500 to-blue-600",
+                                  },
+                                  {
+                                    value: "medium",
+                                    label: "Balanced",
+                                    icon: Layers,
+                                    desc: "75% Quality",
+                                    color: "from-amber-500 to-orange-600",
+                                  },
+                                  {
+                                    value: "low",
+                                    label: "Small Size",
+                                    icon: Zap,
+                                    desc: "60% Quality",
+                                    color: "from-rose-500 to-pink-600",
+                                },
+                                ] as const
+                              ).map((option) => {
+                                const Icon = option.icon;
+                                return (
+                                  <button
+                                    key={option.value}
+                                    onClick={() =>
+                                      handleCompressionQualityChange(option.value)
+                                    }
+                                    className={`px-4 py-4 rounded-xl border transition-all transform hover:scale-[1.02] ${
+                                      compressionQuality === option.value
+                                        ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-lg scale-[1.02]`
+                                        : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                    }`}
+                                  >
+                                    <div className="flex flex-col items-center gap-2">
+                                      <Icon className="w-6 h-6 mb-1" />
+                                      <span className="font-semibold">
+                                        {option.label}
+                                      </span>
+                                      <span className="text-xs opacity-90">
+                                        {option.desc}
+                                      </span>
+                                      {compressionQuality === option.value && (
+                                        <span className="text-[10px] text-blue-500">
+                                          ✓ Selected
+                                        </span>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
                             </div>
-                            <input
-                              type="range"
-                              min="10"
-                              max="100"
-                              step="1"
-                              value={customQualityValue}
-                              onChange={(e) =>
-                                handleCustomQualityChange(
-                                  parseInt(e.target.value)
-                                )
-                              }
-                              className="w-full h-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-500"
-                            />
-                            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mt-3">
-                              <span className="flex flex-col items-center">
-                                <span>10%</span>
-                                <span className="text-[10px]">Smallest Size</span>
-                              </span>
-                              <span className="flex flex-col items-center">
-                                <span>50%</span>
-                                <span className="text-[10px]">Balanced</span>
-                              </span>
-                              <span className="flex flex-col items-center">
-                                <span>90%</span>
-                                <span className="text-[10px]">
-                                  High Quality
-                                </span>
-                              </span>
-                              <span className="flex flex-col items-center">
-                                <span>100%</span>
-                                <span className="text-[10px]">Maximum</span>
-                              </span>
+
+                            {/* Custom Quality Slider */}
+                            {compressionQuality === "custom" && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl border border-blue-200 dark:border-blue-800"
+                              >
+                                <div className="flex items-center justify-between mb-4">
+                                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                    <Target className="w-4 h-4" />
+                                    Custom Quality: {customQualityValue}%
+                                  </label>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() =>
+                                        handleCustomQualityChange(
+                                          Math.max(10, customQualityValue - 5)
+                                        )
+                                      }
+                                      className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+                                    >
+                                      <span className="text-sm font-medium">
+                                        -5%
+                                      </span>
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleCustomQualityChange(
+                                          Math.min(100, customQualityValue + 5)
+                                        )
+                                      }
+                                      className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+                                    >
+                                      <span className="text-sm font-medium">
+                                        +5%
+                                      </span>
+                                    </button>
+                                  </div>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="10"
+                                  max="100"
+                                  step="1"
+                                  value={customQualityValue}
+                                  onChange={(e) =>
+                                    handleCustomQualityChange(
+                                      parseInt(e.target.value)
+                                    )
+                                  }
+                                  className="w-full h-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-500"
+                                />
+                                <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mt-3">
+                                  <span className="flex flex-col items-center">
+                                    <span>10%</span>
+                                    <span className="text-[10px]">Smallest Size</span>
+                                  </span>
+                                  <span className="flex flex-col items-center">
+                                    <span>50%</span>
+                                    <span className="text-[10px]">Balanced</span>
+                                  </span>
+                                  <span className="flex flex-col items-center">
+                                    <span>90%</span>
+                                    <span className="text-[10px]">
+                                      High Quality
+                                    </span>
+                                  </span>
+                                  <span className="flex flex-col items-center">
+                                    <span>100%</span>
+                                    <span className="text-[10px]">Maximum</span>
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
+                                  <span className="font-semibold">
+                                    Higher percentage = Better quality = Larger file size
+                                  </span>
+                                </p>
+                              </motion.div>
+                            )}
+                          </div>
+
+                          {/* Quality Info Bar */}
+                          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Settings className="w-5 h-5 text-blue-500" />
+                              <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                                Quality Settings Summary
+                              </h4>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                                <div className="font-semibold text-gray-700 dark:text-gray-300">
+                                  Quality Preset
+                                </div>
+                                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                  {compressionQuality === "none"
+                                    ? "Maximum"
+                                    : compressionQuality === "custom"
+                                    ? "Custom"
+                                    : compressionQuality.charAt(0).toUpperCase() +
+                                      compressionQuality.slice(1)}
+                                </div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                                <div className="font-semibold text-gray-700 dark:text-gray-300">
+                                  Quality Value
+                                </div>
+                                <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                                  {compressionQuality === "none"
+                                    ? "100%"
+                                    : compressionQuality === "custom"
+                                    ? `${customQualityValue}%`
+                                    : compressionQuality === "high"
+                                    ? "85%"
+                                    : compressionQuality === "medium"
+                                    ? "75%"
+                                    : "60%"}
+                                </div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                                <div className="font-semibold text-gray-700 dark:text-gray-300">
+                                  Est. Size Reduction
+                                </div>
+                                <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                                  {compressionQuality === "none"
+                                    ? "0%"
+                                    : compressionQuality === "custom"
+                                    ? `${Math.round((1 - (customQualityValue/100 * 0.7)) * 100)}%`
+                                    : compressionQuality === "high"
+                                    ? "50%"
+                                    : compressionQuality === "medium"
+                                    ? "70%"
+                                    : "80%"}
+                                </div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                                <div className="font-semibold text-gray-700 dark:text-gray-300">
+                                  Est. PDF Size
+                                </div>
+                                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                                  {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
+                                </div>
+                              </div>
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
                               <span className="font-semibold">
-                                Higher percentage = Better quality = Larger file size
+                                Actual compression depends on image content and original size
                               </span>
                             </p>
-                          </motion.div>
-                        )}
-                      </div>
-
-                      {/* Quality Info Bar */}
-                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Settings className="w-5 h-5 text-blue-500" />
-                          <h4 className="font-semibold text-gray-800 dark:text-gray-200">
-                            Quality Settings Summary
-                          </h4>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              Quality Preset
-                            </div>
-                            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                              {compressionQuality === "none"
-                                ? "Maximum"
-                                : compressionQuality === "custom"
-                                ? "Custom"
-                                : compressionQuality.charAt(0).toUpperCase() +
-                                  compressionQuality.slice(1)}
-                            </div>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              Quality Value
-                            </div>
-                            <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                              {compressionQuality === "none"
-                                ? "100%"
-                                : compressionQuality === "custom"
-                                ? `${customQualityValue}%`
-                                : compressionQuality === "high"
-                                ? "85%"
-                                : compressionQuality === "medium"
-                                ? "75%"
-                                : "60%"}
-                            </div>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              Est. Size Reduction
-                            </div>
-                            <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                              {compressionQuality === "none"
-                                ? "0%"
-                                : compressionQuality === "custom"
-                                ? `${Math.round((1 - (customQualityValue/100 * 0.7)) * 100)}%`
-                                : compressionQuality === "high"
-                                ? "50%"
-                                : compressionQuality === "medium"
-                                ? "70%"
-                                : "80%"}
-                            </div>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              Est. PDF Size
-                            </div>
-                            <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                              {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
-                            </div>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
-                          <span className="font-semibold">
-                            Actual compression depends on image content and original size
-                          </span>
-                        </p>
                       </div>
-                      
-                    </div>
-                  </div>
 
-                  {/* PDF Settings */}
-                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-3 mb-6">
-                      <Settings className="w-6 h-6 text-blue-500" />
-                      <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        PDF Output Settings
-                      </h3>
-                    </div>
+                      {/* PDF Settings */}
+                      <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-3 mb-6">
+                          <Settings className="w-6 h-6 text-blue-500" />
+                          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                            PDF Output Settings
+                          </h3>
+                        </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          Paper Size
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          {(["A4", "Letter", "Legal", "A3"] as PaperSize[]).map(
-                            (size) => (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          <div className="space-y-3">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              Paper Size
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                              {(["A4", "Letter", "Legal", "A3"] as PaperSize[]).map(
+                                (size) => (
+                                  <button
+                                    key={size}
+                                    onClick={() => handlePaperSizeChange(size)}
+                                    className={`px-4 py-3 rounded-lg border transition-all text-base ${
+                                      paperSize === size
+                                        ? "bg-blue-500 text-white border-blue-500 shadow-md"
+                                        : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                    }`}
+                                  >
+                                    {size}
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                              Orientation
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
                               <button
-                                key={size}
-                                onClick={() => handlePaperSizeChange(size)}
-                                className={`px-4 py-3 rounded-lg border transition-all text-base ${
-                                  paperSize === size
+                                onClick={() => handleOrientationChange("Portrait")}
+                                className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
+                                  orientation === "Portrait"
                                     ? "bg-blue-500 text-white border-blue-500 shadow-md"
                                     : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
                                 }`}
                               >
-                                {size}
+                                <div className="w-4 h-5 border-2 border-current rounded" />
+                                <span>Portrait</span>
                               </button>
-                            )
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          Orientation
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            onClick={() => handleOrientationChange("Portrait")}
-                            className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
-                              orientation === "Portrait"
-                                ? "bg-blue-500 text-white border-blue-500 shadow-md"
-                                : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                            }`}
-                          >
-                            <div className="w-4 h-5 border-2 border-current rounded" />
-                            <span>Portrait</span>
-                          </button>
-                          <button
-                            onClick={() => handleOrientationChange("Landscape")}
-                            className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
-                              orientation === "Landscape"
-                                ? "bg-blue-500 text-white border-blue-500 shadow-md"
-                                : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                            }`}
-                          >
-                            <div className="w-5 h-4 border-2 border-current rounded" />
-                            <span>Landscape</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                          <Columns className="w-4 h-4" />
-                          Page Margin
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {(["no-margin", "small", "big"] as MarginSize[]).map(
-                            (margin) => (
                               <button
-                                key={margin}
-                                onClick={() => handleMarginChange(margin)}
-                                className={`px-3 py-2.5 rounded-lg border transition-all text-sm ${
-                                  marginSize === margin
-                                    ? margin === "no-margin"
-                                      ? "bg-gray-500 text-white border-gray-500"
-                                      : margin === "small"
-                                      ? "bg-blue-500 text-white border-blue-500"
-                                      : "bg-purple-500 text-white border-purple-500"
+                                onClick={() => handleOrientationChange("Landscape")}
+                                className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
+                                  orientation === "Landscape"
+                                    ? "bg-blue-500 text-white border-blue-500 shadow-md"
                                     : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
                                 }`}
                               >
-                                {margin === "no-margin"
-                                  ? "No Margin"
-                                  : margin === "small"
-                                  ? "Small (0.25\")"
-                                  : "Big (1\")"}
+                                <div className="w-5 h-4 border-2 border-current rounded" />
+                                <span>Landscape</span>
                               </button>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 space-y-6">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-3">
-                            <ArrowUpDown className="w-5 h-5" />
-                            Reverse Page Order
-                          </label>
-                          <button
-                            onClick={toggleReverseOrder}
-                            className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
-                              reverseOrder
-                                ? "bg-purple-600"
-                                : "bg-gray-300 dark:bg-gray-700"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                                reverseOrder ? "translate-x-8" : "translate-x-1"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {reverseOrder
-                            ? "Images will be arranged in reverse order (last image first)"
-                            : "Images will be arranged in normal order (first image first)"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Total Pages:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {files.length}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Paper Size:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {paperSize} ({orientation})
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Margin:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {marginSize === "no-margin"
-                              ? "No Margin"
-                              : marginSize === "small"
-                              ? "Small Margin (0.25\")"
-                              : "Big Margin (1\")"}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Quality:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {compressionQuality === "none"
-                              ? "100% Maximum"
-                              : compressionQuality === "custom"
-                              ? `${customQualityValue}% Custom`
-                              : compressionQuality === "high"
-                              ? "High (85%)"
-                              : compressionQuality === "medium"
-                              ? "Medium (75%)"
-                              : "Low (60%)"}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Page Order:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {reverseOrder ? "Reverse" : "Normal"}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Total Size:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {(
-                              files.reduce(
-                                (acc, file) => acc + file.file.size,
-                                0
-                              ) /
-                              (1024 * 1024)
-                            ).toFixed(2)}{" "}
-                            MB
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Est. PDF Size:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Margin Size:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {marginSize === "no-margin"
-                              ? "0 inch"
-                              : marginSize === "small"
-                              ? "0.25 inch"
-                              : "1 inch"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Convert/Progress/Download Buttons */}
-                  <AnimatePresence mode="wait">
-                    {converting && (
-                      <motion.div
-                        key="converting"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mt-6"
-                      >
-                        <ProgressBar
-                          progress={progress}
-                          label={
-                            progress < 30
-                              ? "Processing images..."
-                              : progress < 60
-                              ? compressionQuality === "custom"
-                                ? `Applying ${customQualityValue}% quality...`
-                                : `Applying ${compressionQuality} quality...`
-                              : progress < 90
-                              ? "Creating professional PDF..."
-                              : "Finalizing..."
-                          }
-                        />
-                        <div className="flex items-center justify-center gap-3 mt-4 text-blue-600 dark:text-blue-400">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <span className="text-base font-medium">
-                            {progress < 30
-                              ? "Processing images..."
-                              : progress < 60
-                              ? compressionQuality === "custom"
-                                ? `Applying ${customQualityValue}% quality...`
-                                : `Applying ${compressionQuality} quality...`
-                              : "Creating professional PDF..."}
-                          </span>
-                        </div>
-                        {isMobile && (
-                          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <div className="flex items-start gap-2">
-                              <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                              <p className="text-xs text-blue-700 dark:text-blue-300">
-                                PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
-                              </p>
                             </div>
                           </div>
-                        )}
-                      </motion.div>
-                    )}
 
-                    {pdfBlob && !converting && (
-                      <motion.div
-                        key="download"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="mt-6 space-y-6"
-                      >
-                        <div className="text-center p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl border border-green-200 dark:border-emerald-800">
-                          <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                          <h4 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                            Professional PDF Ready! 🎉
-                          </h4>
-                          <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
-                            Your high-quality PDF with{" "}
-                            {marginSize === "no-margin"
-                              ? "no margin"
-                              : marginSize + " margin"}{" "}
-                            is ready for download
-                            {compressionQuality !== "none" && (
-                              <span className="text-blue-600 dark:text-blue-400">
-                                {" "}
-                                (
-                                {compressionQuality === "custom"
-                                  ? `${customQualityValue}%`
-                                  : compressionQuality}{" "}
-                                quality)
-                              </span>
-                            )}
-                          </p>
-                          <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">
-                              File Size:{" "}
-                              {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB
-                            </span>
-                            <span className="text-gray-600 dark:text-gray-400">
-                              Pages: {files.length}
-                            </span>
-                            <span className="text-gray-600 dark:text-gray-400">
-                              Margin:{" "}
-                              {marginSize === "no-margin"
-                                ? "No Margin"
-                                : marginSize === "small"
-                                ? "Small (0.25\")"
-                                : "Big (1\")"}
-                            </span>
-                            <span className="text-gray-600 dark:text-gray-400">
-                              Order: {reverseOrder ? "Reverse" : "Normal"}
-                            </span>
-                            {compressionQuality !== "none" && (
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                                {compressionQuality === "custom"
-                                  ? `${customQualityValue}%`
-                                  : compressionQuality}{" "}
-                                Quality
-                              </span>
-                            )}
-                            <span className="text-purple-600 dark:text-purple-400 font-semibold">
-                              Professional Layout
-                            </span>
-                            {isMobile && (
-                              <span className="text-green-600 dark:text-green-400 font-semibold">
-                                ✓ Mobile Optimized
-                              </span>
-                            )}
-                          </div>
-                          {isMobile && (
-                            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                              <div className="flex items-start gap-2">
-                                <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                                <p className="text-xs text-blue-700 dark:text-blue-300">
-                                  PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {!isMobile && (
-                            <button
-                              onClick={handleConvertMore}
-                              className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
-                            >
-                              Convert More Files
-                            </button>
-                          )}
-                          <button
-                            onClick={handleDownload}
-                            className={`py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-3 text-base ${
-                              isMobile ? "col-span-1" : ""
-                            }`}
-                          >
-                            <Download className="w-5 h-5" />
-                            Download Professional PDF
-                          </button>
-                          {isMobile && (
-                            <button
-                              onClick={handleConvertMore}
-                              className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
-                            >
-                              Convert More Files
-                            </button>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {!pdfBlob && !converting && (
-                      <motion.div
-                        key="convert"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="mt-6"
-                      >
-                        <button
-                          onClick={handleConvert}
-                          disabled={files.length === 0}
-                          className={`w-full py-4 px-6 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold flex items-center justify-center gap-3 ${
-                            showChangesWarning
-                              ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 animate-pulse"
-                              : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                          }`}
-                        >
-                          {showChangesWarning ? (
-                            <>
-                              <RefreshCw className="w-6 h-6" />
-                              Convert Again with Changes
-                            </>
-                          ) : (
-                            <>
-                              <ImageIcon className="w-6 h-6" />
-                              {`Convert ${files.length} Image${
-                                files.length !== 1 ? "s" : ""
-                              } to PDF - 100% Free`}
-                            </>
-                          )}
-                          {!showChangesWarning &&
-                            compressionQuality !== "none" &&
-                            ` (${
-                              compressionQuality === "custom"
-                                ? `${customQualityValue}%`
-                                : compressionQuality
-                            } quality)`}
-                          {!showChangesWarning && reverseOrder && " (Reverse Order)"}
-                        </button>
-
-                        {isMobile && (
-                          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <div className="flex items-start gap-2">
-                              <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                              <p className="text-xs text-blue-700 dark:text-blue-300">
-                                PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
-                              </p>
+                          <div className="space-y-3">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                              <Columns className="w-4 h-4" />
+                              Page Margin
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {(["no-margin", "small", "big"] as MarginSize[]).map(
+                                (margin) => (
+                                  <button
+                                    key={margin}
+                                    onClick={() => handleMarginChange(margin)}
+                                    className={`px-3 py-2.5 rounded-lg border transition-all text-sm ${
+                                      marginSize === margin
+                                        ? margin === "no-margin"
+                                          ? "bg-gray-500 text-white border-gray-500"
+                                          : margin === "small"
+                                          ? "bg-blue-500 text-white border-blue-500"
+                                          : "bg-purple-500 text-white border-purple-500"
+                                        : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                    }`}
+                                  >
+                                    {margin === "no-margin"
+                                      ? "No Margin"
+                                      : margin === "small"
+                                      ? "Small (0.25\")"
+                                      : "Big (1\")"}
+                                  </button>
+                                )
+                              )}
                             </div>
                           </div>
-                        )}
+                        </div>
 
-                        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
-                          {showChangesWarning ? (
-                            <span className="text-amber-600 dark:text-amber-400 font-semibold">
-                              ⚠️ You have made changes to images or settings. Click above to convert again with the latest
-                              changes.
-                            </span>
-                          ) : compressionQuality === "none" ? (
-                            `Images will be converted with maximum 100% quality, ${
-                              marginSize === "no-margin"
-                                ? "no margin"
-                                : marginSize + " margin"
-                            } and ${reverseOrder ? "reverse" : "normal"} order for professional output`
-                          ) : (
-                            `Images will be converted with ${
-                              compressionQuality === "custom"
-                                ? `${customQualityValue}%`
-                                : compressionQuality
-                            } quality (${compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality === "high" ? "85%" : compressionQuality === "medium" ? "75%" : "60%"} compression), ${
-                              marginSize === "no-margin"
-                                ? "no margin"
-                                : marginSize + " margin"
-                            } and ${reverseOrder ? "reverse" : "normal"} order for optimal results`
-                          )}
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        <div className="mt-6 space-y-6">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-3">
+                                <ArrowUpDown className="w-5 h-5" />
+                                Reverse Page Order
+                              </label>
+                              <button
+                                onClick={toggleReverseOrder}
+                                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
+                                  reverseOrder
+                                    ? "bg-purple-600"
+                                    : "bg-gray-300 dark:bg-gray-700"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                                    reverseOrder ? "translate-x-8" : "translate-x-1"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {reverseOrder
+                                ? "Images will be arranged in reverse order (last image first)"
+                                : "Images will be arranged in normal order (first image first)"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <div className="text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Total Pages:
+                              </span>
+                              <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                                {files.length}
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Paper Size:
+                              </span>
+                              <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                                {paperSize} ({orientation})
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Margin:
+                              </span>
+                              <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                                {marginSize === "no-margin"
+                                  ? "No Margin"
+                                  : marginSize === "small"
+                                  ? "Small Margin (0.25\")"
+                                  : "Big Margin (1\")"}
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Quality:
+                              </span>
+                              <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                                {compressionQuality === "none"
+                                  ? "100% Maximum"
+                                  : compressionQuality === "custom"
+                                  ? `${customQualityValue}% Custom`
+                                  : compressionQuality === "high"
+                                  ? "High (85%)"
+                                  : compressionQuality === "medium"
+                                  ? "Medium (75%)"
+                                  : "Low (60%)"}
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Page Order:
+                              </span>
+                              <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                                {reverseOrder ? "Reverse" : "Normal"}
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Total Size:
+                              </span>
+                              <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                                {(
+                                  files.reduce(
+                                    (acc, file) => acc + file.file.size,
+                                    0
+                                  ) /
+                                  (1024 * 1024)
+                                ).toFixed(2)}{" "}
+                                MB
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Est. PDF Size:
+                              </span>
+                              <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                                {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Margin Size:
+                              </span>
+                              <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                                {marginSize === "no-margin"
+                                  ? "0 inch"
+                                  : marginSize === "small"
+                                  ? "0.25 inch"
+                                  : "1 inch"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
+
+              {/* Convert/Progress/Download Buttons */}
+              <AnimatePresence mode="wait">
+                {converting && (
+                  <motion.div
+                    key="converting"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-6"
+                  >
+                    <ProgressBar
+                      progress={progress}
+                      label={
+                        progress < 30
+                          ? "Processing images..."
+                          : progress < 60
+                          ? compressionQuality === "custom"
+                            ? `Applying ${customQualityValue}% quality...`
+                            : `Applying ${compressionQuality} quality...`
+                          : progress < 90
+                          ? "Creating professional PDF..."
+                          : "Finalizing..."
+                      }
+                    />
+                    <div className="flex items-center justify-center gap-3 mt-4 text-blue-600 dark:text-blue-400">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-base font-medium">
+                        {progress < 30
+                          ? "Processing images..."
+                          : progress < 60
+                          ? compressionQuality === "custom"
+                            ? `Applying ${customQualityValue}% quality...`
+                            : `Applying ${compressionQuality} quality...`
+                          : "Creating professional PDF..."}
+                      </span>
+                    </div>
+                    {isMobile && (
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-start gap-2">
+                          <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
+                {pdfBlob && !converting && (
+                  <motion.div
+                    key="download"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    className="mt-6 space-y-6"
+                  >
+                    <div className="text-center p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl border border-green-200 dark:border-emerald-800">
+                      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                      <h4 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                        Professional PDF Ready! 🎉
+                      </h4>
+                      <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
+                        Your high-quality PDF with{" "}
+                        {marginSize === "no-margin"
+                          ? "no margin"
+                          : marginSize + " margin"}{" "}
+                        is ready for download
+                        {compressionQuality !== "none" && (
+                          <span className="text-blue-600 dark:text-blue-400">
+                            {" "}
+                            (
+                            {compressionQuality === "custom"
+                              ? `${customQualityValue}%`
+                              : compressionQuality}{" "}
+                            quality)
+                          </span>
+                        )}
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          File Size:{" "}
+                          {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Pages: {files.length}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Margin:{" "}
+                          {marginSize === "no-margin"
+                            ? "No Margin"
+                            : marginSize === "small"
+                            ? "Small (0.25\")"
+                            : "Big (1\")"}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Order: {reverseOrder ? "Reverse" : "Normal"}
+                        </span>
+                        {compressionQuality !== "none" && (
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                            {compressionQuality === "custom"
+                              ? `${customQualityValue}%`
+                              : compressionQuality}{" "}
+                            Quality
+                          </span>
+                        )}
+                        <span className="text-purple-600 dark:text-purple-400 font-semibold">
+                          Professional Layout
+                        </span>
+                        {isMobile && (
+                          <span className="text-green-600 dark:text-green-400 font-semibold">
+                            ✓ Mobile Optimized
+                          </span>
+                        )}
+                      </div>
+                      {isMobile && (
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-start gap-2">
+                            <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-blue-700 dark:text-blue-300">
+                              PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {!isMobile && (
+                        <button
+                          onClick={handleConvertMore}
+                          className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
+                        >
+                          Convert More Files
+                        </button>
+                      )}
+                      <button
+                        onClick={handleDownload}
+                        className={`py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-3 text-base ${
+                          isMobile ? "col-span-1" : ""
+                        }`}
+                      >
+                        <Download className="w-5 h-5" />
+                        Download Professional PDF
+                      </button>
+                      {isMobile && (
+                        <button
+                          onClick={handleConvertMore}
+                          className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
+                        >
+                          Convert More Files
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {!pdfBlob && !converting && (
+                  <motion.div
+                    key="convert"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    className="mt-6"
+                  >
+                    <button
+                      onClick={handleConvert}
+                      disabled={files.length === 0}
+                      className={`w-full py-4 px-6 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold flex items-center justify-center gap-3 ${
+                        showChangesWarning
+                          ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 animate-pulse"
+                          : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                      }`}
+                    >
+                      {showChangesWarning ? (
+                        <>
+                          <RefreshCw className="w-6 h-6" />
+                          Convert Again with Changes
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-6 h-6" />
+                          {`Convert ${files.length} Image${
+                            files.length !== 1 ? "s" : ""
+                          } to PDF - 100% Free`}
+                        </>
+                      )}
+                      {!showChangesWarning &&
+                        compressionQuality !== "none" &&
+                        ` (${
+                          compressionQuality === "custom"
+                            ? `${customQualityValue}%`
+                            : compressionQuality
+                        } quality)`}
+                      {!showChangesWarning && reverseOrder && " (Reverse Order)"}
+                    </button>
+
+                    {isMobile && (
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-start gap-2">
+                          <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
+                      {showChangesWarning ? (
+                        <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                          ⚠️ You have made changes to images or settings. Click above to convert again with the latest
+                          changes.
+                        </span>
+                      ) : compressionQuality === "none" ? (
+                        `Images will be converted with maximum 100% quality, ${
+                          marginSize === "no-margin"
+                            ? "no margin"
+                            : marginSize + " margin"
+                        } and ${reverseOrder ? "reverse" : "normal"} order for professional output`
+                      ) : (
+                        `Images will be converted with ${
+                          compressionQuality === "custom"
+                            ? `${customQualityValue}%`
+                            : compressionQuality
+                        } quality (${compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality === "high" ? "85%" : compressionQuality === "medium" ? "75%" : "60%"} compression), ${
+                          marginSize === "no-margin"
+                            ? "no margin"
+                            : marginSize + " margin"
+                        } and ${reverseOrder ? "reverse" : "normal"} order for optimal results`
+                      )}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
  
             {files.length === 0 && (
