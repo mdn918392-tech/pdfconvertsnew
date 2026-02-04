@@ -280,9 +280,27 @@ const compressImageForPdf = async (
     });
   }
 
-  // MOBILE FIX: For mobile devices, handle files more carefully
-  // REMOVED: Skip compression for small files - ALL FILES WILL BE COMPRESSED
-  
+  // MOBILE FIX: For mobile devices, handle small files differently
+  if (isMobile && file.size < 1024 * 1024) { // 1MB से कम
+    // Small files on mobile - skip compression to avoid issues
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // For very small files (< 500KB), skip compression as it might increase size
+  if (file.size < 500 * 1024) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -1500,10 +1518,10 @@ export default function JpgToPdf() {
         setProgress(50);
         cleanup = simulateProgress(setProgress, 50, 90, isMobile ? 5000 : 3000);
 
-        // Create PDF with margin setting - SMALL MARGIN CHANGED TO 0.25 INCH
+        // Create PDF with margin setting
         const marginPoints = {
           "no-margin": 0,
-          small: 18, // CHANGED: 0.25 inch = 18 points (पहले 36 points था)
+          small: 36, // 0.5 inch = 36 points
           big: 72, // 1 inch = 72 points
         }[marginSize];
 
@@ -1537,7 +1555,7 @@ export default function JpgToPdf() {
           console.log(`\n=== PDF Generation Complete ===`);
           console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
           console.log(`Quality Setting: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
-          console.log(`Margin Setting: ${marginSize} (${marginPoints} points)`);
+          console.log(`Margin Setting: ${marginSize}`);
           console.log(`Reverse Order: ${reverseOrder}`);
           console.log(`Uploaded Images: ${filesToProcess.length}`);
           console.log(`Included in PDF: ${compressedImages.length}`);
@@ -2560,7 +2578,7 @@ export default function JpgToPdf() {
                               label: "Small",
                               icon: Columns,
                               color: "from-blue-500 to-cyan-600",
-                              size: '0.25"', // CHANGED: 0.5" से 0.25" कर दिया
+                              size: '0.5"',
                             },
                             {
                               value: "big" as MarginSize,
@@ -2626,9 +2644,9 @@ export default function JpgToPdf() {
                         </div>
                         <span className="text-xs text-gray-600 dark:text-gray-400">
                           {marginSize === "no-margin"
-                            ? "0 inch"
+                            ? "Full page"
                             : marginSize === "small"
-                            ? "0.25 inch" // CHANGED
+                            ? "0.5 inch"
                             : "1 inch"}
                         </span>
                       </div>
@@ -2664,7 +2682,7 @@ export default function JpgToPdf() {
                                 marginSize === "no-margin"
                                   ? "inset-1 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-700 dark:to-gray-600"
                                   : marginSize === "small"
-                                  ? "inset-2 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700" // CHANGED: inset-3 से inset-2 कर दिया
+                                  ? "inset-3 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700"
                                   : "inset-5 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/50 dark:to-purple-800/50 border border-purple-200 dark:border-purple-700"
                               }`}
                             >
@@ -2689,7 +2707,7 @@ export default function JpgToPdf() {
                                   }`}
                                 ></div>
                                 <span>
-                                  {marginSize === "small" ? '0.25"' : '1"'} {/* CHANGED */}
+                                  {marginSize === "small" ? '0.5"' : '1"'}
                                 </span>
                                 <div
                                   className={`w-8 h-0.5 ${
@@ -2758,7 +2776,7 @@ export default function JpgToPdf() {
                                 {marginSize === "no-margin"
                                   ? "Best for digital viewing"
                                   : marginSize === "small"
-                                  ? "Ideal for general documents (0.25\")" // CHANGED
+                                  ? "Ideal for general documents"
                                   : "Perfect for printing"}
                               </div>
                             </div>
@@ -3221,7 +3239,7 @@ export default function JpgToPdf() {
                             {marginSize === "no-margin"
                               ? "0 inch"
                               : marginSize === "small"
-                              ? "0.25 inch" // CHANGED
+                              ? "0.5 inch"
                               : "1 inch"}
                           </span>
                         </div>
