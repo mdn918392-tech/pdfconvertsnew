@@ -262,27 +262,16 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// FIXED: Enhanced compression function with rotation handling - MOBILE OPTIMIZED
+// FIXED: Enhanced compression function with rotation handling
 const compressImageForPdf = async (
   file: File,
   rotation: number = 0,
   quality: CompressionQuality = "medium",
   customQualityValue: number = 85,
   isMobile: boolean = false
-): Promise<string> => {
+): Promise<string> => { // Changed to return base64 string instead of File
   // If quality is "none", return original file as base64
   if (quality === "none") {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // MOBILE FIX: For mobile devices, handle small files differently
-  if (isMobile && file.size < 1024 * 1024) { // 1MB से कम
-    // Small files on mobile - skip compression to avoid issues
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target?.result as string);
@@ -309,26 +298,26 @@ const compressImageForPdf = async (
       img.crossOrigin = 'anonymous';
       
       img.onload = () => {
-        // MOBILE FIX: Calculate target dimensions based on device
+        // Calculate target dimensions based on quality setting
         let maxDimension = 4096;
         let qualityValue = 1.0;
 
-        // Set target dimensions and quality based on setting and device
+        // Set target dimensions and quality based on setting
         switch (quality) {
           case "custom":
-            maxDimension = isMobile ? 2048 : 4096; // Mobile पर छोटा dimension
+            maxDimension = 4096;
             qualityValue = Math.max(0.1, Math.min(1, customQualityValue / 100));
             break;
           case "high":
-            maxDimension = isMobile ? 1600 : 2048;
+            maxDimension = 2048;
             qualityValue = 0.85;
             break;
           case "medium":
-            maxDimension = isMobile ? 1200 : 1600;
+            maxDimension = 1200;
             qualityValue = 0.75;
             break;
           case "low":
-            maxDimension = isMobile ? 800 : 1024;
+            maxDimension = 800;
             qualityValue = 0.60;
             break;
         }
@@ -340,21 +329,13 @@ const compressImageForPdf = async (
           scale = maxDimension / largerDimension;
         }
 
-        // MOBILE FIX: More conservative downscaling for mobile
-        if (isMobile && largerDimension > 4000) {
-          scale = Math.min(scale, 0.5); // Maximum 50% reduction for very large images
+        // Don't upscale small images
+        if (largerDimension < 800) {
+          scale = Math.min(1, scale);
         }
 
         const newWidth = Math.floor(img.width * scale);
         const newHeight = Math.floor(img.height * scale);
-
-        // MOBILE FIX: Check if dimensions are too large for mobile canvas limits
-        if (isMobile && (newWidth > 4096 || newHeight > 4096)) {
-          // Fallback: return original image without compression
-          console.warn("Image too large for mobile compression, using original");
-          resolve(e.target?.result as string);
-          return;
-        }
 
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
@@ -373,15 +354,6 @@ const compressImageForPdf = async (
         } else {
           canvas.width = newWidth;
           canvas.height = newHeight;
-        }
-
-        // MOBILE FIX: Check canvas size limits
-        const maxCanvasArea = isMobile ? 4096 * 4096 : 16384 * 16384;
-        if (canvas.width * canvas.height > maxCanvasArea) {
-          console.warn("Canvas area too large, reducing dimensions");
-          const reduction = Math.sqrt(maxCanvasArea / (canvas.width * canvas.height));
-          canvas.width = Math.floor(canvas.width * reduction);
-          canvas.height = Math.floor(canvas.height * reduction);
         }
 
         // Set white background for the entire canvas
@@ -465,7 +437,7 @@ const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQu
   return Math.max(totalOriginalSize * reductionFactor, 1024);
 };
 
-// FIXED: Simplified PDF creation function - MOBILE OPTIMIZED
+// FIXED: Simplified PDF creation function
 const createPdfFromImages = async (
   imageDataUrls: string[], // Array of base64 image data
   paperSize: PaperSize,
@@ -496,20 +468,12 @@ const createPdfFromImages = async (
     console.log(`Page size: ${pageWidth}x${pageHeight}mm, Margin: ${margin}mm`);
     console.log(`Available space: ${availableWidth}x${availableHeight}mm`);
 
-    // MOBILE FIX: Process images in batches for mobile
-    const batchSize = isMobile ? 5 : 10; // Smaller batch for mobile
-    
     for (let i = 0; i < imageDataUrls.length; i++) {
       const imgData = imageDataUrls[i];
       
       // Add page for each image except first
       if (i > 0) {
         pdf.addPage();
-      }
-
-      // MOBILE FIX: Add delay between processing for mobile
-      if (isMobile && i > 0 && i % batchSize === 0) {
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       try {
@@ -543,9 +507,7 @@ const createPdfFromImages = async (
             
             // Add image to PDF
             try {
-              // MOBILE FIX: Use smaller compression for mobile
-              const compression = isMobile ? 'FAST' : 'SLOW';
-              pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight, undefined, compression);
+              pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
               console.log(`Added image ${i+1}: ${finalWidth.toFixed(1)}x${finalHeight.toFixed(1)}mm at (${x.toFixed(1)}, ${y.toFixed(1)})`);
               resolve();
             } catch (addImageError) {
@@ -1182,7 +1144,7 @@ export default function JpgToPdf() {
       setReplacingImageId(null);
       setShowReplaceOptions(null);
     },
-    [files, rotatedUrls]
+    [files, rotatedUrls] // REMOVED maxSizePerFile
   );
 
   // Drag and Drop Handlers
@@ -1358,7 +1320,7 @@ export default function JpgToPdf() {
         setCompressing(false);
       }
     },
-    [files]
+    [files] // REMOVED isMobile, maxSizePerFile, maxTotalSize
   );
 
   const handleImageError = useCallback((id: string) => {
@@ -1372,7 +1334,7 @@ export default function JpgToPdf() {
     );
   }, []);
 
-  // FIXED: handleConvert function - MOBILE OPTIMIZED
+  // FIXED: handleConvert function - GUARANTEED to include ALL uploaded images
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -1397,11 +1359,10 @@ export default function JpgToPdf() {
       setProgress(10);
 
       console.log("Converting files:", filesToProcess.length);
-      console.log("Device:", isMobile ? "Mobile" : "Desktop");
       
       // Clear previous progress interval
       let cleanup: (() => void) | null = null;
-      cleanup = simulateProgress(setProgress, 10, 50, isMobile ? 5000 : 3000); // Longer timeout for mobile
+      cleanup = simulateProgress(setProgress, 10, 50, 3000);
 
       console.log("Starting image processing...");
       const compressedImages: string[] = [];
@@ -1416,11 +1377,6 @@ export default function JpgToPdf() {
           setProgress(Math.floor(fileProgress));
 
           console.log(`Processing ${i + 1}/${filesToProcess.length}: ${fileWithPreview.file.name}`);
-
-          // MOBILE FIX: Add delay between processing for mobile
-          if (isMobile && i > 0 && i % 3 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 200));
-          }
 
           // Try to compress image with rotation applied
           try {
@@ -1516,7 +1472,7 @@ export default function JpgToPdf() {
       // Now create PDF with ALL images (exact same count as uploaded)
       try {
         setProgress(50);
-        cleanup = simulateProgress(setProgress, 50, 90, isMobile ? 5000 : 3000);
+        cleanup = simulateProgress(setProgress, 50, 90, 3000);
 
         // Create PDF with margin setting
         const marginPoints = {
@@ -1703,20 +1659,13 @@ export default function JpgToPdf() {
         return;
       }
       
-      // MOBILE FIX: Limit canvas size for mobile
-      if (isMobile && (finalWidth > 2048 || finalHeight > 2048)) {
-        const mobileScale = Math.min(2048 / finalWidth, 2048 / finalHeight);
-        canvas.width = Math.floor(finalWidth * mobileScale);
-        canvas.height = Math.floor(finalHeight * mobileScale);
+      // Set canvas size based on original rotated dimensions
+      if (file.rotation === 90 || file.rotation === 270) {
+        canvas.width = finalHeight;
+        canvas.height = finalWidth;
       } else {
-        // Set canvas size based on original rotated dimensions
-        if (file.rotation === 90 || file.rotation === 270) {
-          canvas.width = finalHeight;
-          canvas.height = finalWidth;
-        } else {
-          canvas.width = finalWidth;
-          canvas.height = finalHeight;
-        }
+        canvas.width = finalWidth;
+        canvas.height = finalHeight;
       }
       
       // White background
@@ -2879,6 +2828,8 @@ export default function JpgToPdf() {
                           })}
                         </div>
 
+                       
+
                         {/* Custom Quality Slider */}
                         {compressionQuality === "custom" && (
                           <motion.div
@@ -3607,4 +3558,5 @@ export default function JpgToPdf() {
       </div>
     </>
   );  
-}
+} 
+
