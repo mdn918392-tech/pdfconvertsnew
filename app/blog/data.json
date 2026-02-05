@@ -1318,6 +1318,55 @@
       "answer": "Yes, good tools let you reset and start over if you need to. You can usually drag pages back to their original positions or clear everything and begin again."
     }
   ]
+},
+
+{
+  "id": "pdf-orientation-explained-portrait-vs-landscape",
+  "title": "PDF Orientation Explained: Portrait vs Landscape (When to Use Each)",
+  "date": "Feb 5 2026",
+  "description": "Practical guide explaining when to use portrait vs landscape orientation in PDFs. Learn from real-world examples and common mistakes to make your documents look right every time.",
+  "slug": "pdf-orientation-explained-portrait-vs-landscape",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "PDF Orientation Explained", "url": "/blog/pdf-orientation-explained-portrait-vs-landscape" }
+  ],
+  "howto": {
+    "steps": [
+      "Look at your content and decide if it's taller or wider",
+      "Choose portrait for text-heavy documents and reading",
+      "Choose landscape for spreadsheets, tables, and wide visuals",
+      "Consider how people will view it (phone, computer, print)",
+      "Don't be afraid to mix orientations in one document"
+    ],
+    "estimatedTime": "PT3M",
+    "totalTime": "PT3M",
+    "supply": ["PDF document", "Web browser"],
+    "tool": ["PDFSwift PDF Editor"]
+  },
+  "faq": [
+    {
+      "question": "What's the main difference between portrait and landscape?",
+      "answer": "Portrait is taller than wide – like holding your phone normally to read a message. Landscape is wider than tall – like turning your phone sideways to watch a video. In practice, portrait works better for reading text line by line, while landscape works better for wide content like spreadsheets or photos."
+    },
+    {
+      "question": "Will changing orientation affect my PDF quality?",
+      "answer": "Not at all. Changing orientation just rotates how the content is displayed. All your text, images, and formatting stay exactly the same quality – they're just arranged differently on the page. It's like turning a painting on the wall: the painting doesn't change, just which way it faces."
+    },
+    {
+      "question": "What happens if I choose the wrong orientation?",
+      "answer": "The content gets cut off when printing, or looks awkward on screen. Text might wrap strangely, images get squeezed, and people have to zoom and scroll more than they should. It's annoying but easy to fix. Most PDF tools let you rotate pages or change orientation after the fact."
+    },
+    {
+      "question": "Can I have both orientations in one PDF?",
+      "answer": "Yes, and this is something more people should use. You can have some pages in portrait and others in landscape within the same PDF. This is perfect for reports that mix text pages (portrait) with wide charts (landscape). The document flows naturally and each page shows its content in the best possible way."
+    },
+    {
+      "question": "Does orientation matter for digital viewing?",
+      "answer": "It matters more than people think. On phones, portrait orientation usually works better because that's how people hold their devices. On computers and tablets, it depends on the content. Wide tables need landscape even on screens. The key is to think about how people will actually view the document, not just how it prints."
+    }
+  ]
 }
   
   
