@@ -1258,6 +1258,7 @@ export default function JpgToPdf() {
     [rotatedUrls]
   );
 
+  // Mobile ke liye: Jab PDF ban chuka hai aur nayi files upload karein, automatically clear karo
   const handleFilesUpdate = useCallback(
     async (newFiles: File[]) => {
       if (newFiles.length === 0) return;
@@ -1267,6 +1268,53 @@ export default function JpgToPdf() {
       setSizeLimitExceeded(false);
 
       try {
+        // MOBILE: Agar PDF ban chuka hai, automatically clear karo
+        if (isMobile && pdfBlob) {
+          // Purane files ko cleanup karo
+          files.forEach((file) => {
+            if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+          });
+
+          Object.values(rotatedUrls).forEach((url) => {
+            if (url.startsWith("data:")) {
+              URL.revokeObjectURL(url);
+            }
+          });
+
+          // Clear all states
+          setFiles([]);
+          setRotatedUrls({});
+          setPdfBlob(null);
+          setOriginalStateHash("");
+          setProgress(0);
+          setReverseOrder(false);
+          setShowCompressionInfo(false);
+          setShowChangesWarning(false);
+          setProcessingError(null);
+          setSizeLimitExceeded(false);
+          setCompressionLog([]);
+        }
+
+        // Desktop pe warning show karo (agar PDF hai aur naye files add karna chahte hain)
+        // Desktop pe warning show karo (agar PDF hai aur naye files add karna chahte hain)
+if (!isMobile && pdfBlob && files.length > 0 && newFiles.length > 0) {
+  // Agar user confirm karta hai, toh clear karo
+  files.forEach((file) => {
+    if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+  });
+
+  Object.values(rotatedUrls).forEach((url) => {
+    if (url.startsWith("data:")) {
+      URL.revokeObjectURL(url);
+    }
+  });
+
+  setFiles([]);
+  setRotatedUrls({});
+  setPdfBlob(null);
+  setOriginalStateHash("");
+}
+
         const filesWithIds: FileWithPreview[] = newFiles.map((file, index) => ({
           file: file,
           id: Math.random().toString(36).substr(2, 9),
@@ -1278,15 +1326,19 @@ export default function JpgToPdf() {
           originalOrder: files.length + index,
         }));
 
-        // Add only new files to the existing files
+        // Add new files
         setFiles((prev) => [...prev, ...filesWithIds]);
-        setPdfBlob(null);
-        setOriginalStateHash("");
-        setShowChangesWarning(false);
+        
+        // If PDF was created, clear it
+        if (pdfBlob) {
+          setPdfBlob(null);
+          setOriginalStateHash("");
+          setShowChangesWarning(false);
+        }
+        
         setProcessingError(null);
         setProgress(0);
         
-        // NO WARNING FOR MANY FILES - Completely free
       } catch (error) {
         console.error("File processing error:", error);
         setProcessingError("Error processing files. Please try again.");
@@ -1294,7 +1346,7 @@ export default function JpgToPdf() {
         setCompressing(false);
       }
     },
-    [files]
+    [files, pdfBlob, rotatedUrls, isMobile]
   );
 
   const handleImageError = useCallback((id: string) => {
@@ -1595,41 +1647,105 @@ export default function JpgToPdf() {
     return file.previewUrl;
   };
 
- const handleExpandImage = async (file: FileWithPreview) => {
-  if (!file.previewUrl || file.previewError) return;
+  const handleExpandImage = async (file: FileWithPreview) => {
+    if (!file.previewUrl || file.previewError) return;
 
-  try {
-    const img = new Image();
-    
-    img.onload = () => {
-      let displayWidth = img.naturalWidth;
-      let displayHeight = img.naturalHeight;
+    try {
+      const img = new Image();
       
-      // Calculate rotated dimensions
-      if (file.rotation === 90 || file.rotation === 270) {
-        displayWidth = img.naturalHeight;
-        displayHeight = img.naturalWidth;
-      }
+      img.onload = () => {
+        let displayWidth = img.naturalWidth;
+        let displayHeight = img.naturalHeight;
+        
+        // Calculate rotated dimensions
+        if (file.rotation === 90 || file.rotation === 270) {
+          displayWidth = img.naturalHeight;
+          displayHeight = img.naturalWidth;
+        }
+        
+        // Calculate scale according to viewport
+        const viewportWidth = window.innerWidth * 0.9;
+        const viewportHeight = window.innerHeight * 0.8;
+        
+        let scale = 1;
+        if (displayWidth > viewportWidth) {
+          scale = Math.min(scale, viewportWidth / displayWidth);
+        }
+        if (displayHeight > viewportHeight) {
+          scale = Math.min(scale, viewportHeight / displayHeight);
+        }
+        
+        const finalWidth = Math.floor(displayWidth * scale);
+        const finalHeight = Math.floor(displayHeight * scale);
+        
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) {
+          setExpandedImage({
+            url: file.previewUrl!,
+            rotation: 0,
+            naturalWidth: 0,
+            naturalHeight: 0,
+            id: file.id,
+          });
+          return;
+        }
+        
+        // Set canvas size based on original rotated dimensions
+        if (file.rotation === 90 || file.rotation === 270) {
+          canvas.width = finalHeight;
+          canvas.height = finalWidth;
+        } else {
+          canvas.width = finalWidth;
+          canvas.height = finalHeight;
+        }
+        
+        // White background
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // High quality rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        
+        // Rotate and draw
+        ctx.save();
+        
+        // Move to canvas center
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        
+        // Apply rotation
+        ctx.rotate((file.rotation * Math.PI) / 180);
+        
+        // Draw image (centered)
+        ctx.drawImage(
+          img,
+          -finalWidth / 2,
+          -finalHeight / 2,
+          finalWidth,
+          finalHeight
+        );
+        
+        ctx.restore();
+        
+        const rotatedUrl = canvas.toDataURL("image/jpeg", 0.95);
+        setRotatedUrls((prev) => ({
+          ...prev,
+          [file.id]: rotatedUrl,
+        }));
+        
+        // Pass correct dimensions
+        setExpandedImage({
+          url: rotatedUrl,
+          rotation: file.rotation,
+          naturalWidth: canvas.width,
+          naturalHeight: canvas.height,
+          id: file.id,
+        });
+      };
       
-      // Calculate scale according to viewport
-      const viewportWidth = window.innerWidth * 0.9;
-      const viewportHeight = window.innerHeight * 0.8;
-      
-      let scale = 1;
-      if (displayWidth > viewportWidth) {
-        scale = Math.min(scale, viewportWidth / displayWidth);
-      }
-      if (displayHeight > viewportHeight) {
-        scale = Math.min(scale, viewportHeight / displayHeight);
-      }
-      
-      const finalWidth = Math.floor(displayWidth * scale);
-      const finalHeight = Math.floor(displayHeight * scale);
-      
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      
-      if (!ctx) {
+      img.onerror = () => {
         setExpandedImage({
           url: file.previewUrl!,
           rotation: 0,
@@ -1637,63 +1753,11 @@ export default function JpgToPdf() {
           naturalHeight: 0,
           id: file.id,
         });
-        return;
-      }
+      };
       
-      // Set canvas size based on original rotated dimensions
-      if (file.rotation === 90 || file.rotation === 270) {
-        canvas.width = finalHeight;
-        canvas.height = finalWidth;
-      } else {
-        canvas.width = finalWidth;
-        canvas.height = finalHeight;
-      }
-      
-      // White background
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // High quality rendering
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      
-      // Rotate and draw
-      ctx.save();
-      
-      // Move to canvas center
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      
-      // Apply rotation
-      ctx.rotate((file.rotation * Math.PI) / 180);
-      
-      // Draw image (centered)
-      ctx.drawImage(
-        img,
-        -finalWidth / 2,
-        -finalHeight / 2,
-        finalWidth,
-        finalHeight
-      );
-      
-      ctx.restore();
-      
-      const rotatedUrl = canvas.toDataURL("image/jpeg", 0.95);
-      setRotatedUrls((prev) => ({
-        ...prev,
-        [file.id]: rotatedUrl,
-      }));
-      
-      // Pass correct dimensions
-      setExpandedImage({
-        url: rotatedUrl,
-        rotation: file.rotation,
-        naturalWidth: canvas.width,
-        naturalHeight: canvas.height,
-        id: file.id,
-      });
-    };
-    
-    img.onerror = () => {
+      img.src = file.previewUrl;
+    } catch (error) {
+      console.error("Failed to prepare expanded image:", error);
       setExpandedImage({
         url: file.previewUrl!,
         rotation: 0,
@@ -1701,46 +1765,39 @@ export default function JpgToPdf() {
         naturalHeight: 0,
         id: file.id,
       });
-    };
-    
-    img.src = file.previewUrl;
-  } catch (error) {
-    console.error("Failed to prepare expanded image:", error);
-    setExpandedImage({
-      url: file.previewUrl!,
-      rotation: 0,
-      naturalWidth: 0,
-      naturalHeight: 0,
-      id: file.id,
-    });
-  }
-};
+    }
+  };
 
   const handleConvertMore = () => {
-    files.forEach((file) => {
-      if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
-    });
+  files.forEach((file) => {
+    if (file.previewUrl) URL.revokeObjectURL(file.previewUrl);
+  });
 
-    Object.values(rotatedUrls).forEach((url) => {
-      if (url.startsWith("data:")) {
-        URL.revokeObjectURL(url);
-      }
-    });
+  Object.values(rotatedUrls).forEach((url) => {
+    if (url.startsWith("data:")) {
+      URL.revokeObjectURL(url);
+    }
+  });
 
-    setFiles([]);
-    setRotatedUrls({});
-    setPdfBlob(null);
-    setOriginalStateHash("");
-    setProgress(0);
-    setReverseOrder(false);
-    setShowCompressionInfo(false);
-    setShowChangesWarning(false);
-    setReplacingImageId(null);
-    setShowReplaceOptions(null);
-    setProcessingError(null);
-    setSizeLimitExceeded(false);
-    setCompressionLog([]);
-  };
+  setFiles([]);
+  setRotatedUrls({});
+  setPdfBlob(null);
+  setOriginalStateHash("");
+  setProgress(0);
+  setReverseOrder(false);
+  setShowCompressionInfo(false);
+  setShowChangesWarning(false);
+  setReplacingImageId(null);
+  setShowReplaceOptions(null);
+  setProcessingError(null);
+  setSizeLimitExceeded(false);
+  setCompressionLog([]);
+  
+  // Scroll to top on mobile
+  if (isMobile) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
 
   // Handle image rotation in full screen mode
   const handleRotateInFullScreen = (degrees: number) => {
@@ -1986,15 +2043,15 @@ export default function JpgToPdf() {
               <span className="text-base">Back to Home</span>
             </a>
 
-           <div className="text-center mb-10">
+            <div className="text-center mb-10">
               <motion.div
                 initial={{ scale: 0.5 }}
                 animate={{ scale: 1 }}
                 className={`inline-flex items-center justify-center
-    w-14 h-14 md:w-16 md:h-16
-    bg-gradient-to-br ${tool.color}
-    rounded-2xl md:rounded-3xl
-    mb-3 md:mb-4 shadow-xl`}
+                  w-14 h-14 md:w-16 md:h-16
+                  bg-gradient-to-br ${tool.color}
+                  rounded-2xl md:rounded-3xl
+                  mb-3 md:mb-4 shadow-xl`}
               >
                 <span className="text-2xl md:text-3xl text-white select-none">
                   {tool.icon}
@@ -2017,37 +2074,39 @@ export default function JpgToPdf() {
                   <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
                     Upload Images
                   </h2>
-                  
                 </div>
 
-               <FileUploader
-  accept="image/jpeg,image/jpg,image/png,image/webp"
-  multiple={true}
-  onFilesSelected={handleFilesUpdate}
-/>
+                <FileUploader
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  multiple={true}
+                  onFilesSelected={handleFilesUpdate}
+                  existingFilesCount={files.length}
+                  hasExistingPdf={!!pdfBlob}
+                  isMobile={isMobile}
+                />
 
-<div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm text-gray-600 dark:text-gray-400">
-  <div className="flex items-center gap-2">
-    <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>100% Free</span>
-  </div>
-  <div className="flex items-center gap-2">
-    <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>Unlimited Pages</span>
-  </div>
-  <div className="flex items-center gap-2">
-    <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>No Size Limits</span>
-  </div>
-  <div className="flex items-center gap-2">
-    <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>Professional Layout</span>
-  </div>
-  <div className="flex items-center gap-2">
-    <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>Drag & Drop Reorder</span>
-  </div>
-</div>
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span>100% Free</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span>Unlimited Pages</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span>No Size Limits</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span>Professional Layout</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span>Drag & Drop Reorder</span>
+                  </div>
+                </div>
 
                 {compressing && (
                   <div className="mt-4 flex items-center gap-2 text-blue-600 dark:text-blue-400">
@@ -2141,7 +2200,7 @@ export default function JpgToPdf() {
                     </motion.div>
                   )}
 
-                  {/* Selected Images Section - ONLY SHOW WHEN NO PDF OR ON DESKTOP */}
+                  {/* Selected Images Section - HIDE ON MOBILE AFTER PDF IS CREATED */}
                   {(!pdfBlob || !isMobile) && (
                     <>
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -2494,7 +2553,7 @@ export default function JpgToPdf() {
                     </>
                   )}
 
-                  {/* Settings Sections - ALWAYS SHOW (EVEN ON MOBILE AFTER CONVERSION) */}
+                  {/* Settings Sections - HIDE ON MOBILE AFTER PDF IS CREATED */}
                   {(!pdfBlob || !isMobile) && (
                     <>
                       {/* Margin Settings Section */}
@@ -2661,7 +2720,7 @@ export default function JpgToPdf() {
                                     icon: Zap,
                                     desc: "60% Quality",
                                     color: "from-rose-500 to-pink-600",
-                                },
+                                  },
                                 ] as const
                               ).map((option) => {
                                 const Icon = option.icon;
@@ -3113,7 +3172,7 @@ export default function JpgToPdf() {
                         <div className="flex items-start gap-2">
                           <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                           <p className="text-xs text-blue-700 dark:text-blue-300">
-                            PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
+                            PDFs are generated in optimized mode on mobile for performance.
                           </p>
                         </div>
                       </div>
@@ -3135,101 +3194,58 @@ export default function JpgToPdf() {
                         Professional PDF Ready! 🎉
                       </h4>
                       <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
-                        Your high-quality PDF with{" "}
-                        {marginSize === "no-margin"
-                          ? "no margin"
-                          : marginSize + " margin"}{" "}
-                        is ready for download
-                        {compressionQuality !== "none" && (
-                          <span className="text-blue-600 dark:text-blue-400">
-                            {" "}
-                            (
-                            {compressionQuality === "custom"
-                              ? `${customQualityValue}%`
-                              : compressionQuality}{" "}
-                            quality)
-                          </span>
-                        )}
+                        Your high-quality PDF is ready for download
                       </p>
-                      <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">
-                          File Size:{" "}
+                      <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+                        <span className="px-3 py-1 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700">
                           {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB
                         </span>
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Pages: {files.length}
+                        <span className="px-3 py-1 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700">
+                          {files.length} Pages
                         </span>
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Margin:{" "}
-                          {marginSize === "no-margin"
-                            ? "No Margin"
-                            : marginSize === "small"
-                            ? "Small (0.25\")"
-                            : "Big (1\")"}
+                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full border border-blue-200 dark:border-blue-700">
+                          {compressionQuality === "custom"
+                            ? `${customQualityValue}%`
+                            : compressionQuality === "high"
+                            ? "High"
+                            : compressionQuality === "medium"
+                            ? "Medium"
+                            : compressionQuality === "low"
+                            ? "Low"
+                            : "Max"} Quality
                         </span>
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Order: {reverseOrder ? "Reverse" : "Normal"}
-                        </span>
-                        {compressionQuality !== "none" && (
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                            {compressionQuality === "custom"
-                              ? `${customQualityValue}%`
-                              : compressionQuality}{" "}
-                            Quality
-                          </span>
-                        )}
-                        <span className="text-purple-600 dark:text-purple-400 font-semibold">
-                          Professional Layout
-                        </span>
-                        {isMobile && (
-                          <span className="text-green-600 dark:text-green-400 font-semibold">
-                            ✓ Mobile Optimized
-                          </span>
-                        )}
                       </div>
-                      {isMobile && (
-                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-start gap-2">
-                            <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                            <p className="text-xs text-blue-700 dark:text-blue-300">
-                              PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
-                            </p>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
+                    {/* MAIN DOWNLOAD BUTTON - STAYS AT TOP */}
+                    <button
+                      onClick={handleDownload}
+                      className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-bold text-lg flex items-center justify-center gap-3"
+                    >
+                      <Download className="w-6 h-6" />
+                      Download Professional PDF
+                    </button>
+
+                    {/* Secondary Options */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {!isMobile && (
-                        <button
-                          onClick={handleConvertMore}
-                          className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
-                        >
-                          Convert More Files
-                        </button>
-                      )}
                       <button
-                        onClick={handleDownload}
-                        className={`py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-3 text-base ${
-                          isMobile ? "col-span-1" : ""
-                        }`}
+                        onClick={handleConvert}
+                        className="py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-medium flex items-center justify-center gap-3"
                       >
-                        <Download className="w-5 h-5" />
-                        Download Professional PDF
+                        <RefreshCw className="w-5 h-5" />
+                        Convert Again
                       </button>
-                      {isMobile && (
-                        <button
-                          onClick={handleConvertMore}
-                          className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
-                        >
-                          Convert More Files
-                        </button>
-                      )}
+                      <button
+                        onClick={handleConvertMore}
+                        className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
+                      >
+                        Convert More Files
+                      </button>
                     </div>
                   </motion.div>
                 )}
 
-                {!pdfBlob && !converting && (
+                {!pdfBlob && !converting && files.length > 0 && (
                   <motion.div
                     key="convert"
                     initial={{ opacity: 0, y: 20 }}
@@ -3259,14 +3275,6 @@ export default function JpgToPdf() {
                           } to PDF - 100% Free`}
                         </>
                       )}
-                      {!showChangesWarning &&
-                        compressionQuality !== "none" &&
-                        ` (${
-                          compressionQuality === "custom"
-                            ? `${customQualityValue}%`
-                            : compressionQuality
-                        } quality)`}
-                      {!showChangesWarning && reverseOrder && " (Reverse Order)"}
                     </button>
 
                     {isMobile && (
@@ -3274,41 +3282,16 @@ export default function JpgToPdf() {
                         <div className="flex items-start gap-2">
                           <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
                           <p className="text-xs text-blue-700 dark:text-blue-300">
-                            PDFs are generated in optimized mode on mobile for performance. Use desktop for advanced editing features.
+                            PDFs are generated in optimized mode on mobile for performance.
                           </p>
                         </div>
                       </div>
                     )}
-
-                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
-                      {showChangesWarning ? (
-                        <span className="text-amber-600 dark:text-amber-400 font-semibold">
-                          ⚠️ You have made changes to images or settings. Click above to convert again with the latest
-                          changes.
-                        </span>
-                      ) : compressionQuality === "none" ? (
-                        `Images will be converted with maximum 100% quality, ${
-                          marginSize === "no-margin"
-                            ? "no margin"
-                            : marginSize + " margin"
-                        } and ${reverseOrder ? "reverse" : "normal"} order for professional output`
-                      ) : (
-                        `Images will be converted with ${
-                          compressionQuality === "custom"
-                            ? `${customQualityValue}%`
-                            : compressionQuality
-                        } quality (${compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality === "high" ? "85%" : compressionQuality === "medium" ? "75%" : "60%"} compression), ${
-                          marginSize === "no-margin"
-                            ? "no margin"
-                            : marginSize + " margin"
-                        } and ${reverseOrder ? "reverse" : "normal"} order for optimal results`
-                      )}
-                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
- 
+
             {files.length === 0 && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
@@ -3351,64 +3334,66 @@ export default function JpgToPdf() {
             )}
           </motion.div>
 
-          {/* Explore All Tools Section */}
-          <div className="mb-6 md:mb-8">
-            <div className="flex items-center justify-between mb-6 m-4 md:mb-8">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                  Explore All Tools
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
-                  10+ specialized PDF, image, and document tools
-                </p>
-              </div>
-            </div>
+         {/* Explore All Tools Section - ALWAYS SHOW */}
+<div className="mb-6 md:mb-8">
+  <div className="flex items-center justify-between mb-6 m-4 md:mb-8">
+    <div>
+      <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+        Explore All Tools
+      </h2>
+      <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+        10+ specialized PDF, image, and document tools
+      </p>
+    </div>
+  </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-              {exploreTools.slice(0, 8).map((tool, index) => (
-                <motion.a
-                  key={tool.id}
-                  href={tool.href}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.03, y: -5 }}
-                  className="group bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-4 md:p-5 hover:border-blue-300 dark:hover:border-cyan-700 transition-all shadow-lg hover:shadow-2xl"
-                >
-                  <div className="flex items-start gap-3 md:gap-4">
-                    <div
-                      className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-lg md:rounded-xl shadow-lg`}
-                    >
-                      <span className="text-xl md:text-2xl">{tool.icon}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 md:mb-2 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
-                        {tool.name}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-3 md:mb-4">
-                        {tool.description}
-                      </p>
-                      <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 font-medium text-xs md:text-sm">
-                        <span>Use Tool</span>
-                        <ArrowRight className="w-3 h-3 md:w-4 md:h-4 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </div>
-                  </div>
-                </motion.a>
-              ))}
-            </div>
-            <div className="flex justify-end">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 m-4 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl transition-all text-sm"
-              >
-                <Grid className="w-4 h-4" />
-                <span>View All</span>
-              </Link>
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+    {exploreTools.slice(0, 8).map((tool, index) => (
+      <motion.a
+        key={tool.id}
+        href={tool.href}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+        whileHover={{ scale: 1.03, y: -5 }}
+        className="group bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-4 md:p-5 hover:border-blue-300 dark:hover:border-cyan-700 transition-all shadow-lg hover:shadow-2xl"
+      >
+        <div className="flex items-start gap-3 md:gap-4">
+          <div
+            className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-lg md:rounded-xl shadow-lg`}
+          >
+            <span className="text-xl md:text-2xl">{tool.icon}</span>
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 md:mb-2 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
+              {tool.name}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-3 md:mb-4">
+              {tool.description}
+            </p>
+            <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 font-medium text-xs md:text-sm">
+              <span>Use Tool</span>
+              <ArrowRight className="w-3 h-3 md:w-4 md:h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
+        </div>
+      </motion.a>
+    ))}
+  </div>
 
-          {/* --- FAQ Section --- */}
+  <div className="flex justify-end">
+    <Link
+      href="/"
+      className="inline-flex items-center gap-2 m-4 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl transition-all text-sm"
+    >
+      <Grid className="w-4 h-4" />
+      <span>View All</span>
+    </Link>
+  </div>
+</div>
+
+
+          {/* --- FAQ Section --- ALWAYS SHOW */}
           <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
             {/* Header */}
             <div className="text-center mb-6 sm:mb-8 md:mb-12">
@@ -3426,33 +3411,33 @@ export default function JpgToPdf() {
                 <details
                   key={index}
                   className="
-          group rounded-xl border border-gray-200 dark:border-gray-700
-          bg-white dark:bg-gray-900
-          transition-all duration-300
-          hover:border-blue-400/60 dark:hover:border-blue-500/60
-          open:shadow-lg open:border-blue-500
-        "
+                    group rounded-xl border border-gray-200 dark:border-gray-700
+                    bg-white dark:bg-gray-900
+                    transition-all duration-300
+                    hover:border-blue-400/60 dark:hover:border-blue-500/60
+                    open:shadow-lg open:border-blue-500
+                  "
                 >
                   {/* Question */}
                   <summary
                     className="
-            flex cursor-pointer list-none items-center justify-between
-            px-4 sm:px-5 py-3 sm:py-4
-            text-sm sm:text-base md:text-lg
-            font-semibold text-gray-900 dark:text-white
-          "
+                      flex cursor-pointer list-none items-center justify-between
+                      px-4 sm:px-5 py-3 sm:py-4
+                      text-sm sm:text-base md:text-lg
+                      font-semibold text-gray-900 dark:text-white
+                    "
                   >
                     <span>{faq.question}</span>
 
                     {/* Arrow */}
                     <span
                       className="
-              ml-3 flex h-6 w-6 items-center justify-center
-              rounded-full bg-gray-100 dark:bg-gray-800
-              text-gray-500 dark:text-gray-400
-              transition-transform duration-300
-              group-open:rotate-180
-            "
+                        ml-3 flex h-6 w-6 items-center justify-center
+                        rounded-full bg-gray-100 dark:bg-gray-800
+                        text-gray-500 dark:text-gray-400
+                        transition-transform duration-300
+                        group-open:rotate-180
+                      "
                     >
                       ▼
                     </span>
@@ -3471,5 +3456,5 @@ export default function JpgToPdf() {
         </div>
       </div>
     </>
-  );  
+  );
 }

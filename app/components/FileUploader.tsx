@@ -9,6 +9,10 @@ interface FileUploaderProps {
   multiple?: boolean;
   onFilesSelected: (files: File[]) => void;
   maxSize?: number; // Default size in MB
+
+    existingFilesCount?: number; // नया prop
+  hasExistingPdf?: boolean;    // नया prop
+  isMobile?: boolean;  
 }
 
 export default function FileUploader({
