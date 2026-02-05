@@ -1,3 +1,6 @@
+
+
+
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -1404,7 +1407,9 @@ export default function JpgToPdf() {
       setProcessingError(null);
 
       try {
-        if (isMobile && (files.length > 0 || pdfBlob)) {
+        // PHONE FIX: मोबाइल पर PDF बनने के बाद नए files add करने पर पुराने files clear नहीं होंगे
+        if (isMobile && pdfBlob && newFiles.length > 0) {
+          // सिर्फ पुराने files clear करें अगर PDF बना हुआ है
           files.forEach((file) => {
             if (file.previewUrl) {
               try {
@@ -1431,6 +1436,8 @@ export default function JpgToPdf() {
           setPdfBlob(null);
           setOriginalStateHash("");
           setShowChangesWarning(false);
+          setActualPdfSize(null);
+          setCompressionStats(null);
         }
 
         const filesWithIds: FileWithPreview[] = [];
@@ -2367,6 +2374,7 @@ export default function JpgToPdf() {
                     </motion.div>
                   )}
 
+                  {/* PHONE FIX: मोबाइल पर PDF बनने के बाद image gallery न दिखाएं */}
                   {(!pdfBlob || !isMobile) && (
                     <>
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -2714,10 +2722,8 @@ export default function JpgToPdf() {
                     </>
                   )}
 
+                  {/* PHONE FIX: मोबाइल पर PDF बनने के बाद settings न दिखाएं */}
                   {(!pdfBlob || !isMobile) && (
-                    <>
-                      {/* Settings sections remain the same as before */}
-                     {(!pdfBlob || !isMobile) && (
                     <>
                       {/* Margin Settings Section */}
                       <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-4 md:p-5 border border-gray-200 dark:border-gray-700">
@@ -3045,7 +3051,7 @@ export default function JpgToPdf() {
                                   {compressionQuality === "none"
                                     ? "0%"
                                     : compressionQuality === "custom"
-                                    ? `${Math.round((1 - (customQualityValue/100 * 0.7)) * 100)}%`
+                                    ? `${Math.round((1 - ((customQualityValue || 85)/100 * 0.7)) * 100)}%`
                                     : compressionQuality === "high"
                                     ? "50%"
                                     : compressionQuality === "medium"
@@ -3291,8 +3297,6 @@ export default function JpgToPdf() {
                       </div>
                     </>
                   )}
-                    </>
-                )}
                 </div>
               )}
 
