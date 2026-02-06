@@ -37,6 +37,8 @@ import {
   Square,
   Expand,
   Replace,
+  Smartphone,
+  Monitor,
 } from "lucide-react";
 
 // Make sure these components are client components
@@ -78,11 +80,10 @@ interface DownloadNotification {
 // Compression Quality Options
 type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 
-// REMOVED ALL PAGE LIMITS - Allow unlimited uploads
-// File size limits in bytes - Increased for better user experience
-const MAX_SIZE_DESKTOP = 1000 * 1024 * 1024; // 1GB for desktop
+// ✅ DESKTOP: NO LIMITS, MOBILE: REASONABLE LIMITS
+const MAX_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER; // No limit for desktop
 const MAX_SIZE_MOBILE = 500 * 1024 * 1024;   // 500MB for mobile
-const MAX_TOTAL_SIZE_DESKTOP = 5000 * 1024 * 1024; // 5GB total for desktop
+const MAX_TOTAL_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER; // No limit for desktop
 const MAX_TOTAL_SIZE_MOBILE = 2000 * 1024 * 1024;  // 2GB total for mobile
 
 // ✅ FIXED: Paper Size Definitions with correct dimensions
@@ -271,7 +272,7 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// ✅ FIXED: Enhanced compression function with SPECIAL MOBILE MAXIMUM QUALITY SUPPORT
+// ✅ FIXED: Enhanced compression function with better mobile support
 const compressImageForPdf = async (
   file: File,
   rotation: number = 0,
@@ -281,104 +282,20 @@ const compressImageForPdf = async (
   targetWidth?: number,
   targetHeight?: number
 ): Promise<string> => {
-  // If quality is "none" (maximum quality), use simpler approach for mobile
-  if (quality === "none") {
-    console.log(`Maximum Quality mode for ${file.name} (${(file.size/1024).toFixed(0)}KB)`);
-    
-    // ✅ MOBILE FIX: Maximum quality के लिए simpler approach
-    if (isMobile) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result;
-          if (result && typeof result === 'string') {
-            console.log(`Mobile - Maximum quality: ${file.name} loaded as base64 (${(result.length/1024).toFixed(0)}KB)`);
-            resolve(result);
-          } else {
-            reject(new Error("Failed to read file as base64"));
-          }
-        };
-        reader.onerror = () => reject(new Error("Failed to read file"));
-        reader.readAsDataURL(file);
-      });
-    }
-    
-    // Desktop के लिए original approach
+  // ✅ MOBILE FIX: Direct return for mobile when quality is "none"
+  if (quality === "none" || isMobile) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        
-        img.onload = () => {
-          try {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-            
-            if (!ctx) {
-              console.warn("Canvas context not available, returning original");
-              resolve(e.target?.result as string);
-              return;
-            }
-            
-            // Set canvas size based on rotation
-            if (rotation === 90 || rotation === 270) {
-              canvas.width = img.height;
-              canvas.height = img.width;
-            } else {
-              canvas.width = img.width;
-              canvas.height = img.height;
-            }
-            
-            // White background
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Apply rotation
-            if (rotation !== 0) {
-              ctx.save();
-              ctx.translate(canvas.width / 2, canvas.height / 2);
-              ctx.rotate((rotation * Math.PI) / 180);
-              ctx.drawImage(
-                img,
-                -img.width / 2,
-                -img.height / 2,
-                img.width,
-                img.height
-              );
-              ctx.restore();
-            } else {
-              ctx.drawImage(img, 0, 0, img.width, img.height);
-            }
-            
-            // Convert to base64 with maximum quality
-            try {
-              const base64Data = canvas.toDataURL("image/jpeg", 1.0);
-              console.log(`Maximum quality processed: ${file.name} -> ${(base64Data.length/1024).toFixed(0)}KB`);
-              resolve(base64Data);
-            } catch (canvasError) {
-              console.warn("Canvas toDataURL failed:", canvasError);
-              resolve(e.target?.result as string);
-            }
-          } catch (error) {
-            console.error("Maximum quality processing error:", error);
-            resolve(e.target?.result as string);
-          }
-        };
-        
-        img.onerror = () => {
-          console.warn("Image loading failed, returning original");
-          resolve(e.target?.result as string);
-        };
-        
-        img.src = e.target?.result as string;
+        const result = e.target?.result;
+        if (result && typeof result === 'string') {
+          console.log(`Mobile/No Compression: Returning original image (${(result.length/1024).toFixed(0)}KB)`);
+          resolve(result);
+        } else {
+          reject(new Error("Failed to read file as base64"));
+        }
       };
-      
-      reader.onerror = () => {
-        console.warn(`File reading failed for maximum quality`);
-        reject(new Error("Failed to read image file"));
-      };
-      
+      reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsDataURL(file);
     });
   }
@@ -392,104 +309,6 @@ const compressImageForPdf = async (
       
       img.onload = () => {
         try {
-          // ✅ MOBILE FIX: Simpler approach for mobile devices
-          if (isMobile) {
-            console.log(`Mobile device - processing image: ${file.name} (${(file.size/1024).toFixed(0)}KB)`);
-            
-            // Mobile के लिए basic settings
-            let maxDimension = 1200; // Mobile के लिए reasonable size
-            let qualityValue = 0.8; // Good quality for mobile
-            
-            // Quality settings for mobile
-            switch (quality) {
-              case "custom":
-                qualityValue = Math.max(0.5, Math.min(1, customQualityValue / 100));
-                break;
-              case "high":
-                maxDimension = 1600;
-                qualityValue = 0.85;
-                break;
-              case "medium":
-                maxDimension = 1200;
-                qualityValue = 0.75;
-                break;
-              case "low":
-                maxDimension = 800;
-                qualityValue = 0.6;
-                break;
-            }
-            
-            // Calculate scale to fit within max dimension
-            let scale = 1;
-            const largerDimension = Math.max(img.width, img.height);
-            
-            if (largerDimension > maxDimension) {
-              scale = maxDimension / largerDimension;
-            }
-            
-            // Ensure minimum scale
-            scale = Math.max(0.1, Math.min(1, scale));
-            
-            const newWidth = Math.floor(img.width * scale);
-            const newHeight = Math.floor(img.height * scale);
-            
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-            
-            if (!ctx) {
-              console.warn("Mobile: Canvas context not available, returning original");
-              // Return original image
-              resolve(e.target?.result as string);
-              return;
-            }
-            
-            // Set canvas size based on rotation
-            if (rotation === 90 || rotation === 270) {
-              canvas.width = newHeight;
-              canvas.height = newWidth;
-            } else {
-              canvas.width = newWidth;
-              canvas.height = newHeight;
-            }
-            
-            // White background
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Set image smoothing
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "medium";
-            
-            // Apply rotation if needed
-            if (rotation !== 0) {
-              ctx.save();
-              ctx.translate(canvas.width / 2, canvas.height / 2);
-              ctx.rotate((rotation * Math.PI) / 180);
-              ctx.drawImage(
-                img,
-                -newWidth / 2,
-                -newHeight / 2,
-                newWidth,
-                newHeight
-              );
-              ctx.restore();
-            } else {
-              ctx.drawImage(img, 0, 0, newWidth, newHeight);
-            }
-            
-            // Convert to base64
-            try {
-              const base64Data = canvas.toDataURL("image/jpeg", qualityValue);
-              console.log(`Mobile compressed: ${file.name} -> ${(base64Data.length/1024).toFixed(0)}KB`);
-              resolve(base64Data);
-            } catch (canvasError) {
-              console.warn("Mobile canvas toDataURL failed:", canvasError);
-              // Return original if canvas fails
-              resolve(e.target?.result as string);
-            }
-            return;
-          }
-          
           // Desktop processing (original code with improvements)
           let maxDimension = 4096;
           let qualityValue = 0.75;
@@ -594,7 +413,7 @@ const compressImageForPdf = async (
           try {
             const base64Data = canvas.toDataURL(outputFormat, adjustedQuality);
             
-            console.log(`Compressed: ${file.name} | Device: ${isMobile ? 'Mobile' : 'Desktop'} | Quality: ${quality}(${adjustedQuality}) | Original: ${img.width}x${img.height} -> Compressed: ${newWidth}x${newHeight} | Size: ${(file.size/1024).toFixed(0)}KB -> ${(base64Data.length/1024).toFixed(0)}KB`);
+            console.log(`Compressed: ${file.name} | Device: Desktop | Quality: ${quality}(${adjustedQuality}) | Original: ${img.width}x${img.height} -> Compressed: ${newWidth}x${newHeight} | Size: ${(file.size/1024).toFixed(0)}KB -> ${(base64Data.length/1024).toFixed(0)}KB`);
             
             resolve(base64Data);
           } catch (error) {
@@ -702,8 +521,16 @@ const createPdfFromImages = async (
         // Create temporary image to get dimensions
         const tempImg = new Image();
         
-        await new Promise<void>((resolve, reject) => {
+        // Add timeout protection
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(() => {
+            console.warn(`Image ${i+1} loading timeout`);
+            pdf.text(`Image ${i+1}: Skipped (timeout)`, margin, margin + 10);
+            resolve();
+          }, 5000); // 5 second timeout
+          
           tempImg.onload = () => {
+            clearTimeout(timeout);
             const imgWidth = tempImg.width;
             const imgHeight = tempImg.height;
             
@@ -742,6 +569,7 @@ const createPdfFromImages = async (
           };
           
           tempImg.onerror = () => {
+            clearTimeout(timeout);
             console.warn(`Failed to load image ${i+1}`);
             // Add error message for failed image
             pdf.text(`Failed to load image ${i+1}`, margin, margin + 10);
@@ -986,136 +814,6 @@ const DraggableItem = ({
   );
 };
 
-// Replace Image Modal Component
-const ReplaceImageModal = ({
-  onReplace,
-  onCancel,
-  imageName,
-}: {
-  onReplace: (file: File) => void;
-  onCancel: () => void;
-  imageName: string;
-}) => {
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onReplace(file);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      onReplace(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
-
-  const handleDragLeave = () => {
-    setDragOver(false);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-      onClick={onCancel}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-3">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Replace Image
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Replace: <span className="font-medium">{imageName}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="p-6">
-          <div
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
-              dragOver
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                : "border-gray-300 dark:border-gray-700 hover:border-blue-400"
-            }`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-            <div className="mb-4">
-              <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
-                <Upload className="w-8 h-8 text-blue-500 dark:text-blue-400" />
-              </div>
-            </div>
-            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              {dragOver ? "Drop image here" : "Click or drag to replace"}
-            </h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Select a new image to replace the current one
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span>JPG</span>
-              <span>•</span>
-              <span>PNG</span>
-              <span>•</span>
-              <span>WEBP</span>
-              <span>•</span>
-              <span>Max {MAX_SIZE_MOBILE / (1024 * 1024)}MB (mobile)</span>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button
-              onClick={onCancel}
-              className="px-4 py-3 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 font-medium transition-all flex items-center justify-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Choose File
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
 // ✅ FIXED: Image Container Component with proper image fitting
 const ImageContainer = ({ 
   file, 
@@ -1205,7 +903,7 @@ export default function JpgToPdf() {
       if (typeof window !== 'undefined') {
         const isMobile = window.innerWidth < 768 || 
           /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        return isMobile ? "high" : "medium";
+        return isMobile ? "none" : "medium"; // ✅ Mobile: Automatically "none"
       }
       return "medium";
     });
@@ -1220,6 +918,139 @@ export default function JpgToPdf() {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [sizeLimitExceeded, setSizeLimitExceeded] = useState(false);
   const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
+
+  // ✅ FIXED: ReplaceImageModal component को JpgToPdf function के अंदर define किया है
+  const ReplaceImageModal = ({
+    onReplace,
+    onCancel,
+    imageName,
+    isMobile: modalIsMobile, // Rename to avoid conflict
+  }: {
+    onReplace: (file: File) => void;
+    onCancel: () => void;
+    imageName: string;
+    isMobile: boolean;
+  }) => {
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        onReplace(file);
+      }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith("image/")) {
+        onReplace(file);
+      }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(true);
+    };
+
+    const handleDragLeave = () => {
+      setDragOver(false);
+    };
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+        onClick={onCancel}
+      >
+        <motion.div
+          initial={{ scale: 0.9, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 20 }}
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+            <div className="flex items-center gap-3">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Replace Image
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Replace: <span className="font-medium">{imageName}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="p-6">
+            <div
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+                dragOver
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                  : "border-gray-300 dark:border-gray-700 hover:border-blue-400"
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <div className="mb-4">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center">
+                  <Upload className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+                </div>
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                {dragOver ? "Drop image here" : "Click or drag to replace"}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Select a new image to replace the current one
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <span>JPG</span>
+                <span>•</span>
+                <span>PNG</span>
+                <span>•</span>
+                <span>WEBP</span>
+                <span>•</span>
+                {/* ✅ FIXED: अब isMobile accessible है */}
+                <span>Max {modalIsMobile ? "500MB (mobile)" : "No Limit (desktop)"}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                onClick={onCancel}
+                className="px-4 py-3 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Choose File
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
 
   // Limits definition
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1281,8 +1112,9 @@ export default function JpgToPdf() {
         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       setIsMobile(mobileCheck);
       
-      if (mobileCheck && compressionQuality === "medium") {
-        setCustomQualityValue(80);
+      // ✅ MOBILE FIX: Automatically set to Maximum Quality on mobile
+      if (mobileCheck && compressionQuality !== "none") {
+        setCompressionQuality("none");
       }
     };
 
@@ -1400,7 +1232,51 @@ export default function JpgToPdf() {
       const fileIndex = files.findIndex((f) => f.id === id);
       if (fileIndex === -1) return;
 
-      // Check file size limit
+      // ✅ DESKTOP: NO LIMIT CHECK
+      if (!isMobile) {
+        // Desktop - unlimited files, no size checks
+        const newFileWithPreview: FileWithPreview = {
+          file: newFile,
+          id: Math.random().toString(36).substr(2, 9),
+          rotation: 0,
+          scale: 1,
+          aspectRatio: "free",
+          previewError: false,
+          previewUrl: URL.createObjectURL(newFile),
+          originalOrder: files[fileIndex].originalOrder || fileIndex,
+        };
+
+        // Old file cleanup
+        const oldFile = files[fileIndex];
+        if (oldFile.previewUrl) URL.revokeObjectURL(oldFile.previewUrl);
+        if (rotatedUrls[oldFile.id]) {
+          if (rotatedUrls[oldFile.id].startsWith("data:")) {
+            URL.revokeObjectURL(rotatedUrls[oldFile.id]);
+          }
+          setRotatedUrls((prev) => {
+            const newUrls = { ...prev };
+            delete newUrls[oldFile.id];
+            return newUrls;
+          });
+        }
+
+        // Update files array
+        const updatedFiles = [...files];
+        updatedFiles[fileIndex] = newFileWithPreview;
+        setFiles(updatedFiles);
+
+        // Reset states
+        setPdfBlob(null);
+        setOriginalStateHash("");
+        setShowChangesWarning(false);
+        setProcessingError(null);
+        setProgress(0);
+        setReplacingImageId(null);
+        setShowReplaceOptions(null);
+        return;
+      }
+
+      // ✅ MOBILE: Only mobile के लिए limits check
       if (newFile.size > maxSizePerFile) {
         alert(`File size exceeds ${maxSizePerFile / (1024 * 1024)}MB limit. Maximum file size allowed is ${maxSizePerFile / (1024 * 1024)}MB.`);
         return;
@@ -1446,7 +1322,7 @@ export default function JpgToPdf() {
       setReplacingImageId(null);
       setShowReplaceOptions(null);
     },
-    [files, rotatedUrls, maxSizePerFile]
+    [files, rotatedUrls, isMobile, maxSizePerFile]
   );
 
   // Drag and Drop Handlers
@@ -1596,34 +1472,61 @@ export default function JpgToPdf() {
       setSizeLimitExceeded(false);
 
       try {
+        // ✅ DESKTOP: NO LIMIT CHECK
+        if (!isMobile) {
+          // Desktop - unlimited files, no size checks
+          const filesWithIds: FileWithPreview[] = newFiles.map((file, index) => ({
+            file: file,
+            id: Math.random().toString(36).substr(2, 9),
+            rotation: 0,
+            scale: 1,
+            aspectRatio: "free",
+            previewError: false,
+            previewUrl: URL.createObjectURL(file),
+            originalOrder: files.length + index,
+          }));
+
+          // Add only new files to the existing files
+          setFiles((prev) => [...prev, ...filesWithIds]);
+          setPdfBlob(null);
+          setOriginalStateHash("");
+          setShowChangesWarning(false);
+          setProcessingError(null);
+          setProgress(0);
+          
+          setCompressing(false);
+          return;
+        }
+
+        // ✅ MOBILE: Only mobile के लिए limits check
         // 1. File size check per file
-        const oversizedFiles = newFiles.filter(file => file.size > maxSizePerFile);
+        const oversizedFiles = newFiles.filter(file => file.size > MAX_SIZE_MOBILE);
         if (oversizedFiles.length > 0) {
           alert(
-            `${oversizedFiles.length} file(s) exceed maximum ${maxSizePerFile / (1024 * 1024)}MB size limit on ${isMobile ? 'mobile' : 'desktop'}. They will not be added.`
+            `${oversizedFiles.length} file(s) exceed maximum ${MAX_SIZE_MOBILE / (1024 * 1024)}MB size limit on mobile. They will not be added.`
           );
-          newFiles = newFiles.filter(file => file.size <= maxSizePerFile);
+          newFiles = newFiles.filter(file => file.size <= MAX_SIZE_MOBILE);
           if (newFiles.length === 0) {
             setCompressing(false);
             return;
           }
         }
 
-        // 2. Total size check
+        // 2. Total size check for mobile only
         const currentTotalSize = files.reduce((sum, f) => sum + f.file.size, 0);
         const newFilesTotalSize = newFiles.reduce((sum, f) => sum + f.size, 0);
         const totalSizeAfterAdd = currentTotalSize + newFilesTotalSize;
         
-        if (totalSizeAfterAdd > maxTotalSize) {
+        if (totalSizeAfterAdd > MAX_TOTAL_SIZE_MOBILE) {
           alert(
-            `Maximum total size ${maxTotalSize / (1024 * 1024)}MB exceeded on ${isMobile ? 'mobile' : 'desktop'}. Current total: ${(currentTotalSize / 1024 / 1024).toFixed(2)}MB. Can only add ${((maxTotalSize - currentTotalSize) / 1024 / 1024).toFixed(2)}MB more.`
+            `Maximum total size ${MAX_TOTAL_SIZE_MOBILE / (1024 * 1024)}MB exceeded on mobile. Current total: ${(currentTotalSize / 1024 / 1024).toFixed(2)}MB. Can only add ${((MAX_TOTAL_SIZE_MOBILE - currentTotalSize) / 1024 / 1024).toFixed(2)}MB more.`
           );
           setSizeLimitExceeded(true);
           // Calculate how many files we can add
           let addedSize = 0;
           const allowedFiles: File[] = [];
           for (const file of newFiles) {
-            if (addedSize + file.size <= maxTotalSize - currentTotalSize) {
+            if (addedSize + file.size <= MAX_TOTAL_SIZE_MOBILE - currentTotalSize) {
               allowedFiles.push(file);
               addedSize += file.size;
             } else {
@@ -1648,7 +1551,6 @@ export default function JpgToPdf() {
           originalOrder: files.length + index,
         }));
 
-        // Add only new files to the existing files
         setFiles((prev) => [...prev, ...filesWithIds]);
         setPdfBlob(null);
         setOriginalStateHash("");
@@ -1656,7 +1558,7 @@ export default function JpgToPdf() {
         setProcessingError(null);
         setProgress(0);
         
-        // Mobile के लिए warning
+        // Mobile warning
         const totalFiles = files.length + newFiles.length;
         if (isMobile && totalFiles > 30) {
           console.log(`Mobile: ${totalFiles} images loaded, may affect performance`);
@@ -1668,7 +1570,7 @@ export default function JpgToPdf() {
         setCompressing(false);
       }
     },
-    [files, isMobile, maxSizePerFile, maxTotalSize]
+    [files, isMobile]
   );
 
   const handleImageError = useCallback((id: string) => {
@@ -1686,45 +1588,38 @@ export default function JpgToPdf() {
     setImageLoading((prev) => ({ ...prev, [id]: false }));
   }, []);
 
-  // ✅ FIXED: handleConvert function with SPECIAL MOBILE MAXIMUM QUALITY SUPPORT
-  // ✅ FIXED: handleConvert function with SPECIAL MOBILE MAXIMUM QUALITY SUPPORT
-const handleConvert = async () => {
-  if (files.length === 0) return;
+  // ✅ FIXED: handleConvert function with BETTER MOBILE SUPPORT
+  const handleConvert = async () => {
+    if (files.length === 0) return;
 
-  setConverting(true);
-  setPdfBlob(null);
-  setOriginalStateHash("");
-  setShowCompressionInfo(true);
-  setProcessingError(null);
-  setSizeLimitExceeded(false);
-  setProgress(0);
+    setConverting(true);
+    setPdfBlob(null);
+    setOriginalStateHash("");
+    setShowCompressionInfo(true);
+    setProcessingError(null);
+    setSizeLimitExceeded(false);
+    setProgress(0);
 
-  try {
-    // Prepare files in current order
-    let filesToProcess = [...files];
+    try {
+      // Prepare files in current order
+      let filesToProcess = [...files];
 
-    // Apply reverse order when converting to PDF
-    if (reverseOrder) {
-      filesToProcess = [...files].reverse();
-    }
+      // Apply reverse order when converting to PDF
+      if (reverseOrder) {
+        filesToProcess = [...files].reverse();
+      }
 
-    // Show compression progress
-    setProgress(10);
+      // Show compression progress
+      setProgress(10);
 
-    // ✅ MOBILE MAXIMUM QUALITY WARNING AND LIMITS
-    if (isMobile) {
-      console.log(`Mobile device processing ${filesToProcess.length} images`);
-      
-      // Maximum quality के लिए special warning
-      if (compressionQuality === "none") {
-        console.log("Mobile: Maximum quality (no compression) mode detected");
+      // Mobile device warning
+      if (isMobile) {
+        console.log(`Mobile device processing ${filesToProcess.length} images`);
         
-        // Memory limitations के लिए check
-        const totalSize = filesToProcess.reduce((sum, f) => sum + f.file.size, 0);
-        
-        if (filesToProcess.length > 30 || totalSize > 50 * 1024 * 1024) { // 50MB
+        // Mobile के लिए maximum limit check
+        if (filesToProcess.length > 100) {
           const shouldContinue = window.confirm(
-            `⚠️ Maximum Quality Mode on Mobile\n\nProcessing ${filesToProcess.length} images (${(totalSize/1024/1024).toFixed(1)}MB) with maximum quality may cause memory issues on mobile.\n\nFor better results:\n1. Limit to 20-30 images at once\n2. Use "High Quality" (85%) instead\n3. Close other apps\n\nContinue anyway?`
+            `⚠️ Processing ${filesToProcess.length} images on mobile may take time and could cause issues.\n\nFor better results:\n1. Using "Maximum Quality" setting (no compression)\n2. Make sure you have stable internet connection\n\nContinue anyway?`
           );
           if (!shouldContinue) {
             setConverting(false);
@@ -1733,259 +1628,244 @@ const handleConvert = async () => {
           }
         }
       }
-      else if (filesToProcess.length > 100) {
-        const shouldContinue = window.confirm(
-          `⚠️ Processing ${filesToProcess.length} images on mobile may take time.\n\nContinue anyway?`
-        );
-        if (!shouldContinue) {
-          setConverting(false);
-          setShowCompressionInfo(false);
-          return;
-        }
-      }
-    }
 
-    console.log("Converting files:", filesToProcess.length);
-    console.log("Paper Size:", paperSize, "Orientation:", orientation);
-    console.log("Quality Setting:", compressionQuality);
-    
-    let cleanup: (() => void) | null = null;
-    cleanup = simulateProgress(setProgress, 10, 50, 3000);
-
-    console.log("Starting image processing...");
-    console.log(`Compression Quality: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
-    console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
-    
-    // Calculate target dimensions
-    const marginPoints = {
-      "no-margin": 0,
-      small: 18,
-      big: 72,
-    }[marginSize];
-    
-    const marginMm = marginPoints / 2.834;
-    const paperDimensions = PAPER_SIZES[paperSize];
-    
-    let targetWidth, targetHeight;
-    if (orientation === "Landscape") {
-      targetWidth = paperDimensions.height - (marginMm * 2);
-      targetHeight = paperDimensions.width - (marginMm * 2);
-    } else {
-      targetWidth = paperDimensions.width - (marginMm * 2);
-      targetHeight = paperDimensions.height - (marginMm * 2);
-    }
-    
-    console.log(`Target dimensions: ${targetWidth.toFixed(1)}x${targetHeight.toFixed(1)}mm`);
-
-    const compressedImages: string[] = [];
-    const failedImages: number[] = [];
-
-    // ✅ FIXED: Better processing with MOBILE MAXIMUM QUALITY optimization
-    for (let i = 0; i < filesToProcess.length; i++) {
-      const fileWithPreview = filesToProcess[i];
+      console.log("Converting files:", filesToProcess.length);
+      console.log("Paper Size:", paperSize, "Orientation:", orientation);
+      console.log("Quality Setting:", compressionQuality);
       
-      try {
-        // Update progress
-        const fileProgress = 10 + (i / filesToProcess.length) * 40;
-        setProgress(Math.floor(fileProgress));
+      let cleanup: (() => void) | null = null;
+      cleanup = simulateProgress(setProgress, 10, 50, 3000);
 
-        console.log(`Processing ${i + 1}/${filesToProcess.length}: ${fileWithPreview.file.name}`);
+      console.log("Starting image processing...");
+      console.log(`Compression Quality: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
+      console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
+      
+      // Calculate target dimensions based on paper size and margin
+      const marginPoints = {
+        "no-margin": 0,
+        small: 18, // 0.25 inch = 18 points
+        big: 72, // 1 inch = 72 points
+      }[marginSize];
+      
+      const marginMm = marginPoints / 2.834; // Convert points to mm
+      const paperDimensions = PAPER_SIZES[paperSize];
+      
+      let targetWidth, targetHeight;
+      if (orientation === "Landscape") {
+        targetWidth = paperDimensions.height - (marginMm * 2);
+        targetHeight = paperDimensions.width - (marginMm * 2);
+      } else {
+        targetWidth = paperDimensions.width - (marginMm * 2);
+        targetHeight = paperDimensions.height - (marginMm * 2);
+      }
+      
+      console.log(`Target dimensions for PDF: ${targetWidth.toFixed(1)}x${targetHeight.toFixed(1)}mm (after ${marginMm}mm margin)`);
 
-        let compressedImageData: string | null = null; // ✅ FIXED: Added type annotation
+      let compressedImages: string[] = [];
+
+      // ✅ MOBILE FIX: Direct processing for mobile
+      if (isMobile) {
+        console.log(`Mobile device: Using simple processing for ${filesToProcess.length} images`);
         
-        // ✅ IMPORTANT: Mobile maximum quality के लिए special handling
-        if (isMobile && compressionQuality === "none") {
-          console.log(`Mobile maximum quality processing for ${fileWithPreview.file.name}`);
-          
-          // Mobile पर maximum quality के लिए simpler और safer approach
-          compressedImageData = await new Promise<string>((resolve, reject) => {
+        // Direct processing without compression for mobile
+        const imagePromises = filesToProcess.map(async (fileWithPreview) => {
+          return new Promise<string>((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => {
               const result = e.target?.result;
               if (result && typeof result === 'string') {
-                console.log(`✅ Mobile max quality loaded: ${fileWithPreview.file.name} (${(result.length/1024).toFixed(0)}KB)`);
                 resolve(result);
               } else {
-                reject(new Error("Invalid result"));
+                // Fallback
+                resolve('');
               }
             };
-            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.onerror = () => resolve('');
             reader.readAsDataURL(fileWithPreview.file);
-          }).catch(error => {
-            console.warn(`❌ Mobile max quality failed for ${fileWithPreview.file.name}:`, error);
-            return null;
           });
-          
-          // यदि data मिला तब ही rotation apply करें
-          if (compressedImageData && fileWithPreview.rotation !== 0) {
-            try {
-              // Simple rotation using canvas
-              const img = new Image();
-              await new Promise<void>((resolve, reject) => {
-                img.onload = () => {
-                  const canvas = document.createElement("canvas");
-                  const ctx = canvas.getContext("2d");
-                  
-                  if (ctx) {
-                    // Set canvas size based on rotation
-                    if (fileWithPreview.rotation === 90 || fileWithPreview.rotation === 270) {
-                      canvas.width = img.height;
-                      canvas.height = img.width;
-                    } else {
-                      canvas.width = img.width;
-                      canvas.height = img.height;
-                    }
-                    
-                    // White background
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Apply rotation
-                    ctx.save();
-                    ctx.translate(canvas.width / 2, canvas.height / 2);
-                    ctx.rotate((fileWithPreview.rotation * Math.PI) / 180);
-                    ctx.drawImage(
-                      img,
-                      -img.width / 2,
-                      -img.height / 2,
-                      img.width,
-                      img.height
-                    );
-                    ctx.restore();
-                    
-                    compressedImageData = canvas.toDataURL("image/jpeg", 1.0);
-                    console.log(`✅ Rotation applied for ${fileWithPreview.file.name}`);
-                  }
-                  resolve();
-                };
-                img.onerror = reject;
-                img.src = compressedImageData!;
-              });
-            } catch (rotationError) {
-              console.warn(`Rotation failed for ${fileWithPreview.file.name}:`, rotationError);
-              // Rotation fail हुआ तो original image ही use करें
-            }
-          }
-        } else {
-          // Normal compression processing
-          compressedImageData = await compressImageForPdf(
-            fileWithPreview.file,
-            fileWithPreview.rotation,
-            compressionQuality,
-            customQualityValue,
-            isMobile,
-            targetWidth * 3.78,
-            targetHeight * 3.78
-          );
+        });
+        
+        const imageResults = await Promise.all(imagePromises);
+        const validImages = imageResults.filter(img => img && img.startsWith('data:'));
+        
+        if (validImages.length === 0) {
+          throw new Error("Failed to load images on mobile. Try with fewer images.");
         }
-
-        if (compressedImageData && compressedImageData.startsWith('data:')) {
-          compressedImages.push(compressedImageData);
-          console.log(`✅ Image ${i + 1} processed successfully`);
-        } else {
-          console.warn(`⚠️ Image ${i + 1} returned invalid data`);
-          failedImages.push(i);
+        
+        compressedImages = validImages;
+      } else {
+        // Desktop processing
+        for (let i = 0; i < filesToProcess.length; i++) {
+          const fileWithPreview = filesToProcess[i];
           
-          // Skip this image but continue
-          if (i < filesToProcess.length - 1) {
+          try {
+            // Update progress
+            const fileProgress = 10 + (i / filesToProcess.length) * 40;
+            setProgress(Math.floor(fileProgress));
+
+            console.log(`Processing ${i + 1}/${filesToProcess.length}: ${fileWithPreview.file.name} (${(fileWithPreview.file.size / 1024).toFixed(0)}KB)`);
+
+            const compressedImageData = await compressImageForPdf(
+              fileWithPreview.file,
+              fileWithPreview.rotation,
+              compressionQuality,
+              customQualityValue,
+              false, // isMobile = false for desktop
+              targetWidth * 3.78, // Convert mm to pixels
+              targetHeight * 3.78
+            );
+
+            if (compressedImageData && compressedImageData.startsWith('data:')) {
+              compressedImages.push(compressedImageData);
+              console.log(`✅ Image ${i + 1} processed successfully`);
+            } else {
+              console.warn(`⚠️ Image ${i + 1} returned invalid data, trying fallback`);
+              // Fallback to original image
+              const originalImageData = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  const result = e.target?.result;
+                  if (result && typeof result === 'string') {
+                    resolve(result);
+                  } else {
+                    reject(new Error("Invalid result"));
+                  }
+                };
+                reader.onerror = () => reject(new Error("Failed to read file"));
+                reader.readAsDataURL(fileWithPreview.file);
+              });
+              compressedImages.push(originalImageData);
+            }
+          } catch (error) {
+            console.error(`❌ Failed to process image ${fileWithPreview.file.name}:`, error);
+            
+            // Last resort: Skip this image but continue
+            console.log(`Skipping image ${i + 1}, continuing with others`);
+            
+            // Continue with next image
             continue;
           }
         }
-      } catch (error) {
-        console.error(`❌ Failed to process image ${fileWithPreview.file.name}:`, error);
-        failedImages.push(i);
+      }
+
+      if (cleanup) cleanup();
+
+      // ✅ IMPORTANT FIX: Check if we have any images
+      if (compressedImages.length === 0) {
+        // Try one more time with simplest approach
+        console.log("No images processed, trying simple approach...");
         
-        // Continue with next image
-        if (i < filesToProcess.length - 1) {
-          continue;
+        // Try to get at least one image
+        if (filesToProcess.length > 0) {
+          try {
+            const firstFile = filesToProcess[0];
+            const reader = new FileReader();
+            const imageData = await new Promise<string>((resolve, reject) => {
+              reader.onload = (e) => {
+                const result = e.target?.result;
+                if (result && typeof result === 'string') {
+                  resolve(result);
+                } else {
+                  reject(new Error("Invalid result"));
+                }
+              };
+              reader.onerror = () => reject(new Error("Failed to read file"));
+              reader.readAsDataURL(firstFile.file);
+            });
+            compressedImages.push(imageData);
+          } catch (finalError) {
+            console.error("Final attempt failed:", finalError);
+          }
+        }
+        
+        if (compressedImages.length === 0) {
+          throw new Error("No images could be processed. This might be due to large file sizes or mobile device limitations.");
         }
       }
-      
-      // Mobile के लिए delay दें ताकि UI responsive रहे
-      if (isMobile && i % 3 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
 
-    if (cleanup) cleanup();
+      // Now create PDF with compressed images and margin
+      try {
+        setProgress(50);
+        cleanup = simulateProgress(setProgress, 50, 90, 3000);
 
-    // ✅ Check if we have any images
-    if (compressedImages.length === 0) {
-      throw new Error("No images could be processed. This might be due to large file sizes or mobile device limitations.");
-    }
+        console.log(`Creating PDF with ${compressedImages.length} images...`);
+        console.log(`PDF Margin: ${marginSize} (${marginPoints} points = ${marginPoints/72} inch)`);
 
-    // Report failed images
-    if (failedImages.length > 0) {
-      console.warn(`⚠️ ${failedImages.length} images failed to process:`, failedImages);
-      
-      if (isMobile && compressionQuality === "none" && failedImages.length > 0) {
-        // Mobile maximum quality में failures हुए हैं
-        alert(`Warning: ${failedImages.length} images could not be processed in maximum quality mode on mobile. They have been skipped. Try using "High Quality" (85%) instead for better mobile performance.`);
-      }
-    }
-
-    // Now create PDF with compressed images and margin
-    try {
-      setProgress(50);
-      cleanup = simulateProgress(setProgress, 50, 90, 3000);
-
-      console.log(`Creating PDF with ${compressedImages.length} images...`);
-      console.log(`PDF Margin: ${marginSize} (${marginPoints} points)`);
-
-      // PDF creation
-      const blob = await createPdfFromImages(
-        compressedImages,
-        paperSize,
-        orientation,
-        marginPoints,
-        isMobile
-      );
-
-      if (cleanup) cleanup();
-      setProgress(100);
-
-      if (!blob || blob.size === 0) {
-        throw new Error("Generated PDF is empty");
-      }
-      
-      setTimeout(() => {
-        setPdfBlob(blob);
-        setOriginalStateHash(calculateStateHash());
-        setShowChangesWarning(false);
-        setConverting(false);
-        setSizeLimitExceeded(false);
-
-        // Log final PDF size
-        const totalOriginalSize = filesToProcess.reduce(
-          (sum, f) => sum + f.file.size,
-          0
+        // PDF creation
+        const blob = await createPdfFromImages(
+          compressedImages,
+          paperSize,
+          orientation,
+          marginPoints,
+          isMobile
         );
-        const pdfSize = blob.size;
 
-        console.log(`\n=== PDF Generation Complete ===`);
-        console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
-        console.log(`Quality Setting: ${compressionQuality}`);
-        console.log(`Successfully processed: ${compressedImages.length}/${filesToProcess.length} images`);
-        console.log(`Failed: ${failedImages.length} images`);
-        console.log(`Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`PDF created successfully!`);
+        if (cleanup) cleanup();
+        setProgress(100);
 
-        // Hide compression info after 3 seconds
+        if (!blob || blob.size === 0) {
+          throw new Error("Generated PDF is empty");
+        }
+        
         setTimeout(() => {
-          setShowCompressionInfo(false);
-        }, 3000);
-      }, 500);
+          setPdfBlob(blob);
+          setOriginalStateHash(calculateStateHash());
+          setShowChangesWarning(false);
+          setConverting(false);
+          setSizeLimitExceeded(false);
+
+          // Log final PDF size
+          const totalOriginalSize = filesToProcess.reduce(
+            (sum, f) => sum + f.file.size,
+            0
+          );
+          const pdfSize = blob.size;
+          const totalCompressionRatio = (
+            ((totalOriginalSize - pdfSize) / totalOriginalSize) *
+            100
+          ).toFixed(1);
+
+          console.log(`\n=== PDF Generation Complete ===`);
+          console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
+          console.log(`Quality Setting: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
+          console.log(`Margin Setting: ${marginSize} (${marginPoints} points)`);
+          console.log(`Reverse Order: ${reverseOrder}`);
+          console.log(`Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
+          console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
+          console.log(`Total change: ${totalCompressionRatio}%`);
+          console.log(`PDF created successfully!`);
+
+          // Hide compression info after 3 seconds
+          setTimeout(() => {
+            setShowCompressionInfo(false);
+          }, 3000);
+        }, 500);
+      } catch (err) {
+        if (cleanup) cleanup();
+        console.error("PDF creation error:", err);
+        
+        let errorMessage = `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}.`;
+        
+        if (isMobile) {
+          errorMessage += "\n\n📱 Mobile Device Tip:\n• Processing fewer images at once\n• Use smaller image files\n• Close other apps for better performance";
+        } else {
+          errorMessage += "\n\nPlease try again with fewer images or lower quality settings.";
+        }
+        
+        setProcessingError(errorMessage);
+        setProgress(0);
+        setConverting(false);
+        setShowCompressionInfo(false);
+        setPdfBlob(null);
+        setOriginalStateHash("");
+      }
     } catch (err) {
-      if (cleanup) cleanup();
-      console.error("PDF creation error:", err);
+      console.error("Conversion error:", err);
       
       let errorMessage = `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}.`;
       
-      if (isMobile && compressionQuality === "none") {
-        errorMessage += "\n\n📱 Mobile Maximum Quality Issue:\n• Maximum quality mode uses more memory on mobile\n• Try 'High Quality' (85%) instead\n• Process fewer images at once (max 30 recommended)\n• Use smaller image files\n• Close other apps";
-      } else if (isMobile) {
-        errorMessage += "\n\n📱 Mobile Device Tip:\n• Try 'High Quality' (85%) instead of Maximum\n• Process fewer images at once\n• Use smaller image files\n• Close other apps";
+      if (isMobile) {
+        errorMessage += "\n\n📱 Mobile Device Tip:\n• Processing fewer images at once\n• Use smaller image files\n• Close other apps for better performance";
       } else {
         errorMessage += "\n\nPlease try again with fewer images or lower quality settings.";
       }
@@ -1997,23 +1877,7 @@ const handleConvert = async () => {
       setPdfBlob(null);
       setOriginalStateHash("");
     }
-  } catch (err) {
-    console.error("Conversion error:", err);
-    
-    let errorMessage = `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}.`;
-    
-    if (isMobile && compressionQuality === "none") {
-      errorMessage += "\n\n📱 Mobile Maximum Quality Issue:\n• Maximum quality mode uses more memory on mobile\n• Try 'High Quality' (85%) instead\n• Process fewer images at once (max 30 recommended)";
-    }
-    
-    setProcessingError(errorMessage);
-    setProgress(0);
-    setConverting(false);
-    setShowCompressionInfo(false);
-    setPdfBlob(null);
-    setOriginalStateHash("");
-  }
-};
+  };
 
   const handleDownload = () => {
     if (pdfBlob) {
@@ -2250,7 +2114,7 @@ const handleConvert = async () => {
       <HowToSchema />
       <ArticleSchema />
 
-      {/* Replace Image Modal */}
+      {/* ✅ FIXED: Replace Image Modal */}
       <AnimatePresence>
         {replacingImageId && (
           <ReplaceImageModal
@@ -2259,6 +2123,7 @@ const handleConvert = async () => {
             }
             onReplace={(file) => handleReplaceImage(replacingImageId, file)}
             onCancel={() => setReplacingImageId(null)}
+            isMobile={isMobile} // ✅ अब isMobile pass किया जा रहा है
           />
         )}
       </AnimatePresence>
@@ -2366,9 +2231,9 @@ const handleConvert = async () => {
         )}
       </AnimatePresence>
 
-      {/* Size Limit Exceeded Banner */}
+      {/* Size Limit Exceeded Banner - ONLY FOR MOBILE */}
       <AnimatePresence>
-        {sizeLimitExceeded && (
+        {sizeLimitExceeded && isMobile && (
           <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2380,9 +2245,9 @@ const handleConvert = async () => {
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-6 h-6 animate-pulse" />
                   <div>
-                    <h3 className="font-bold text-lg">Storage Limit Warning</h3>
+                    <h3 className="font-bold text-lg">Mobile Storage Limit Warning</h3>
                     <p className="text-sm opacity-90">
-                      You're approaching the total size limit. Max total: {maxTotalSize / (1024 * 1024)}MB on {isMobile ? 'mobile' : 'desktop'}
+                      You're approaching the total size limit. Max total: {MAX_TOTAL_SIZE_MOBILE / (1024 * 1024)}MB on mobile
                     </p>
                   </div>
                 </div>
@@ -2398,7 +2263,7 @@ const handleConvert = async () => {
         )}
       </AnimatePresence>
 
-      {/* ✅ FIXED: Processing Error Banner with SPECIAL MOBILE MAXIMUM QUALITY MESSAGE */}
+      {/* ✅ FIXED: Processing Error Banner with MOBILE SUPPORT */}
       <AnimatePresence>
         {processingError && (
           <motion.div
@@ -2416,14 +2281,9 @@ const handleConvert = async () => {
                     <p className="text-sm opacity-90 whitespace-pre-line">
                       {processingError}
                     </p>
-                    {isMobile && compressionQuality === "none" && (
+                    {isMobile && (
                       <div className="mt-2 text-xs bg-white/20 p-2 rounded">
-                        📱 <strong>Maximum Quality Issue:</strong> On mobile, use "High Quality" (85%) instead for better results
-                      </div>
-                    )}
-                    {isMobile && compressionQuality !== "none" && (
-                      <div className="mt-2 text-xs bg-white/20 p-2 rounded">
-                        📱 <strong>Quick Fix:</strong> Switch to "High Quality" (85%) in Quality Settings
+                        📱 <strong>Quick Fix:</strong> Process fewer images at once (max 50 recommended)
                       </div>
                     )}
                   </div>
@@ -2432,22 +2292,12 @@ const handleConvert = async () => {
                   <button
                     onClick={() => {
                       setProcessingError(null);
-                      // Mobile maximum quality के लिए automatic fallback to high quality
-                      if (isMobile && compressionQuality === "none") {
-                        setCompressionQuality("high");
-                        setTimeout(() => handleConvert(), 1000);
-                      } else {
-                        handleConvert();
-                      }
+                      handleConvert();
                     }}
                     className="px-4 py-2 bg-white text-red-700 font-semibold rounded-lg hover:bg-red-50 transition-colors flex items-center gap-2"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    {isMobile && compressionQuality === "none" 
-                      ? "Try with High Quality (85%)" 
-                      : isMobile && compressionQuality !== "none"
-                      ? "Try with High Quality"
-                      : "Try Again"}
+                    Try Again
                   </button>
                   <button
                     onClick={() => setProcessingError(null)}
@@ -2546,7 +2396,7 @@ const handleConvert = async () => {
   accept="image/jpeg,image/jpg,image/png,image/webp"
   multiple={true}
   onFilesSelected={handleFilesUpdate}
-  maxSize={isMobile ? 500 : 1000}
+  maxSize={isMobile ? 500 : Infinity}
 />
 
 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400">
@@ -2556,7 +2406,7 @@ const handleConvert = async () => {
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>Drag & Drop Reorder</span>
+    <span>{isMobile ? "500MB/file" : "No Size Limit"}</span>
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -2566,6 +2416,15 @@ const handleConvert = async () => {
     <CheckCircle className="w-5 h-5 text-green-500" />
     <span>Size Reduction up to 80%</span>
   </div>
+</div>
+
+{/* File Limit Display */}
+<div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+  {isMobile ? (
+    <span>📱 Mobile: Max 500MB per file, 2GB total</span>
+  ) : (
+    <span>💻 Desktop: No size limits - Upload unlimited files</span>
+  )}
 </div>
 
                 {compressing && (
@@ -2580,17 +2439,57 @@ const handleConvert = async () => {
 
               {files.length > 0 && (
                 <div className="space-y-8">
-                  {/* Size Limit Warning */}
-                  {sizeLimitExceeded && (
+                  {/* Mobile Warning Banner */}
+                  {isMobile && files.length > 10 && (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
+                      <div className="flex items-start gap-3">
+                        <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                        <div>
+                          <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1">
+                            📱 Mobile Device Tip
+                          </h4>
+                          <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+                            <li>• Using <strong>Maximum Quality</strong> (no compression) for best results</li>
+                            <li>• Processing {files.length} images - may take {Math.ceil(files.length/10)}-{Math.ceil(files.length/5)} seconds</li>
+                            <li>• Keep app open during conversion</li>
+                            <li className="font-semibold mt-2">Quick Fix: If PDF fails, reduce number of images</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Desktop Power Banner */}
+                  {!isMobile && files.length > 50 && (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-2xl">
+                      <div className="flex items-start gap-3">
+                        <Monitor className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
+                        <div>
+                          <h4 className="font-bold text-green-800 dark:text-green-300 mb-1">
+                            💻 Desktop Power Mode
+                          </h4>
+                          <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
+                            <li>• Processing {files.length} images with no size limits</li>
+                            <li>• Full desktop performance - faster processing</li>
+                            <li>• Adjust quality settings for smaller file size</li>
+                            <li className="font-semibold mt-2">✓ No restrictions - Upload unlimited files</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Size Limit Warning - Only for Mobile */}
+                  {sizeLimitExceeded && isMobile && (
                     <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                       <div className="flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                         <div>
                           <h4 className="font-bold text-amber-800 dark:text-amber-300">
-                            ⚠️ Storage Limit Warning
+                            ⚠️ Mobile Storage Limit Warning
                           </h4>
                           <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                            You're approaching the total size limit of {maxTotalSize / (1024 * 1024)}MB on {isMobile ? 'mobile' : 'desktop'}.
+                            You're approaching the total size limit of {MAX_TOTAL_SIZE_MOBILE / (1024 * 1024)}MB on mobile.
                             Current total: {(files.reduce((sum, f) => sum + f.file.size, 0) / 1024 / 1024).toFixed(2)}MB
                           </p>
                         </div>
@@ -2622,19 +2521,12 @@ const handleConvert = async () => {
                             <button
                               onClick={() => {
                                 setProcessingError(null);
-                                if (isMobile && compressionQuality === "none") {
-                                  setCompressionQuality("high");
-                                  setTimeout(() => handleConvert(), 1000);
-                                } else {
-                                  handleConvert();
-                                }
+                                handleConvert();
                               }}
                               className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-orange-700 transition-all shadow-md flex items-center gap-2"
                             >
                               <RefreshCw className="w-4 h-4" />
-                              {isMobile && compressionQuality === "none" 
-                                ? "Try with High Quality (85%)" 
-                                : "Try Again"}
+                              Try Again
                             </button>
                             <button
                               onClick={() => setProcessingError(null)}
@@ -2646,7 +2538,7 @@ const handleConvert = async () => {
                           {isMobile && (
                             <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                               <p className="text-sm text-blue-700 dark:text-blue-300">
-                                <strong>📱 Mobile Tip:</strong> For best results on mobile, use "High Quality" (85%) setting instead of Maximum Quality.
+                                <strong>📱 Mobile Tip:</strong> For best results on mobile, process fewer images at once.
                               </p>
                             </div>
                           )}
@@ -2710,7 +2602,12 @@ const handleConvert = async () => {
                         Drag to reorder • Click to preview • Rotate to adjust
                         {isMobile && (
                           <span className="block text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            Max {MAX_SIZE_MOBILE / (1024 * 1024)}MB per file, {MAX_TOTAL_SIZE_MOBILE / (1024 * 1024)}MB total
+                            Max 500MB per file, 2GB total on mobile
+                          </span>
+                        )}
+                        {!isMobile && (
+                          <span className="block text-xs text-green-600 dark:text-green-400 mt-1">
+                            ✓ Desktop: No file size limits
                           </span>
                         )}
                       </p>
@@ -3257,6 +3154,11 @@ const handleConvert = async () => {
                             (Mobile Optimized)
                           </span>
                         )}
+                        {!isMobile && (
+                          <span className="ml-2 text-sm text-green-600 dark:text-green-400">
+                            (Desktop - Full Control)
+                          </span>
+                        )}
                       </h3>
                     </div>
 
@@ -3331,6 +3233,11 @@ const handleConvert = async () => {
                                   {compressionQuality === option.value && (
                                     <span className="text-[10px] text-blue-500">
                                       ✓ Selected
+                                    </span>
+                                  )}
+                                  {isMobile && option.value === "none" && (
+                                    <span className="text-[10px] text-green-500">
+                                      📱 Recommended
                                     </span>
                                   )}
                                 </div>
@@ -3839,6 +3746,11 @@ const handleConvert = async () => {
                                 ✓ Mobile Optimized
                               </span>
                             )}
+                            {!isMobile && (
+                              <span className="text-green-600 dark:text-green-400 font-semibold">
+                                ✓ Desktop Power Mode
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -3877,17 +3789,15 @@ const handleConvert = async () => {
                               : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                           }`}
                         >
-                          {showChangesWarning ? (
+                          {isMobile ? (
                             <>
-                              <RefreshCw className="w-6 h-6" />
-                              Convert Again with Changes
+                              <Smartphone className="w-6 h-6" />
+                              {`Create PDF (${files.length} images)`}
                             </>
                           ) : (
                             <>
                               <ImageIcon className="w-6 h-6" />
-                              {`Convert ${files.length} Image${
-                                files.length !== 1 ? "s" : ""
-                              } to Professional PDF`}
+                              {`Convert ${files.length} Image${files.length !== 1 ? "s" : ""} to PDF`}
                             </>
                           )}
                           {!showChangesWarning &&
@@ -3938,10 +3848,13 @@ const handleConvert = async () => {
                     <Target className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Unlimited Uploads
+                    {isMobile ? "500MB/file" : "No Size Limits"}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Upload unlimited images on both mobile and desktop. Max {maxSizePerFile / (1024 * 1024)}MB per file, {maxTotalSize / (1024 * 1024)}MB total.
+                    {isMobile 
+                      ? "Upload up to 500MB per file, 2GB total on mobile"
+                      : "Upload unlimited files with no size restrictions on desktop"
+                    }
                   </p>
                 </div>
 
