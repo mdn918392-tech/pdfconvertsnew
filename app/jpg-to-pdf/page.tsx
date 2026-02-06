@@ -268,21 +268,11 @@ const compressImageForPdf = async (
   file: File,
   rotation: number = 0,
   quality: CompressionQuality = "medium",
-  customQualityValue: number = 85,
+  customQualityValue: number = 75,
   isMobile: boolean = false
 ): Promise<string> => { // Changed to return base64 string instead of File
   // If quality is "none", return original file as base64
   if (quality === "none") {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // For very small files (< 500KB), skip compression as it might increase size
-  if (file.size < 500 * 1024) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target?.result as string);
@@ -301,7 +291,7 @@ const compressImageForPdf = async (
       img.onload = () => {
         // Calculate target dimensions based on quality setting
         let maxDimension = 4096;
-        let qualityValue = 1.0;
+        let qualityValue = 0.75; // Default medium
 
         // Set target dimensions and quality based on setting
         switch (quality) {
@@ -330,9 +320,11 @@ const compressImageForPdf = async (
           scale = maxDimension / largerDimension;
         }
 
-        // Don't upscale small images
-        if (largerDimension < 800) {
-          scale = Math.min(1, scale);
+        // Medium aur low quality ke liye extra scale down
+        if (quality === "medium" && largerDimension > 800) {
+          scale = Math.min(scale, 0.8); // Extra 20% reduction
+        } else if (quality === "low" && largerDimension > 600) {
+          scale = Math.min(scale, 0.6); // Extra 40% reduction
         }
 
         const newWidth = Math.floor(img.width * scale);
@@ -388,12 +380,16 @@ const compressImageForPdf = async (
         
         // Adjust quality for PNG files
         const adjustedQuality = file.type.includes("png") 
-          ? Math.max(0.1, qualityValue * 0.6)
+          ? Math.max(0.1, qualityValue * 0.7)
           : qualityValue;
 
         // Convert canvas to base64
         try {
           const base64Data = canvas.toDataURL(outputFormat, adjustedQuality);
+          
+          // Debug log
+          console.log(`Compressed: ${file.name} | Quality: ${quality}(${adjustedQuality}) | Size: ${file.size} -> ${base64Data.length} bytes | Scale: ${scale.toFixed(2)}`);
+          
           resolve(base64Data);
         } catch (error) {
           console.warn("Canvas toDataURL error:", error);
@@ -438,7 +434,7 @@ const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQu
   return Math.max(totalOriginalSize * reductionFactor, 1024);
 };
 
-// FIXED: Simplified PDF creation function
+// FIXED: Simplified PDF creation function with 0.25 inch small margin
 const createPdfFromImages = async (
   imageDataUrls: string[], // Array of base64 image data
   paperSize: PaperSize,
@@ -461,12 +457,12 @@ const createPdfFromImages = async (
     const pageHeight = pdf.internal.pageSize.getHeight();
     
     // Calculate available space after margins
-    const margin = marginPoints / 2.834; // Convert points to mm
+    const margin = marginPoints / 2.834; // Convert points to mm (72 points = 1 inch)
     const availableWidth = pageWidth - (margin * 2);
     const availableHeight = pageHeight - (margin * 2);
 
     console.log(`Creating PDF with ${imageDataUrls.length} images`);
-    console.log(`Page size: ${pageWidth}x${pageHeight}mm, Margin: ${margin}mm`);
+    console.log(`Page size: ${pageWidth}x${pageHeight}mm, Margin: ${margin}mm (${marginPoints} points)`);
     console.log(`Available space: ${availableWidth}x${availableHeight}mm`);
 
     for (let i = 0; i < imageDataUrls.length; i++) {
@@ -637,8 +633,8 @@ const FloatingPageCounter = ({
 
   const marginLabels = {
     "no-margin": "No Margin",
-    small: "Small Margin",
-    big: "Big Margin",
+    small: "Small Margin (0.25\")",
+    big: "Big Margin (1\")",
   };
 
   // Calculate estimated size
@@ -1026,7 +1022,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle quality change - NO ALERTS HERE
+  // Handle quality change
   const handleCompressionQualityChange = (quality: CompressionQuality) => {
     setCompressionQuality(quality);
     setPdfBlob(null);
@@ -1036,7 +1032,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle custom quality change - NO ALERTS HERE
+  // Handle custom quality change
   const handleCustomQualityChange = (value: number) => {
     setCustomQualityValue(value);
     setPdfBlob(null);
@@ -1386,7 +1382,7 @@ export default function JpgToPdf() {
     );
   }, []);
 
-  // FIXED: handleConvert function - Now working correctly
+  // FIXED: handleConvert function - Now working correctly with proper compression
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -1429,6 +1425,7 @@ export default function JpgToPdf() {
       cleanup = simulateProgress(setProgress, 10, 50, 3000);
 
       console.log("Starting image compression...");
+      console.log(`Compression Quality: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
       const compressedImages: string[] = [];
 
       // Process images one by one to avoid memory issues
@@ -1440,7 +1437,7 @@ export default function JpgToPdf() {
           const fileProgress = 10 + (i / filesToProcess.length) * 40;
           setProgress(Math.floor(fileProgress));
 
-          console.log(`Processing ${i + 1}/${filesToProcess.length}: ${fileWithPreview.file.name}`);
+          console.log(`Processing ${i + 1}/${filesToProcess.length}: ${fileWithPreview.file.name} (${(fileWithPreview.file.size / 1024).toFixed(0)}KB)`);
 
           // Compress image with rotation applied
           const compressedImageData = await compressImageForPdf(
@@ -1483,12 +1480,14 @@ export default function JpgToPdf() {
         setProgress(50);
         cleanup = simulateProgress(setProgress, 50, 90, 3000);
 
-        // Create PDF with margin setting
+        // Create PDF with margin setting - FIXED: Small margin now 0.25 inch (18 points)
         const marginPoints = {
           "no-margin": 0,
-          small: 36, // 0.5 inch = 36 points
+          small: 18, // FIXED: 0.25 inch = 18 points (was 36 for 0.5 inch)
           big: 72, // 1 inch = 72 points
         }[marginSize];
+
+        console.log(`PDF Margin: ${marginSize} (${marginPoints} points = ${marginPoints/72} inch)`);
 
         // PDF creation
         console.log("Creating PDF with", compressedImages.length, "images...");
@@ -1528,7 +1527,7 @@ export default function JpgToPdf() {
           console.log(`\n=== PDF Generation Complete ===`);
           console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
           console.log(`Quality Setting: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
-          console.log(`Margin Setting: ${marginSize}`);
+          console.log(`Margin Setting: ${marginSize} (${marginPoints} points)`);
           console.log(`Reverse Order: ${reverseOrder}`);
           console.log(`Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
           console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
@@ -2578,7 +2577,7 @@ export default function JpgToPdf() {
                               label: "Small",
                               icon: Columns,
                               color: "from-blue-500 to-cyan-600",
-                              size: '0.5"',
+                              size: '0.25"', // FIXED: 0.25 inch
                             },
                             {
                               value: "big" as MarginSize,
@@ -2638,15 +2637,15 @@ export default function JpgToPdf() {
                             {marginSize === "no-margin"
                               ? "No Margin"
                               : marginSize === "small"
-                              ? "Small Margin"
-                              : "Big Margin"}
+                              ? "Small Margin (0.25\")" // FIXED: Display 0.25 inch
+                              : "Big Margin (1\")"}
                           </span>
                         </div>
                         <span className="text-xs text-gray-600 dark:text-gray-400">
                           {marginSize === "no-margin"
                             ? "Full page"
                             : marginSize === "small"
-                            ? "0.5 inch"
+                            ? "0.25 inch" // FIXED: Display 0.25 inch
                             : "1 inch"}
                         </span>
                       </div>
@@ -2663,8 +2662,8 @@ export default function JpgToPdf() {
                               {marginSize === "no-margin"
                                 ? "No Margin"
                                 : marginSize === "small"
-                                ? "Small"
-                                : "Big"}
+                                ? "Small (0.25\")" // FIXED
+                                : "Big (1\")"}
                             </span>
                           </div>
                         </div>
@@ -2682,7 +2681,7 @@ export default function JpgToPdf() {
                                 marginSize === "no-margin"
                                   ? "inset-1 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-700 dark:to-gray-600"
                                   : marginSize === "small"
-                                  ? "inset-3 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700"
+                                  ? "inset-4 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700" // FIXED: inset-4 for 0.25 inch
                                   : "inset-5 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/50 dark:to-purple-800/50 border border-purple-200 dark:border-purple-700"
                               }`}
                             >
@@ -2707,7 +2706,7 @@ export default function JpgToPdf() {
                                   }`}
                                 ></div>
                                 <span>
-                                  {marginSize === "small" ? '0.5"' : '1"'}
+                                  {marginSize === "small" ? '0.25"' : '1"'} {/* FIXED */}
                                 </span>
                                 <div
                                   className={`w-8 h-0.5 ${
@@ -2776,8 +2775,8 @@ export default function JpgToPdf() {
                                 {marginSize === "no-margin"
                                   ? "Best for digital viewing"
                                   : marginSize === "small"
-                                  ? "Ideal for general documents"
-                                  : "Perfect for printing"}
+                                  ? "Ideal for general documents (0.25\")" // FIXED
+                                  : "Perfect for printing (1\")"}
                               </div>
                             </div>
                           </div>
@@ -2878,8 +2877,6 @@ export default function JpgToPdf() {
                             );
                           })}
                         </div>
-
-                       
 
                         {/* Custom Quality Slider */}
                         {compressionQuality === "custom" && (
@@ -3117,8 +3114,8 @@ export default function JpgToPdf() {
                                 {margin === "no-margin"
                                   ? "No Margin"
                                   : margin === "small"
-                                  ? "Small"
-                                  : "Big"}
+                                  ? "Small (0.25\")" // FIXED
+                                  : "Big (1\")"}
                               </button>
                             )
                           )}
@@ -3185,8 +3182,8 @@ export default function JpgToPdf() {
                             {marginSize === "no-margin"
                               ? "No Margin"
                               : marginSize === "small"
-                              ? "Small Margin"
-                              : "Big Margin"}
+                              ? "Small Margin (0.25\")" // FIXED
+                              : "Big Margin (1\")"}
                           </span>
                         </div>
                         <div className="text-sm">
@@ -3244,7 +3241,7 @@ export default function JpgToPdf() {
                             {marginSize === "no-margin"
                               ? "0 inch"
                               : marginSize === "small"
-                              ? "0.5 inch"
+                              ? "0.25 inch" // FIXED
                               : "1 inch"}
                           </span>
                         </div>
@@ -3341,8 +3338,8 @@ export default function JpgToPdf() {
                               {marginSize === "no-margin"
                                 ? "No Margin"
                                 : marginSize === "small"
-                                ? "Small"
-                                : "Big"}
+                                ? "Small (0.25\")" // FIXED
+                                : "Big (1\")"}
                             </span>
                             <span className="text-gray-600 dark:text-gray-400">
                               Order: {reverseOrder ? "Reverse" : "Normal"}
