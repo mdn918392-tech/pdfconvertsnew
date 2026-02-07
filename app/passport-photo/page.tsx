@@ -1963,53 +1963,7 @@ export default function PassportPhotoMaker() {
                     )}
                   </div>
 
-                  <section className="mt-20">
-                    <h2 className="text-3xl font-bold text-center mb-10">
-                      How to Create Passport Size Photo Online
-                    </h2>
-
-                    <div className="grid gap-6 md:grid-cols-5">
-                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                        <div className="text-4xl font-bold text-blue-600 mb-2">1</div>
-                        <h3 className="font-semibold text-lg">Upload Photo</h3>
-                        <p className="text-gray-600 text-sm mt-2">
-                          Upload a clear portrait photo from your device.
-                        </p>
-                      </div>
-
-                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                        <div className="text-4xl font-bold text-blue-600 mb-2">2</div>
-                        <h3 className="font-semibold text-lg">Choose Country</h3>
-                        <p className="text-gray-600 text-sm mt-2">
-                          Select passport size for India, USA, UK or other countries.
-                        </p>
-                      </div>
-
-                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                        <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
-                        <h3 className="font-semibold text-lg">Customize Settings</h3>
-                        <p className="text-gray-600 text-sm mt-2">
-                          Set DPI, background color, photo quantity and paper size.
-                        </p>
-                      </div>
-
-                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                        <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
-                        <h3 className="font-semibold text-lg">Generate Photos</h3>
-                        <p className="text-gray-600 text-sm mt-2">
-                          Create HD, print-ready passport photo sheets instantly.
-                        </p>
-                      </div>
-
-                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                        <div className="text-4xl font-bold text-blue-600 mb-2">5</div>
-                        <h3 className="font-semibold text-lg">Download & Print</h3>
-                        <p className="text-gray-600 text-sm mt-2">
-                          Download and print your passport photos without signup.
-                        </p>
-                      </div>
-                    </div>
-                  </section>
+                  
                 </div>
               )}
             </div>
@@ -2209,6 +2163,54 @@ export default function PassportPhotoMaker() {
                 </div>
               </div>
             </div>
+
+            <section className="mt-20">
+                    <h2 className="text-3xl font-bold text-center mb-10">
+                      How to Create Passport Size Photo Online
+                    </h2>
+
+                    <div className="grid gap-6 md:grid-cols-5">
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">1</div>
+                        <h3 className="font-semibold text-lg">Upload Photo</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Upload a clear portrait photo from your device.
+                        </p>
+                      </div>
+
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">2</div>
+                        <h3 className="font-semibold text-lg">Choose Country</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Select passport size for India, USA, UK or other countries.
+                        </p>
+                      </div>
+
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
+                        <h3 className="font-semibold text-lg">Customize Settings</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Set DPI, background color, photo quantity and paper size.
+                        </p>
+                      </div>
+
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
+                        <h3 className="font-semibold text-lg">Generate Photos</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Create HD, print-ready passport photo sheets instantly.
+                        </p>
+                      </div>
+
+                      <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                        <div className="text-4xl font-bold text-blue-600 mb-2">5</div>
+                        <h3 className="font-semibold text-lg">Download & Print</h3>
+                        <p className="text-gray-600 text-sm mt-2">
+                          Download and print your passport photos without signup.
+                        </p>
+                      </div>
+                    </div>
+                  </section>
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">

@@ -1384,45 +1384,7 @@ export default function CompressPdf() {
                   </motion.div>
                 )}
 
-                 <section className="mt-20">
-      <h2 className="text-3xl font-bold text-center mb-10">
-        How to Compress PDF Files Online
-      </h2>
-
-      <div className="grid gap-6 md:grid-cols-4">
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-orange-500 mb-2">1</div>
-          <h3 className="font-semibold text-lg">Upload PDF</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Upload your PDF file using drag & drop or the upload button.
-          </p>
-        </div>
-
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-orange-500 mb-2">2</div>
-          <h3 className="font-semibold text-lg">Choose Compression Level</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Select Low, Medium, High, or Extreme compression from the sidebar.
-          </p>
-        </div>
-
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-orange-500 mb-2">3</div>
-          <h3 className="font-semibold text-lg">Compress PDF</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Click the compress button to reduce PDF size while keeping quality.
-          </p>
-        </div>
-
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-orange-500 mb-2">4</div>
-          <h3 className="font-semibold text-lg">Download PDF</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Download your compressed PDF instantly to your device.
-          </p>
-        </div>
-      </div>
-    </section>
+   
               </div>
 
 

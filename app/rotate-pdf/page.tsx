@@ -1919,7 +1919,24 @@ export default function PdfRotatorTool() {
                         </p>
                       </div>
 
-                          <section className="mt-20">
+   
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+
+          {/* Zoom Modal */}
+          <ZoomModal
+            isOpen={zoomModal.isOpen}
+            onClose={() => setZoomModal({ ...zoomModal, isOpen: false })}
+            pageNumber={zoomModal.pageNumber}
+            pdfData={pdfData}
+            fileName={zoomModal.fileName}
+            rotation={zoomModal.rotation} // ✅ rotation भेजें
+          />
+ <section className="mt-20">
       <h2 className="text-3xl font-bold text-center mb-10">
         How to Rotate PDF Pages Online
       </h2>
@@ -1958,23 +1975,6 @@ export default function PdfRotatorTool() {
         </div>
       </div>
     </section>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-          </div>
-
-          {/* Zoom Modal */}
-          <ZoomModal
-            isOpen={zoomModal.isOpen}
-            onClose={() => setZoomModal({ ...zoomModal, isOpen: false })}
-            pageNumber={zoomModal.pageNumber}
-            pdfData={pdfData}
-            fileName={zoomModal.fileName}
-            rotation={zoomModal.rotation} // ✅ rotation भेजें
-          />
-
 
 
           {/* Explore All Tools Section */}

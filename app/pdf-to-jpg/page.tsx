@@ -2357,7 +2357,26 @@ export default function PdfToImageConverterWithRotation() {
                           </button>
                         </div>
 
-                         <section className="max-w-6xl mx-auto mt-16 px-4">
+  
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </div>
+
+            {/* Zoom Modal */}
+            <ZoomModal
+              isOpen={zoomModal.isOpen}
+              onClose={() => setZoomModal({ ...zoomModal, isOpen: false })}
+              pageNumber={zoomModal.pageNumber}
+              pdfData={pdfData}
+              fileName={zoomModal.fileName}
+              pageRotation={zoomModal.pageRotation}
+              pageImageData={zoomModal.pageImageData}
+            />
+
+              <section className="max-w-6xl mx-auto mt-16 px-4">
       <h2 className="text-3xl font-bold text-center mb-10">
         How to Convert PDF to JPG
       </h2>
@@ -2400,25 +2419,6 @@ export default function PdfToImageConverterWithRotation() {
         </div>
       </div>
     </section>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-            </div>
-
-            {/* Zoom Modal */}
-            <ZoomModal
-              isOpen={zoomModal.isOpen}
-              onClose={() => setZoomModal({ ...zoomModal, isOpen: false })}
-              pageNumber={zoomModal.pageNumber}
-              pdfData={pdfData}
-              fileName={zoomModal.fileName}
-              pageRotation={zoomModal.pageRotation}
-              pageImageData={zoomModal.pageImageData}
-            />
-
-            
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">

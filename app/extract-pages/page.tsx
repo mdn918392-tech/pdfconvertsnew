@@ -1796,66 +1796,7 @@ export default function PdfPageExtractorTool() {
                       </motion.button>
                     )}
 
-                    <section className="mt-20">
-                      <h2 className="text-3xl font-bold text-center mb-10">
-                        How to Extract Pages from PDF
-                      </h2>
-
-                      <div className="grid gap-6 md:grid-cols-4">
-                        {/* Step 1 */}
-                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                          <div className="text-4xl font-bold text-purple-600 mb-2">
-                            1
-                          </div>
-                          <h3 className="font-semibold text-lg">Upload PDF</h3>
-                          <p className="text-gray-600 text-sm mt-2">
-                            Upload the PDF file from which you want to extract
-                            pages.
-                          </p>
-                        </div>
-
-                        {/* Step 2 */}
-                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                          <div className="text-4xl font-bold text-purple-600 mb-2">
-                            2
-                          </div>
-                          <h3 className="font-semibold text-lg">
-                            Select Pages
-                          </h3>
-                          <p className="text-gray-600 text-sm mt-2">
-                            Click on pages to select or deselect them for
-                            extraction.
-                          </p>
-                        </div>
-
-                        {/* Step 3 */}
-                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                          <div className="text-4xl font-bold text-purple-600 mb-2">
-                            3
-                          </div>
-                          <h3 className="font-semibold text-lg">
-                            Extract Pages
-                          </h3>
-                          <p className="text-gray-600 text-sm mt-2">
-                            Click the extract button to create a new PDF with
-                            selected pages.
-                          </p>
-                        </div>
-
-                        {/* Step 4 */}
-                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                          <div className="text-4xl font-bold text-purple-600 mb-2">
-                            4
-                          </div>
-                          <h3 className="font-semibold text-lg">
-                            Download PDF
-                          </h3>
-                          <p className="text-gray-600 text-sm mt-2">
-                            Download the extracted pages as a new PDF instantly.
-                          </p>
-                        </div>
-                      </div>
-                    </section>
+                   
 
                     {/* Results */}
                     {processed && (
@@ -2298,6 +2239,67 @@ export default function PdfPageExtractorTool() {
               fileName={simpleZoomModal.fileName}
             />
 
+ <section className="mt-20">
+                      <h2 className="text-3xl font-bold text-center mb-10">
+                        How to Extract Pages from PDF
+                      </h2>
+
+                      <div className="grid gap-6 md:grid-cols-4">
+                        {/* Step 1 */}
+                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                          <div className="text-4xl font-bold text-purple-600 mb-2">
+                            1
+                          </div>
+                          <h3 className="font-semibold text-lg">Upload PDF</h3>
+                          <p className="text-gray-600 text-sm mt-2">
+                            Upload the PDF file from which you want to extract
+                            pages.
+                          </p>
+                        </div>
+
+                        {/* Step 2 */}
+                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                          <div className="text-4xl font-bold text-purple-600 mb-2">
+                            2
+                          </div>
+                          <h3 className="font-semibold text-lg">
+                            Select Pages
+                          </h3>
+                          <p className="text-gray-600 text-sm mt-2">
+                            Click on pages to select or deselect them for
+                            extraction.
+                          </p>
+                        </div>
+
+                        {/* Step 3 */}
+                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                          <div className="text-4xl font-bold text-purple-600 mb-2">
+                            3
+                          </div>
+                          <h3 className="font-semibold text-lg">
+                            Extract Pages
+                          </h3>
+                          <p className="text-gray-600 text-sm mt-2">
+                            Click the extract button to create a new PDF with
+                            selected pages.
+                          </p>
+                        </div>
+
+                        {/* Step 4 */}
+                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                          <div className="text-4xl font-bold text-purple-600 mb-2">
+                            4
+                          </div>
+                          <h3 className="font-semibold text-lg">
+                            Download PDF
+                          </h3>
+                          <p className="text-gray-600 text-sm mt-2">
+                            Download the extracted pages as a new PDF instantly.
+                          </p>
+                        </div>
+                      </div>
+                    </section> 
+                    
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-6 md:mb-8">

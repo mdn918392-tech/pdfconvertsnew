@@ -1141,10 +1141,14 @@ export default function RotateImage() {
   </div>
 )}
 
-   <section
+   
+
+            </div>
+
+             <section
       id="how-to-rotate-image"
       className="mt-20 scroll-mt-24"
-    >
+     >
       <h2 className="text-3xl font-bold text-center mb-10">
         How to Rotate Images Online
       </h2>
@@ -1207,8 +1211,6 @@ export default function RotateImage() {
 
       </div>
     </section>
-
-            </div>
 
 
             {/* --- Results and Download Area --- */}

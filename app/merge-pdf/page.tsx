@@ -923,63 +923,7 @@ export default function MergePdf() {
                         </motion.div>
                       )}
 
-                      <section className="mt-16 max-w-6xl mx-auto px-4">
-                        <h2 className="text-3xl font-bold text-center mb-8">
-                          How to Merge PDF Files
-                        </h2>
-
-                        <div className="grid gap-6 md:grid-cols-4">
-                          {/* Step 1 */}
-                          <div className="border rounded-xl p-6 text-center shadow-sm">
-                            <div className="text-4xl font-bold text-purple-600 mb-2">
-                              1
-                            </div>
-                            <h3 className="font-semibold text-lg">
-                              Upload PDFs
-                            </h3>
-                            <p className="text-gray-600 text-sm mt-2">
-                              Upload one or more PDF files from your device.
-                            </p>
-                          </div>
-
-                          {/* Step 2 */}
-                          <div className="border rounded-xl p-6 text-center shadow-sm">
-                            <div className="text-4xl font-bold text-purple-600 mb-2">
-                              2
-                            </div>
-                            <h3 className="font-semibold text-lg">
-                              Reorder Files
-                            </h3>
-                            <p className="text-gray-600 text-sm mt-2">
-                              Drag & drop PDFs to arrange them correctly.
-                            </p>
-                          </div>
-
-                          {/* Step 3 */}
-                          <div className="border rounded-xl p-6 text-center shadow-sm">
-                            <div className="text-4xl font-bold text-purple-600 mb-2">
-                              3
-                            </div>
-                            <h3 className="font-semibold text-lg">
-                              Merge PDFs
-                            </h3>
-                            <p className="text-gray-600 text-sm mt-2">
-                              Click the merge button to combine files.
-                            </p>
-                          </div>
-
-                          {/* Step 4 */}
-                          <div className="border rounded-xl p-6 text-center shadow-sm">
-                            <div className="text-4xl font-bold text-purple-600 mb-2">
-                              4
-                            </div>
-                            <h3 className="font-semibold text-lg">Download</h3>
-                            <p className="text-gray-600 text-sm mt-2">
-                              Download the merged PDF instantly.
-                            </p>
-                          </div>
-                        </div>
-                      </section>
+                     
 
                       {/* Download/Success State */}
                       {pdfBlob && (
@@ -1060,6 +1004,65 @@ export default function MergePdf() {
                 </div>
               )}
             </div>
+
+ <section className="mt-16 max-w-6xl mx-auto px-4">
+                        <h2 className="text-3xl font-bold text-center mb-8">
+                          How to Merge PDF Files
+                        </h2>
+
+                        <div className="grid gap-6 md:grid-cols-4">
+                          {/* Step 1 */}
+                          <div className="border rounded-xl p-6 text-center shadow-sm">
+                            <div className="text-4xl font-bold text-purple-600 mb-2">
+                              1
+                            </div>
+                            <h3 className="font-semibold text-lg">
+                              Upload PDFs
+                            </h3>
+                            <p className="text-gray-600 text-sm mt-2">
+                              Upload one or more PDF files from your device.
+                            </p>
+                          </div>
+
+                          {/* Step 2 */}
+                          <div className="border rounded-xl p-6 text-center shadow-sm">
+                            <div className="text-4xl font-bold text-purple-600 mb-2">
+                              2
+                            </div>
+                            <h3 className="font-semibold text-lg">
+                              Reorder Files
+                            </h3>
+                            <p className="text-gray-600 text-sm mt-2">
+                              Drag & drop PDFs to arrange them correctly.
+                            </p>
+                          </div>
+
+                          {/* Step 3 */}
+                          <div className="border rounded-xl p-6 text-center shadow-sm">
+                            <div className="text-4xl font-bold text-purple-600 mb-2">
+                              3
+                            </div>
+                            <h3 className="font-semibold text-lg">
+                              Merge PDFs
+                            </h3>
+                            <p className="text-gray-600 text-sm mt-2">
+                              Click the merge button to combine files.
+                            </p>
+                          </div>
+
+                          {/* Step 4 */}
+                          <div className="border rounded-xl p-6 text-center shadow-sm">
+                            <div className="text-4xl font-bold text-purple-600 mb-2">
+                              4
+                            </div>
+                            <h3 className="font-semibold text-lg">Download</h3>
+                            <p className="text-gray-600 text-sm mt-2">
+                              Download the merged PDF instantly.
+                            </p>
+                          </div>
+                        </div>
+                      </section>
+
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">

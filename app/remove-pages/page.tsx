@@ -1290,50 +1290,7 @@ export default function PdfPageRemoverTool() {
               
             </div>
 
-                <section className="mt-20">
-      <h2 className="text-3xl font-bold text-center mb-10">
-        How to Remove Pages from PDF
-      </h2>
-
-      <div className="grid gap-6 md:grid-cols-4">
-        {/* Step 1 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-red-500 mb-2">1</div>
-          <h3 className="font-semibold text-lg">Upload PDF</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Upload your PDF file that contains pages you want to remove.
-          </p>
-        </div>
-
-        {/* Step 2 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-red-500 mb-2">2</div>
-          <h3 className="font-semibold text-lg">Select Pages</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Click on pages to keep or remove. Use quick options like odd, even,
-            or select all pages.
-          </p>
-        </div>
-
-        {/* Step 3 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-red-500 mb-2">3</div>
-          <h3 className="font-semibold text-lg">Review Changes</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Preview selected pages and check the estimated new PDF size.
-          </p>
-        </div>
-
-        {/* Step 4 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-          <div className="text-4xl font-bold text-red-500 mb-2">4</div>
-          <h3 className="font-semibold text-lg">Download PDF</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Download the modified PDF with unwanted pages removed instantly.
-          </p>
-        </div>
-      </div>
-    </section>
+   
 
             
 
@@ -1838,7 +1795,50 @@ export default function PdfPageRemoverTool() {
           />
 
     
+ <section className="mt-20">
+      <h2 className="text-3xl font-bold text-center mb-10">
+        How to Remove Pages from PDF
+      </h2>
 
+      <div className="grid gap-6 md:grid-cols-4">
+        {/* Step 1 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-red-500 mb-2">1</div>
+          <h3 className="font-semibold text-lg">Upload PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Upload your PDF file that contains pages you want to remove.
+          </p>
+        </div>
+
+        {/* Step 2 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-red-500 mb-2">2</div>
+          <h3 className="font-semibold text-lg">Select Pages</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Click on pages to keep or remove. Use quick options like odd, even,
+            or select all pages.
+          </p>
+        </div>
+
+        {/* Step 3 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-red-500 mb-2">3</div>
+          <h3 className="font-semibold text-lg">Review Changes</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Preview selected pages and check the estimated new PDF size.
+          </p>
+        </div>
+
+        {/* Step 4 */}
+        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+          <div className="text-4xl font-bold text-red-500 mb-2">4</div>
+          <h3 className="font-semibold text-lg">Download PDF</h3>
+          <p className="text-gray-600 text-sm mt-2">
+            Download the modified PDF with unwanted pages removed instantly.
+          </p>
+        </div>
+      </div>
+    </section>
 
           {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">

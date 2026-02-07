@@ -1555,7 +1555,10 @@ export default function ResizeImage() {
                 </div>
               )}
 
-              {/* How-to Steps Section */}
+           
+            </div>
+
+               {/* How-to Steps Section */}
               <section className="mt-12 md:mt-20">
                 <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-10">
                   How to Resize Images Online
@@ -1599,7 +1602,6 @@ export default function ResizeImage() {
                   ))}
                 </div>
               </section>
-            </div>
 
             {/* --- Results and Download Area --- */}
             {hasResult && resizedFile && (

@@ -969,7 +969,19 @@ export default function CompressImage() {
                       </motion.button>
                     )}
                   </div>
-                  <section className="mt-20">
+  
+
+
+                </div>
+              )}
+
+              
+            </div>
+            
+
+            
+
+              <section className="mt-20">
       <h2 className="text-3xl font-bold text-center mb-10">
         How to Compress Images Online
       </h2>
@@ -1017,18 +1029,6 @@ export default function CompressImage() {
 
       </div>
     </section>
-
-
-                </div>
-              )}
-
-              
-            </div>
-            
-
-            
-
-            
 
             {/* --- Results and Download Area --- */}
             {hasResults && (
