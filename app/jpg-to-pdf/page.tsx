@@ -81,11 +81,12 @@ interface DownloadNotification {
 // Compression Quality Options
 type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 
-// ✅ MOBILE: STRICT LIMITS, DESKTOP: NO LIMITS
-const MAX_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER; // No limit for desktop
-const MAX_SIZE_MOBILE = 50 * 1024 * 1024;   // 50MB per file for mobile
-const MAX_TOTAL_SIZE_MOBILE = 200 * 1024 * 1024;  // 200MB total for mobile
+// ✅ MOBILE: सरल limits
+const MAX_SIZE_MOBILE = 10 * 1024 * 1024;   // 10MB per file for mobile (छोटा रखो)
 const MAX_FILES_MOBILE = 15; // Max 15 files on mobile
+
+// Desktop के लिए कोई limits नहीं
+const MAX_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER;
 
 // ✅ FIXED: Paper Size Definitions with correct dimensions
 const PAPER_SIZES = {
@@ -273,7 +274,7 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// ✅ MOBILE के लिए सरल compression function
+// ✅ MOBILE के लिए बहुत सरल compression function
 const compressImageForPdf = async (
   file: File,
   rotation: number = 0,
@@ -283,14 +284,13 @@ const compressImageForPdf = async (
   targetWidth?: number,
   targetHeight?: number
 ): Promise<string> => {
-  // ✅ MOBILE के लिए सरल approach - कोई compression नहीं
+  // ✅ MOBILE के लिए बिना किसी processing के सीधा return
   if (isMobile) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result;
         if (result && typeof result === 'string') {
-          console.log(`Mobile: Returning original image without compression (${(result.length/1024).toFixed(0)}KB)`);
           resolve(result);
         } else {
           reject(new Error("Failed to read file as base64"));
@@ -918,7 +918,7 @@ export default function JpgToPdf() {
   const [sizeLimitExceeded, setSizeLimitExceeded] = useState(false);
   const [imageLoading, setImageLoading] = useState<Record<string, boolean>>({});
 
-  // ✅ FIXED: ReplaceImageModal component को JpgToPdf function के अंदर define किया है
+  // ✅ FIXED: ReplaceImageModal component
   const ReplaceImageModal = ({
     onReplace,
     onCancel,
@@ -1025,7 +1025,7 @@ export default function JpgToPdf() {
                 <span>•</span>
                 <span>WEBP</span>
                 <span>•</span>
-                <span>Max {modalIsMobile ? "50MB (mobile)" : "No Limit (desktop)"}</span>
+                <span>Max {modalIsMobile ? "10MB (mobile)" : "No Limit (desktop)"}</span>
               </div>
             </div>
 
@@ -1052,9 +1052,7 @@ export default function JpgToPdf() {
 
   // Limits definition
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
-
   const maxFiles = isMobile ? MAX_FILES_MOBILE : Number.MAX_SAFE_INTEGER;
-  const MAX_TOTAL_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER; 
 
   // Function to calculate hash of current state
   const calculateStateHash = useCallback(() => {
@@ -1534,34 +1532,6 @@ export default function JpgToPdf() {
           }
         }
 
-        // 3. Total size check
-        const currentTotalSize = files.reduce((sum, f) => sum + f.file.size, 0);
-        const newFilesTotalSize = newFiles.reduce((sum, f) => sum + f.size, 0);
-        const totalSizeAfterAdd = currentTotalSize + newFilesTotalSize;
-        
-        if (totalSizeAfterAdd > MAX_TOTAL_SIZE_MOBILE) {
-          alert(
-            `Maximum total size ${MAX_TOTAL_SIZE_MOBILE / (1024 * 1024)}MB exceeded on mobile. Current total: ${(currentTotalSize / 1024 / 1024).toFixed(2)}MB. Can only add ${((MAX_TOTAL_SIZE_MOBILE - currentTotalSize) / 1024 / 1024).toFixed(2)}MB more.`
-          );
-          setSizeLimitExceeded(true);
-          // Calculate how many files we can add
-          let addedSize = 0;
-          const allowedFiles: File[] = [];
-          for (const file of newFiles) {
-            if (addedSize + file.size <= MAX_TOTAL_SIZE_MOBILE - currentTotalSize) {
-              allowedFiles.push(file);
-              addedSize += file.size;
-            } else {
-              break;
-            }
-          }
-          newFiles = allowedFiles;
-          if (newFiles.length === 0) {
-            setCompressing(false);
-            return;
-          }
-        }
-
         const filesWithIds: FileWithPreview[] = newFiles.map((file, index) => ({
           file: file,
           id: Math.random().toString(36).substr(2, 9),
@@ -1610,7 +1580,7 @@ export default function JpgToPdf() {
     setImageLoading((prev) => ({ ...prev, [id]: false }));
   }, []);
 
-  // ✅ FIXED: handleConvert function with MOBILE LIMITS
+  // ✅ SIMPLE: handleConvert function with MOBILE SIMPLIFICATION
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -1638,10 +1608,9 @@ export default function JpgToPdf() {
       if (isMobile) {
         console.log(`Mobile device processing ${filesToProcess.length} images (max ${MAX_FILES_MOBILE} allowed)`);
         
-        // Mobile के लिए warning
-        if (filesToProcess.length > 10) {
+        if (filesToProcess.length > 5) {
           const shouldContinue = window.confirm(
-            `⚠️ Processing ${filesToProcess.length} images on mobile may take time.\n\nFor best performance:\n• Use Maximum Quality (100%)\n• Make sure you have stable internet connection\n\nContinue anyway?`
+            `Processing ${filesToProcess.length} images on mobile.\n\nThis may take a few moments.\nContinue?`
           );
           if (!shouldContinue) {
             setConverting(false);
@@ -1656,7 +1625,7 @@ export default function JpgToPdf() {
       console.log("Quality Setting:", compressionQuality);
       
       let cleanup: (() => void) | null = null;
-      cleanup = simulateProgress(setProgress, 10, 50, 3000);
+      cleanup = simulateProgress(setProgress, 10, 50, 2000); // Shorter time for mobile
 
       console.log("Starting image processing...");
       console.log(`Compression Quality: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
@@ -1690,31 +1659,38 @@ export default function JpgToPdf() {
         console.log(`Mobile device: Using simple processing for ${filesToProcess.length} images`);
         
         // Direct processing without compression for mobile
-        const imagePromises = filesToProcess.map(async (fileWithPreview) => {
-          return new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const result = e.target?.result;
-              if (result && typeof result === 'string') {
-                resolve(result);
-              } else {
-                // Fallback
-                resolve('');
-              }
-            };
-            reader.onerror = () => resolve('');
-            reader.readAsDataURL(fileWithPreview.file);
-          });
-        });
-        
-        const imageResults = await Promise.all(imagePromises);
-        const validImages = imageResults.filter(img => img && img.startsWith('data:'));
-        
-        if (validImages.length === 0) {
-          throw new Error("Failed to load images on mobile. Try with fewer images.");
+        for (let i = 0; i < filesToProcess.length; i++) {
+          const fileWithPreview = filesToProcess[i];
+          
+          try {
+            // Update progress
+            const fileProgress = 10 + ((i + 1) / filesToProcess.length) * 40;
+            setProgress(Math.floor(fileProgress));
+
+            const imageData = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const result = e.target?.result;
+                if (result && typeof result === 'string') {
+                  resolve(result);
+                } else {
+                  reject(new Error("Invalid result"));
+                }
+              };
+              reader.onerror = () => reject(new Error("Failed to read file"));
+              reader.readAsDataURL(fileWithPreview.file);
+            });
+
+            if (imageData && imageData.startsWith('data:')) {
+              compressedImages.push(imageData);
+              console.log(`✅ Mobile image ${i + 1} loaded`);
+            }
+          } catch (error) {
+            console.error(`❌ Failed to load image ${i + 1}:`, error);
+            // Skip this image but continue
+            continue;
+          }
         }
-        
-        compressedImages = validImages;
       } else {
         // Desktop processing with compression
         for (let i = 0; i < filesToProcess.length; i++) {
@@ -1780,7 +1756,7 @@ export default function JpgToPdf() {
       // Now create PDF with compressed images and margin
       try {
         setProgress(50);
-        cleanup = simulateProgress(setProgress, 50, 90, 3000);
+        cleanup = simulateProgress(setProgress, 50, 90, 2000); // Shorter time for mobile
 
         console.log(`Creating PDF with ${compressedImages.length} images...`);
         console.log(`PDF Margin: ${marginSize} (${marginPoints} points = ${marginPoints/72} inch)`);
@@ -1814,10 +1790,6 @@ export default function JpgToPdf() {
             0
           );
           const pdfSize = blob.size;
-          const totalCompressionRatio = (
-            ((totalOriginalSize - pdfSize) / totalOriginalSize) *
-            100
-          ).toFixed(1);
 
           console.log(`\n=== PDF Generation Complete ===`);
           console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
@@ -1826,7 +1798,6 @@ export default function JpgToPdf() {
           console.log(`Reverse Order: ${reverseOrder}`);
           console.log(`Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
           console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
-          console.log(`Total change: ${totalCompressionRatio}%`);
           console.log(`PDF created successfully!`);
 
           // Hide compression info after 3 seconds
@@ -1841,7 +1812,7 @@ export default function JpgToPdf() {
         let errorMessage = `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}.`;
         
         if (isMobile) {
-          errorMessage += "\n\n📱 Mobile Device Tip:\n• Maximum 15 images allowed\n• Use smaller image files\n• Close other apps for better performance";
+          errorMessage += "\n\n📱 Mobile Device Tip:\n• Maximum 15 images allowed\n• Use smaller image files (max 10MB)\n• Close other apps for better performance";
         } else {
           errorMessage += "\n\nPlease try again with fewer images or lower quality settings.";
         }
@@ -1859,7 +1830,7 @@ export default function JpgToPdf() {
       let errorMessage = `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}.`;
       
       if (isMobile) {
-        errorMessage += "\n\n📱 Mobile Device Tip:\n• Maximum 15 images allowed\n• Use smaller image files\n• Close other apps for better performance";
+        errorMessage += "\n\n📱 Mobile Device Tip:\n• Maximum 15 images allowed\n• Use smaller image files (max 10MB)\n• Close other apps for better performance";
       } else {
         errorMessage += "\n\nPlease try again with fewer images or lower quality settings.";
       }
@@ -2241,7 +2212,7 @@ export default function JpgToPdf() {
                   <div>
                     <h3 className="font-bold text-sm md:text-lg">📱 Mobile Mode Active</h3>
                     <p className="text-xs md:text-sm opacity-90">
-                      Limits: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file, {MAX_TOTAL_SIZE_MOBILE/(1024*1024)}MB total • Desktop for unlimited
+                      Limits: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file
                     </p>
                   </div>
                 </div>
@@ -2277,7 +2248,7 @@ export default function JpgToPdf() {
                     </p>
                     {isMobile && (
                       <div className="mt-2 text-xs bg-white/20 p-2 rounded">
-                        📱 <strong>Quick Fix:</strong> Maximum {MAX_FILES_MOBILE} images allowed on mobile
+                        📱 <strong>Quick Fix:</strong> Maximum {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file
                       </div>
                     )}
                   </div>
@@ -2390,7 +2361,7 @@ export default function JpgToPdf() {
   accept="image/jpeg,image/jpg,image/png,image/webp"
   multiple={true}
   onFilesSelected={handleFilesUpdate}
-  maxSize={isMobile ? 50 : Infinity} // 50MB for mobile, no limit for desktop
+  maxSize={isMobile ? 10 : Infinity} // 10MB for mobile, no limit for desktop
   maxFiles={isMobile ? MAX_FILES_MOBILE : undefined} // 15 files for mobile
 />
 
@@ -2401,7 +2372,7 @@ export default function JpgToPdf() {
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>{isMobile ? "50MB/file" : "No Size Limit"}</span>
+    <span>{isMobile ? "10MB/file" : "No Size Limit"}</span>
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -2409,7 +2380,7 @@ export default function JpgToPdf() {
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>Size Reduction up to 80%</span>
+    <span>{isMobile ? "100% Quality" : "Size Reduction"}</span>
   </div>
 </div>
 
@@ -2418,7 +2389,7 @@ export default function JpgToPdf() {
   {isMobile ? (
     <div className="flex items-center gap-2">
       <Smartphone className="w-4 h-4" />
-      <span>📱 Mobile: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file, {MAX_TOTAL_SIZE_MOBILE/(1024*1024)}MB total</span>
+      <span>📱 Mobile: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file</span>
     </div>
   ) : (
     <div className="flex items-center gap-2">
@@ -2447,13 +2418,13 @@ export default function JpgToPdf() {
                         <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                         <div>
                           <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1">
-                            📱 Mobile Device - Limited Features
+                            📱 Mobile Device - Simple Mode
                           </h4>
                           <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
                             <li>• Maximum {MAX_FILES_MOBILE} images allowed ({files.length}/{MAX_FILES_MOBILE} used)</li>
                             <li>• Maximum {MAX_SIZE_MOBILE/(1024*1024)}MB per file</li>
                             <li>• Using <strong>Maximum Quality (100%)</strong> only</li>
-                            <li>• No compression options on mobile</li>
+                            <li>• Simple processing for mobile performance</li>
                             <li className="font-semibold mt-2">For more features: Use desktop version</li>
                           </ul>
                         </div>
@@ -2476,24 +2447,6 @@ export default function JpgToPdf() {
                             <li>• Adjust quality settings for smaller file size</li>
                             <li className="font-semibold mt-2">✓ No restrictions - Upload unlimited files</li>
                           </ul>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Size Limit Warning - Only for Mobile */}
-                  {sizeLimitExceeded && isMobile && (
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h4 className="font-bold text-amber-800 dark:text-amber-300">
-                            ⚠️ Mobile Storage Limit Warning
-                          </h4>
-                          <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                            You're approaching the total size limit of {MAX_TOTAL_SIZE_MOBILE / (1024 * 1024)}MB on mobile.
-                            Current total: {(files.reduce((sum, f) => sum + f.file.size, 0) / 1024 / 1024).toFixed(2)}MB
-                          </p>
                         </div>
                       </div>
                     </div>
@@ -3422,8 +3375,8 @@ export default function JpgToPdf() {
                           <ul className="space-y-1 text-sm">
                             <li>• Max {MAX_FILES_MOBILE} images per conversion</li>
                             <li>• Max {MAX_SIZE_MOBILE/(1024*1024)}MB per file</li>
-                            <li>• Max {MAX_TOTAL_SIZE_MOBILE/(1024*1024)}MB total</li>
                             <li>• No compression options on mobile</li>
+                            <li>• Simple processing for better performance</li>
                             <li className="text-blue-600 dark:text-blue-400 font-medium">
                               • Use desktop for unlimited files and compression options
                             </li>
@@ -3715,10 +3668,10 @@ export default function JpgToPdf() {
                               : "Creating professional PDF..."}
                           </span>
                         </div>
-                        {files.length > 10 && isMobile && (
+                        {files.length > 5 && isMobile && (
                           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                             <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
-                              ⏳ Processing {files.length} images on mobile may take time. Please be patient...
+                              ⏳ Processing {files.length} images on mobile may take a moment...
                             </p>
                           </div>
                         )}
@@ -3908,7 +3861,7 @@ export default function JpgToPdf() {
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {isMobile 
-                      ? "Upload up to 15 images on mobile, 50MB per file"
+                      ? "Upload up to 15 images on mobile, 10MB per file"
                       : "Upload unlimited files with no size restrictions on desktop"
                     }
                   </p>

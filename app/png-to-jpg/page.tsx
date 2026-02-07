@@ -871,7 +871,7 @@ export default function PngToJpg() {
                 </motion.div>
 
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-orange-600 via-pink-600 to-orange-600 bg-clip-text text-transparent px-2">
-                  PNG to JPG Converter
+                  PNG to JPG Converter Online – Fast, Free & Secure
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
@@ -960,9 +960,12 @@ export default function PngToJpg() {
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       Select PNG files to convert to JPG format
-                      <span className="block text-orange-600 dark:text-orange-400 mt-1">
-                        Max {isMobile ? "30MB" : "200MB"} per file • {isMobile ? "10" : "50"} files max
-                      </span>
+                     {isMobile && (
+  <span className="block text-orange-600 dark:text-orange-400 mt-1">
+    Max 30MB per file • 10 files max
+  </span>
+)}
+
                     </p>
                   </div>
                 </div>

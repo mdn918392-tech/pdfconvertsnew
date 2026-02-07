@@ -137,8 +137,8 @@ export const metadata = {
   },
   category: "How-to Guide",
   other: {
-    "article:published_time": "2026-02-07T08:00:00+00:00",
-    "article:modified_time": "2026-02-07T08:00:00+00:00",
+    "article:published_time": "2026-02-08T08:00:00+00:00",
+    "article:modified_time": "2026-02-08T08:00:00+00:00",
     "article:section": "How-to Guide",
     "article:tag": ["JPG compression", "image optimization", "reduce file size", "photo compression", "how-to guide"],
   },
@@ -175,7 +175,7 @@ export default function CompressJPGWithoutLosingQuality() {
           "@type": "WebPage",
           "@id": "https://www.pdfswift.online/blog/compress-jpg-without-losing-quality-2026",
         },
-        wordCount: 1500,
+        wordCount: 1200,
         timeRequired: "PT10M",
         articleSection: "How-to Guide",
         articleBody: `Practical guide to compressing JPG images for web, email, and sharing without noticeable quality loss. Covers real-world scenarios, common mistakes, and simple techniques that work in 2026.`,
@@ -326,7 +326,7 @@ export default function CompressJPGWithoutLosingQuality() {
                       aria-hidden="true"
                     />
                     <time dateTime="2026-02-07" className="font-medium">
-                      February 7, 2026
+                      February 8, 2026
                     </time>
                   </div>
                   <div className="flex items-center">

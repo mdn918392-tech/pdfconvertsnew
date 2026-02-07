@@ -29,6 +29,7 @@ import {
   AlertTriangle,
   Smartphone,
   Cpu,
+  Monitor,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
@@ -67,25 +68,28 @@ const tool = {
   path: "/tools/webp-to-jpg",
 };
 
-// Device limits based on performance
+// Device limits based on performance - DESKTOP UNLIMITED
 const DEVICE_LIMITS = {
   MOBILE: {
     maxFiles: 5,
     maxFileSize: 5 * 1024 * 1024, // 5MB per file
     maxTotalSize: 20 * 1024 * 1024, // 20MB total
     batchSize: 1, // Convert one at a time on mobile
+    unlimited: false,
   },
   TABLET: {
     maxFiles: 10,
     maxFileSize: 10 * 1024 * 1024,
     maxTotalSize: 50 * 1024 * 1024,
     batchSize: 2,
+    unlimited: false,
   },
   DESKTOP: {
-    maxFiles: 20,
-    maxFileSize: 20 * 1024 * 1024,
-    maxTotalSize: 100 * 1024 * 1024,
-    batchSize: 3,
+    maxFiles: Infinity, // Unlimited files on desktop
+    maxFileSize: 50 * 1024 * 1024, // 50MB per file
+    maxTotalSize: Infinity, // Unlimited total size
+    batchSize: 5, // Convert 5 files at a time
+    unlimited: true,
   },
 };
 
@@ -203,7 +207,7 @@ interface DownloadNotification {
 const PerformanceWarning = ({ deviceType, limits }: { deviceType: string, limits: any }) => {
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed) return null;
+  if (dismissed || deviceType === 'desktop') return null;
 
   return (
     <motion.div
@@ -240,6 +244,8 @@ const PerformanceWarning = ({ deviceType, limits }: { deviceType: string, limits
     </motion.div>
   );
 };
+
+
 
 // --- Image Preview Component ---
 const ImagePreview = ({
@@ -518,7 +524,7 @@ export default function WebpToJpg() {
 
   const currentLimits = DEVICE_LIMITS[deviceType.toUpperCase() as keyof typeof DEVICE_LIMITS];
 
-  // Validate files before adding
+  // Validate files before adding - Desktop has unlimited limits
   const validateFiles = (newFiles: File[]): { valid: File[], errors: string[] } => {
     const validFiles: File[] = [];
     const errors: string[] = [];
@@ -531,20 +537,20 @@ export default function WebpToJpg() {
         continue;
       }
 
-      // Check individual file size
+      // Check individual file size (applies to all devices)
       if (file.size > currentLimits.maxFileSize) {
-        errors.push(`"${file.name}" exceeds ${currentLimits.maxFileSize/1024/1024}MB limit`);
+        errors.push(`"${file.name}" exceeds ${currentLimits.maxFileSize/1024/1024}MB per file limit`);
         continue;
       }
 
-      // Check total file count
-      if (files.length + validFiles.length >= currentLimits.maxFiles) {
+      // Check total file count (not for desktop)
+      if (!currentLimits.unlimited && files.length + validFiles.length >= currentLimits.maxFiles) {
         errors.push(`Maximum ${currentLimits.maxFiles} files allowed on ${deviceType}`);
         break;
       }
 
-      // Check total size
-      if (totalSize + file.size > currentLimits.maxTotalSize) {
+      // Check total size (not for desktop)
+      if (!currentLimits.unlimited && totalSize + file.size > currentLimits.maxTotalSize) {
         errors.push(`Total size exceeds ${currentLimits.maxTotalSize/1024/1024}MB limit on ${deviceType}`);
         continue;
       }
@@ -767,9 +773,16 @@ export default function WebpToJpg() {
       : "0";
 
   // Get device-specific limits message
-  const getLimitsMessage = () => {
-    return `Limits on ${deviceType}: ${currentLimits.maxFiles} files max, ${currentLimits.maxFileSize/1024/1024}MB per file`;
-  };
+ const getLimitsMessage = () => {
+  if (deviceType === 'desktop') {
+    return "";
+  }
+
+  return `Limits on ${deviceType}: ${currentLimits.maxFiles} files max, ${
+    currentLimits.maxFileSize / 1024 / 1024
+  }MB per file`;
+};
+
 
   return (
     <>
@@ -834,11 +847,11 @@ export default function WebpToJpg() {
                 </motion.div>
 
                 <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
-                  WebP to JPG Converter – Free Online Image Conversion
+                  WebP to JPG Converter – Unlimited Desktop Conversions
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Convert WebP images to JPG format instantly using PDFSwift. Fast, secure, and browser-based with no installation or signup required. Works smoothly on all devices while preserving image quality.
+                  Convert unlimited WebP images to JPG format instantly using PDFSwift. Fast, secure, and browser-based with no installation or signup required. 
                   <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
                     {getLimitsMessage()}
                   </span>
@@ -846,8 +859,10 @@ export default function WebpToJpg() {
               </div>
             </div>
 
+           
+
             {/* --- Performance Warning --- */}
-            {hasFiles && (
+            {hasFiles && deviceType !== 'desktop' && (
               <PerformanceWarning deviceType={deviceType} limits={currentLimits} />
             )}
 
@@ -863,16 +878,20 @@ export default function WebpToJpg() {
                   {[
                     {
                       icon: Zap,
-                      title: "Fast Conversion",
-                      desc: "Convert WebP files to JPG format in seconds with our optimized engine",
+                      title: deviceType === 'desktop' ? "Unlimited Conversions" : "Fast Conversion",
+                      desc: deviceType === 'desktop' 
+                        ? "Convert unlimited WebP files to JPG format with no restrictions" 
+                        : "Convert WebP files to JPG format in seconds with our optimized engine",
                       gradient: "from-purple-500 to-pink-600",
                       bg: "from-purple-50 to-pink-50",
                       border: "border-purple-200",
                     },
                     {
-                      icon: Cpu,
+                      icon: Monitor,
                       title: "Smart Processing",
-                      desc: `Automatic optimization for ${deviceType} devices. Batch processing with ${currentLimits.batchSize} files at a time.`,
+                      desc: deviceType === 'desktop' 
+                        ? `Full desktop power! Process ${currentLimits.batchSize} files at once with unlimited capacity`
+                        : `Automatic optimization for ${deviceType} devices. Batch processing with ${currentLimits.batchSize} files at a time.`,
                       gradient: "from-blue-500 to-cyan-600",
                       bg: "from-blue-50 to-cyan-50",
                       border: "border-blue-200",
@@ -922,7 +941,10 @@ export default function WebpToJpg() {
                       Upload WebP Images
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Select WebP files to convert to JPG format • {getLimitsMessage()}
+                      {deviceType === 'desktop' 
+                        ? "Select unlimited WebP files to convert to JPG format • Desktop: Unlimited conversions!"
+                        : `Select WebP files to convert to JPG format • ${getLimitsMessage()}`
+                      }
                     </p>
                   </div>
                 </div>
@@ -935,12 +957,17 @@ export default function WebpToJpg() {
                     onFilesSelected={handleFilesSelected}
                     maxFiles={currentLimits.maxFiles}
                     maxSize={currentLimits.maxFileSize}
+                    unlimited={currentLimits.unlimited}
                   />
                 </div>
 
                 {hasFiles && (
                   <div className="text-center mb-6">
-                    <div className="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-full">
+                    <div className={`inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-full ${
+                      deviceType === 'desktop' 
+                        ? 'bg-gradient-to-r from-emerald-100 to-cyan-100 dark:from-emerald-900/30 dark:to-cyan-900/30'
+                        : 'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30'
+                    }`}>
                       <div className="flex items-center gap-1 sm:gap-2">
                         <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
                         <span className="font-medium text-purple-700 dark:text-purple-300">
@@ -951,9 +978,17 @@ export default function WebpToJpg() {
                         <span>
                           • {(totalSize / 1024 / 1024).toFixed(2)} MB total
                         </span>
-                        {deviceType === 'mobile' && (
+                        {deviceType === 'mobile' ? (
                           <span className="flex items-center gap-1">
                             • <Smartphone className="w-3 h-3" /> Optimized for mobile
+                          </span>
+                        ) : deviceType === 'desktop' ? (
+                          <span className="flex items-center gap-1">
+                            • <Monitor className="w-3 h-3" /> Unlimited desktop power
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            • <Cpu className="w-3 h-3" /> Tablet mode
                           </span>
                         )}
                       </div>
@@ -970,7 +1005,11 @@ export default function WebpToJpg() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Image className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
-                        Uploaded WebP Images ({files.length}/{currentLimits.maxFiles})
+                        Uploaded WebP Images {
+                          currentLimits.unlimited 
+                            ? `(${files.length} files)` 
+                            : `(${files.length}/${currentLimits.maxFiles})`
+                        }
                       </h3>
                       <button
                         onClick={handleReset}
@@ -1019,6 +1058,7 @@ export default function WebpToJpg() {
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
                             Processing on {deviceType} device...
+                            {deviceType === 'desktop' && " (Unlimited mode)"}
                           </span>
                           {deviceType === 'mobile' && (
                             <span className="text-xs text-gray-500">
@@ -1036,24 +1076,34 @@ export default function WebpToJpg() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleConvert}
-                        disabled={files.length > currentLimits.maxFiles}
-                        className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
-                          files.length > currentLimits.maxFiles ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                       >
                         <Image className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                         Convert {files.length} WebP to JPG
-                        {deviceType !== 'desktop' && (
+                        {deviceType === 'desktop' ? (
+                          <Monitor className="w-3.5 h-3.5" />
+                        ) : deviceType === 'mobile' ? (
                           <Smartphone className="w-3.5 h-3.5" />
+                        ) : (
+                          <Cpu className="w-3.5 h-3.5" />
                         )}
                       </motion.button>
                     )}
 
                     {/* Device Info */}
                     <div className="text-center">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full text-xs text-gray-600 dark:text-gray-400">
-                        <Cpu className="w-3 h-3" />
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${
+                        deviceType === 'desktop'
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                      }`}>
+                        {deviceType === 'desktop' ? (
+                          <Monitor className="w-3 h-3" />
+                        ) : (
+                          <Cpu className="w-3 h-3" />
+                        )}
                         Processing on: {deviceType} • Batch size: {currentLimits.batchSize}
+                        {deviceType === 'desktop' && " • Unlimited files"}
                       </div>
                     </div>
                   </div>
@@ -1084,6 +1134,7 @@ export default function WebpToJpg() {
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
                       Processed on {deviceType} • {sizeReduction}% average size change
+                      {deviceType === 'desktop' && " • Unlimited desktop mode"}
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
@@ -1193,10 +1244,10 @@ export default function WebpToJpg() {
                         bg: "bg-green-50 dark:bg-green-900/10",
                       },
                       {
-                        value: `${deviceType}`,
-                        label: "Device Mode",
-                        color: "text-pink-600",
-                        bg: "bg-pink-50 dark:bg-pink-900/10",
+                        value: deviceType === 'desktop' ? "Unlimited" : deviceType,
+                        label: deviceType === 'desktop' ? "Desktop Mode" : "Device Mode",
+                        color: deviceType === 'desktop' ? "text-emerald-600" : "text-pink-600",
+                        bg: deviceType === 'desktop' ? "bg-emerald-50 dark:bg-emerald-900/10" : "bg-pink-50 dark:bg-pink-900/10",
                       },
                     ].map((stat, index) => (
                       <div
@@ -1239,7 +1290,7 @@ export default function WebpToJpg() {
                   {
                     step: 1,
                     title: "Upload WebP Files",
-                    description: "Drag & drop or select WebP images from your device",
+                    description: "Drag & drop or select unlimited WebP images from your device",
                   },
                   {
                     step: 2,
@@ -1363,4 +1414,4 @@ export default function WebpToJpg() {
       </div>
     </>
   );
-}
+}   

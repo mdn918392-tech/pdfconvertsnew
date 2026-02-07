@@ -13,6 +13,7 @@ interface FileUploaderProps {
   hasExistingPdf?: boolean;    // नया prop
   isMobile?: boolean;
   maxFiles?: number; // Add this line - maximum number of files allowed
+  unlimited?: boolean; // नया prop - बस यह add किया
 }
 
 export default function FileUploader({
@@ -21,9 +22,11 @@ export default function FileUploader({
   onFilesSelected,
   maxSize = 1024,
   maxFiles, // Add this line
+  unlimited = false, // नया prop default false
 }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [deviceMaxSize, setDeviceMaxSize] = useState(maxSize);
+  const [isDesktop, setIsDesktop] = useState(false); // नया state
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Device detection - runs only on client side
@@ -37,6 +40,9 @@ export default function FileUploader({
       // Phone के लिए 35MB, laptop/desktop के लिए 100MB
       const calculatedMaxSize = (isMobileDevice || isMobileUserAgent) ? 35 : 100;
       setDeviceMaxSize(calculatedMaxSize);
+      
+      // Desktop detection for alert
+      setIsDesktop(!isMobileDevice && !isMobileUserAgent);
     };
 
     checkDevice();
@@ -68,10 +74,13 @@ export default function FileUploader({
 
       if (validNewFiles.length === 0) return;
 
-      // Check maxFiles limit if provided
-      if (maxFiles !== undefined && validNewFiles.length > maxFiles) {
-        alert(`Maximum ${maxFiles} file(s) allowed. You selected ${validNewFiles.length} files.`);
-        return;
+      // Desktop पर alert न दिखाएं
+      if (!isDesktop && !unlimited) {
+        alert(
+          `You selected ${validNewFiles.length} files.\n\n` +
+          `Mobile devices support a maximum of ${maxFiles} files at a time for better performance.\n\n` +
+          `👉 Tip: Please use a Desktop/Laptop browser to upload more files (up to 500 files).`
+        );
       }
 
       // Call parent callback immediately with the new files
@@ -83,7 +92,7 @@ export default function FileUploader({
 
       if (inputRef.current) inputRef.current.value = "";
     },
-    [multiple, onFilesSelected, deviceMaxSize, maxFiles] // Add maxFiles to dependencies
+    [multiple, onFilesSelected, deviceMaxSize, maxFiles, unlimited, isDesktop] // isDesktop dependency add की
   );
 
   //
@@ -127,7 +136,8 @@ export default function FileUploader({
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {multiple ? "Multiple files supported" : "Single file only"} • Max{" "}
           {deviceMaxSize}MB per file
-          {maxFiles !== undefined && ` • Max ${maxFiles} file${maxFiles !== 1 ? 's' : ''}`}
+          {!isDesktop && !unlimited && maxFiles !== undefined && ` • Max ${maxFiles} file${maxFiles !== 1 ? 's' : ''}`}
+          {(isDesktop || unlimited) && " • Unlimited files on desktop"}
         </p>
 
         <input
