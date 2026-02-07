@@ -9,10 +9,10 @@ interface FileUploaderProps {
   multiple?: boolean;
   onFilesSelected: (files: File[]) => void;
   maxSize?: number; // Default size in MB
-
-    existingFilesCount?: number; // नया prop
+  existingFilesCount?: number; // नया prop
   hasExistingPdf?: boolean;    // नया prop
-  isMobile?: boolean;  
+  isMobile?: boolean;
+  maxFiles?: number; // Add this line - maximum number of files allowed
 }
 
 export default function FileUploader({
@@ -20,6 +20,7 @@ export default function FileUploader({
   multiple = false,
   onFilesSelected,
   maxSize = 1024,
+  maxFiles, // Add this line
 }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [deviceMaxSize, setDeviceMaxSize] = useState(maxSize);
@@ -55,6 +56,7 @@ export default function FileUploader({
       const fileArray = Array.from(newFilesList);
       const currentMaxSize = deviceMaxSize;
 
+      // Check file size
       const validNewFiles: File[] = fileArray.filter((file) => {
         const sizeMB = file.size / 1024 / 1024;
         if (sizeMB > currentMaxSize) {
@@ -66,6 +68,12 @@ export default function FileUploader({
 
       if (validNewFiles.length === 0) return;
 
+      // Check maxFiles limit if provided
+      if (maxFiles !== undefined && validNewFiles.length > maxFiles) {
+        alert(`Maximum ${maxFiles} file(s) allowed. You selected ${validNewFiles.length} files.`);
+        return;
+      }
+
       // Call parent callback immediately with the new files
       if (multiple) {
         onFilesSelected(validNewFiles);
@@ -75,7 +83,7 @@ export default function FileUploader({
 
       if (inputRef.current) inputRef.current.value = "";
     },
-    [multiple, onFilesSelected, deviceMaxSize]
+    [multiple, onFilesSelected, deviceMaxSize, maxFiles] // Add maxFiles to dependencies
   );
 
   //
@@ -119,6 +127,7 @@ export default function FileUploader({
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {multiple ? "Multiple files supported" : "Single file only"} • Max{" "}
           {deviceMaxSize}MB per file
+          {maxFiles !== undefined && ` • Max ${maxFiles} file${maxFiles !== 1 ? 's' : ''}`}
         </p>
 
         <input

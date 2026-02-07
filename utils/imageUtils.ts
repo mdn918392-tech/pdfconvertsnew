@@ -299,8 +299,35 @@ export const downloadMultipleFiles = (files: { blob: Blob; filename: string }[])
 /**
  * Convert PNG to JPG with white background
  */
-export async function convertPngToJpg(file: File): Promise<Blob> {
+// utils/imageUtils.ts
+
+export async function convertPngToJpg(file: File, quality = 0.9): Promise<Blob> {
   return new Promise((resolve, reject) => {
+    // Check if running in browser (client-side)
+    if (typeof window === 'undefined') {
+      reject(new Error('This function can only run in the browser'));
+      return;
+    }
+
+    // डिवाइस डिटेक्शन
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    ) || window.innerWidth < 768;
+    
+    // डिवाइस के हिसाब से अलग-अलग लिमिट
+    const MAX_FILE_SIZE = isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024;
+    const MAX_DIMENSION = isMobile ? 4000 : 8000;
+    const MAX_PIXELS = isMobile ? 4000 * 4000 : 8000 * 8000;
+    
+    // फाइल साइज चेक
+    if (file.size > MAX_FILE_SIZE) {
+      reject(new Error(
+        `File size too large (${(file.size/1024/1024).toFixed(1)}MB). ` +
+        `Maximum supported file size is ${isMobile ? '30MB' : '200MB'} for ${isMobile ? 'mobile' : 'desktop'} devices.`
+      ));
+      return;
+    }
+
     const img = new Image();
     const reader = new FileReader();
 
@@ -309,28 +336,90 @@ export async function convertPngToJpg(file: File): Promise<Blob> {
     };
 
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      try {
+        let width = img.width;
+        let height = img.height;
+        
+        // Calculate current pixels
+        const currentPixels = width * height;
+        
+        // अगर इमेज बहुत बड़ी है तो स्केल करें
+        if (currentPixels > MAX_PIXELS) {
+          const scale = Math.sqrt(MAX_PIXELS / currentPixels);
+          width = Math.floor(width * scale);
+          height = Math.floor(height * scale);
+        }
+        
+        // डाइमेंशन लिमिट चेक
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+          width = Math.floor(width * ratio);
+          height = Math.floor(height * ratio);
+        }
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return reject(new Error('Canvas context not available'));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
 
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
+        // सफेद बैकग्राउंड (PNG transparency के लिए)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw image with scaling if needed
+        ctx.drawImage(img, 0, 0, width, height);
 
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error('Conversion failed'))),
-        'image/jpeg',
-        0.95
-      );
+        // Quality adjustment based on device
+        const finalQuality = isMobile ? Math.min(quality, 0.85) : quality;
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to convert PNG to JPG'));
+            }
+          },
+          'image/jpeg',
+          finalQuality
+        );
+      } catch (error: any) {
+        reject(new Error(`Image processing error: ${error.message}`));
+      }
     };
 
-    img.onerror = reject;
-    reader.onerror = reject;
+    img.onerror = () => {
+      reject(new Error('Failed to load image. The file may be corrupted or too large.'));
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
+    
     reader.readAsDataURL(file);
   });
+}
+
+// Use a different name to avoid conflict
+export function downloadImageFile(blob: Blob, filename: string) {
+  if (typeof window === 'undefined') {
+    console.error('Download function can only run in browser');
+    return;
+  }
+  
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // --------------------------------------------------

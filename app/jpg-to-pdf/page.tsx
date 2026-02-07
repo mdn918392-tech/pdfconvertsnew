@@ -39,6 +39,7 @@ import {
   Replace,
   Smartphone,
   Monitor,
+  Info,
 } from "lucide-react";
 
 // Make sure these components are client components
@@ -80,11 +81,11 @@ interface DownloadNotification {
 // Compression Quality Options
 type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 
-// ✅ DESKTOP: NO LIMITS, MOBILE: REASONABLE LIMITS
+// ✅ MOBILE: STRICT LIMITS, DESKTOP: NO LIMITS
 const MAX_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER; // No limit for desktop
-const MAX_SIZE_MOBILE = 500 * 1024 * 1024;   // 500MB for mobile
-const MAX_TOTAL_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER; // No limit for desktop
-const MAX_TOTAL_SIZE_MOBILE = 2000 * 1024 * 1024;  // 2GB total for mobile
+const MAX_SIZE_MOBILE = 50 * 1024 * 1024;   // 50MB per file for mobile
+const MAX_TOTAL_SIZE_MOBILE = 200 * 1024 * 1024;  // 200MB total for mobile
+const MAX_FILES_MOBILE = 15; // Max 15 files on mobile
 
 // ✅ FIXED: Paper Size Definitions with correct dimensions
 const PAPER_SIZES = {
@@ -272,7 +273,7 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// ✅ FIXED: Enhanced compression function with better mobile support
+// ✅ MOBILE के लिए सरल compression function
 const compressImageForPdf = async (
   file: File,
   rotation: number = 0,
@@ -282,14 +283,14 @@ const compressImageForPdf = async (
   targetWidth?: number,
   targetHeight?: number
 ): Promise<string> => {
-  // ✅ MOBILE FIX: Direct return for mobile when quality is "none"
-  if (quality === "none" || isMobile) {
+  // ✅ MOBILE के लिए सरल approach - कोई compression नहीं
+  if (isMobile) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result;
         if (result && typeof result === 'string') {
-          console.log(`Mobile/No Compression: Returning original image (${(result.length/1024).toFixed(0)}KB)`);
+          console.log(`Mobile: Returning original image without compression (${(result.length/1024).toFixed(0)}KB)`);
           resolve(result);
         } else {
           reject(new Error("Failed to read file as base64"));
@@ -300,6 +301,7 @@ const compressImageForPdf = async (
     });
   }
 
+  // ✅ Desktop के लिए original compression code
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -309,7 +311,7 @@ const compressImageForPdf = async (
       
       img.onload = () => {
         try {
-          // Desktop processing (original code with improvements)
+          // Desktop processing
           let maxDimension = 4096;
           let qualityValue = 0.75;
 
@@ -330,6 +332,10 @@ const compressImageForPdf = async (
             case "low":
               maxDimension = 800;
               qualityValue = 0.60;
+              break;
+            case "none":
+              maxDimension = 4096;
+              qualityValue = 1.0;
               break;
           }
 
@@ -747,9 +753,9 @@ const FloatingPageCounter = ({
               Reverse Order
             </div>
           )}
-          {isMobile && count > 100 && (
+          {isMobile && (
             <div className="text-xs text-amber-300 mt-1">
-              ⚠️ Large conversion on mobile
+              📱 Mobile Mode
             </div>
           )}
         </div>
@@ -774,7 +780,7 @@ const FloatingPageCounter = ({
         )}
         {isMobile && (
           <div className="text-xs mt-1 text-blue-300">
-            • Mobile: Max {MAX_SIZE_MOBILE / (1024 * 1024)}MB per file
+            • Mobile: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE / (1024 * 1024)}MB per file
           </div>
         )}
       </div>
@@ -899,14 +905,7 @@ export default function JpgToPdf() {
   const [showCompressionInfo, setShowCompressionInfo] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [compressionQuality, setCompressionQuality] =
-    useState<CompressionQuality>(() => {
-      if (typeof window !== 'undefined') {
-        const isMobile = window.innerWidth < 768 || 
-          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        return isMobile ? "none" : "medium"; // ✅ Mobile: Automatically "none"
-      }
-      return "medium";
-    });
+    useState<CompressionQuality>("none");
   const [customQualityValue, setCustomQualityValue] = useState<number>(80);
   const [showChangesWarning, setShowChangesWarning] = useState(false);
   const [originalStateHash, setOriginalStateHash] = useState<string>("");
@@ -924,7 +923,7 @@ export default function JpgToPdf() {
     onReplace,
     onCancel,
     imageName,
-    isMobile: modalIsMobile, // Rename to avoid conflict
+    isMobile: modalIsMobile,
   }: {
     onReplace: (file: File) => void;
     onCancel: () => void;
@@ -1026,8 +1025,7 @@ export default function JpgToPdf() {
                 <span>•</span>
                 <span>WEBP</span>
                 <span>•</span>
-                {/* ✅ FIXED: अब isMobile accessible है */}
-                <span>Max {modalIsMobile ? "500MB (mobile)" : "No Limit (desktop)"}</span>
+                <span>Max {modalIsMobile ? "50MB (mobile)" : "No Limit (desktop)"}</span>
               </div>
             </div>
 
@@ -1054,7 +1052,9 @@ export default function JpgToPdf() {
 
   // Limits definition
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
-  const maxTotalSize = isMobile ? MAX_TOTAL_SIZE_MOBILE : MAX_TOTAL_SIZE_DESKTOP;
+
+  const maxFiles = isMobile ? MAX_FILES_MOBILE : Number.MAX_SAFE_INTEGER;
+  const MAX_TOTAL_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER; 
 
   // Function to calculate hash of current state
   const calculateStateHash = useCallback(() => {
@@ -1155,6 +1155,12 @@ export default function JpgToPdf() {
 
   // Handle quality change
   const handleCompressionQualityChange = (quality: CompressionQuality) => {
+    // ✅ MOBILE: Only allow "none" quality
+    if (isMobile && quality !== "none") {
+      alert("On mobile devices, only Maximum Quality (100%) is available for better performance.");
+      return;
+    }
+    
     setCompressionQuality(quality);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -1165,6 +1171,12 @@ export default function JpgToPdf() {
 
   // Handle custom quality change
   const handleCustomQualityChange = (value: number) => {
+    // ✅ MOBILE: Don't allow custom quality
+    if (isMobile) {
+      alert("Custom quality not available on mobile. Using Maximum Quality (100%).");
+      return;
+    }
+    
     setCustomQualityValue(value);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -1276,7 +1288,7 @@ export default function JpgToPdf() {
         return;
       }
 
-      // ✅ MOBILE: Only mobile के लिए limits check
+      // ✅ MOBILE: Strict limits check
       if (newFile.size > maxSizePerFile) {
         alert(`File size exceeds ${maxSizePerFile / (1024 * 1024)}MB limit. Maximum file size allowed is ${maxSizePerFile / (1024 * 1024)}MB.`);
         return;
@@ -1498,8 +1510,18 @@ export default function JpgToPdf() {
           return;
         }
 
-        // ✅ MOBILE: Only mobile के लिए limits check
-        // 1. File size check per file
+        // ✅ MOBILE: Strict limits check
+        // 1. File count check
+        const totalFilesAfterAdd = files.length + newFiles.length;
+        if (totalFilesAfterAdd > MAX_FILES_MOBILE) {
+          alert(
+            `Maximum ${MAX_FILES_MOBILE} images allowed on mobile. You already have ${files.length} images. Can only add ${MAX_FILES_MOBILE - files.length} more images.`
+          );
+          setCompressing(false);
+          return;
+        }
+
+        // 2. File size check per file
         const oversizedFiles = newFiles.filter(file => file.size > MAX_SIZE_MOBILE);
         if (oversizedFiles.length > 0) {
           alert(
@@ -1512,7 +1534,7 @@ export default function JpgToPdf() {
           }
         }
 
-        // 2. Total size check for mobile only
+        // 3. Total size check
         const currentTotalSize = files.reduce((sum, f) => sum + f.file.size, 0);
         const newFilesTotalSize = newFiles.reduce((sum, f) => sum + f.size, 0);
         const totalSizeAfterAdd = currentTotalSize + newFilesTotalSize;
@@ -1560,8 +1582,8 @@ export default function JpgToPdf() {
         
         // Mobile warning
         const totalFiles = files.length + newFiles.length;
-        if (isMobile && totalFiles > 30) {
-          console.log(`Mobile: ${totalFiles} images loaded, may affect performance`);
+        if (isMobile && totalFiles >= MAX_FILES_MOBILE) {
+          console.log(`Mobile: Maximum ${MAX_FILES_MOBILE} images reached`);
         }
       } catch (error) {
         console.error("File processing error:", error);
@@ -1588,7 +1610,7 @@ export default function JpgToPdf() {
     setImageLoading((prev) => ({ ...prev, [id]: false }));
   }, []);
 
-  // ✅ FIXED: handleConvert function with BETTER MOBILE SUPPORT
+  // ✅ FIXED: handleConvert function with MOBILE LIMITS
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -1614,12 +1636,12 @@ export default function JpgToPdf() {
 
       // Mobile device warning
       if (isMobile) {
-        console.log(`Mobile device processing ${filesToProcess.length} images`);
+        console.log(`Mobile device processing ${filesToProcess.length} images (max ${MAX_FILES_MOBILE} allowed)`);
         
-        // Mobile के लिए maximum limit check
-        if (filesToProcess.length > 100) {
+        // Mobile के लिए warning
+        if (filesToProcess.length > 10) {
           const shouldContinue = window.confirm(
-            `⚠️ Processing ${filesToProcess.length} images on mobile may take time and could cause issues.\n\nFor better results:\n1. Using "Maximum Quality" setting (no compression)\n2. Make sure you have stable internet connection\n\nContinue anyway?`
+            `⚠️ Processing ${filesToProcess.length} images on mobile may take time.\n\nFor best performance:\n• Use Maximum Quality (100%)\n• Make sure you have stable internet connection\n\nContinue anyway?`
           );
           if (!shouldContinue) {
             setConverting(false);
@@ -1663,7 +1685,7 @@ export default function JpgToPdf() {
 
       let compressedImages: string[] = [];
 
-      // ✅ MOBILE FIX: Direct processing for mobile
+      // ✅ MOBILE: Simple processing without compression
       if (isMobile) {
         console.log(`Mobile device: Using simple processing for ${filesToProcess.length} images`);
         
@@ -1694,7 +1716,7 @@ export default function JpgToPdf() {
         
         compressedImages = validImages;
       } else {
-        // Desktop processing
+        // Desktop processing with compression
         for (let i = 0; i < filesToProcess.length; i++) {
           const fileWithPreview = filesToProcess[i];
           
@@ -1752,35 +1774,7 @@ export default function JpgToPdf() {
 
       // ✅ IMPORTANT FIX: Check if we have any images
       if (compressedImages.length === 0) {
-        // Try one more time with simplest approach
-        console.log("No images processed, trying simple approach...");
-        
-        // Try to get at least one image
-        if (filesToProcess.length > 0) {
-          try {
-            const firstFile = filesToProcess[0];
-            const reader = new FileReader();
-            const imageData = await new Promise<string>((resolve, reject) => {
-              reader.onload = (e) => {
-                const result = e.target?.result;
-                if (result && typeof result === 'string') {
-                  resolve(result);
-                } else {
-                  reject(new Error("Invalid result"));
-                }
-              };
-              reader.onerror = () => reject(new Error("Failed to read file"));
-              reader.readAsDataURL(firstFile.file);
-            });
-            compressedImages.push(imageData);
-          } catch (finalError) {
-            console.error("Final attempt failed:", finalError);
-          }
-        }
-        
-        if (compressedImages.length === 0) {
-          throw new Error("No images could be processed. This might be due to large file sizes or mobile device limitations.");
-        }
+        throw new Error("No images could be processed. This might be due to mobile device limitations.");
       }
 
       // Now create PDF with compressed images and margin
@@ -1847,7 +1841,7 @@ export default function JpgToPdf() {
         let errorMessage = `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}.`;
         
         if (isMobile) {
-          errorMessage += "\n\n📱 Mobile Device Tip:\n• Processing fewer images at once\n• Use smaller image files\n• Close other apps for better performance";
+          errorMessage += "\n\n📱 Mobile Device Tip:\n• Maximum 15 images allowed\n• Use smaller image files\n• Close other apps for better performance";
         } else {
           errorMessage += "\n\nPlease try again with fewer images or lower quality settings.";
         }
@@ -1865,7 +1859,7 @@ export default function JpgToPdf() {
       let errorMessage = `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}.`;
       
       if (isMobile) {
-        errorMessage += "\n\n📱 Mobile Device Tip:\n• Processing fewer images at once\n• Use smaller image files\n• Close other apps for better performance";
+        errorMessage += "\n\n📱 Mobile Device Tip:\n• Maximum 15 images allowed\n• Use smaller image files\n• Close other apps for better performance";
       } else {
         errorMessage += "\n\nPlease try again with fewer images or lower quality settings.";
       }
@@ -2123,7 +2117,7 @@ export default function JpgToPdf() {
             }
             onReplace={(file) => handleReplaceImage(replacingImageId, file)}
             onCancel={() => setReplacingImageId(null)}
-            isMobile={isMobile} // ✅ अब isMobile pass किया जा रहा है
+            isMobile={isMobile}
           />
         )}
       </AnimatePresence>
@@ -2231,31 +2225,31 @@ export default function JpgToPdf() {
         )}
       </AnimatePresence>
 
-      {/* Size Limit Exceeded Banner - ONLY FOR MOBILE */}
+      {/* Mobile Limits Banner */}
       <AnimatePresence>
-        {sizeLimitExceeded && isMobile && (
+        {isMobile && files.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 shadow-lg"
+            className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-3 md:p-4 shadow-lg"
           >
             <div className="container mx-auto max-w-7xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-6 h-6 animate-pulse" />
+                  <Info className="w-5 h-5 md:w-6 md:h-6" />
                   <div>
-                    <h3 className="font-bold text-lg">Mobile Storage Limit Warning</h3>
-                    <p className="text-sm opacity-90">
-                      You're approaching the total size limit. Max total: {MAX_TOTAL_SIZE_MOBILE / (1024 * 1024)}MB on mobile
+                    <h3 className="font-bold text-sm md:text-lg">📱 Mobile Mode Active</h3>
+                    <p className="text-xs md:text-sm opacity-90">
+                      Limits: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file, {MAX_TOTAL_SIZE_MOBILE/(1024*1024)}MB total • Desktop for unlimited
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setSizeLimitExceeded(false)}
-                  className="px-4 py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors"
+                  className="px-3 py-1 md:px-4 md:py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors text-xs md:text-sm"
                 >
-                  Dismiss
+                  OK
                 </button>
               </div>
             </div>
@@ -2263,7 +2257,7 @@ export default function JpgToPdf() {
         )}
       </AnimatePresence>
 
-      {/* ✅ FIXED: Processing Error Banner with MOBILE SUPPORT */}
+      {/* ✅ FIXED: Processing Error Banner */}
       <AnimatePresence>
         {processingError && (
           <motion.div
@@ -2283,7 +2277,7 @@ export default function JpgToPdf() {
                     </p>
                     {isMobile && (
                       <div className="mt-2 text-xs bg-white/20 p-2 rounded">
-                        📱 <strong>Quick Fix:</strong> Process fewer images at once (max 50 recommended)
+                        📱 <strong>Quick Fix:</strong> Maximum {MAX_FILES_MOBILE} images allowed on mobile
                       </div>
                     )}
                   </div>
@@ -2396,17 +2390,18 @@ export default function JpgToPdf() {
   accept="image/jpeg,image/jpg,image/png,image/webp"
   multiple={true}
   onFilesSelected={handleFilesUpdate}
-  maxSize={isMobile ? 500 : Infinity}
+  maxSize={isMobile ? 50 : Infinity} // 50MB for mobile, no limit for desktop
+  maxFiles={isMobile ? MAX_FILES_MOBILE : undefined} // 15 files for mobile
 />
 
 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400">
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>Unlimited Pages</span>
+    <span>{isMobile ? "Max 15 Pages" : "Unlimited Pages"}</span>
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>{isMobile ? "500MB/file" : "No Size Limit"}</span>
+    <span>{isMobile ? "50MB/file" : "No Size Limit"}</span>
   </div>
   <div className="flex items-center gap-2">
     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -2418,12 +2413,18 @@ export default function JpgToPdf() {
   </div>
 </div>
 
-{/* File Limit Display */}
+{/* Device-specific Info */}
 <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
   {isMobile ? (
-    <span>📱 Mobile: Max 500MB per file, 2GB total</span>
+    <div className="flex items-center gap-2">
+      <Smartphone className="w-4 h-4" />
+      <span>📱 Mobile: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file, {MAX_TOTAL_SIZE_MOBILE/(1024*1024)}MB total</span>
+    </div>
   ) : (
-    <span>💻 Desktop: No size limits - Upload unlimited files</span>
+    <div className="flex items-center gap-2">
+      <Monitor className="w-4 h-4" />
+      <span>💻 Desktop: No size limits - Upload unlimited files</span>
+    </div>
   )}
 </div>
 
@@ -2440,19 +2441,20 @@ export default function JpgToPdf() {
               {files.length > 0 && (
                 <div className="space-y-8">
                   {/* Mobile Warning Banner */}
-                  {isMobile && files.length > 10 && (
+                  {isMobile && (
                     <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
                       <div className="flex items-start gap-3">
                         <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                         <div>
                           <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1">
-                            📱 Mobile Device Tip
+                            📱 Mobile Device - Limited Features
                           </h4>
                           <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                            <li>• Using <strong>Maximum Quality</strong> (no compression) for best results</li>
-                            <li>• Processing {files.length} images - may take {Math.ceil(files.length/10)}-{Math.ceil(files.length/5)} seconds</li>
-                            <li>• Keep app open during conversion</li>
-                            <li className="font-semibold mt-2">Quick Fix: If PDF fails, reduce number of images</li>
+                            <li>• Maximum {MAX_FILES_MOBILE} images allowed ({files.length}/{MAX_FILES_MOBILE} used)</li>
+                            <li>• Maximum {MAX_SIZE_MOBILE/(1024*1024)}MB per file</li>
+                            <li>• Using <strong>Maximum Quality (100%)</strong> only</li>
+                            <li>• No compression options on mobile</li>
+                            <li className="font-semibold mt-2">For more features: Use desktop version</li>
                           </ul>
                         </div>
                       </div>
@@ -2497,7 +2499,7 @@ export default function JpgToPdf() {
                     </div>
                   )}
 
-                  {/* ✅ FIXED: Processing Error Box with Mobile Support */}
+                  {/* ✅ FIXED: Processing Error Box */}
                   {processingError && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -2538,7 +2540,7 @@ export default function JpgToPdf() {
                           {isMobile && (
                             <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                               <p className="text-sm text-blue-700 dark:text-blue-300">
-                                <strong>📱 Mobile Tip:</strong> For best results on mobile, process fewer images at once.
+                                <strong>📱 Mobile Limits:</strong> Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file
                               </p>
                             </div>
                           )}
@@ -2592,9 +2594,9 @@ export default function JpgToPdf() {
                     <div>
                       <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
                         Selected Images ({files.length})
-                        {files.length > 100 && (
-                          <span className="ml-2 text-sm text-amber-600 dark:text-amber-400">
-                            (Large conversion)
+                        {isMobile && (
+                          <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
+                            ({MAX_FILES_MOBILE - files.length} left)
                           </span>
                         )}
                       </h3>
@@ -2602,7 +2604,7 @@ export default function JpgToPdf() {
                         Drag to reorder • Click to preview • Rotate to adjust
                         {isMobile && (
                           <span className="block text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            Max 500MB per file, 2GB total on mobile
+                            Mobile limits: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file
                           </span>
                         )}
                         {!isMobile && (
@@ -3143,257 +3145,293 @@ export default function JpgToPdf() {
                     </div>
                   </div>
 
-                  {/* Advanced Settings Section */}
-                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-3 mb-6">
-                      <Target className="w-7 h-7 text-blue-500" />
-                      <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        Quality Control Settings
-                        {isMobile && (
-                          <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
-                            (Mobile Optimized)
-                          </span>
-                        )}
-                        {!isMobile && (
+                  {/* Advanced Settings Section - DISABLED FOR MOBILE */}
+                  {!isMobile ? (
+                    <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center gap-3 mb-6">
+                        <Target className="w-7 h-7 text-blue-500" />
+                        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                          Quality Control Settings
                           <span className="ml-2 text-sm text-green-600 dark:text-green-400">
                             (Desktop - Full Control)
                           </span>
-                        )}
-                      </h3>
-                    </div>
+                        </h3>
+                      </div>
 
-                    <div className="space-y-6">
-                      {/* Quality Settings */}
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                          <Palette className="w-4 h-4" />
-                          Image Quality Preset
-                        </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                          {(
-                            [
-                              {
-                                value: "none",
-                                label: "Maximum Quality",
-                                icon: ZapOff,
-                                desc: "100% Original",
-                                color: "from-emerald-500 to-green-600",
-                              },
-                              {
-                                value: "custom",
-                                label: "Custom Quality",
-                                icon: Percent,
-                                desc: "Precise Control",
-                                color: "from-blue-500 to-purple-600",
-                              },
-                              {
-                                value: "high",
-                                label: "High Quality",
-                                icon: Zap,
-                                desc: "85% Quality",
-                                color: "from-cyan-500 to-blue-600",
-                              },
-                              {
-                                value: "medium",
-                                label: "Balanced",
-                                icon: Layers,
-                                desc: "75% Quality",
-                                color: "from-amber-500 to-orange-600",
-                              },
-                              {
-                                value: "low",
-                                label: "Small Size",
-                                icon: Zap,
-                                desc: "60% Quality",
-                                color: "from-rose-500 to-pink-600",
-                              },
-                            ] as const
-                          ).map((option) => {
-                            const Icon = option.icon;
-                            return (
-                              <button
-                                key={option.value}
-                                onClick={() =>
-                                  handleCompressionQualityChange(option.value)
-                                }
-                                className={`px-4 py-4 rounded-xl border transition-all transform hover:scale-[1.02] ${
-                                  compressionQuality === option.value
-                                    ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-lg scale-[1.02]`
-                                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                                }`}
-                              >
-                                <div className="flex flex-col items-center gap-2">
-                                  <Icon className="w-6 h-6 mb-1" />
-                                  <span className="font-semibold">
-                                    {option.label}
-                                  </span>
-                                  <span className="text-xs opacity-90">
-                                    {option.desc}
-                                  </span>
-                                  {compressionQuality === option.value && (
-                                    <span className="text-[10px] text-blue-500">
-                                      ✓ Selected
+                      <div className="space-y-6">
+                        {/* Quality Settings */}
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <Palette className="w-4 h-4" />
+                            Image Quality Preset
+                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                            {(
+                              [
+                                {
+                                  value: "none",
+                                  label: "Maximum Quality",
+                                  icon: ZapOff,
+                                  desc: "100% Original",
+                                  color: "from-emerald-500 to-green-600",
+                                },
+                                {
+                                  value: "custom",
+                                  label: "Custom Quality",
+                                  icon: Percent,
+                                  desc: "Precise Control",
+                                  color: "from-blue-500 to-purple-600",
+                                },
+                                {
+                                  value: "high",
+                                  label: "High Quality",
+                                  icon: Zap,
+                                  desc: "85% Quality",
+                                  color: "from-cyan-500 to-blue-600",
+                                },
+                                {
+                                  value: "medium",
+                                  label: "Balanced",
+                                  icon: Layers,
+                                  desc: "75% Quality",
+                                  color: "from-amber-500 to-orange-600",
+                                },
+                                {
+                                  value: "low",
+                                  label: "Small Size",
+                                  icon: Zap,
+                                  desc: "60% Quality",
+                                  color: "from-rose-500 to-pink-600",
+                                },
+                              ] as const
+                            ).map((option) => {
+                              const Icon = option.icon;
+                              return (
+                                <button
+                                  key={option.value}
+                                  onClick={() =>
+                                    handleCompressionQualityChange(option.value)
+                                  }
+                                  className={`px-4 py-4 rounded-xl border transition-all transform hover:scale-[1.02] ${
+                                    compressionQuality === option.value
+                                      ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-lg scale-[1.02]`
+                                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                  }`}
+                                >
+                                  <div className="flex flex-col items-center gap-2">
+                                    <Icon className="w-6 h-6 mb-1" />
+                                    <span className="font-semibold">
+                                      {option.label}
                                     </span>
-                                  )}
-                                  {isMobile && option.value === "none" && (
-                                    <span className="text-[10px] text-green-500">
-                                      📱 Recommended
+                                    <span className="text-xs opacity-90">
+                                      {option.desc}
                                     </span>
-                                  )}
+                                    {compressionQuality === option.value && (
+                                      <span className="text-[10px] text-blue-500">
+                                        ✓ Selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Custom Quality Slider */}
+                          {compressionQuality === "custom" && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl border border-blue-200 dark:border-blue-800"
+                            >
+                              <div className="flex items-center justify-between mb-4">
+                                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                  <Target className="w-4 h-4" />
+                                  Custom Quality: {customQualityValue}%
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() =>
+                                      handleCustomQualityChange(
+                                        Math.max(10, customQualityValue - 5)
+                                      )
+                                    }
+                                    className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+                                  >
+                                    <span className="text-sm font-medium">
+                                      -5%
+                                    </span>
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleCustomQualityChange(
+                                        Math.min(100, customQualityValue + 5)
+                                      )
+                                    }
+                                    className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
+                                  >
+                                    <span className="text-sm font-medium">
+                                      +5%
+                                    </span>
+                                  </button>
                                 </div>
-                              </button>
-                            );
-                          })}
+                              </div>
+                              <input
+                                type="range"
+                                min="10"
+                                max="100"
+                                step="1"
+                                value={customQualityValue}
+                                onChange={(e) =>
+                                  handleCustomQualityChange(
+                                    parseInt(e.target.value)
+                                  )
+                                }
+                                className="w-full h-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-500"
+                              />
+                              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mt-3">
+                                <span className="flex flex-col items-center">
+                                  <span>10%</span>
+                                  <span className="text-[10px]">Smallest Size</span>
+                                </span>
+                                <span className="flex flex-col items-center">
+                                  <span>50%</span>
+                                  <span className="text-[10px]">Balanced</span>
+                                </span>
+                                <span className="flex flex-col items-center">
+                                  <span>90%</span>
+                                  <span className="text-[10px]">
+                                    High Quality
+                                  </span>
+                                </span>
+                                <span className="flex flex-col items-center">
+                                  <span>100%</span>
+                                  <span className="text-[10px]">Maximum</span>
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
+                                <span className="font-semibold">
+                                  Higher percentage = Better quality = Larger file size
+                                </span>
+                              </p>
+                            </motion.div>
+                          )}
                         </div>
 
-                        {/* Custom Quality Slider */}
-                        {compressionQuality === "custom" && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl border border-blue-200 dark:border-blue-800"
-                          >
-                            <div className="flex items-center justify-between mb-4">
-                              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                <Target className="w-4 h-4" />
-                                Custom Quality: {customQualityValue}%
-                              </label>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() =>
-                                    handleCustomQualityChange(
-                                      Math.max(10, customQualityValue - 5)
-                                    )
-                                  }
-                                  className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
-                                >
-                                  <span className="text-sm font-medium">
-                                    -5%
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleCustomQualityChange(
-                                      Math.min(100, customQualityValue + 5)
-                                    )
-                                  }
-                                  className="p-2 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700"
-                                >
-                                  <span className="text-sm font-medium">
-                                    +5%
-                                  </span>
-                                </button>
+                        {/* Quality Info Bar */}
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Settings className="w-5 h-5 text-blue-500" />
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                              Quality Settings Summary
+                            </h4>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                              <div className="font-semibold text-gray-700 dark:text-gray-300">
+                                Quality Preset
+                              </div>
+                              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                {compressionQuality === "none"
+                                  ? "Maximum"
+                                  : compressionQuality === "custom"
+                                  ? "Custom"
+                                  : compressionQuality.charAt(0).toUpperCase() +
+                                    compressionQuality.slice(1)}
                               </div>
                             </div>
-                            <input
-                              type="range"
-                              min="10"
-                              max="100"
-                              step="1"
-                              value={customQualityValue}
-                              onChange={(e) =>
-                                handleCustomQualityChange(
-                                  parseInt(e.target.value)
-                                )
-                              }
-                              className="w-full h-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-500"
-                            />
-                            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mt-3">
-                              <span className="flex flex-col items-center">
-                                <span>10%</span>
-                                <span className="text-[10px]">Smallest Size</span>
-                              </span>
-                              <span className="flex flex-col items-center">
-                                <span>50%</span>
-                                <span className="text-[10px]">Balanced</span>
-                              </span>
-                              <span className="flex flex-col items-center">
-                                <span>90%</span>
-                                <span className="text-[10px]">
-                                  High Quality
-                                </span>
-                              </span>
-                              <span className="flex flex-col items-center">
-                                <span>100%</span>
-                                <span className="text-[10px]">Maximum</span>
-                              </span>
+                            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                              <div className="font-semibold text-gray-700 dark:text-gray-300">
+                                Quality Value
+                              </div>
+                              <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                                {compressionQuality === "none"
+                                  ? "100%"
+                                  : compressionQuality === "custom"
+                                  ? `${customQualityValue}%`
+                                  : compressionQuality === "high"
+                                  ? "85%"
+                                  : compressionQuality === "medium"
+                                  ? "75%"
+                                  : "60%"}
+                              </div>
                             </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
-                              <span className="font-semibold">
-                                Higher percentage = Better quality = Larger file size
-                              </span>
-                            </p>
-                          </motion.div>
-                        )}
-                      </div>
-
-                      {/* Quality Info Bar */}
-                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center gap-3 mb-2">
-                          <Settings className="w-5 h-5 text-blue-500" />
-                          <h4 className="font-semibold text-gray-800 dark:text-gray-200">
-                            Quality Settings Summary
-                          </h4>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              Quality Preset
+                            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                              <div className="font-semibold text-gray-700 dark:text-gray-300">
+                                Est. Size Reduction
+                              </div>
+                              <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                                {compressionQuality === "none"
+                                  ? "0%"
+                                  : compressionQuality === "custom"
+                                  ? `${Math.round((1 - (customQualityValue/100 * 0.7)) * 100)}%`
+                                  : compressionQuality === "high"
+                                  ? "50%"
+                                  : compressionQuality === "medium"
+                                  ? "70%"
+                                  : "80%"}
+                              </div>
                             </div>
-                            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                              {compressionQuality === "none"
-                                ? "Maximum"
-                                : compressionQuality === "custom"
-                                ? "Custom"
-                                : compressionQuality.charAt(0).toUpperCase() +
-                                  compressionQuality.slice(1)}
-                            </div>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              Quality Value
-                            </div>
-                            <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                              {compressionQuality === "none"
-                                ? "100%"
-                                : compressionQuality === "custom"
-                                ? `${customQualityValue}%`
-                                : compressionQuality === "high"
-                                ? "85%"
-                                : compressionQuality === "medium"
-                                ? "75%"
-                                : "60%"}
-                            </div>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              Est. Size Reduction
-                            </div>
-                            <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                              {compressionQuality === "none"
-                                ? "0%"
-                                : compressionQuality === "custom"
-                                ? `${Math.round((1 - (customQualityValue/100 * 0.7)) * 100)}%`
-                                : compressionQuality === "high"
-                                ? "50%"
-                                : compressionQuality === "medium"
-                                ? "70%"
-                                : "80%"}
-                            </div>
-                          </div>
-                          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">
-                              Est. PDF Size
-                            </div>
-                            <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                              {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
+                            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
+                              <div className="font-semibold text-gray-700 dark:text-gray-300">
+                                Est. PDF Size
+                              </div>
+                              <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                                {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                      
                     </div>
-                  </div>
+                  ) : (
+                    // Mobile Quality Info - Simple
+                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-700">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Smartphone className="w-7 h-7 text-blue-500" />
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                            Mobile Quality Settings
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            On mobile, only Maximum Quality (100%) is available for better performance
+                          </p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200">
+                              Maximum Quality
+                            </h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              100% Original Quality • No Compression
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                              100%
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Best for mobile
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 text-sm text-gray-700 dark:text-gray-300">
+                          <p className="mb-2">📱 <strong>Mobile Limitations:</strong></p>
+                          <ul className="space-y-1 text-sm">
+                            <li>• Max {MAX_FILES_MOBILE} images per conversion</li>
+                            <li>• Max {MAX_SIZE_MOBILE/(1024*1024)}MB per file</li>
+                            <li>• Max {MAX_TOTAL_SIZE_MOBILE/(1024*1024)}MB total</li>
+                            <li>• No compression options on mobile</li>
+                            <li className="text-blue-600 dark:text-blue-400 font-medium">
+                              • Use desktop for unlimited files and compression options
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* PDF Settings */}
                   <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-700">
@@ -3547,8 +3585,8 @@ export default function JpgToPdf() {
                           </span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
                             {files.length}
-                            {files.length > 100 && (
-                              <span className="text-amber-600 ml-1">⚠️</span>
+                            {isMobile && (
+                              <span className="text-blue-600 ml-1">/ {MAX_FILES_MOBILE}</span>
                             )}
                           </span>
                         </div>
@@ -3577,15 +3615,17 @@ export default function JpgToPdf() {
                             Quality:
                           </span>
                           <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {compressionQuality === "none"
-                              ? "100% Maximum"
-                              : compressionQuality === "custom"
-                              ? `${customQualityValue}% Custom`
-                              : compressionQuality === "high"
-                              ? "High (85%)"
-                              : compressionQuality === "medium"
-                              ? "Medium (75%)"
-                              : "Low (60%)"}
+                            {isMobile 
+                              ? "100% (Mobile)" 
+                              : compressionQuality === "none"
+                                ? "100% Maximum"
+                                : compressionQuality === "custom"
+                                ? `${customQualityValue}% Custom`
+                                : compressionQuality === "high"
+                                ? "High (85%)"
+                                : compressionQuality === "medium"
+                                ? "Medium (75%)"
+                                : "Low (60%)"}
                           </span>
                         </div>
                         <div className="text-sm">
@@ -3651,7 +3691,9 @@ export default function JpgToPdf() {
                             progress < 30
                               ? "Processing images..."
                               : progress < 60
-                              ? compressionQuality === "custom"
+                              ? isMobile 
+                                ? "Preparing PDF..."
+                                : compressionQuality === "custom"
                                 ? `Applying ${customQualityValue}% quality...`
                                 : `Applying ${compressionQuality} quality...`
                               : progress < 90
@@ -3665,16 +3707,18 @@ export default function JpgToPdf() {
                             {progress < 30
                               ? "Processing images..."
                               : progress < 60
-                              ? compressionQuality === "custom"
+                              ? isMobile
+                                ? "Preparing PDF for mobile..."
+                                : compressionQuality === "custom"
                                 ? `Applying ${customQualityValue}% quality...`
                                 : `Applying ${compressionQuality} quality...`
                               : "Creating professional PDF..."}
                           </span>
                         </div>
-                        {files.length > 50 && (
+                        {files.length > 10 && isMobile && (
                           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                             <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
-                              ⏳ Processing {files.length} images may take time. Please be patient...
+                              ⏳ Processing {files.length} images on mobile may take time. Please be patient...
                             </p>
                           </div>
                         )}
@@ -3700,7 +3744,7 @@ export default function JpgToPdf() {
                               ? "no margin"
                               : marginSize + " margin"}{" "}
                             is ready for download
-                            {compressionQuality !== "none" && (
+                            {!isMobile && compressionQuality !== "none" && (
                               <span className="text-blue-600 dark:text-blue-400">
                                 {" "}
                                 (
@@ -3730,12 +3774,17 @@ export default function JpgToPdf() {
                             <span className="text-gray-600 dark:text-gray-400">
                               Order: {reverseOrder ? "Reverse" : "Normal"}
                             </span>
-                            {compressionQuality !== "none" && (
+                            {!isMobile && compressionQuality !== "none" && (
                               <span className="text-blue-600 dark:text-blue-400 font-semibold">
                                 {compressionQuality === "custom"
                                   ? `${customQualityValue}%`
                                   : compressionQuality}{" "}
                                 Quality
+                              </span>
+                            )}
+                            {isMobile && (
+                              <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                                100% Quality
                               </span>
                             )}
                             <span className="text-purple-600 dark:text-purple-400 font-semibold">
@@ -3792,7 +3841,7 @@ export default function JpgToPdf() {
                           {isMobile ? (
                             <>
                               <Smartphone className="w-6 h-6" />
-                              {`Create PDF (${files.length} images)`}
+                              {`Create PDF (${files.length}/${MAX_FILES_MOBILE} images)`}
                             </>
                           ) : (
                             <>
@@ -3801,6 +3850,7 @@ export default function JpgToPdf() {
                             </>
                           )}
                           {!showChangesWarning &&
+                            !isMobile &&
                             compressionQuality !== "none" &&
                             ` (${
                               compressionQuality === "custom"
@@ -3816,6 +3866,12 @@ export default function JpgToPdf() {
                               ⚠️ You have made changes to images or settings. Click above to convert again with the latest
                               changes.
                             </span>
+                          ) : isMobile ? (
+                            `Images will be converted with maximum 100% quality, ${
+                              marginSize === "no-margin"
+                                ? "no margin"
+                                : marginSize + " margin"
+                            } and ${reverseOrder ? "reverse" : "normal"} order for mobile`
                           ) : compressionQuality === "none" ? (
                             `Images will be converted with maximum 100% quality, ${
                               marginSize === "no-margin"
@@ -3848,11 +3904,11 @@ export default function JpgToPdf() {
                     <Target className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    {isMobile ? "500MB/file" : "No Size Limits"}
+                    {isMobile ? "Max 15 Images" : "Unlimited Files"}
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {isMobile 
-                      ? "Upload up to 500MB per file, 2GB total on mobile"
+                      ? "Upload up to 15 images on mobile, 50MB per file"
                       : "Upload unlimited files with no size restrictions on desktop"
                     }
                   </p>
@@ -3879,7 +3935,10 @@ export default function JpgToPdf() {
                     Smart Size Reduction
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Reduce PDF file size up to 80% with smart compression while maintaining quality
+                    {isMobile 
+                      ? "100% quality on mobile • Use desktop for compression options"
+                      : "Reduce PDF file size up to 80% with smart compression while maintaining quality"
+                    }
                   </p>
                 </div>
               </div>

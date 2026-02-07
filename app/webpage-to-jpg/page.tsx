@@ -26,6 +26,9 @@ import {
   Plus,
   Archive,
   FolderClosed,
+  AlertTriangle,
+  Smartphone,
+  Cpu,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
@@ -55,18 +58,39 @@ type Tool = {
 
 const tool = {
   id: "webp-to-jpg",
-  name: "WebP to JPG",
-  description: "Convert WebP images to JPG format",
+  name: "WebP to JPG Converter",
+  description: "Convert WebP images to JPG format online for free",
   category: "image",
-   icon: "📸",
+  icon: "🔄",
   color: "from-purple-500 to-pink-500",
   href: "/webp-to-jpg",
   path: "/tools/webp-to-jpg",
 };
 
+// Device limits based on performance
+const DEVICE_LIMITS = {
+  MOBILE: {
+    maxFiles: 5,
+    maxFileSize: 5 * 1024 * 1024, // 5MB per file
+    maxTotalSize: 20 * 1024 * 1024, // 20MB total
+    batchSize: 1, // Convert one at a time on mobile
+  },
+  TABLET: {
+    maxFiles: 10,
+    maxFileSize: 10 * 1024 * 1024,
+    maxTotalSize: 50 * 1024 * 1024,
+    batchSize: 2,
+  },
+  DESKTOP: {
+    maxFiles: 20,
+    maxFileSize: 20 * 1024 * 1024,
+    maxTotalSize: 100 * 1024 * 1024,
+    batchSize: 3,
+  },
+};
+
 // Explore All Tools Data
 const exploreTools: Tool[] = [
- 
   {
     id: "split-pdf",
     name: "Split PDF",
@@ -175,6 +199,48 @@ interface DownloadNotification {
   type: 'single' | 'zip' | 'multi';
 }
 
+// --- Performance Warning Component ---
+const PerformanceWarning = ({ deviceType, limits }: { deviceType: string, limits: any }) => {
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
+    >
+      <div className="flex items-start gap-2 sm:gap-3">
+        <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <h3 className="font-bold text-yellow-800 dark:text-yellow-300 text-sm sm:text-base mb-1">
+            ⚠️ {deviceType === 'mobile' ? 'Mobile Device Detected' : 'Performance Notice'}
+          </h3>
+          <p className="text-yellow-700 dark:text-yellow-400 text-xs sm:text-sm">
+            {deviceType === 'mobile' 
+              ? `You're using a mobile device. For best performance, please upload up to ${limits.maxFiles} files (max ${limits.maxFileSize/1024/1024}MB each). Large files may cause slow processing.`
+              : `Processing ${limits.maxFiles} files maximum (${limits.maxTotalSize/1024/1024}MB total). For larger batches, use desktop browser.`
+            }
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <Smartphone className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-xs text-yellow-600 dark:text-yellow-500">
+              Browser-based processing • No server uploads
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={() => setDismissed(true)}
+          className="p-1 hover:bg-yellow-100 dark:hover:bg-yellow-800/30 rounded-full transition-colors"
+        >
+          <X className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
 // --- Image Preview Component ---
 const ImagePreview = ({
   file,
@@ -216,45 +282,43 @@ const ImagePreview = ({
 
   return (
     <>
-    {/* Image Preview Modal */}
-<AnimatePresence>
-  {previewOpen && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-      onClick={() => setPreviewOpen(false)}
-    >
-      {/* OUTER WRAPPER */}
-      <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        exit={{ scale: 0.9 }}
-        className="relative"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* ❌ CLOSE BUTTON — IMAGE SE UPAR */}
-        <button
-          onClick={() => setPreviewOpen(false)}
-          className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-        >
-          <XCircle className="w-6 h-6" />
-        </button>
+      {/* Image Preview Modal */}
+      <AnimatePresence>
+        {previewOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setPreviewOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
 
-        {/* IMAGE CONTAINER */}
-        <div className="max-w-4xl max-h-[90vh]">
-          <img
-            src={url}
-            alt={filename}
-            className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-          />
-        </div>
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
-
+              {/* Image Container */}
+              <div className="max-w-4xl max-h-[90vh]">
+                <img
+                  src={url}
+                  alt={filename}
+                  className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Preview Card */}
       <motion.div
@@ -306,7 +370,7 @@ const ImagePreview = ({
                 {status}
               </span>
 
-              {/* File Size (if available) */}
+              {/* File Size */}
               {file.size && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {(file.size / 1024).toFixed(1)} KB
@@ -317,7 +381,6 @@ const ImagePreview = ({
 
           {/* Action Buttons */}
           <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            {/* Remove Button (For Input Files) */}
             {onRemove && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -330,7 +393,6 @@ const ImagePreview = ({
               </motion.button>
             )}
 
-            {/* Download Button (For Output Files) */}
             {isDownloadable && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -429,7 +491,70 @@ export default function WebpToJpg() {
     DownloadNotification[]
   >([]);
   const [zipDownloading, setZipDownloading] = useState(false);
+  const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  const [processingError, setProcessingError] = useState<string | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  // Detect device type and set limits
+  useEffect(() => {
+    const checkDeviceType = () => {
+      const width = window.innerWidth;
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobile = /mobile|android|iphone|ipad|ipod/.test(userAgent);
+      
+      if (isMobile || width < 768) {
+        setDeviceType('mobile');
+      } else if (width < 1024) {
+        setDeviceType('tablet');
+      } else {
+        setDeviceType('desktop');
+      }
+    };
+
+    checkDeviceType();
+    window.addEventListener('resize', checkDeviceType);
+    return () => window.removeEventListener('resize', checkDeviceType);
+  }, []);
+
+  const currentLimits = DEVICE_LIMITS[deviceType.toUpperCase() as keyof typeof DEVICE_LIMITS];
+
+  // Validate files before adding
+  const validateFiles = (newFiles: File[]): { valid: File[], errors: string[] } => {
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+    let totalSize = files.reduce((acc, f) => acc + f.size, 0);
+
+    for (const file of newFiles) {
+      // Check file type
+      if (!file.type.includes('webp')) {
+        errors.push(`"${file.name}" is not a WebP image`);
+        continue;
+      }
+
+      // Check individual file size
+      if (file.size > currentLimits.maxFileSize) {
+        errors.push(`"${file.name}" exceeds ${currentLimits.maxFileSize/1024/1024}MB limit`);
+        continue;
+      }
+
+      // Check total file count
+      if (files.length + validFiles.length >= currentLimits.maxFiles) {
+        errors.push(`Maximum ${currentLimits.maxFiles} files allowed on ${deviceType}`);
+        break;
+      }
+
+      // Check total size
+      if (totalSize + file.size > currentLimits.maxTotalSize) {
+        errors.push(`Total size exceeds ${currentLimits.maxTotalSize/1024/1024}MB limit on ${deviceType}`);
+        continue;
+      }
+
+      validFiles.push(file);
+      totalSize += file.size;
+    }
+
+    return { valid: validFiles, errors };
+  };
 
   // Generate unique filename
   const generateUniqueFileName = (baseName: string, index: number) => {
@@ -457,30 +582,49 @@ export default function WebpToJpg() {
     setProgress(0);
     setJpgBlobs([]);
     setShowFeatures(false);
+    setProcessingError(null);
 
     try {
       const blobs: ConvertedFile[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const uniqueFilename = generateUniqueFileName(files[i].name, i);
-        const blob = await convertWebpToJpg(files[i]);
+      
+      // Process in batches based on device capability
+      const batchSize = currentLimits.batchSize;
+      
+      for (let batchStart = 0; batchStart < files.length; batchStart += batchSize) {
+        const batch = files.slice(batchStart, batchStart + batchSize);
+        
+        await Promise.all(batch.map(async (file, batchIndex) => {
+          try {
+            const globalIndex = batchStart + batchIndex;
+            const uniqueFilename = generateUniqueFileName(file.name, globalIndex);
+            const blob = await convertWebpToJpg(file);
 
-        blobs.push({
-          blob: blob,
-          name: uniqueFilename,
-          originalFile: files[i],
-          timestamp: Date.now(),
-        });
+            blobs.push({
+              blob: blob,
+              name: uniqueFilename,
+              originalFile: file,
+              timestamp: Date.now(),
+            });
 
-        // Animate progress smoothly
-        setProgress(((i + 1) / files.length) * 100);
+            // Update progress
+            setProgress(((globalIndex + 1) / files.length) * 100);
+          } catch (error) {
+            console.error(`Error converting ${file.name}:`, error);
+            throw new Error(`Failed to convert "${file.name}". Please try again.`);
+          }
+        }));
 
-        // Small delay for smooth progress animation
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        // Small delay between batches to prevent freezing
+        if (batchStart + batchSize < files.length) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
       }
+      
       setJpgBlobs(blobs);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Conversion error:", error);
-      alert("Failed to convert WebP to JPG. Please try again.");
+      setProcessingError(error.message || "Failed to convert WebP to JPG. Please try again.");
+      alert(error.message || "Failed to convert WebP to JPG. Please try again.");
     } finally {
       setConverting(false);
     }
@@ -585,10 +729,18 @@ export default function WebpToJpg() {
   };
 
   const handleFilesSelected = (newFiles: File[]) => {
-    // Add new files to existing files
-    setFiles((prev) => [...prev, ...newFiles]);
-    setJpgBlobs([]);
-    setShowFeatures(false);
+    // Validate files
+    const { valid, errors } = validateFiles(newFiles);
+    
+    if (errors.length > 0) {
+      alert(`Some files were not added:\n${errors.join('\n')}`);
+    }
+    
+    if (valid.length > 0) {
+      setFiles((prev) => [...prev, ...valid]);
+      setJpgBlobs([]);
+      setShowFeatures(false);
+    }
   };
 
   const handleReset = () => {
@@ -596,6 +748,7 @@ export default function WebpToJpg() {
     setJpgBlobs([]);
     setProgress(0);
     setShowFeatures(true);
+    setProcessingError(null);
   };
 
   const hasFiles = files.length > 0;
@@ -612,6 +765,11 @@ export default function WebpToJpg() {
     totalSize > 0
       ? (((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
       : "0";
+
+  // Get device-specific limits message
+  const getLimitsMessage = () => {
+    return `Limits on ${deviceType}: ${currentLimits.maxFiles} files max, ${currentLimits.maxFileSize/1024/1024}MB per file`;
+  };
 
   return (
     <>
@@ -676,19 +834,22 @@ export default function WebpToJpg() {
                 </motion.div>
 
                 <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
- Webpage to JPG Converter – Create High-Quality JPG Images Online
-</h1>
-
+                  WebP to JPG Converter – Free Online Image Conversion
+                </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Convert webpage content into high-quality JPG images instantly using PDFSwift. Fast, secure, and browser-based with no installation or signup required. Works smoothly on all devices while preserving clarity and layout.
-
+                  Convert WebP images to JPG format instantly using PDFSwift. Fast, secure, and browser-based with no installation or signup required. Works smoothly on all devices while preserving image quality.
                   <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    Download individual files or as ZIP archive
+                    {getLimitsMessage()}
                   </span>
                 </p>
               </div>
             </div>
+
+            {/* --- Performance Warning --- */}
+            {hasFiles && (
+              <PerformanceWarning deviceType={deviceType} limits={currentLimits} />
+            )}
 
             {/* --- Features Grid --- */}
             <AnimatePresence>
@@ -703,15 +864,15 @@ export default function WebpToJpg() {
                     {
                       icon: Zap,
                       title: "Fast Conversion",
-                      desc: "Convert multiple WebP files to JPG format in seconds with our optimized engine",
+                      desc: "Convert WebP files to JPG format in seconds with our optimized engine",
                       gradient: "from-purple-500 to-pink-600",
                       bg: "from-purple-50 to-pink-50",
                       border: "border-purple-200",
                     },
                     {
-                      icon: Palette,
-                      title: "Quality Preserved",
-                      desc: "Maintain image quality while ensuring compatibility with all devices and platforms",
+                      icon: Cpu,
+                      title: "Smart Processing",
+                      desc: `Automatic optimization for ${deviceType} devices. Batch processing with ${currentLimits.batchSize} files at a time.`,
                       gradient: "from-blue-500 to-cyan-600",
                       bg: "from-blue-50 to-cyan-50",
                       border: "border-blue-200",
@@ -761,7 +922,7 @@ export default function WebpToJpg() {
                       Upload WebP Images
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Select WebP files to convert to JPG format
+                      Select WebP files to convert to JPG format • {getLimitsMessage()}
                     </p>
                   </div>
                 </div>
@@ -772,6 +933,8 @@ export default function WebpToJpg() {
                     accept="image/webp"
                     multiple={true}
                     onFilesSelected={handleFilesSelected}
+                    maxFiles={currentLimits.maxFiles}
+                    maxSize={currentLimits.maxFileSize}
                   />
                 </div>
 
@@ -788,6 +951,11 @@ export default function WebpToJpg() {
                         <span>
                           • {(totalSize / 1024 / 1024).toFixed(2)} MB total
                         </span>
+                        {deviceType === 'mobile' && (
+                          <span className="flex items-center gap-1">
+                            • <Smartphone className="w-3 h-3" /> Optimized for mobile
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -802,7 +970,7 @@ export default function WebpToJpg() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Image className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
-                        Uploaded WebP Images
+                        Uploaded WebP Images ({files.length}/{currentLimits.maxFiles})
                       </h3>
                       <button
                         onClick={handleReset}
@@ -828,17 +996,35 @@ export default function WebpToJpg() {
 
                   {/* --- Progress and Action Buttons --- */}
                   <div className="space-y-4 sm:space-y-6">
+                    {/* Processing Error */}
+                    {processingError && (
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                          <div>
+                            <h4 className="font-medium text-red-800 dark:text-red-300">Processing Error</h4>
+                            <p className="text-sm text-red-600 dark:text-red-400">{processingError}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {converting && (
                       <div className="space-y-3 sm:space-y-4">
                         <ProgressBar
                           progress={progress}
-                          label={`Converting ${files.length} files...`}
+                          label={`Converting ${files.length} files... (Batch of ${currentLimits.batchSize})`}
                         />
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-purple-600 dark:text-purple-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing your images...
+                            Processing on {deviceType} device...
                           </span>
+                          {deviceType === 'mobile' && (
+                            <span className="text-xs text-gray-500">
+                              (Please keep screen on)
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
@@ -850,81 +1036,30 @@ export default function WebpToJpg() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleConvert}
-                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                        disabled={files.length > currentLimits.maxFiles}
+                        className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
+                          files.length > currentLimits.maxFiles ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       >
                         <Image className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                         Convert {files.length} WebP to JPG
-                        <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                        {deviceType !== 'desktop' && (
+                          <Smartphone className="w-3.5 h-3.5" />
+                        )}
                       </motion.button>
                     )}
+
+                    {/* Device Info */}
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full text-xs text-gray-600 dark:text-gray-400">
+                        <Cpu className="w-3 h-3" />
+                        Processing on: {deviceType} • Batch size: {currentLimits.batchSize}
+                      </div>
+                    </div>
                   </div>
-
-                    <section
-      id="how-to-webpage-to-jpg"
-      className="mt-20 scroll-mt-24"
-    >
-      <h2 className="text-3xl font-bold text-center mb-10">
-        How to Convert Webpage to JPG Online
-      </h2>
-
-      <div className="grid gap-6 md:grid-cols-5">
-
-        {/* Step 1 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
-          <h3 className="font-semibold text-lg">Enter Webpage URL</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Paste the website or webpage URL you want to convert into JPG.
-          </p>
-        </div>
-
-        {/* Step 2 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
-          <h3 className="font-semibold text-lg">Load Webpage</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Let the tool securely load and capture the webpage content.
-          </p>
-        </div>
-
-        {/* Step 3 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
-          <h3 className="font-semibold text-lg">Convert to JPG</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Click convert to generate high-quality JPG images instantly.
-          </p>
-        </div>
-
-        {/* Step 4 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
-          <h3 className="font-semibold text-lg">Preview Images</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Preview the converted JPG images before downloading.
-          </p>
-        </div>
-
-        {/* Step 5 */}
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-purple-600 mb-2">5</div>
-          <h3 className="font-semibold text-lg">Download JPG</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Download images individually or as a ZIP archive.
-          </p>
-        </div>
-
-      </div>
-    </section>
-
                 </div>
               )}
-
-              
             </div>
-
-
-            
 
             {/* --- Results and Download Area --- */}
             {hasResults && (
@@ -948,7 +1083,7 @@ export default function WebpToJpg() {
                       Successfully converted {files.length} WebP files to JPG format
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      {sizeReduction}% average size change • Choose your download option below
+                      Processed on {deviceType} • {sizeReduction}% average size change
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
@@ -1058,8 +1193,8 @@ export default function WebpToJpg() {
                         bg: "bg-green-50 dark:bg-green-900/10",
                       },
                       {
-                        value: `${sizeReduction}%`,
-                        label: "Size Change",
+                        value: `${deviceType}`,
+                        label: "Device Mode",
                         color: "text-pink-600",
                         bg: "bg-pink-50 dark:bg-pink-900/10",
                       },
@@ -1089,6 +1224,54 @@ export default function WebpToJpg() {
                 </div>
               </div>
             )}
+
+            {/* --- How to Section (Updated for WebP to JPG) --- */}
+            <section
+              id="how-to-webp-to-jpg"
+              className="mt-20 scroll-mt-24"
+            >
+              <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-10">
+                How to Convert WebP to JPG Online
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+                {[
+                  {
+                    step: 1,
+                    title: "Upload WebP Files",
+                    description: "Drag & drop or select WebP images from your device",
+                  },
+                  {
+                    step: 2,
+                    title: "Review Selection",
+                    description: "Preview uploaded WebP images before conversion",
+                  },
+                  {
+                    step: 3,
+                    title: "Convert to JPG",
+                    description: "Click convert to transform WebP to JPG format",
+                  },
+                  {
+                    step: 4,
+                    title: "Preview Results",
+                    description: "Check converted JPG images quality and size",
+                  },
+                  {
+                    step: 5,
+                    title: "Download JPG",
+                    description: "Download individual files or as ZIP archive",
+                  },
+                ].map((item, index) => (
+                  <div key={index} className="border rounded-xl p-4 sm:p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
+                    <div className="text-3xl sm:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">{item.step}</div>
+                    <h3 className="font-semibold text-base sm:text-lg mb-2">{item.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                      {item.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
@@ -1146,38 +1329,35 @@ export default function WebpToJpg() {
                 </Link>
               </div>
 
-                 {/* Visible FAQ Section */}
-            <section className="max-w-3xl mx-auto my-8 sm:my-12 md:my-16 px-2 sm:px-3 md:px-4">
-              <div className="text-center mb-4 sm:mb-6 md:mb-8">
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                  Frequently Asked Questions
-                </h2>
-                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Everything you need to know about resizing images online
-                </p>
-              </div>
+              {/* Visible FAQ Section */}
+              <section className="max-w-3xl mx-auto my-8 sm:my-12 md:my-16 px-2 sm:px-3 md:px-4">
+                <div className="text-center mb-4 sm:mb-6 md:mb-8">
+                  <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
+                    Frequently Asked Questions
+                  </h2>
+                  <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Everything you need to know about converting WebP to JPG
+                  </p>
+                </div>
 
-              <div className="space-y-2 sm:space-y-3 md:space-y-4">
-                {faqData.map((faq, index) => (
-                  <details
-                    key={index}
-                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 
-                    bg-white dark:bg-gray-800"
-                  >
-                    <summary className="cursor-pointer font-semibold text-sm sm:text-base md:text-lg text-gray-900 dark:text-white">
-                      {faq.question}
-                    </summary>
-                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-                      {faq.answer}
-                    </p>
-                  </details>
-                ))}
-              </div>
-            </section>
-            
+                <div className="space-y-2 sm:space-y-3 md:space-y-4">
+                  {faqData.map((faq, index) => (
+                    <details
+                      key={index}
+                      className="group border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 
+                      bg-white dark:bg-gray-800"
+                    >
+                      <summary className="cursor-pointer font-semibold text-sm sm:text-base md:text-lg text-gray-900 dark:text-white">
+                        {faq.question}
+                      </summary>
+                      <p className="mt-1 sm:mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </details>
+                  ))}
+                </div>
+              </section>
             </div>
-
-         
           </motion.div>
         </div>
       </div>

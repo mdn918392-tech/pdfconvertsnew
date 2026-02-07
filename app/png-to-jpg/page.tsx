@@ -10,7 +10,7 @@ import {
   ArrowLeft,
   XCircle,
   CheckCircle,
-  Image,
+  Image as ImageIcon,
   Sparkles,
   Zap,
   Shield,
@@ -202,13 +202,74 @@ const ImagePreview = ({
   index: number;
   onSingleDownload?: () => void;
 }) => {
-  const url = useMemo(() => createObjectURL(file), [file]);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  // Clean up the object URL when the component unmounts
-  useMemo(() => {
-    return () => revokeObjectURL(url);
-  }, [url]);
+  // Create object URL
+  useEffect(() => {
+    if (!file) {
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    let url: string | null = null;
+    let img: HTMLImageElement | null = null;
+
+    try {
+      url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+
+      // Verify the image can be loaded
+      img = new Image();
+      img.onload = () => {
+        setLoading(false);
+        setError(false);
+      };
+      img.onerror = () => {
+        setError(true);
+        setLoading(false);
+        // Don't log to console in production
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to load image preview:', filename);
+        }
+      };
+      
+      // Set timeout to handle images that take too long to load
+      const timeoutId = setTimeout(() => {
+        if (loading) {
+          setError(true);
+          setLoading(false);
+          if (img) {
+            img.onload = null;
+            img.onerror = null;
+          }
+        }
+      }, 5000); // 5 second timeout
+
+      img.src = url;
+
+      // Clean up
+      return () => {
+        clearTimeout(timeoutId);
+        if (url) {
+          URL.revokeObjectURL(url);
+        }
+        if (img) {
+          img.onload = null;
+          img.onerror = null;
+        }
+      };
+    } catch (err) {
+      setError(true);
+      setLoading(false);
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    }
+  }, [file, filename, loading]);
 
   const statusColor =
     status && status.includes("Converted")
@@ -218,51 +279,68 @@ const ImagePreview = ({
   const handleIndividualDownload = () => {
     if (onSingleDownload) {
       onSingleDownload();
-    } else {
+    } else if (file) {
       downloadFile(file as Blob, filename);
     }
+  };
+
+  const formatFileSize = (size: number) => {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleImageError = () => {
+    setError(true);
   };
 
   return (
     <>
       <AnimatePresence>
-  {previewOpen && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-      onClick={() => setPreviewOpen(false)}
-    >
-      {/* OUTER WRAPPER */}
-      <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        exit={{ scale: 0.9 }}
-        className="relative"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* CLOSE BUTTON — IMAGE KE UPAR */}
-        <button
-          onClick={() => setPreviewOpen(false)}
-          className="absolute -top-10 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-        >
-          <XCircle className="w-6 h-6" />
-        </button>
+        {previewOpen && previewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setPreviewOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="absolute -top-10 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
 
-        {/* IMAGE CONTAINER */}
-        <div className="max-w-4xl max-h-[90vh]">
-          <img
-            src={url}
-            alt={filename}
-            className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-          />
-        </div>
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
-
+              <div className="max-w-4xl max-h-[90vh]">
+                {error ? (
+                  <div className="bg-gray-800 rounded-xl p-8 flex flex-col items-center justify-center">
+                    <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
+                    <p className="text-white text-lg">Preview not available</p>
+                    <p className="text-gray-400 text-sm mt-2">
+                      This image cannot be displayed
+                    </p>
+                  </div>
+                ) : (
+                  <img
+                    src={previewUrl}
+                    alt={filename}
+                    className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+                    onError={handleImageError}
+                  />
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Preview Card */}
       <motion.div
@@ -281,19 +359,38 @@ const ImagePreview = ({
           {/* Image Container */}
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
-            onClick={() => setPreviewOpen(true)}
+            onClick={() => previewUrl && !error && setPreviewOpen(true)}
           >
-            <img
-              src={url}
-              alt={filename}
-              className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-              <Eye className="w-8 h-8 text-white" />
-            </div>
+            {loading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            ) : error || !previewUrl ? (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800">
+                <ImageIcon className="w-10 h-10 text-gray-400 mb-2" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Preview not available
+                </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  {formatFileSize(file.size || 0)}
+                </span>
+              </div>
+            ) : (
+              <>
+                <img
+                  src={previewUrl}
+                  alt={filename}
+                  className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
+                  onError={handleImageError}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <Eye className="w-8 h-8 text-white" />
+                </div>
 
-            {/* Shine Effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000" />
+                {/* Shine Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000" />
+              </>
+            )}
           </div>
 
           {/* File Info */}
@@ -314,16 +411,14 @@ const ImagePreview = ({
                 {status}
               </span>
 
-              {/* File Size (if available) */}
+              {/* File Size */}
               {file.size && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {(file.size / 1024).toFixed(1)} KB
+                  {formatFileSize(file.size)}
                 </span>
               )}
             </div>
           </div>
-
-          
 
           {/* Action Buttons */}
           <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -348,6 +443,7 @@ const ImagePreview = ({
                 onClick={handleIndividualDownload}
                 className="p-1.5 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
                 title={`Download ${filename}`}
+                disabled={!file}
               >
                 <Download className="w-4 h-4" />
               </motion.button>
@@ -439,7 +535,22 @@ export default function PngToJpg() {
     DownloadNotification[]
   >([]);
   const [zipDownloading, setZipDownloading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  // Detect device type
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      ) || window.innerWidth < 768;
+      setIsMobile(mobile);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Generate unique filename
   const generateUniqueFileName = (baseName: string, index: number) => {
@@ -470,27 +581,68 @@ export default function PngToJpg() {
 
     try {
       const blobs: ConvertedFile[] = [];
+      let successCount = 0;
+      let failedFiles: string[] = [];
+      
       for (let i = 0; i < files.length; i++) {
-        const uniqueFilename = generateUniqueFileName(files[i].name, i);
-        const blob = await convertPngToJpg(files[i]);
+        try {
+          const file = files[i];
+          
+          // Skip files that are too large or corrupted
+          if (file.size === 0 || file.size > (isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024)) {
+            failedFiles.push(`${file.name} (invalid size)`);
+            continue;
+          }
+          
+          const uniqueFilename = generateUniqueFileName(file.name, i);
+          
+          // Adjust quality based on device
+          const quality = isMobile ? 0.85 : 0.9;
+          const blob = await convertPngToJpg(file, quality);
 
-        blobs.push({
-          blob: blob,
-          name: uniqueFilename,
-          originalFile: files[i],
-          timestamp: Date.now(),
-        });
+          if (!blob || blob.size === 0) {
+            throw new Error("Conversion resulted in empty file");
+          }
 
-        // Animate progress smoothly
-        setProgress(((i + 1) / files.length) * 100);
+          blobs.push({
+            blob: blob,
+            name: uniqueFilename,
+            originalFile: file,
+            timestamp: Date.now(),
+          });
+          successCount++;
+          
+          // Animate progress smoothly
+          setProgress(((i + 1) / files.length) * 100);
 
-        // Small delay for smooth progress animation
-        await new Promise((resolve) => setTimeout(resolve, 200));
+          // Small delay for smooth progress animation
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          
+        } catch (error: any) {
+          console.error(`Error converting file ${i}:`, error);
+          failedFiles.push(files[i].name);
+          // Continue with next file
+          continue;
+        }
       }
+      
       setJpgBlobs(blobs);
-    } catch (error) {
+      
+      if (failedFiles.length > 0) {
+        const message = `Successfully converted ${successCount} out of ${files.length} files.\n\nFailed files (${failedFiles.length}):\n${failedFiles.slice(0, 3).join('\n')}${failedFiles.length > 3 ? `\n...and ${failedFiles.length - 3} more` : ''}\n\nReason: File may be too large, corrupted, or unsupported.`;
+        alert(message);
+      }
+    } catch (error: any) {
       console.error("Conversion error:", error);
-      alert("Failed to convert PNG to JPG. Please try again.");
+      
+      let errorMessage = "Failed to convert PNG to JPG.\n\n";
+      if (error.message && error.message.includes("too large")) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += "Please try with smaller files or use a desktop browser for larger files.";
+      }
+      
+      alert(errorMessage);
     } finally {
       setConverting(false);
     }
@@ -505,7 +657,9 @@ export default function PngToJpg() {
       
       // Add all JPG files to the zip
       jpgBlobs.forEach((item, index) => {
-        zip.file(item.name, item.blob);
+        if (item.blob && item.blob.size > 0) {
+          zip.file(item.name, item.blob);
+        }
       });
 
       // Generate zip file
@@ -542,7 +696,9 @@ export default function PngToJpg() {
   const handleDownloadAllSeparate = () => {
     // Downloads all converted files individually
     jpgBlobs.forEach((item) => {
-      downloadFile(item.blob, item.name);
+      if (item.blob && item.blob.size > 0) {
+        downloadFile(item.blob, item.name);
+      }
     });
 
     // Add download notification
@@ -565,7 +721,10 @@ export default function PngToJpg() {
 
   const handleSingleDownload = (index: number) => {
     const item = jpgBlobs[index];
-    if (!item) return;
+    if (!item || !item.blob || item.blob.size === 0) {
+      alert("Cannot download this file. It may be corrupted.");
+      return;
+    }
 
     downloadFile(item.blob, item.name);
 
@@ -595,10 +754,36 @@ export default function PngToJpg() {
   };
 
   const handleFilesSelected = (newFiles: File[]) => {
-    // Add new files to existing files
-    setFiles((prev) => [...prev, ...newFiles]);
-    setJpgBlobs([]);
-    setShowFeatures(false);
+    // Filter files based on device type
+    const maxSize = isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024;
+    const maxFiles = isMobile ? 10 : 50;
+    
+    const filteredFiles = newFiles.filter(file => {
+      // Check if file is PNG
+      if (!file.type.includes('png') && !file.name.toLowerCase().endsWith('.png')) {
+        alert(`File "${file.name}" is not a PNG image.`);
+        return false;
+      }
+      
+      if (file.size === 0 || file.size > maxSize) {
+        alert(`File "${file.name}" is too large (${(file.size/1024/1024).toFixed(1)}MB) or corrupted. Maximum size is ${isMobile ? '30MB' : '200MB'} for ${isMobile ? 'mobile' : 'desktop'}.`);
+        return false;
+      }
+      return true;
+    });
+    
+    // Check total file count
+    const totalFiles = files.length + filteredFiles.length;
+    if (totalFiles > maxFiles) {
+      alert(`Maximum ${maxFiles} files allowed for ${isMobile ? 'mobile' : 'desktop'} devices.`);
+      return;
+    }
+    
+    if (filteredFiles.length > 0) {
+      setFiles((prev) => [...prev, ...filteredFiles]);
+      setJpgBlobs([]);
+      setShowFeatures(false);
+    }
   };
 
   const handleReset = () => {
@@ -615,21 +800,19 @@ export default function PngToJpg() {
 
   // Calculate total size of converted files
   const convertedTotalSize = jpgBlobs.reduce(
-    (acc, item) => acc + item.blob.size,
+    (acc, item) => acc + (item.blob?.size || 0),
     0
   );
   const sizeReduction =
-    totalSize > 0
-      ? (((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
+    totalSize > 0 && convertedTotalSize > 0
+      ? Math.max(0, ((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
       : "0";
 
   return (
     <>
       {/* SEO Schema */}
       <FAQSchema />
-        <BreadcrumbSchema />
-       
-      
+      <BreadcrumbSchema />
       <HowToSchema />
       <ArticleSchema />
       
@@ -695,7 +878,7 @@ export default function PngToJpg() {
                   Convert your PNG images to high-quality JPG format with
                   superior compression
                   <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    Download individual files or as ZIP archive
+                    {isMobile ? "Mobile: Up to 30MB per file" : "Desktop: Up to 200MB per file"}
                   </span>
                 </p>
               </div>
@@ -714,7 +897,9 @@ export default function PngToJpg() {
                     {
                       icon: Zap,
                       title: "Fast Conversion",
-                      desc: "Convert multiple PNG files to JPG format in seconds with our optimized engine",
+                      desc: isMobile 
+                        ? "Convert PNG files to JPG quickly on mobile devices"
+                        : "Convert large PNG files (up to 200MB) to JPG format in seconds",
                       gradient: "from-orange-500 to-pink-600",
                       bg: "from-orange-50 to-pink-50",
                       border: "border-orange-200",
@@ -722,7 +907,9 @@ export default function PngToJpg() {
                     {
                       icon: Palette,
                       title: "Quality Preserved",
-                      desc: "Maintain image quality while significantly reducing file size with intelligent compression",
+                      desc: isMobile
+                        ? "Maintain good image quality while reducing file size for mobile"
+                        : "Preserve image quality while significantly reducing file size",
                       gradient: "from-blue-500 to-purple-600",
                       bg: "from-blue-50 to-purple-50",
                       border: "border-blue-200",
@@ -773,6 +960,9 @@ export default function PngToJpg() {
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       Select PNG files to convert to JPG format
+                      <span className="block text-orange-600 dark:text-orange-400 mt-1">
+                        Max {isMobile ? "30MB" : "200MB"} per file • {isMobile ? "10" : "50"} files max
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -783,7 +973,15 @@ export default function PngToJpg() {
                     accept="image/png"
                     multiple={true}
                     onFilesSelected={handleFilesSelected}
+                    maxFiles={isMobile ? 10 : 50}
+                    maxSize={isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024}
                   />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                    {isMobile 
+                      ? "For best results on mobile, use files under 30MB"
+                      : "Desktop browser recommended for files above 30MB"
+                    }
+                  </p>
                 </div>
 
                 {hasFiles && (
@@ -799,6 +997,9 @@ export default function PngToJpg() {
                         <span>
                           • {(totalSize / 1024 / 1024).toFixed(2)} MB total
                         </span>
+                        {isMobile && totalSize > 100 * 1024 * 1024 && (
+                          <span className="text-red-600"> • Large files may cause issues on mobile</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -812,7 +1013,7 @@ export default function PngToJpg() {
                   <div className="space-y-3 sm:space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Image className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
                         Uploaded PNG Images
                       </h3>
                       <button
@@ -848,9 +1049,14 @@ export default function PngToJpg() {
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing your images...
+                            {isMobile ? "Processing on mobile..." : "Processing your images..."}
                           </span>
                         </div>
+                        {isMobile && totalSize > 50 * 1024 * 1024 && (
+                          <div className="text-center text-xs text-orange-600 dark:text-orange-400">
+                            Large files may take longer on mobile devices
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -863,68 +1069,66 @@ export default function PngToJpg() {
                         onClick={handleConvert}
                         className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                       >
-                        <Image className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                         Convert {files.length} PNG to JPG
                         <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                       </motion.button>
                     )}
                   </div>
-   
                 </div>
               )}
-
-              
             </div>
- <section
-      id="how-to-png-to-jpg"
-      className="mt-20 scroll-mt-24"
-     >
-      <h2 className="text-3xl font-bold text-center mb-10">
-        How to Convert PNG to JPG Online
-      </h2>
+            
+            <section
+              id="how-to-png-to-jpg"
+              className="mt-20 scroll-mt-24"
+            >
+              <h2 className="text-3xl font-bold text-center mb-10">
+                How to Convert PNG to JPG Online
+              </h2>
 
-      <div className="grid gap-6 md:grid-cols-5">
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-pink-600 mb-2">1</div>
-          <h3 className="font-semibold text-lg">Upload PNG Images</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Upload one or multiple PNG images using drag & drop or file picker.
-          </p>
-        </div>
+              <div className="grid gap-6 md:grid-cols-5">
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-pink-600 mb-2">1</div>
+                  <h3 className="font-semibold text-lg">Upload PNG Images</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Upload PNG images ({isMobile ? "max 30MB" : "up to 200MB"}) using drag & drop or file picker.
+                  </p>
+                </div>
 
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-pink-600 mb-2">2</div>
-          <h3 className="font-semibold text-lg">Review Files</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Check uploaded PNG images and remove any file if needed.
-          </p>
-        </div>
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-pink-600 mb-2">2</div>
+                  <h3 className="font-semibold text-lg">Review Files</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Check uploaded PNG images and remove any file if needed.
+                  </p>
+                </div>
 
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-pink-600 mb-2">3</div>
-          <h3 className="font-semibold text-lg">Convert to JPG</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Click the convert button to change PNG images into JPG format.
-          </p>
-        </div>
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-pink-600 mb-2">3</div>
+                  <h3 className="font-semibold text-lg">Convert to JPG</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Click the convert button to change PNG images into JPG format.
+                  </p>
+                </div>
 
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-pink-600 mb-2">4</div>
-          <h3 className="font-semibold text-lg">Preview Results</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Preview converted JPG images with reduced file size.
-          </p>
-        </div>
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-pink-600 mb-2">4</div>
+                  <h3 className="font-semibold text-lg">Preview Results</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Preview converted JPG images with reduced file size.
+                  </p>
+                </div>
 
-        <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-          <div className="text-4xl font-bold text-pink-600 mb-2">5</div>
-          <h3 className="font-semibold text-lg">Download JPG Files</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Download images individually or as a single ZIP archive.
-          </p>
-        </div>
-      </div>
-    </section>
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-pink-600 mb-2">5</div>
+                  <h3 className="font-semibold text-lg">Download JPG Files</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Download images individually or as a single ZIP archive.
+                  </p>
+                </div>
+              </div>
+            </section>
               
             {/* --- Results and Download Area --- */}
             {hasResults && (
@@ -945,7 +1149,7 @@ export default function PngToJpg() {
                       Conversion Complete! 🎉
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
-                      Successfully converted {files.length} PNG files to JPG
+                      Successfully converted {jpgBlobs.length} PNG files to JPG
                       format
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
@@ -1026,7 +1230,7 @@ export default function PngToJpg() {
                       onClick={handleReset}
                       className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
                     >
-                      <Image className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
+                      <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
                       Convert More Images
                     </button>
                   </div>
@@ -1035,65 +1239,61 @@ export default function PngToJpg() {
             )}
 
             {/* --- Stats Footer (Card Style) --- */}
-{(hasFiles || hasResults) && (
-  <div className="mt-6 sm:mt-10 md:mt-14">
-    <div className="max-w-6xl mx-auto px-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-        {[
-          {
-            value: files.length,
-            label: "Files Uploaded",
-            color: "text-orange-600",
-            bg: "bg-orange-50 dark:bg-orange-900/10",
-          },
-          {
-            value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`,
-            label: "Total Size",
-            color: "text-blue-600",
-            bg: "bg-blue-50 dark:bg-blue-900/10",
-          },
-          {
-            value: jpgBlobs.length,
-            label: "Files Converted",
-            color: "text-green-600",
-            bg: "bg-green-50 dark:bg-green-900/10",
-          },
-          {
-            value: `${sizeReduction}%`,
-            label: "Size Reduction",
-            color: "text-purple-600",
-            bg: "bg-purple-50 dark:bg-purple-900/10",
-          },
-        ].map((stat, index) => (
-          <div
-            key={index}
-            className={`flex flex-col items-center justify-center
-            rounded-2xl border border-gray-200 dark:border-gray-800
-            ${stat.bg}
-            p-4 sm:p-6
-            shadow-sm hover:shadow-lg
-            transition-all duration-300`}
-          >
-            <div
-              className={`text-xl sm:text-2xl md:text-3xl xl:text-4xl font-extrabold
-              ${stat.color} dark:${stat.color.replace("600", "400")}`}
-            >
-              {stat.value}
-            </div>
+            {(hasFiles || hasResults) && (
+              <div className="mt-6 sm:mt-10 md:mt-14">
+                <div className="max-w-6xl mx-auto px-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                    {[
+                      {
+                        value: files.length,
+                        label: "Files Uploaded",
+                        color: "text-orange-600",
+                        bg: "bg-orange-50 dark:bg-orange-900/10",
+                      },
+                      {
+                        value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`,
+                        label: "Total Size",
+                        color: "text-blue-600",
+                        bg: "bg-blue-50 dark:bg-blue-900/10",
+                      },
+                      {
+                        value: jpgBlobs.length,
+                        label: "Files Converted",
+                        color: "text-green-600",
+                        bg: "bg-green-50 dark:bg-green-900/10",
+                      },
+                      {
+                        value: `${sizeReduction}%`,
+                        label: "Size Reduction",
+                        color: "text-purple-600",
+                        bg: "bg-purple-50 dark:bg-purple-900/10",
+                      },
+                    ].map((stat, index) => (
+                      <div
+                        key={index}
+                        className={`flex flex-col items-center justify-center
+                        rounded-2xl border border-gray-200 dark:border-gray-800
+                        ${stat.bg}
+                        p-4 sm:p-6
+                        shadow-sm hover:shadow-lg
+                        transition-all duration-300`}
+                      >
+                        <div
+                          className={`text-xl sm:text-2xl md:text-3xl xl:text-4xl font-extrabold
+                          ${stat.color} dark:${stat.color.replace("600", "400")}`}
+                        >
+                          {stat.value}
+                        </div>
 
-            <div className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
-              {stat.label}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
-
-
-
-
+                        <div className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                          {stat.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
@@ -1153,36 +1353,68 @@ export default function PngToJpg() {
             </div>
 
             {/* Visible FAQ Section */}
-<section className="max-w-3xl mx-auto my-16 px-4">
-  {/* Title */}
-  <div className="text-center mb-8">
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about converting PNG images to JPG files online
-    </p>
-  </div>
+            <section className="max-w-3xl mx-auto my-16 px-4">
+              {/* Title */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                  Frequently Asked Questions
+                </h2>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Everything you need to know about converting PNG images to JPG files online
+                </p>
+              </div>
 
-  {/* FAQ List */}
-  <div className="space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-        bg-white dark:bg-gray-800"
-      >
-        <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-          {faq.question}
-        </summary>
-        <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-          {faq.answer}
-        </p>
-      </details>
-    ))}
-  </div>
-</section>
-
+              {/* FAQ List */}
+              <div className="space-y-4">
+                {[
+                  {
+                    question: "What is the maximum file size for conversion?",
+                    answer: `For mobile devices: Maximum 30MB per PNG file. For desktop browsers: Up to 200MB per PNG file. We recommend using desktop browsers for files larger than 30MB.`
+                  },
+                  {
+                    question: "Is there any limit on the number of files I can convert at once?",
+                    answer: `Mobile: Up to 10 files at once. Desktop: Up to 50 files at once. For best performance, convert files in batches if you have many large files.`
+                  },
+                  {
+                    question: "Will the image quality be preserved during conversion?",
+                    answer: `Yes, we preserve image quality while converting PNG to JPG. The converter automatically optimizes the JPG quality based on your device (85% quality on mobile, 90% on desktop) to balance quality and file size.`
+                  },
+                  {
+                    question: "Can I convert PNG files with transparency?",
+                    answer: `Yes, PNG files with transparency (alpha channel) are supported. During conversion to JPG, transparent areas will be converted to white background as JPG format does not support transparency.`
+                  },
+                  {
+                    question: "How do I download converted files?",
+                    answer: `You can download files individually by clicking the download button on each image, or download all files at once as a ZIP archive using the "Download as ZIP Archive" button.`
+                  },
+                  {
+                    question: "Is the conversion secure? Are my files uploaded to your servers?",
+                    answer: `All conversion happens directly in your browser (client-side). Your PNG files are never uploaded to any server, ensuring complete privacy and security.`
+                  },
+                  {
+                    question: "Why does conversion fail on mobile for large files?",
+                    answer: `Mobile devices have limited memory and processing power. Files larger than 30MB may exceed the available memory. Use desktop browsers for large files or compress your PNG files before conversion.`
+                  },
+                  {
+                    question: "What image formats are supported?",
+                    answer: `Currently, we only support PNG to JPG conversion. Make sure your files have .png extension. Other image formats like WebP, BMP, or TIFF are not supported.`
+                  }
+                ].map((faq, index) => (
+                  <details
+                    key={index}
+                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+                    bg-white dark:bg-gray-800"
+                  >
+                    <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+                      {faq.question}
+                    </summary>
+                    <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </section>
            
           </motion.div>
         </div>
