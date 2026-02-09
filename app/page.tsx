@@ -102,6 +102,18 @@ export default function Home() {
       path: "/tools/rotate-pdf",
     },
 
+    {
+  id: "add-pages-and-images-to-pdf",
+  name: "Add Pages & Images to PDF",
+  description: "Insert new pages and add images anywhere in your PDF",
+  category: "pdf",
+  icon: "📄➕",
+  color: "from-indigo-500 to-purple-500",
+  href: "add-pages-and-images-to-pdf",
+  path: "/tools/add-pages-and-images-to-pdf",
+},
+
+
     // Image Tools
 
    

@@ -1085,7 +1085,7 @@ export default function PngToJpg() {
             <section
               id="how-to-png-to-jpg"
               className="mt-20 scroll-mt-24"
-            >
+             >
               <h2 className="text-3xl font-bold text-center mb-10">
                 How to Convert PNG to JPG Online
               </h2>

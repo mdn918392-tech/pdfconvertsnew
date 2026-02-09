@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -13,30 +13,25 @@ export default function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Clear timeout on unmount
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
   const handleMouseEnter = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setToolsOpen(true);
   };
 
   const handleMouseLeave = () => {
     timeoutRef.current = setTimeout(() => {
       setToolsOpen(false);
-    }, 300); // 300ms delay before closing
+    }, 300);
   };
 
-  // टूल्स डेटा
-  const tools = [
+  // ✅ PDF Tools
+  const pdfTools = [
     { name: "JPG to PDF", href: "jpg-to-pdf" },
     { name: "PDF to JPG", href: "pdf-to-jpg" },
     { name: "Merge PDF", href: "merge-pdf" },
@@ -45,19 +40,17 @@ export default function Header() {
     { name: "Extract Pages", href: "extract-pages" },
     { name: "Remove Pages", href: "remove-pages" },
     { name: "Rotate PDF", href: "rotate-pdf" },
+    { name: "Add Pages & Images to PDF", href: "add-pages-and-images-to-pdf" },
+  ];
+
+  // ✅ Image Tools
+  const imageTools = [
     { name: "PNG to JPG", href: "png-to-jpg" },
     { name: "Compress Image", href: "compress-image" },
-      { name: "resize image", href: "resize-image" },
-
-      { name: "passport photo maker", href: "passport-photo" },
-        { name: "webpage-to-jpg", href: "webpage-to-jpg" },
-{ name: "rotate to image", href: "rotate-image" },
-        
-        
-
-      
-
-    
+    { name: "Resize Image", href: "resize-image" },
+    { name: "Passport Photo Maker", href: "passport-photo" },
+    { name: "Webpage to JPG", href: "webpage-to-jpg" },
+    { name: "Rotate Image", href: "rotate-image" },
   ];
 
   return (
@@ -78,12 +71,8 @@ export default function Header() {
           </div>
 
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              PDFSwift
-            </h2>
-            <p className="text-xs text-gray-600">
-              Fast & Smart PDF Tools
-            </p>
+            <h2 className="text-xl font-bold text-gray-900">PDFSwift</h2>
+            <p className="text-xs text-gray-600">Fast & Smart PDF Tools</p>
           </div>
         </a>
 
@@ -118,24 +107,56 @@ export default function Header() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="absolute top-full left-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
+                className="absolute top-full left-0 mt-2 w-[520px] bg-white border border-gray-200 rounded-lg shadow-xl z-50"
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
               >
-                <div className="p-3 grid grid-cols-1 gap-1">
-                  {tools.map((tool, index) => (
-                    <motion.a
-                      key={index}
-                      href={tool.href}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors duration-150"
-                      onClick={() => setToolsOpen(false)}
-                    >
-                      {tool.name}
-                    </motion.a>
-                  ))}
+                <div className="p-4 grid grid-cols-2 gap-6">
+                  
+                  {/* PDF Tools Column */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                      PDF Tools
+                    </h3>
+                    <div className="space-y-1">
+                      {pdfTools.map((tool, index) => (
+                        <motion.a
+                          key={index}
+                          href={tool.href}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors duration-150"
+                          onClick={() => setToolsOpen(false)}
+                        >
+                          {tool.name}
+                        </motion.a>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Image Tools Column */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                      Image Tools
+                    </h3>
+                    <div className="space-y-1">
+                      {imageTools.map((tool, index) => (
+                        <motion.a
+                          key={index}
+                          href={tool.href}
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors duration-150"
+                          onClick={() => setToolsOpen(false)}
+                        >
+                          {tool.name}
+                        </motion.a>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
               </motion.div>
             )}
@@ -193,29 +214,56 @@ export default function Header() {
                 />
               </button>
 
-              {mobileToolsOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="mt-2 ml-4 space-y-2"
-                >
-                  {tools.map((tool, index) => (
-                    <a
-                      key={index}
-                      href={tool.href}
-                      className="block py-2 text-sm hover:text-blue-600 transition-colors duration-200"
-                      onClick={() => {
-                        setOpen(false);
-                        setMobileToolsOpen(false);
-                      }}
-                    >
-                      {tool.name}
-                    </a>
-                  ))}
-                </motion.div>
-              )}
+             {mobileToolsOpen && (
+  <motion.div
+    initial={{ opacity: 0, height: 0 }}
+    animate={{ opacity: 1, height: "auto" }}
+    exit={{ opacity: 0, height: 0 }}
+    transition={{ duration: 0.2 }}
+    className="mt-3 grid grid-cols-2 gap-6"
+  >
+    {/* PDF Tools */}
+    <div>
+      <p className="text-xs font-bold text-gray-500 mb-2">PDF Tools</p>
+      <div className="space-y-2">
+        {pdfTools.map((tool, index) => (
+          <a
+            key={index}
+            href={tool.href}
+            className="block text-sm text-gray-700 hover:text-blue-600 transition-colors duration-200"
+            onClick={() => {
+              setOpen(false);
+              setMobileToolsOpen(false);
+            }}
+          >
+            {tool.name}
+          </a>
+        ))}
+      </div>
+    </div>
+
+    {/* Image Tools */}
+    <div>
+      <p className="text-xs font-bold text-gray-500 mb-2">Image Tools</p>
+      <div className="space-y-2">
+        {imageTools.map((tool, index) => (
+          <a
+            key={index}
+            href={tool.href}
+            className="block text-sm text-gray-700 hover:text-blue-600 transition-colors duration-200"
+            onClick={() => {
+              setOpen(false);
+              setMobileToolsOpen(false);
+            }}
+          >
+            {tool.name}
+          </a>
+        ))}
+      </div>
+    </div>
+  </motion.div>
+)}
+
             </div>
 
             <a

@@ -1466,6 +1466,55 @@
       "answer": "Not anymore. Modern online tools work just as well as desktop software for most needs. The advantage of online tools is they're usually free, work on any device, and don't require installation. Just make sure you're using a tool that lets you preview the results and adjust the compression level - that control is essential."
     }
   ]
+},
+
+{
+  "id": "resize-passport-photo-online-2026",
+  "title": "How to Resize Passport Size Photo Online (2x2, 3.5x4.5 cm) - 2026 Guide",
+  "date": "Feb 9 2026",
+  "description": "Step-by-step guide to resize photos for passports, visas, and ID cards. Get the exact dimensions right for USA, India, UK, Canada, Australia and more. Free online tool included.",
+  "slug": "resize-passport-photo-online-2026",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Resize Passport Photo Guide", "url": "/blog/resize-passport-photo-online-2026" }
+  ],
+  "howto": {
+    "steps": [
+      "Take or select a good quality headshot photo",
+      "Choose your country's passport size requirements",
+      "Upload to online passport photo tool",
+      "Adjust background color if needed",
+      "Download print-ready passport photos"
+    ],
+    "estimatedTime": "PT5M",
+    "totalTime": "PT5M",
+    "supply": ["Headshot photo", "Web browser"],
+    "tool": ["PDFSwift Passport Photo Maker"]
+  },
+  "faq": [
+    {
+      "question": "What are the exact passport photo sizes for different countries?",
+      "answer": "USA: 2x2 inches (51x51 mm). India: 35x35 mm (3.5x3.5 cm). UK: 35x45 mm (3.5x4.5 cm). Canada: 50x70 mm (5x7 cm). Australia: 35x45 mm. Europe/Schengen: 35x45 mm. The exact dimensions matter - being off by even a few millimeters can get your application rejected. Most online tools have these sizes pre-configured."
+    },
+    {
+      "question": "Can I use a selfie for my passport photo?",
+      "answer": "Yes, but with important rules. It needs to be recent (last 6 months), taken against a plain light background, with neutral expression and eyes open. No hats, glasses (unless medically required), or headphones. Face should fill about 70-80% of the frame. Most importantly, someone else should take it - selfies often have wrong angles and perspectives that get rejected."
+    },
+    {
+      "question": "What's the difference between 300 DPI and 600 DPI?",
+      "answer": "DPI (dots per inch) affects print quality. 300 DPI is standard for most passport photos - it looks sharp and professional. 600 DPI is for when you need absolutely perfect quality, but the files are larger. For 99% of applications, 300 DPI is perfect. The key is that whatever DPI you choose, the physical dimensions (2x2 inches, 35x45mm) must still be correct."
+    },
+    {
+      "question": "Why was my passport photo rejected?",
+      "answer": "Common reasons: wrong size (even slightly off), wrong background color (not plain light), shadows on face or background, incorrect head size (too small or too large), poor lighting, wearing glasses or hat, smiling too much, photo too old, or print quality issues. Online tools help avoid these by enforcing the exact requirements for each country."
+    },
+    {
+      "question": "How many passport photos should I print per sheet?",
+      "answer": "It depends on your needs. If you just need one for your application, print 2-4 copies (officials often ask for extras). If you need photos for multiple documents (passport, visa, work permit, etc.), print 8-16. Most online tools let you choose how many copies per sheet, from 1 to 54. A4 or Letter paper with multiple photos is the most cost-effective."
+    }
+  ]
 }
 
 
