@@ -1558,50 +1558,7 @@ export default function ResizeImage() {
            
             </div>
 
-               {/* How-to Steps Section */}
-              <section className="mt-12 md:mt-20">
-                <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-10">
-                  How to Resize Images Online
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                  {[
-                    {
-                      number: "1",
-                      title: "Upload Image",
-                      desc: "Upload JPG, PNG, or WebP images using drag & drop or file picker.",
-                    },
-                    {
-                      number: "2",
-                      title: "Select Size & Presets",
-                      desc: "Choose presets like Full HD, 4K, Instagram, or enter custom dimensions.",
-                    },
-                    {
-                      number: "3",
-                      title: "Resize with Live Preview",
-                      desc: "Adjust quality, maintain aspect ratio, and preview changes instantly.",
-                    },
-                    {
-                      number: "4",
-                      title: "Download Image",
-                      desc: "Download resized images in high quality instantly.",
-                    },
-                  ].map((step, index) => (
-                    <div
-                      key={index}
-                      className="border rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800"
-                    >
-                      <div className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        {step.number}
-                      </div>
-                      <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">
-                        {step.desc}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </section>
+             
 
             {/* --- Results and Download Area --- */}
             {hasResult && resizedFile && (
@@ -1745,6 +1702,50 @@ export default function ResizeImage() {
                 </div>
               </div>
             </div>
+              {/* How-to Steps Section */}
+              <section className="mt-12 md:mt-20">
+                <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-10">
+                  How to Resize Images Online
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  {[
+                    {
+                      number: "1",
+                      title: "Upload Image",
+                      desc: "Upload JPG, PNG, or WebP images using drag & drop or file picker.",
+                    },
+                    {
+                      number: "2",
+                      title: "Select Size & Presets",
+                      desc: "Choose presets like Full HD, 4K, Instagram, or enter custom dimensions.",
+                    },
+                    {
+                      number: "3",
+                      title: "Resize with Live Preview",
+                      desc: "Adjust quality, maintain aspect ratio, and preview changes instantly.",
+                    },
+                    {
+                      number: "4",
+                      title: "Download Image",
+                      desc: "Download resized images in high quality instantly.",
+                    },
+                  ].map((step, index) => (
+                    <div
+                      key={index}
+                      className="border rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800"
+                    >
+                      <div className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400 mb-2">
+                        {step.number}
+                      </div>
+                      <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">
+                        {step.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
             {/* Explore All Tools Section */}
             <div className="mb-8">

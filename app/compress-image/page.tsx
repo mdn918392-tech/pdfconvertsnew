@@ -1259,52 +1259,7 @@ export default function CompressImage() {
               )}
             </div>
 
-            <section className="mt-20">
-              <h2 className="text-3xl font-bold text-center mb-10">
-                How to Compress Images Online
-              </h2>
-
-              <div className="grid gap-6 md:grid-cols-4">
-                {/* Step 1 */}
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
-                  <h3 className="font-semibold text-lg">Upload Images</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    {isMobile 
-                      ? "Upload images (max 30MB each) using mobile upload button"
-                      : "Upload one or multiple images using drag & drop or the upload button"
-                    }
-                  </p>
-                </div>
-
-                {/* Step 2 */}
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
-                  <h3 className="font-semibold text-lg">Select Compression Settings</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Adjust compression quality slider to balance file size and image quality
-                  </p>
-                </div>
-
-                {/* Step 3 */}
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
-                  <h3 className="font-semibold text-lg">Compress Images</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Click compress button to reduce image size while maintaining visual quality
-                  </p>
-                </div>
-
-                {/* Step 4 */}
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
-                  <h3 className="font-semibold text-lg">Download Files</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Download compressed images individually or as a ZIP folder
-                  </p>
-                </div>
-              </div>
-            </section>
+         
 
             {/* --- Results and Download Area --- */}
             {hasResults && (
@@ -1503,7 +1458,52 @@ export default function CompressImage() {
                 </div>
               </div>
             </div>
+   <section className="mt-20">
+              <h2 className="text-3xl font-bold text-center mb-10">
+                How to Compress Images Online
+              </h2>
 
+              <div className="grid gap-6 md:grid-cols-4">
+                {/* Step 1 */}
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
+                  <h3 className="font-semibold text-lg">Upload Images</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    {isMobile 
+                      ? "Upload images (max 30MB each) using mobile upload button"
+                      : "Upload one or multiple images using drag & drop or the upload button"
+                    }
+                  </p>
+                </div>
+
+                {/* Step 2 */}
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
+                  <h3 className="font-semibold text-lg">Select Compression Settings</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Adjust compression quality slider to balance file size and image quality
+                  </p>
+                </div>
+
+                {/* Step 3 */}
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
+                  <h3 className="font-semibold text-lg">Compress Images</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Click compress button to reduce image size while maintaining visual quality
+                  </p>
+                </div>
+
+                {/* Step 4 */}
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
+                  <h3 className="font-semibold text-lg">Download Files</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Download compressed images individually or as a ZIP folder
+                  </p>
+                </div>
+              </div>
+            </section>
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-6 md:mb-8">
