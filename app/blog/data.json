@@ -1714,7 +1714,62 @@
       "answer": "Yes, but only with an app. PDF Merge: Scan, Sign & Edit for Android works offline. PDF Combiner for iPhone works without wifi. Websites need internet. So if you're traveling or have bad signal, get an app. Just check reviews first - some free apps are full of ads."
     }
   ]
+},
+
+{
+  "id": "add-pages-to-pdf-online-2026",
+  "title": "How to Add Pages to PDF Online (Insert Blank Page or Extra Page) – 2026 Guide",
+  "date": "Feb 15 2026",
+  "image": "/images/add-pages-pdf-guide.png",
+  "description": "Need to add a blank page or insert an extra page into your PDF? Here's how to do it online without installing anything. Works on phone and computer.",
+  "slug": "add-pages-to-pdf-online-2026",
+
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Add Pages to PDF", "url": "/blog/add-pages-to-pdf-online-2026" }
+  ],
+
+  "howto": {
+    "steps": [
+      "Upload your PDF to an online editor",
+      "Choose where you want to add the new page",
+      "Select 'Add Blank Page' or upload a file to insert",
+      "Position it before or after existing pages",
+      "Download your updated PDF"
+    ],
+    "estimatedTime": "PT2M",
+    "totalTime": "PT2M",
+    "supply": ["PDF file", "Web browser"],
+    "tool": ["PDFSwift PDF Editor"]
+  },
+
+  "faq": [
+    {
+      "question": "Why would I need to add a blank page to a PDF?",
+      "answer": "Lots of reasons. You're printing a booklet and need an extra page to make the page count even. You want to add notes between sections. You're creating a workbook and need space for answers. You scanned something and realized you missed a page. You're merging documents and need a separator. Blank pages aren't just empty space - they're useful when you need them."
+    },
+    {
+      "question": "Can I add a page from another PDF?",
+      "answer": "Yes, that's actually more common than adding blank pages. Most online tools let you upload a second PDF and insert specific pages from it into your main document. You can take page 3 from one file and insert it after page 5 in another. Or take all pages from a second PDF and append them at the end. Works like merging, but with more control over exactly where each page goes."
+    },
+    {
+      "question": "Will adding pages mess up my formatting?",
+      "answer": "No. PDFs are fixed format - adding a page doesn't change anything on existing pages. Your text stays where it is, images don't shift, page numbers don't automatically update (that's the one thing to watch for). The new page just slides in. Everything else stays exactly the same."
+    },
+    {
+      "question": "What about page numbers? Will they update automatically?",
+      "answer": "This is the catch. If your PDF has page numbers printed on each page (like \"Page 1 of 20\" at the bottom), those won't update when you add a new page. They're part of the content, not automatic. After inserting a page, page 3 still says \"Page 3\" even if it's now actually page 4. If correct numbering matters, you'll need to edit those numbers or live with the mismatch. Some tools can renumber pages, but it's not automatic."
+    },
+    {
+      "question": "Can I add pages on my phone?",
+      "answer": "Yes. Most online PDF editors work in mobile browsers just fine. PDFSwift works on any phone - upload from your gallery or files, add pages, save back to your phone. No app needed. If you do this a lot, some people prefer apps, but for occasional use, a website is easier."
+    }
+  ]
 }
+
+
+
 
   
 
