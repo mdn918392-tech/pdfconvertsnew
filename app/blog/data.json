@@ -1816,6 +1816,56 @@
       "answer": "Depends on the tool. Some upload your file to their servers, convert it there, then delete after an hour. That's okay for non-sensitive stuff. For private documents, use tools that work entirely in your browser (client-side). PDFSwift processes everything locally - your file never leaves your computer. No upload means no one else can access it."
     }
   ]
+},
+
+{
+  "id": "add-images-to-pdf-online-without-adobe-2026",
+  "title": "How to Add Images to PDF Online (Without Adobe) – Step-by-Step Guide",
+  "date": "Feb 17 2026",
+  "image": "/images/add-image-pdf-guide.png",
+  "description": "Need to add a photo, logo, or signature to your PDF? Here's how to insert images without Adobe. Works on phone and computer. Free, no signup.",
+  "slug": "add-images-to-pdf-online-without-adobe-2026",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Add Images to PDF Guide", "url": "/blog/add-images-to-pdf-online-without-adobe-2026" }
+  ],
+  "howto": {
+    "steps": [
+      "Upload your PDF to an online editor (PDFSwift or similar)",
+      "Click 'Add Image' or the picture icon",
+      "Select image from your phone or computer",
+      "Drag it where you want, resize by pulling corners",
+      "Download your PDF with the image added"
+    ],
+    "estimatedTime": "PT2M",
+    "totalTime": "PT2M",
+    "supply": ["PDF file", "Image file (JPG, PNG)", "Web browser"],
+    "tool": ["PDFSwift PDF Editor"]
+  },
+  "faq": [
+    {
+      "question": "Do I really need Adobe to add images to PDF?",
+      "answer": "No. Adobe is expensive and overkill for most people. There are dozens of free online tools that let you insert images in seconds. PDFSwift, Lumin, Smallpdf, iLovePDF - all work without Adobe. Some even work completely in your browser so your files never get uploaded anywhere. Adobe is fine if you already have it, but don't buy it just to add a photo."
+    },
+    {
+      "question": "What image formats work best?",
+      "answer": "JPG for photos. PNG if you need transparency or have logos with sharp text. Most tools support both. GIF works too but quality isn't great. If your image is huge (like 10MB+), resize it first or your PDF file size will blow up. 300 DPI is plenty for most uses."
+    },
+    {
+      "question": "Will the image cover up my text?",
+      "answer": "That depends on where you put it. Most editors let you drag images anywhere. If you place it over text, it'll cover it. You can usually adjust layering - some tools let you send image behind text or adjust transparency. For signatures, you want it on top. For watermarks, you might want it faded behind. Know what you need before you start."
+    },
+    {
+      "question": "Can I add multiple images at once?",
+      "answer": "Most tools make you add them one by one. You can add 20 images, but you'll click 'add image' 20 times. Some desktop apps let you batch insert, but online tools usually don't. If you need to add dozens of images, you might be better off converting the whole thing to Word, adding images there, and converting back to PDF."
+    },
+    {
+      "question": "Is it safe to upload my PDF to these tools?",
+      "answer": "This is the real question. Some tools upload your file to their servers. They usually delete after an hour, but still - it's on their computer. For personal stuff, fine. For bank statements, contracts, IDs - use tools that process in your browser. PDFSwift does this. Safe2PDF does this. Your file never leaves your device. Always check before uploading sensitive documents."
+    }
+  ]
 }
 
 
