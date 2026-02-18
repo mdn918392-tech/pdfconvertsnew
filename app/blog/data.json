@@ -1917,6 +1917,55 @@
       "answer": "Some do, some don't. Tools that process in your browser (client-side) never upload your file anywhere - that's safest. Tools that upload to servers usually delete after an hour, but your file sat on their computer. For sensitive documents, use browser-based tools like PDFSwift or PDF24, or offline software like ImageMagick [citation:10]."
     }
   ]
+},
+{
+  "id": "merge-pdf-correct-order-avoid-page-mix-up",
+  "title": "Merge PDF in Correct Order (Avoid Page Mix-Up) – Simple Guide",
+  "date": "Feb 19 2026",
+  "image": "/images/merge-pdf-order-guide.png",
+  "description": "Tired of merged PDFs with pages in the wrong order? Here's how to arrange files correctly before merging. No more page mix-ups.",
+  "slug": "merge-pdf-correct-order-avoid-page-mix-up",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Merge PDF Correct Order", "url": "/blog/merge-pdf-correct-order-avoid-page-mix-up" }
+  ],
+  "howto": {
+    "steps": [
+      "Upload all PDF files you want to merge",
+      "Look at the list of files – this is your order",
+      "Drag and drop to rearrange (File A first, File B second)",
+      "Check preview thumbnails if available",
+      "Click merge and download"
+    ],
+    "estimatedTime": "PT2M",
+    "totalTime": "PT2M",
+    "supply": ["PDF files to merge", "Web browser"],
+    "tool": ["PDFSwift PDF Merger", "Smallpdf", "iLovePDF"]
+  },
+  "faq": [
+    {
+      "question": "Why do my merged PDF pages always end up in the wrong order?",
+      "answer": "Because most tools merge files in the order you select them, not the order you think. If you click File B first then File A, File B becomes page 1. It's easy to mix up. Always check the list before merging. Good tools let you drag files to rearrange. Bad tools just merge in selection order and don't let you change it. Look for drag-and-drop ordering."
+    },
+    {
+      "question": "Can I rearrange pages after merging?",
+      "answer": "Yes, but it's extra work. You'd need a separate 'reorder pages' tool. Better to get the order right before merging. Some PDF mergers show page thumbnails so you can see exactly what you're getting. That's the safest way – preview then merge."
+    },
+    {
+      "question": "What if I have 20 files to merge? How do I keep track?",
+      "answer": "Name your files with numbers first: 01_intro.pdf, 02_chapter1.pdf, 03_chapter2.pdf. Then when you upload, they'll appear in alphabetical order. Most file pickers sort by name. This trick saves so much time. If your tool supports drag-drop, you can also rearrange visually."
+    },
+    {
+      "question": "Do all PDF mergers let me rearrange files?",
+      "answer": "No. Free versions of some tools just merge in the order you select and don't let you change it. That's where mistakes happen. Look for tools that show a list of uploaded files and let you drag them up/down. PDFSwift does this. Smallpdf does this. iLovePDF does this. Avoid tools that merge immediately without letting you reorder."
+    },
+    {
+      "question": "What's the most common page order mistake?",
+      "answer": "Append vs Insert confusion. Most tools 'append' – they add new files at the end. If you want File B to go before File A, you need to upload them in reverse order. Or use a tool that lets you insert between existing files. The mistake: uploading in logical order (A then B) but wanting B first. Always check the list before clicking merge."
+    }
+  ]
 }
 
 
