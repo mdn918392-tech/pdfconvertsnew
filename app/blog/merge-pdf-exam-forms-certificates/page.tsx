@@ -246,20 +246,22 @@ export default function MergePDFExamForms() {
                   </div>
                 </div>
 
-                {/* Introduction */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-100 border-l-4 border-blue-500 p-6 rounded-r-lg mb-8">
-                  <div className="flex items-start">
-                    <FileText className="w-7 h-7 text-blue-600 mr-4 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-800 font-bold text-lg mb-3">
-                        I helped 50 students apply for exams last year. This one mistake rejected 12 of them.
-                      </p>
-                      <p className="text-gray-700">
-                        Exam applications seem simple: fill form, upload documents. But every year, students get rejected because their PDFs are in wrong order, files are too big, or documents are missing. I've seen it all. Application form last instead of first. Certificates in random order. Photos embedded inside forms instead of separate pages. Here's exactly how to do it right so your application doesn't get rejected over something silly .
-                      </p>
-                    </div>
-                  </div>
-                </div>
+               {/* Introduction */}
+<div className="bg-gradient-to-r from-blue-50 to-indigo-100 border-l-4 border-blue-500 p-6 rounded-r-lg mb-8">
+  <div className="flex items-start">
+    <FileText className="w-7 h-7 text-blue-600 mr-4 mt-0.5 flex-shrink-0" />
+    <div>
+      <p className="text-gray-800 font-bold text-lg mb-3">
+        Many students get their exam applications rejected because of simple PDF mistakes.
+      </p>
+      <p className="text-gray-700">
+        Exam applications seem simple: fill form, upload documents. But in reality, small mistakes like wrong PDF order, oversized files, or missing documents can lead to rejection. Common issues include keeping the application form at the end, arranging certificates randomly, or embedding photos inside forms instead of separate pages. 
+        <br /><br />
+        In this guide, you'll learn exactly how to merge your exam form, certificates, ID proof, photo, and signature into one proper PDF — in the correct order — so your application gets accepted without any issues.
+      </p>
+    </div>
+  </div>
+</div>
               </header>
 
               {/* Article Content */}
