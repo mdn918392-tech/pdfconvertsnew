@@ -1966,6 +1966,57 @@
       "answer": "Append vs Insert confusion. Most tools 'append' – they add new files at the end. If you want File B to go before File A, you need to upload them in reverse order. Or use a tool that lets you insert between existing files. The mistake: uploading in logical order (A then B) but wanting B first. Always check the list before clicking merge."
     }
   ]
+},
+
+{
+  "id": "merge-pdf-exam-forms-certificates",
+  "title": "How to Merge PDF for Exam Forms & Certificates (Step-by-Step)",
+  "date": "Feb 20 2026",
+  "image": "/images/merge-pdf-exam-guide.png",
+  "description": "Applying for exams? Need to combine forms, certificates, and ID proofs? Here's exactly how to merge PDFs for applications without messing up the order.",
+  "slug": "merge-pdf-exam-forms-certificates",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Merge PDF for Exams", "url": "/blog/merge-pdf-exam-forms-certificates" }
+  ],
+  "howto": {
+    "steps": [
+      "Gather all your documents: application form, certificates, ID proof, photo, signature",
+      "Name files in order: 01_form.pdf, 02_marksheet.pdf, 03_id.pdf etc.",
+      "Upload all files to a PDF merger (PDFSwift or similar)",
+      "Arrange them in required order (check exam instructions)",
+      "Merge and download one combined PDF",
+      "Check file size – if too large, compress before uploading"
+    ],
+    "estimatedTime": "PT5M",
+    "totalTime": "PT5M",
+    "supply": ["Exam form PDF", "Certificate scans", "ID proof", "Photo", "Signature", "Web browser"],
+    "tool": ["PDFSwift PDF Merger", "Smallpdf", "iLovePDF"]
+  },
+  "faq": [
+    {
+      "question": "What's the standard order for exam application documents?",
+      "answer": "Every exam is different, but common order: 1) Filled application form, 2) Educational certificates (10th, 12th, graduation in order), 3) ID proof (Aadhar, passport, etc.), 4) Photo, 5) Signature, 6) Payment receipt. Always check your exam's instructions – some have very specific requirements. Following their order exactly prevents rejection."
+    },
+    {
+      "question": "My files are too big to upload. What should I do?",
+      "answer": "This is the biggest problem with exam forms. Certificates scanned at high resolution can be 5-10MB each. Three certificates plus form plus ID = 50MB file. Many exam portals limit to 2MB or 5MB. Fix: Compress PDFs first. Use PDFSwift Compress tool or Smallpdf. Reduce to 1-2MB per file. Keep quality readable but don't go below 150 DPI. Also scan in black & white, not color – smaller files."
+    },
+    {
+      "question": "Do I need to sign documents digitally before merging?",
+      "answer": "Yes, most exams want your signature on the form. Options: Sign on paper, scan it, then merge. Or use a digital signature tool to add signature directly to PDF. Some exams accept typed names, but physical signature is safer. If you have a signature image (photo of your signature), you can add it to the PDF before merging using PDFSwift's 'Add Image' feature."
+    },
+    {
+      "question": "What if my certificates are in different formats (JPG, PNG)?",
+      "answer": "Convert them to PDF first. Most scanners save as JPG. Use PDFSwift Image to PDF tool. Convert all images to PDF, then merge. This is better than trying to merge mixed formats. Also, photos and signatures should be in separate PDF pages, not embedded in forms. Each document gets its own page."
+    },
+    {
+      "question": "The exam portal says my merged PDF is corrupted. Why?",
+      "answer": "Usually two reasons: File too large (compress it), or special characters in filename (use simple names like form.pdf, not form#2026@final.pdf). Also, some online mergers produce PDFs that aren't fully compatible. Use trusted tools. If problem persists, try merging in smaller batches or use Adobe's free online tool."
+    }
+  ]
 }
 
 
