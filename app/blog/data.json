@@ -2070,7 +2070,61 @@
       "answer": "No. Use SVG for logos/icons (vector = perfect scaling) or WebP at 2x resolution. PNG files become massive at high resolutions. Better to serve responsive images with srcset than rely on PNG for sharpness."
     }
   ]
+},
+
+{
+  "id": "remove-first-last-page-pdf-easily",
+  "title": "Remove First / Last Page from PDF Easily (2026 Guide)",
+  "date": "Feb 22 2026",
+  "image": "/images/remove-pdf-pages-guide.png",
+  "description": "Need to delete the first or last page from a PDF? Here's how to remove pages instantly without Adobe. Works on phone and computer. Free, no signup.",
+  "slug": "remove-first-last-page-pdf-easily",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Remove PDF Pages", "url": "/blog/remove-first-last-page-pdf-easily" }
+  ],
+  
+  "howto": {
+    "steps": [
+      "Upload your PDF to a page remover tool (PDFSwift or similar)",
+      "Select which pages to keep (or which to remove)",
+      "For first page: keep pages 2 to end",
+      "For last page: keep pages 1 to second-last",
+      "For multiple pages: specify ranges like 1-3,5,7-9",
+      "Click 'Remove Pages' and download your new PDF"
+    ],
+    "estimatedTime": "PT2M",
+    "totalTime": "PT2M",
+    "supply": ["PDF file", "Web browser", "Internet connection"],
+    "tool": ["PDFSwift PDF Editor", "iLovePDF", "Smallpdf", "Adobe Acrobat online"]
+  },
+  
+  "faq": [
+    {
+      "question": "Can I remove the first page of a PDF for free?",
+      "answer": "Yes, completely free. Tools like PDFSwift, iLovePDF, and Smallpdf let you delete pages without paying. No signup required. Just upload, select pages to keep, and download. Takes 30 seconds."
+    },
+    {
+      "question": "How do I delete the last page of a PDF?",
+      "answer": "Upload your PDF to any page remover tool. You'll see thumbnails of all pages. Either click the last page and hit delete, or specify the page range to keep (e.g., keep pages 1-9 if your PDF has 10 pages). Download the result."
+    },
+    {
+      "question": "Will the page numbers stay correct after removing pages?",
+      "answer": "Yes, the PDF renumbers automatically. If you remove page 1, the old page 2 becomes the new page 1. Page numbers in the document content (like headers) won't change – that's part of the PDF content itself. But the actual page order renumbers correctly."
+    },
+    {
+      "question": "What if I need to remove multiple pages from the middle?",
+      "answer": "Same process. Most tools let you specify ranges like '1-5,8,10-15' to keep only certain pages. Or you can select multiple thumbnails while holding Ctrl (Cmd on Mac) and delete them all at once. Some tools also let you type in page numbers to remove."
+    },
+    {
+      "question": "Is it safe to upload sensitive PDFs to remove pages?",
+      "answer": "For sensitive documents, use browser-based tools that process locally – files never leave your device. PDFSwift does this. Other tools upload to servers and delete after processing (usually 1-2 hours). For tax returns, contracts, IDs – use local processing tools."
+    }
+  ]
 }
+
 
 
 

@@ -81,8 +81,8 @@ interface DownloadNotification {
 // Compression Quality Options
 type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 
-// ✅ MOBILE: सरल limits
-const MAX_SIZE_MOBILE = 10 * 1024 * 1024;   // 10MB per file for mobile (छोटा रखो)
+// ✅ MOBILE: Simple limits
+const MAX_SIZE_MOBILE = 10 * 1024 * 1024;   // 10MB per file for mobile
 const MAX_FILES_MOBILE = 15; // Max 15 files on mobile
 
 // Desktop के लिए कोई limits नहीं
@@ -878,6 +878,163 @@ const ImageContainer = ({
   );
 };
 
+// Mobile Simple UI Component
+const MobileSimpleUI = ({
+  files,
+  onFilesUpdate,
+  onConvert,
+  converting,
+  progress,
+  orientation,
+  onOrientationChange,
+  pdfBlob,
+  onDownload,
+  onClear,
+}: {
+  files: FileWithPreview[];
+  onFilesUpdate: (files: File[]) => void;
+  onConvert: () => void;
+  converting: boolean;
+  progress: number;
+  orientation: Orientation;
+  onOrientationChange: (orient: Orientation) => void;
+  pdfBlob: Blob | null;
+  onDownload: () => void;
+  onClear: () => void;
+}) => {
+  return (
+    <div className="space-y-6">
+      {/* Upload Section */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
+        <div className="text-center mb-6">
+          <div className="inline-flex p-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl mb-4">
+            <ImageIcon className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            JPG to PDF
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Convert images to PDF on mobile
+          </p>
+        </div>
+
+        <FileUploader
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          multiple={true}
+          onFilesSelected={onFilesUpdate}
+          maxSize={10}
+          maxFiles={MAX_FILES_MOBILE}
+        />
+
+        <div className="mt-4 text-xs text-center text-gray-500 dark:text-gray-400">
+          <p>Max {MAX_FILES_MOBILE} images • {MAX_SIZE_MOBILE/(1024*1024)}MB per file</p>
+        </div>
+      </div>
+
+      {files.length > 0 && (
+        <>
+          {/* Selected Images Count */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-blue-500" />
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {files.length} Image{files.length !== 1 ? 's' : ''} Selected
+                </span>
+              </div>
+              <button
+                onClick={onClear}
+                className="text-sm text-red-600 hover:text-red-700 dark:text-red-400"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+
+          {/* Orientation Selector */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Page Orientation
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => onOrientationChange("Portrait")}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                  orientation === "Portrait"
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                }`}
+              >
+                <div className="w-4 h-5 border-2 border-current rounded" />
+                <span className="font-medium">Portrait</span>
+              </button>
+              <button
+                onClick={() => onOrientationChange("Landscape")}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                  orientation === "Landscape"
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                }`}
+              >
+                <div className="w-5 h-4 border-2 border-current rounded" />
+                <span className="font-medium">Landscape</span>
+              </button>
+            </div>
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+              Page size: A4 (210 × 297 mm)
+            </p>
+          </div>
+
+          {/* Progress/Convert/Download */}
+          {converting ? (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
+              <ProgressBar progress={progress} label="Creating PDF..." />
+              <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 dark:text-blue-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Processing {files.length} images...</span>
+              </div>
+            </div>
+          ) : pdfBlob ? (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
+              <div className="text-center mb-4">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                  PDF Ready!
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={onClear}
+                  className="py-3 px-4 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium"
+                >
+                  New
+                </button>
+                <button
+                  onClick={onDownload}
+                  className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={onConvert}
+              className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+            >
+              Convert to PDF
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function JpgToPdf() {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [paperSize, setPaperSize] = useState<PaperSize>("A4");
@@ -1110,9 +1267,11 @@ export default function JpgToPdf() {
         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       setIsMobile(mobileCheck);
       
-      // ✅ MOBILE FIX: Automatically set to Maximum Quality on mobile
-      if (mobileCheck && compressionQuality !== "none") {
+      // ✅ MOBILE FIX: Automatically set to A4 and Maximum Quality on mobile
+      if (mobileCheck) {
+        setPaperSize("A4");
         setCompressionQuality("none");
+        setMarginSize("small");
       }
     };
 
@@ -1122,7 +1281,7 @@ export default function JpgToPdf() {
     return () => {
       window.removeEventListener("resize", checkMobile);
     };
-  }, [compressionQuality]);
+  }, []);
 
   useEffect(() => {
     if (notificationsRef.current && downloadNotifications.length > 0) {
@@ -1141,8 +1300,9 @@ export default function JpgToPdf() {
     };
   }, [files]);
 
-  // Handle margin change
+  // Handle margin change (desktop only)
   const handleMarginChange = (margin: MarginSize) => {
+    if (isMobile) return; // No margins on mobile
     setMarginSize(margin);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -1151,14 +1311,9 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle quality change
+  // Handle quality change (desktop only)
   const handleCompressionQualityChange = (quality: CompressionQuality) => {
-    // ✅ MOBILE: Only allow "none" quality
-    if (isMobile && quality !== "none") {
-      alert("On mobile devices, only Maximum Quality (100%) is available for better performance.");
-      return;
-    }
-    
+    if (isMobile) return; // No quality options on mobile
     setCompressionQuality(quality);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -1167,14 +1322,9 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle custom quality change
+  // Handle custom quality change (desktop only)
   const handleCustomQualityChange = (value: number) => {
-    // ✅ MOBILE: Don't allow custom quality
-    if (isMobile) {
-      alert("Custom quality not available on mobile. Using Maximum Quality (100%).");
-      return;
-    }
-    
+    if (isMobile) return; // No custom quality on mobile
     setCustomQualityValue(value);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -1183,8 +1333,9 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle paper size change
+  // Handle paper size change (desktop only)
   const handlePaperSizeChange = (size: PaperSize) => {
+    if (isMobile) return; // Only A4 on mobile
     setPaperSize(size);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -1203,8 +1354,9 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Toggle reverse order
+  // Toggle reverse order (desktop only)
   const toggleReverseOrder = () => {
+    if (isMobile) return; // No reverse order on mobile
     setReverseOrder(!reverseOrder);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -1335,7 +1487,7 @@ export default function JpgToPdf() {
     [files, rotatedUrls, isMobile, maxSizePerFile]
   );
 
-  // Drag and Drop Handlers
+  // Drag and Drop Handlers (desktop only)
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
@@ -1449,6 +1601,7 @@ export default function JpgToPdf() {
 
   const handleRotateAll = useCallback(
     (degrees: number) => {
+      if (isMobile) return; // No rotate all on mobile
       setFiles((prev) =>
         prev.map((file) => ({
           ...file,
@@ -1470,7 +1623,7 @@ export default function JpgToPdf() {
       });
       setRotatedUrls({});
     },
-    [rotatedUrls]
+    [rotatedUrls, isMobile]
   );
 
   const handleFilesUpdate = useCallback(
@@ -1596,8 +1749,8 @@ export default function JpgToPdf() {
       // Prepare files in current order
       let filesToProcess = [...files];
 
-      // Apply reverse order when converting to PDF
-      if (reverseOrder) {
+      // Apply reverse order only on desktop when converting to PDF
+      if (!isMobile && reverseOrder) {
         filesToProcess = [...files].reverse();
       }
 
@@ -1607,32 +1760,19 @@ export default function JpgToPdf() {
       // Mobile device warning
       if (isMobile) {
         console.log(`Mobile device processing ${filesToProcess.length} images (max ${MAX_FILES_MOBILE} allowed)`);
-        
-        if (filesToProcess.length > 5) {
-          const shouldContinue = window.confirm(
-            `Processing ${filesToProcess.length} images on mobile.\n\nThis may take a few moments.\nContinue?`
-          );
-          if (!shouldContinue) {
-            setConverting(false);
-            setShowCompressionInfo(false);
-            return;
-          }
-        }
       }
 
       console.log("Converting files:", filesToProcess.length);
       console.log("Paper Size:", paperSize, "Orientation:", orientation);
-      console.log("Quality Setting:", compressionQuality);
       
       let cleanup: (() => void) | null = null;
       cleanup = simulateProgress(setProgress, 10, 50, 2000); // Shorter time for mobile
 
       console.log("Starting image processing...");
-      console.log(`Compression Quality: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
       console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
       
       // Calculate target dimensions based on paper size and margin
-      const marginPoints = {
+      const marginPoints = isMobile ? 18 : { // Small margin (0.25 inch) on mobile
         "no-margin": 0,
         small: 18, // 0.25 inch = 18 points
         big: 72, // 1 inch = 72 points
@@ -1793,9 +1933,6 @@ export default function JpgToPdf() {
 
           console.log(`\n=== PDF Generation Complete ===`);
           console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
-          console.log(`Quality Setting: ${compressionQuality}${compressionQuality === "custom" ? ` (${customQualityValue}%)` : ""}`);
-          console.log(`Margin Setting: ${marginSize} (${marginPoints} points)`);
-          console.log(`Reverse Order: ${reverseOrder}`);
           console.log(`Original total: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
           console.log(`Final PDF: ${(pdfSize / 1024 / 1024).toFixed(2)} MB`);
           console.log(`PDF created successfully!`);
@@ -1874,10 +2011,10 @@ export default function JpgToPdf() {
     }
   };
 
-  const displayFiles = reverseOrder ? [...files].reverse() : files;
+  const displayFiles = !isMobile && reverseOrder ? [...files].reverse() : files;
 
   const getPageNumber = (displayIndex: number) => {
-    if (reverseOrder) {
+    if (!isMobile && reverseOrder) {
       return files.length - displayIndex;
     }
     return displayIndex + 1;
@@ -2114,15 +2251,17 @@ export default function JpgToPdf() {
         </div>
       </div>
 
-      <FloatingPageCounter
-        count={files.length}
-        reverseOrder={reverseOrder}
-        compressionQuality={compressionQuality}
-        marginSize={marginSize}
-        customQualityValue={customQualityValue}
-        showWarning={showChangesWarning}
-        isMobile={isMobile}
-      />
+      {!isMobile && (
+        <FloatingPageCounter
+          count={files.length}
+          reverseOrder={reverseOrder}
+          compressionQuality={compressionQuality}
+          marginSize={marginSize}
+          customQualityValue={customQualityValue}
+          showWarning={showChangesWarning}
+          isMobile={isMobile}
+        />
+      )}
 
       <AnimatePresence>
         {expandedImage && (
@@ -2196,9 +2335,9 @@ export default function JpgToPdf() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Limits Banner */}
+      {/* Mobile Limits Banner - Only show when needed */}
       <AnimatePresence>
-        {isMobile && files.length > 0 && (
+        {isMobile && sizeLimitExceeded && files.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2277,9 +2416,9 @@ export default function JpgToPdf() {
         )}
       </AnimatePresence>
 
-      {/* Changes Warning Banner */}
+      {/* Changes Warning Banner - Desktop only */}
       <AnimatePresence>
-        {showChangesWarning && (
+        {!isMobile && showChangesWarning && (
           <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2343,763 +2482,717 @@ export default function JpgToPdf() {
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Convert JPG to PDF Online Free
               </h1>
-
-              
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
-              <div className="mb-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <Upload className="w-6 h-6 text-blue-500" />
-                  <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
-                    Upload Images
-                  </h2>
-                  
+            {/* Mobile Simple UI */}
+            {isMobile ? (
+              <MobileSimpleUI
+                files={files}
+                onFilesUpdate={handleFilesUpdate}
+                onConvert={handleConvert}
+                converting={converting}
+                progress={progress}
+                orientation={orientation}
+                onOrientationChange={handleOrientationChange}
+                pdfBlob={pdfBlob}
+                onDownload={handleDownload}
+                onClear={handleConvertMore}
+              />
+            ) : (
+              /* Desktop Full UI - Completely Unchanged */
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
+                <div className="mb-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Upload className="w-6 h-6 text-blue-500" />
+                    <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">
+                      Upload Images
+                    </h2>
+                  </div>
+
+                  <FileUploader
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    multiple={true}
+                    onFilesSelected={handleFilesUpdate}
+                    maxSize={isMobile ? 10 : Infinity}
+                    maxFiles={isMobile ? MAX_FILES_MOBILE : undefined}
+                  />
+
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Unlimited Pages</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>No Size Limit</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Professional Layout</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span>Size Reduction</span>
+                    </div>
+                  </div>
+
+                  {compressing && (
+                    <div className="mt-4 flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">
+                        Processing images...
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-               <FileUploader
-  accept="image/jpeg,image/jpg,image/png,image/webp"
-  multiple={true}
-  onFilesSelected={handleFilesUpdate}
-  maxSize={isMobile ? 10 : Infinity} // 10MB for mobile, no limit for desktop
-  maxFiles={isMobile ? MAX_FILES_MOBILE : undefined} // 15 files for mobile
-/>
-
-<div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600 dark:text-gray-400">
-  <div className="flex items-center gap-2">
-    <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>{isMobile ? "Max 15 Pages" : "Unlimited Pages"}</span>
-  </div>
-  <div className="flex items-center gap-2">
-    <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>{isMobile ? "10MB/file" : "No Size Limit"}</span>
-  </div>
-  <div className="flex items-center gap-2">
-    <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>Professional Layout</span>
-  </div>
-  <div className="flex items-center gap-2">
-    <CheckCircle className="w-5 h-5 text-green-500" />
-    <span>{isMobile ? "100% Quality" : "Size Reduction"}</span>
-  </div>
-</div>
-
-{/* Device-specific Info */}
-<div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-  {isMobile ? (
-    <div className="flex items-center gap-2">
-      <Smartphone className="w-4 h-4" />
-      <span>📱 Mobile: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file</span>
-    </div>
-  ) : (
-    <div className="flex items-center gap-2">
-      <Monitor className="w-4 h-4" />
-      <span>💻 Desktop: No size limits - Upload unlimited files</span>
-    </div>
-  )}
-</div>
-
-                {compressing && (
-                  <div className="mt-4 flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">
-                      Processing images...
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {files.length > 0 && (
-                <div className="space-y-8">
-                  {/* Mobile Warning Banner */}
-                  {isMobile && (
-                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
-                      <div className="flex items-start gap-3">
-                        <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                        <div>
-                          <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-1">
-                            📱 Mobile Device - Simple Mode
-                          </h4>
-                          <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                            <li>• Maximum {MAX_FILES_MOBILE} images allowed ({files.length}/{MAX_FILES_MOBILE} used)</li>
-                            <li>• Maximum {MAX_SIZE_MOBILE/(1024*1024)}MB per file</li>
-                            <li>• Using <strong>Maximum Quality (100%)</strong> only</li>
-                            <li>• Simple processing for mobile performance</li>
-                            <li className="font-semibold mt-2">For more features: Use desktop version</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Desktop Power Banner */}
-                  {!isMobile && files.length > 50 && (
-                    <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-2xl">
-                      <div className="flex items-start gap-3">
-                        <Monitor className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
-                        <div>
-                          <h4 className="font-bold text-green-800 dark:text-green-300 mb-1">
-                            💻 Desktop Power Mode
-                          </h4>
-                          <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
-                            <li>• Processing {files.length} images with no size limits</li>
-                            <li>• Full desktop performance - faster processing</li>
-                            <li>• Adjust quality settings for smaller file size</li>
-                            <li className="font-semibold mt-2">✓ No restrictions - Upload unlimited files</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ✅ FIXED: Processing Error Box */}
-                  {processingError && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center">
-                            <AlertTriangle className="w-6 h-6 text-white" />
+                {files.length > 0 && (
+                  <div className="space-y-8">
+                    {/* Desktop Power Banner */}
+                    {files.length > 50 && (
+                      <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-2xl">
+                        <div className="flex items-start gap-3">
+                          <Monitor className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
+                          <div>
+                            <h4 className="font-bold text-green-800 dark:text-green-300 mb-1">
+                              💻 Desktop Power Mode
+                            </h4>
+                            <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
+                              <li>• Processing {files.length} images with no size limits</li>
+                              <li>• Full desktop performance - faster processing</li>
+                              <li>• Adjust quality settings for smaller file size</li>
+                              <li className="font-semibold mt-2">✓ No restrictions - Upload unlimited files</li>
+                            </ul>
                           </div>
                         </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-red-800 dark:text-red-300 mb-1">
-                            Processing Error
-                          </h3>
-                          <p className="text-red-700 dark:text-red-400 mb-3 whitespace-pre-line">
-                            {processingError}
-                          </p>
-                          <div className="flex flex-wrap gap-3">
-                            <button
-                              onClick={() => {
-                                setProcessingError(null);
-                                handleConvert();
-                              }}
-                              className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-orange-700 transition-all shadow-md flex items-center gap-2"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                              Try Again
-                            </button>
-                            <button
-                              onClick={() => setProcessingError(null)}
-                              className="px-5 py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-                            >
-                              Dismiss
-                            </button>
-                          </div>
-                          {isMobile && (
-                            <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                              <p className="text-sm text-blue-700 dark:text-blue-300">
-                                <strong>📱 Mobile Limits:</strong> Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file
-                              </p>
+                      </div>
+                    )}
+
+                    {/* Processing Error Box */}
+                    {processingError && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center">
+                              <AlertTriangle className="w-6 h-6 text-white" />
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Changes Warning Box */}
-                  {showChangesWarning && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
-                            <AlertTriangle className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-red-800 dark:text-red-300 mb-1">
+                              Processing Error
+                            </h3>
+                            <p className="text-red-700 dark:text-red-400 mb-3 whitespace-pre-line">
+                              {processingError}
+                            </p>
+                            <div className="flex flex-wrap gap-3">
+                              <button
+                                onClick={() => {
+                                  setProcessingError(null);
+                                  handleConvert();
+                                }}
+                                className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-orange-700 transition-all shadow-md flex items-center gap-2"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                                Try Again
+                              </button>
+                              <button
+                                onClick={() => setProcessingError(null)}
+                                className="px-5 py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                Dismiss
+                              </button>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-amber-800 dark:text-amber-300 mb-1">
-                            Changes Detected - Convert Again Required
-                          </h3>
-                          <p className="text-amber-700 dark:text-amber-400 mb-3">
-                            You've made changes to your images or settings. Your current PDF is outdated. Click the button below to convert again with the latest changes.
-                          </p>
-                          <div className="flex flex-wrap gap-3">
-                            <button
-                              onClick={handleConvert}
-                              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all shadow-md flex items-center gap-2"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                              Convert Again with Changes
-                            </button>
-                            <button
-                              onClick={() => setShowChangesWarning(false)}
-                              className="px-5 py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-                            >
-                              Dismiss Warning
-                            </button>
+                      </motion.div>
+                    )}
+
+                    {/* Changes Warning Box */}
+                    {showChangesWarning && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
+                              <AlertTriangle className="w-6 h-6 text-white" />
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-amber-800 dark:text-amber-300 mb-1">
+                              Changes Detected - Convert Again Required
+                            </h3>
+                            <p className="text-amber-700 dark:text-amber-400 mb-3">
+                              You've made changes to your images or settings. Your current PDF is outdated. Click the button below to convert again with the latest changes.
+                            </p>
+                            <div className="flex flex-wrap gap-3">
+                              <button
+                                onClick={handleConvert}
+                                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all shadow-md flex items-center gap-2"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                                Convert Again with Changes
+                              </button>
+                              <button
+                                onClick={() => setShowChangesWarning(false)}
+                                className="px-5 py-2.5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                Dismiss Warning
+                              </button>
+                            </div>
                           </div>
                         </div>
+                      </motion.div>
+                    )}
+
+                    {/* Selected Images Section */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                          Selected Images ({files.length})
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Drag to reorder • Click to preview • Rotate to adjust
+                        </p>
                       </div>
-                    </motion.div>
-                  )}
-
-                  {/* Selected Images Section */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        Selected Images ({files.length})
-                        {isMobile && (
-                          <span className="ml-2 text-sm text-blue-600 dark:text-blue-400">
-                            ({MAX_FILES_MOBILE - files.length} left)
-                          </span>
-                        )}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Drag to reorder • Click to preview • Rotate to adjust
-                        {isMobile && (
-                          <span className="block text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            Mobile limits: Max {MAX_FILES_MOBILE} images, {MAX_SIZE_MOBILE/(1024*1024)}MB per file
-                          </span>
-                        )}
-                        {!isMobile && (
-                          <span className="block text-xs text-green-600 dark:text-green-400 mt-1">
-                            ✓ Desktop: No file size limits
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-                        <button
-                          onClick={() => setViewMode("grid")}
-                          className={`px-3 py-1.5 rounded-md transition-colors ${
-                            viewMode === "grid"
-                              ? "bg-white dark:bg-gray-700 shadow-sm"
-                              : "hover:bg-gray-200 dark:hover:bg-gray-700"
-                          }`}
-                        >
-                          <Grid className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setViewMode("list")}
-                          className={`px-3 py-1.5 rounded-md transition-colors ${
-                            viewMode === "list"
-                              ? "bg-white dark:bg-gray-700 shadow-sm"
-                              : "hover:bg-gray-200 dark:hover:bg-gray-700"
-                          }`}
-                        >
-                          <List className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleRotateAll(-90)}
-                          className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                          title="Rotate all counter-clockwise"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleRotateAll(90)}
-                          className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                          title="Rotate all clockwise"
-                        >
-                          <RotateCw className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={toggleReverseOrder}
-                        className={`px-4 py-2 flex items-center gap-2 rounded-xl transition-all text-sm ${
-                          reverseOrder
-                            ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-md"
-                            : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        <ArrowUpDown className="w-4 h-4" />
-                        {reverseOrder ? "Normal Order" : "Reverse Order"}
-                      </button>
-
-                      <button
-                        onClick={handleConvertMore}
-                        className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                        Clear All
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Images Grid/List View */}
-                  <div
-                    className={`${
-                      viewMode === "grid"
-                        ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
-                        : "space-y-3"
-                    }`}
-                  >
-                    {displayFiles.map((item, displayIndex) => {
-                      const pageNumber = getPageNumber(displayIndex);
-                      const imageUrl = getImageUrl(item);
-
-                      return (
-                        <DraggableItem
-                          key={item.id}
-                          index={displayIndex}
-                          onDragStart={handleDragStart}
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          isDragging={draggedIndex === displayIndex}
-                        >
-                          <div
-                            className={`group relative ${
-                              viewMode === "list"
-                                ? "flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl ml-6"
-                                : ""
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                          <button
+                            onClick={() => setViewMode("grid")}
+                            className={`px-3 py-1.5 rounded-md transition-colors ${
+                              viewMode === "grid"
+                                ? "bg-white dark:bg-gray-700 shadow-sm"
+                                : "hover:bg-gray-200 dark:hover:bg-gray-700"
                             }`}
                           >
-                            {viewMode === "list" && (
-                              <div className="flex flex-col gap-1">
-                                <button
-                                  onClick={() => handleMoveUp(displayIndex)}
-                                  disabled={displayIndex === 0}
-                                  className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
-                                >
-                                  <ChevronUp className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => handleMoveDown(displayIndex)}
-                                  disabled={displayIndex === files.length - 1}
-                                  className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
-                                >
-                                  <ChevronDown className="w-3 h-3" />
-                                </button>
+                            <Grid className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setViewMode("list")}
+                            className={`px-3 py-1.5 rounded-md transition-colors ${
+                              viewMode === "list"
+                                ? "bg-white dark:bg-gray-700 shadow-sm"
+                                : "hover:bg-gray-200 dark:hover:bg-gray-700"
+                            }`}
+                          >
+                            <List className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleRotateAll(-90)}
+                            className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title="Rotate all counter-clockwise"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleRotateAll(90)}
+                            className="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title="Rotate all clockwise"
+                          >
+                            <RotateCw className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={toggleReverseOrder}
+                          className={`px-4 py-2 flex items-center gap-2 rounded-xl transition-all text-sm ${
+                            reverseOrder
+                              ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-md"
+                              : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          <ArrowUpDown className="w-4 h-4" />
+                          {reverseOrder ? "Normal Order" : "Reverse Order"}
+                        </button>
+
+                        <button
+                          onClick={handleConvertMore}
+                          className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                          Clear All
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Images Grid/List View */}
+                    <div
+                      className={`${
+                        viewMode === "grid"
+                          ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+                          : "space-y-3"
+                      }`}
+                    >
+                      {displayFiles.map((item, displayIndex) => {
+                        const pageNumber = getPageNumber(displayIndex);
+                        const imageUrl = getImageUrl(item);
+
+                        return (
+                          <DraggableItem
+                            key={item.id}
+                            index={displayIndex}
+                            onDragStart={handleDragStart}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            isDragging={draggedIndex === displayIndex}
+                          >
+                            <div
+                              className={`group relative ${
+                                viewMode === "list"
+                                  ? "flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl ml-6"
+                                  : ""
+                              }`}
+                            >
+                              {viewMode === "list" && (
+                                <div className="flex flex-col gap-1">
+                                  <button
+                                    onClick={() => handleMoveUp(displayIndex)}
+                                    disabled={displayIndex === 0}
+                                    className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
+                                  >
+                                    <ChevronUp className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleMoveDown(displayIndex)}
+                                    disabled={displayIndex === files.length - 1}
+                                    className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-30"
+                                  >
+                                    <ChevronDown className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Image Container */}
+                              <div className={viewMode === "list" ? "w-20 h-20 flex-shrink-0" : "w-full"}>
+                                <ImageContainer
+                                  file={item}
+                                  imageUrl={imageUrl}
+                                  rotation={item.rotation}
+                                  hasRotation={!!rotatedUrls[item.id]}
+                                  previewError={item.previewError || false}
+                                  onClick={() => handleExpandImage(item)}
+                                />
                               </div>
-                            )}
 
-                            {/* Image Container */}
-                            <div className={viewMode === "list" ? "w-20 h-20 flex-shrink-0" : "w-full"}>
-                              <ImageContainer
-                                file={item}
-                                imageUrl={imageUrl}
-                                rotation={item.rotation}
-                                hasRotation={!!rotatedUrls[item.id]}
-                                previewError={item.previewError || false}
-                                onClick={() => handleExpandImage(item)}
-                              />
-                            </div>
-
-                            {viewMode === "list" && (
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
-                                  {item.file.name}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {(item.file.size / 1024 / 1024).toFixed(2)} MB
-                                </p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, -90);
-                                    }}
-                                    className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                    title="Rotate counter-clockwise"
-                                  >
-                                    <RotateCcw className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRotateFile(item.id, 90);
-                                    }}
-                                    className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                    title="Rotate clockwise"
-                                  >
-                                    <RotateCw className="w-3 h-3" />
-                                  </button>
-                                  <div className="relative ml-auto">
+                              {viewMode === "list" && (
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
+                                    {item.file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-2">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setShowReplaceOptions(
-                                          showReplaceOptions === item.id
-                                            ? null
-                                            : item.id
-                                        );
+                                        handleRotateFile(item.id, -90);
                                       }}
                                       className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                                      title="Replace image"
+                                      title="Rotate counter-clockwise"
                                     >
-                                      <Replace className="w-3 h-3" />
+                                      <RotateCcw className="w-3 h-3" />
                                     </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRotateFile(item.id, 90);
+                                      }}
+                                      className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                      title="Rotate clockwise"
+                                    >
+                                      <RotateCw className="w-3 h-3" />
+                                    </button>
+                                    <div className="relative ml-auto">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowReplaceOptions(
+                                            showReplaceOptions === item.id
+                                              ? null
+                                              : item.id
+                                          );
+                                        }}
+                                        className="p-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                        title="Replace image"
+                                      >
+                                        <Replace className="w-3 h-3" />
+                                      </button>
 
-                                    {/* Replace Options Dropdown */}
-                                    {showReplaceOptions === item.id && (
-                                      <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setReplacingImageId(item.id);
-                                            setShowReplaceOptions(null);
-                                          }}
-                                          className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                                        >
-                                          Replace this image
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleRemoveFile(item);
-                                            setShowReplaceOptions(null);
-                                          }}
-                                          className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-2"
-                                        >
-                                          <X className="w-3 h-3" />
-                                          Remove image
-                                        </button>
-                                      </div>
-                                    )}
+                                      {/* Replace Options Dropdown */}
+                                      {showReplaceOptions === item.id && (
+                                        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setReplacingImageId(item.id);
+                                              setShowReplaceOptions(null);
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                                          >
+                                            Replace this image
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleRemoveFile(item);
+                                              setShowReplaceOptions(null);
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-2"
+                                          >
+                                            <X className="w-3 h-3" />
+                                            Remove image
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
-                            {viewMode === "grid" && (
-                              <>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveFile(item);
-                                  }}
-                                  className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
-                                  aria-label={`Remove ${item.file.name}`}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-
-                                {/* Replace Button for Grid View */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setReplacingImageId(item.id);
-                                  }}
-                                  className="absolute -top-2 -left-2 bg-blue-500 text-white p-1.5 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-10"
-                                  title="Replace image"
-                                >
-                                  <Replace className="w-3 h-3" />
-                                </button>
-
-                                <div className="absolute bottom-2 left-2 flex gap-1">
+                              {viewMode === "grid" && (
+                                <>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleRotateFile(item.id, -90);
+                                      handleRemoveFile(item);
                                     }}
-                                    className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
-                                    title="Rotate counter-clockwise"
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
+                                    aria-label={`Remove ${item.file.name}`}
                                   >
-                                    <RotateCcw className="w-3 h-3" />
+                                    <X className="w-3 h-3" />
                                   </button>
+
+                                  {/* Replace Button for Grid View */}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleRotateFile(item.id, 90);
+                                      setReplacingImageId(item.id);
                                     }}
-                                    className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
-                                    title="Rotate clockwise"
+                                    className="absolute -top-2 -left-2 bg-blue-500 text-white p-1.5 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-10"
+                                    title="Replace image"
                                   >
-                                    <RotateCw className="w-3 h-3" />
+                                    <Replace className="w-3 h-3" />
                                   </button>
-                                </div>
 
-                                {imageUrl && !item.previewError && (
-                                  <button
-                                    className="absolute bottom-2 right-2 p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleExpandImage(item);
-                                    }}
-                                    title="Expand image"
-                                  >
-                                    <Maximize2 className="w-3 h-3" />
-                                  </button>
-                                )}
+                                  <div className="absolute bottom-2 left-2 flex gap-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRotateFile(item.id, -90);
+                                      }}
+                                      className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
+                                      title="Rotate counter-clockwise"
+                                    >
+                                      <RotateCcw className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRotateFile(item.id, 90);
+                                      }}
+                                      className="p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors"
+                                      title="Rotate clockwise"
+                                    >
+                                      <RotateCw className="w-3 h-3" />
+                                    </button>
+                                  </div>
 
-                                <div
-                                  className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {pageNumber}
-                                </div>
+                                  {imageUrl && !item.previewError && (
+                                    <button
+                                      className="absolute bottom-2 right-2 p-1.5 bg-black/70 text-white hover:bg-black/90 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleExpandImage(item);
+                                      }}
+                                      title="Expand image"
+                                    >
+                                      <Maximize2 className="w-3 h-3" />
+                                    </button>
+                                  )}
 
-                                {item.rotation !== 0 && (
                                   <div
-                                    className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                    className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full"
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    <RotateCw className="w-2 h-2" />
-                                    {item.rotation}°
+                                    {pageNumber}
                                   </div>
-                                )}
 
-                                {reverseOrder && (
-                                  <div
-                                    className="absolute -top-2 left-8 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <ArrowUpDown className="w-2 h-2" />R
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </DraggableItem>
-                      );
-                    })}
-                  </div>
+                                  {item.rotation !== 0 && (
+                                    <div
+                                      className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <RotateCw className="w-2 h-2" />
+                                      {item.rotation}°
+                                    </div>
+                                  )}
 
-                  {/* Margin Settings Section */}
-                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-4 md:p-5 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Columns className="w-5 h-5 md:w-6 md:h-6 text-blue-500 flex-shrink-0" />
-                      <div>
-                        <h3 className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200">
-                          Page Margins
-                        </h3>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                          Choose margin size for printing & readability
-                        </p>
-                      </div>
+                                  {reverseOrder && (
+                                    <div
+                                      className="absolute -top-2 left-8 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <ArrowUpDown className="w-2 h-2" />R
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </DraggableItem>
+                        );
+                      })}
                     </div>
 
-                    <div className="space-y-4">
-                      {/* Compact Margin Options */}
-                      <div className="grid grid-cols-3 gap-2 md:gap-3">
-                        {(
-                          [
-                            {
-                              value: "no-margin" as MarginSize,
-                              label: "No",
-                              icon: Expand,
-                              color: "from-gray-500 to-gray-700",
-                              size: '0"',
-                            },
-                            {
-                              value: "small" as MarginSize,
-                              label: "Small",
-                              icon: Columns,
-                              color: "from-blue-500 to-cyan-600",
-                              size: '0.25"',
-                            },
-                            {
-                              value: "big" as MarginSize,
-                              label: "Big",
-                              icon: Square,
-                              color: "from-purple-500 to-pink-600",
-                              size: '1"',
-                            },
-                          ] as const
-                        ).map((option) => {
-                          const Icon = option.icon;
-                          return (
-                            <button
-                              key={option.value}
-                              onClick={() => handleMarginChange(option.value)}
-                              className={`flex flex-col items-center p-3 md:p-4 rounded-xl border transition-all ${
-                                marginSize === option.value
-                                  ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-md`
-                                  : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                              }`}
-                            >
-                              <div
-                                className={`p-2 rounded-lg mb-2 ${
+                    {/* Margin Settings Section */}
+                    <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-4 md:p-5 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Columns className="w-5 h-5 md:w-6 md:h-6 text-blue-500 flex-shrink-0" />
+                        <div>
+                          <h3 className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200">
+                            Page Margins
+                          </h3>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                            Choose margin size for printing & readability
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* Compact Margin Options */}
+                        <div className="grid grid-cols-3 gap-2 md:gap-3">
+                          {(
+                            [
+                              {
+                                value: "no-margin" as MarginSize,
+                                label: "No",
+                                icon: Expand,
+                                color: "from-gray-500 to-gray-700",
+                                size: '0"',
+                              },
+                              {
+                                value: "small" as MarginSize,
+                                label: "Small",
+                                icon: Columns,
+                                color: "from-blue-500 to-cyan-600",
+                                size: '0.25"',
+                              },
+                              {
+                                value: "big" as MarginSize,
+                                label: "Big",
+                                icon: Square,
+                                color: "from-purple-500 to-pink-600",
+                                size: '1"',
+                              },
+                            ] as const
+                          ).map((option) => {
+                            const Icon = option.icon;
+                            return (
+                              <button
+                                key={option.value}
+                                onClick={() => handleMarginChange(option.value)}
+                                className={`flex flex-col items-center p-3 md:p-4 rounded-xl border transition-all ${
                                   marginSize === option.value
-                                    ? "bg-white/20"
-                                    : "bg-gray-100 dark:bg-gray-700"
+                                    ? `bg-gradient-to-r ${option.color} text-white border-transparent shadow-md`
+                                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
                                 }`}
                               >
-                                <Icon className="w-4 h-4 md:w-5 md:h-5" />
-                              </div>
-                              <div className="text-center">
-                                <span className="font-semibold text-sm">
-                                  {option.label}
-                                </span>
-                                <div className="text-xs opacity-80 mt-0.5">
-                                  {option.size}
+                                <div
+                                  className={`p-2 rounded-lg mb-2 ${
+                                    marginSize === option.value
+                                      ? "bg-white/20"
+                                      : "bg-gray-100 dark:bg-gray-700"
+                                  }`}
+                                >
+                                  <Icon className="w-4 h-4 md:w-5 md:h-5" />
                                 </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Current Selection Indicator */}
-                      <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              marginSize === "no-margin"
-                                ? "bg-gray-500"
-                                : marginSize === "small"
-                                ? "bg-blue-500"
-                                : "bg-purple-500"
-                            }`}
-                          />
-                          <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                            {marginSize === "no-margin"
-                              ? "No Margin"
-                              : marginSize === "small"
-                              ? "Small Margin (0.25\")"
-                              : "Big Margin (1\")"}
-                          </span>
+                                <div className="text-center">
+                                  <span className="font-semibold text-sm">
+                                    {option.label}
+                                  </span>
+                                  <div className="text-xs opacity-80 mt-0.5">
+                                    {option.size}
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
-                          {marginSize === "no-margin"
-                            ? "Full page"
-                            : marginSize === "small"
-                            ? "0.25 inch"
-                            : "1 inch"}
-                        </span>
-                      </div>
 
-                      {/* Compact Margin Preview */}
-                      <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200">
-                            Preview
-                          </h4>
-                          <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                            <span className="hidden sm:inline">Current:</span>
-                            <span className="font-medium">
+                        {/* Current Selection Indicator */}
+                        <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                marginSize === "no-margin"
+                                  ? "bg-gray-500"
+                                  : marginSize === "small"
+                                  ? "bg-blue-500"
+                                  : "bg-purple-500"
+                              }`}
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
                               {marginSize === "no-margin"
                                 ? "No Margin"
                                 : marginSize === "small"
-                                ? "Small (0.25\")"
-                                : "Big (1\")"}
+                                ? "Small Margin (0.25\")"
+                                : "Big Margin (1\")"}
                             </span>
                           </div>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
+                            {marginSize === "no-margin"
+                              ? "Full page"
+                              : marginSize === "small"
+                              ? "0.25 inch"
+                              : "1 inch"}
+                          </span>
                         </div>
 
-                        {/* Interactive Mini Preview */}
-                        <div
-                          className="relative mx-auto"
-                          style={{ maxWidth: "200px" }}
-                        >
-                          {/* Page */}
-                          <div className="relative w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-lg border-2 border-gray-300 dark:border-gray-600">
-                            {/* Margin Area */}
-                            <div
-                              className={`absolute rounded-md transition-all duration-200 ${
-                                marginSize === "no-margin"
-                                  ? "inset-1 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-700 dark:to-gray-600"
+                        {/* Compact Margin Preview */}
+                        <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-sm text-gray-800 dark:text-gray-200">
+                              Preview
+                            </h4>
+                            <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                              <span className="hidden sm:inline">Current:</span>
+                              <span className="font-medium">
+                                {marginSize === "no-margin"
+                                  ? "No Margin"
                                   : marginSize === "small"
-                                  ? "inset-4 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700"
-                                  : "inset-5 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/50 dark:to-purple-800/50 border border-purple-200 dark:border-purple-700"
-                              }`}
-                            >
-                              {/* Image Placeholder */}
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-10 h-12 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 rounded flex items-center justify-center">
-                                  <ImageIcon className="w-4 h-4 text-blue-400 dark:text-blue-300" />
+                                  ? "Small (0.25\")"
+                                  : "Big (1\")"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Interactive Mini Preview */}
+                          <div
+                            className="relative mx-auto"
+                            style={{ maxWidth: "200px" }}
+                          >
+                            {/* Page */}
+                            <div className="relative w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-800 rounded-lg border-2 border-gray-300 dark:border-gray-600">
+                              {/* Margin Area */}
+                              <div
+                                className={`absolute rounded-md transition-all duration-200 ${
+                                  marginSize === "no-margin"
+                                    ? "inset-1 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-700 dark:to-gray-600"
+                                    : marginSize === "small"
+                                    ? "inset-4 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 border border-blue-200 dark:border-blue-700"
+                                    : "inset-5 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/50 dark:to-purple-800/50 border border-purple-200 dark:border-purple-700"
+                                }`}
+                              >
+                                {/* Image Placeholder */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-10 h-12 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 rounded flex items-center justify-center">
+                                    <ImageIcon className="w-4 h-4 text-blue-400 dark:text-blue-300" />
+                                  </div>
                                 </div>
                               </div>
                             </div>
+
+                            {/* Margin Indicator */}
+                            {marginSize !== "no-margin" && (
+                              <div className="mt-2 flex items-center justify-center">
+                                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                  <div
+                                    className={`w-8 h-0.5 ${
+                                      marginSize === "small"
+                                        ? "bg-blue-500"
+                                        : "bg-purple-500"
+                                    }`}
+                                  ></div>
+                                  <span>
+                                    {marginSize === "small" ? '0.25"' : '1"'}
+                                  </span>
+                                  <div
+                                    className={`w-8 h-0.5 ${
+                                      marginSize === "small"
+                                        ? "bg-blue-500"
+                                        : "bg-purple-500"
+                                    }`}
+                                  ></div>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Margin Indicator */}
-                          {marginSize !== "no-margin" && (
-                            <div className="mt-2 flex items-center justify-center">
-                              <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-                                <div
-                                  className={`w-8 h-0.5 ${
-                                    marginSize === "small"
-                                      ? "bg-blue-500"
-                                      : "bg-purple-500"
-                                  }`}
-                                ></div>
-                                <span>
-                                  {marginSize === "small" ? '0.25"' : '1"'}
-                                </span>
-                                <div
-                                  className={`w-8 h-0.5 ${
-                                    marginSize === "small"
-                                      ? "bg-blue-500"
-                                      : "bg-purple-500"
-                                  }`}
-                                ></div>
+                          {/* Usage Tips - Compact */}
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            <div className="text-center">
+                              <div
+                                className={`text-xs font-medium ${
+                                  marginSize === "no-margin"
+                                    ? "text-gray-700 dark:text-gray-300"
+                                    : "text-gray-600 dark:text-gray-400"
+                                }`}
+                              >
+                                Digital
+                              </div>
+                              <div className="text-[10px] text-gray-500 dark:text-gray-500">
+                                Screens
                               </div>
                             </div>
-                          )}
-                        </div>
+                            <div className="text-center">
+                              <div
+                                className={`text-xs font-medium ${
+                                  marginSize === "small"
+                                    ? "text-blue-600 dark:text-blue-400"
+                                    : "text-gray-600 dark:text-gray-400"
+                                }`}
+                              >
+                                Standard
+                              </div>
+                              <div className="text-[10px] text-gray-500 dark:text-gray-500">
+                                Documents
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div
+                                className={`text-xs font-medium ${
+                                  marginSize === "big"
+                                    ? "text-purple-600 dark:text-purple-400"
+                                    : "text-gray-600 dark:text-gray-400"
+                                }`}
+                              >
+                                Print
+                              </div>
+                              <div className="text-[10px] text-gray-500 dark:text-gray-500">
+                                Notes
+                              </div>
+                            </div>
+                          </div>
 
-                        {/* Usage Tips - Compact */}
-                        <div className="mt-3 grid grid-cols-3 gap-2">
-                          <div className="text-center">
-                            <div
-                              className={`text-xs font-medium ${
-                                marginSize === "no-margin"
-                                  ? "text-gray-700 dark:text-gray-300"
-                                  : "text-gray-600 dark:text-gray-400"
-                              }`}
-                            >
-                              Digital
-                            </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-500">
-                              Screens
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div
-                              className={`text-xs font-medium ${
-                                marginSize === "small"
-                                  ? "text-blue-600 dark:text-blue-400"
-                                  : "text-gray-600 dark:text-gray-400"
-                              }`}
-                            >
-                              Standard
-                            </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-500">
-                              Documents
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div
-                              className={`text-xs font-medium ${
-                                marginSize === "big"
-                                  ? "text-purple-600 dark:text-purple-400"
-                                  : "text-gray-600 dark:text-gray-400"
-                              }`}
-                            >
-                              Print
-                            </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-500">
-                              Notes
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Quick Tip */}
-                        <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-start gap-2">
-                            <Target className="w-3 h-3 text-blue-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <div className="font-medium text-[10px] text-blue-700 dark:text-blue-300">
-                                {marginSize === "no-margin"
-                                  ? "Best for digital viewing"
-                                  : marginSize === "small"
-                                  ? "Ideal for general documents (0.25\")"
-                                  : "Perfect for printing (1\")"}
+                          {/* Quick Tip */}
+                          <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-start gap-2">
+                              <Target className="w-3 h-3 text-blue-500 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <div className="font-medium text-[10px] text-blue-700 dark:text-blue-300">
+                                  {marginSize === "no-margin"
+                                    ? "Best for digital viewing"
+                                    : marginSize === "small"
+                                    ? "Ideal for general documents (0.25\")"
+                                    : "Perfect for printing (1\")"}
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Advanced Settings Section - DISABLED FOR MOBILE */}
-                  {!isMobile ? (
+                    {/* Advanced Settings Section */}
                     <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center gap-3 mb-6">
                         <Target className="w-7 h-7 text-blue-500" />
@@ -3337,240 +3430,187 @@ export default function JpgToPdf() {
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    // Mobile Quality Info - Simple
-                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-700">
-                      <div className="flex items-center gap-3 mb-4">
-                        <Smartphone className="w-7 h-7 text-blue-500" />
-                        <div>
-                          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                            Mobile Quality Settings
-                          </h3>
+
+                    {/* PDF Settings */}
+                    <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center gap-3 mb-6">
+                        <Settings className="w-6 h-6 text-blue-500" />
+                        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                          PDF Output Settings
+                        </h3>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                            Paper Size
+                          </label>
+                          <div className="grid grid-cols-2 gap-3">
+                            {(["A4", "Letter", "Legal", "A3"] as PaperSize[]).map(
+                              (size) => (
+                                <button
+                                  key={size}
+                                  onClick={() => handlePaperSizeChange(size)}
+                                  className={`px-4 py-3 rounded-lg border transition-all text-base flex flex-col items-center justify-center ${
+                                    paperSize === size
+                                      ? "bg-blue-500 text-white border-blue-500 shadow-md"
+                                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                  }`}
+                                >
+                                  <span className="font-bold">{size}</span>
+                                  <span className="text-xs mt-1 opacity-80">
+                                    {size === "A4" 
+                                      ? "210 × 297 mm" 
+                                      : size === "Letter" 
+                                      ? "8.5 × 11 in" 
+                                      : size === "Legal" 
+                                      ? "8.5 × 14 in" 
+                                      : "297 × 420 mm"}
+                                  </span>
+                                </button>
+                              )
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                            Orientation
+                          </label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => handleOrientationChange("Portrait")}
+                              className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
+                                orientation === "Portrait"
+                                  ? "bg-blue-500 text-white border-blue-500 shadow-md"
+                                  : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                              }`}
+                            >
+                              <div className="w-4 h-5 border-2 border-current rounded" />
+                              <span>Portrait</span>
+                            </button>
+                            <button
+                              onClick={() => handleOrientationChange("Landscape")}
+                              className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
+                                orientation === "Landscape"
+                                  ? "bg-blue-500 text-white border-blue-500 shadow-md"
+                                  : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                              }`}
+                            >
+                              <div className="w-5 h-4 border-2 border-current rounded" />
+                              <span>Landscape</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <Columns className="w-4 h-4" />
+                            Page Margin
+                          </label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {(["no-margin", "small", "big"] as MarginSize[]).map(
+                              (margin) => (
+                                <button
+                                  key={margin}
+                                  onClick={() => handleMarginChange(margin)}
+                                  className={`px-3 py-2.5 rounded-lg border transition-all text-sm flex flex-col items-center justify-center ${
+                                    marginSize === margin
+                                      ? margin === "no-margin"
+                                        ? "bg-gray-500 text-white border-gray-500"
+                                        : margin === "small"
+                                        ? "bg-blue-500 text-white border-blue-500"
+                                        : "bg-purple-500 text-white border-purple-500"
+                                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                  }`}
+                                >
+                                  <span>
+                                    {margin === "no-margin"
+                                      ? "No Margin"
+                                      : margin === "small"
+                                      ? "Small (0.25\")"
+                                      : "Big (1\")"}
+                                  </span>
+                                  <span className="text-xs mt-1 opacity-80">
+                                    {margin === "no-margin"
+                                      ? "0 mm"
+                                      : margin === "small"
+                                      ? "6.35 mm"
+                                      : "25.4 mm"}
+                                  </span>
+                                </button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 space-y-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-3">
+                              <ArrowUpDown className="w-5 h-5" />
+                              Reverse Page Order
+                            </label>
+                            <button
+                              onClick={toggleReverseOrder}
+                              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
+                                reverseOrder
+                                  ? "bg-purple-600"
+                                  : "bg-gray-300 dark:bg-gray-700"
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                                  reverseOrder ? "translate-x-8" : "translate-x-1"
+                                }`}
+                              />
+                            </button>
+                          </div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            On mobile, only Maximum Quality (100%) is available for better performance
+                            {reverseOrder
+                              ? "Images will be arranged in reverse order (last image first)"
+                              : "Images will be arranged in normal order (first image first)"}
                           </p>
                         </div>
                       </div>
-                      <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-semibold text-gray-800 dark:text-gray-200">
-                              Maximum Quality
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              100% Original Quality • No Compression
-                            </p>
+
+                      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Total Pages:
+                            </span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                              {files.length}
+                            </span>
                           </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                              100%
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Best for mobile
-                            </div>
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Paper Size:
+                            </span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                              {paperSize} ({orientation})
+                            </span>
                           </div>
-                        </div>
-                        <div className="mt-4 text-sm text-gray-700 dark:text-gray-300">
-                          <p className="mb-2">📱 <strong>Mobile Limitations:</strong></p>
-                          <ul className="space-y-1 text-sm">
-                            <li>• Max {MAX_FILES_MOBILE} images per conversion</li>
-                            <li>• Max {MAX_SIZE_MOBILE/(1024*1024)}MB per file</li>
-                            <li>• No compression options on mobile</li>
-                            <li>• Simple processing for better performance</li>
-                            <li className="text-blue-600 dark:text-blue-400 font-medium">
-                              • Use desktop for unlimited files and compression options
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* PDF Settings */}
-                  <div className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-3 mb-6">
-                      <Settings className="w-6 h-6 text-blue-500" />
-                      <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        PDF Output Settings
-                      </h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          Paper Size
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          {(["A4", "Letter", "Legal", "A3"] as PaperSize[]).map(
-                            (size) => (
-                              <button
-                                key={size}
-                                onClick={() => handlePaperSizeChange(size)}
-                                className={`px-4 py-3 rounded-lg border transition-all text-base flex flex-col items-center justify-center ${
-                                  paperSize === size
-                                    ? "bg-blue-500 text-white border-blue-500 shadow-md"
-                                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                                }`}
-                              >
-                                <span className="font-bold">{size}</span>
-                                <span className="text-xs mt-1 opacity-80">
-                                  {size === "A4" 
-                                    ? "210 × 297 mm" 
-                                    : size === "Letter" 
-                                    ? "8.5 × 11 in" 
-                                    : size === "Legal" 
-                                    ? "8.5 × 14 in" 
-                                    : "297 × 420 mm"}
-                                </span>
-                              </button>
-                            )
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          Orientation
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            onClick={() => handleOrientationChange("Portrait")}
-                            className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
-                              orientation === "Portrait"
-                                ? "bg-blue-500 text-white border-blue-500 shadow-md"
-                                : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                            }`}
-                          >
-                            <div className="w-4 h-5 border-2 border-current rounded" />
-                            <span>Portrait</span>
-                          </button>
-                          <button
-                            onClick={() => handleOrientationChange("Landscape")}
-                            className={`flex items-center justify-center gap-3 px-4 py-3 rounded-lg border transition-all text-base ${
-                              orientation === "Landscape"
-                                ? "bg-blue-500 text-white border-blue-500 shadow-md"
-                                : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                            }`}
-                          >
-                            <div className="w-5 h-4 border-2 border-current rounded" />
-                            <span>Landscape</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                          <Columns className="w-4 h-4" />
-                          Page Margin
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {(["no-margin", "small", "big"] as MarginSize[]).map(
-                            (margin) => (
-                              <button
-                                key={margin}
-                                onClick={() => handleMarginChange(margin)}
-                                className={`px-3 py-2.5 rounded-lg border transition-all text-sm flex flex-col items-center justify-center ${
-                                  marginSize === margin
-                                    ? margin === "no-margin"
-                                      ? "bg-gray-500 text-white border-gray-500"
-                                      : margin === "small"
-                                      ? "bg-blue-500 text-white border-blue-500"
-                                      : "bg-purple-500 text-white border-purple-500"
-                                    : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500"
-                                }`}
-                              >
-                                <span>
-                                  {margin === "no-margin"
-                                    ? "No Margin"
-                                    : margin === "small"
-                                    ? "Small (0.25\")"
-                                    : "Big (1\")"}
-                                </span>
-                                <span className="text-xs mt-1 opacity-80">
-                                  {margin === "no-margin"
-                                    ? "0 mm"
-                                    : margin === "small"
-                                    ? "6.35 mm"
-                                    : "25.4 mm"}
-                                </span>
-                              </button>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 space-y-6">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-3">
-                            <ArrowUpDown className="w-5 h-5" />
-                            Reverse Page Order
-                          </label>
-                          <button
-                            onClick={toggleReverseOrder}
-                            className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
-                              reverseOrder
-                                ? "bg-purple-600"
-                                : "bg-gray-300 dark:bg-gray-700"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                                reverseOrder ? "translate-x-8" : "translate-x-1"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {reverseOrder
-                            ? "Images will be arranged in reverse order (last image first)"
-                            : "Images will be arranged in normal order (first image first)"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Total Pages:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {files.length}
-                            {isMobile && (
-                              <span className="text-blue-600 ml-1">/ {MAX_FILES_MOBILE}</span>
-                            )}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Paper Size:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {paperSize} ({orientation})
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Margin:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {marginSize === "no-margin"
-                              ? "No Margin"
-                              : marginSize === "small"
-                              ? "Small Margin (0.25\")"
-                              : "Big Margin (1\")"}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Quality:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {isMobile 
-                              ? "100% (Mobile)" 
-                              : compressionQuality === "none"
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Margin:
+                            </span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                              {marginSize === "no-margin"
+                                ? "No Margin"
+                                : marginSize === "small"
+                                ? "Small Margin (0.25\")"
+                                : "Big Margin (1\")"}
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Quality:
+                            </span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                              {compressionQuality === "none"
                                 ? "100% Maximum"
                                 : compressionQuality === "custom"
                                 ? `${customQualityValue}% Custom`
@@ -3579,291 +3619,247 @@ export default function JpgToPdf() {
                                 : compressionQuality === "medium"
                                 ? "Medium (75%)"
                                 : "Low (60%)"}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Page Order:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {reverseOrder ? "Reverse" : "Normal"}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Total Size:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {(
-                              files.reduce(
-                                (acc, file) => acc + file.file.size,
-                                0
-                              ) /
-                              (1024 * 1024)
-                            ).toFixed(2)}{" "}
-                            MB
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Est. PDF Size:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Margin Size:
-                          </span>
-                          <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
-                            {marginSize === "no-margin"
-                              ? "0 mm"
-                              : marginSize === "small"
-                              ? "6.35 mm (0.25\")"
-                              : "25.4 mm (1\")"}
-                          </span>
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Page Order:
+                            </span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                              {reverseOrder ? "Reverse" : "Normal"}
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Total Size:
+                            </span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                              {(
+                                files.reduce(
+                                  (acc, file) => acc + file.file.size,
+                                  0
+                                ) /
+                                (1024 * 1024)
+                              ).toFixed(2)}{" "}
+                              MB
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Est. PDF Size:
+                            </span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                              {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              Margin Size:
+                            </span>
+                            <span className="font-semibold text-gray-800 dark:text-gray-200 ml-2">
+                              {marginSize === "no-margin"
+                                ? "0 mm"
+                                : marginSize === "small"
+                                ? "6.35 mm (0.25\")"
+                                : "25.4 mm (1\")"}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Convert/Progress/Download Buttons */}
-                  <AnimatePresence mode="wait">
-                    {converting && (
-                      <motion.div
-                        key="converting"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mt-6"
-                      >
-                        <ProgressBar
-                          progress={progress}
-                          label={
-                            progress < 30
-                              ? "Processing images..."
-                              : progress < 60
-                              ? isMobile 
-                                ? "Preparing PDF..."
-                                : compressionQuality === "custom"
-                                ? `Applying ${customQualityValue}% quality...`
-                                : `Applying ${compressionQuality} quality...`
-                              : progress < 90
-                              ? "Creating professional PDF..."
-                              : "Finalizing..."
-                          }
-                        />
-                        <div className="flex items-center justify-center gap-3 mt-4 text-blue-600 dark:text-blue-400">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <span className="text-base font-medium">
-                            {progress < 30
-                              ? "Processing images..."
-                              : progress < 60
-                              ? isMobile
-                                ? "Preparing PDF for mobile..."
-                                : compressionQuality === "custom"
-                                ? `Applying ${customQualityValue}% quality...`
-                                : `Applying ${compressionQuality} quality...`
-                              : "Creating professional PDF..."}
-                          </span>
-                        </div>
-                        {files.length > 5 && isMobile && (
-                          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                            <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
-                              ⏳ Processing {files.length} images on mobile may take a moment...
-                            </p>
+                    {/* Convert/Progress/Download Buttons */}
+                    <AnimatePresence mode="wait">
+                      {converting && (
+                        <motion.div
+                          key="converting"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-6"
+                        >
+                          <ProgressBar
+                            progress={progress}
+                            label={
+                              progress < 30
+                                ? "Processing images..."
+                                : progress < 60
+                                ? compressionQuality === "custom"
+                                  ? `Applying ${customQualityValue}% quality...`
+                                  : `Applying ${compressionQuality} quality...`
+                                : progress < 90
+                                ? "Creating professional PDF..."
+                                : "Finalizing..."
+                            }
+                          />
+                          <div className="flex items-center justify-center gap-3 mt-4 text-blue-600 dark:text-blue-400">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span className="text-base font-medium">
+                              {progress < 30
+                                ? "Processing images..."
+                                : progress < 60
+                                ? compressionQuality === "custom"
+                                  ? `Applying ${customQualityValue}% quality...`
+                                  : `Applying ${compressionQuality} quality...`
+                                : "Creating professional PDF..."}
+                            </span>
                           </div>
-                        )}
-                      </motion.div>
-                    )}
+                        </motion.div>
+                      )}
 
-                    {pdfBlob && !converting && (
-                      <motion.div
-                        key="download"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="mt-6 space-y-6"
-                      >
-                        <div className="text-center p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl border border-green-200 dark:border-emerald-800">
-                          <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                          <h4 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                            Professional PDF Ready! 🎉
-                          </h4>
-                          <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
-                            Your high-quality PDF with{" "}
-                            {marginSize === "no-margin"
-                              ? "no margin"
-                              : marginSize + " margin"}{" "}
-                            is ready for download
-                            {!isMobile && compressionQuality !== "none" && (
-                              <span className="text-blue-600 dark:text-blue-400">
-                                {" "}
-                                (
-                                {compressionQuality === "custom"
-                                  ? `${customQualityValue}%`
-                                  : compressionQuality}{" "}
-                                quality)
+                      {pdfBlob && !converting && (
+                        <motion.div
+                          key="download"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 20 }}
+                          className="mt-6 space-y-6"
+                        >
+                          <div className="text-center p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl border border-green-200 dark:border-emerald-800">
+                            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                            <h4 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                              Professional PDF Ready! 🎉
+                            </h4>
+                            <p className="text-base text-gray-600 dark:text-gray-400 mb-4">
+                              Your high-quality PDF with{" "}
+                              {marginSize === "no-margin"
+                                ? "no margin"
+                                : marginSize + " margin"}{" "}
+                              is ready for download
+                              {compressionQuality !== "none" && (
+                                <span className="text-blue-600 dark:text-blue-400">
+                                  {" "}
+                                  (
+                                  {compressionQuality === "custom"
+                                    ? `${customQualityValue}%`
+                                    : compressionQuality}{" "}
+                                  quality)
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+                              <span className="text-gray-600 dark:text-gray-400">
+                                File Size:{" "}
+                                {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB
                               </span>
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Pages: {files.length}
+                              </span>
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Margin:{" "}
+                                {marginSize === "no-margin"
+                                  ? "No Margin"
+                                  : marginSize === "small"
+                                  ? "Small (0.25\")"
+                                  : "Big (1\")"}
+                              </span>
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Order: {reverseOrder ? "Reverse" : "Normal"}
+                              </span>
+                              {compressionQuality !== "none" && (
+                                <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                                  {compressionQuality === "custom"
+                                    ? `${customQualityValue}%`
+                                    : compressionQuality}{" "}
+                                  Quality
+                                </span>
+                              )}
+                              <span className="text-purple-600 dark:text-purple-400 font-semibold">
+                                Professional Layout
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button
+                              onClick={handleConvertMore}
+                              className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
+                            >
+                              Convert More Files
+                            </button>
+                            <button
+                              onClick={handleDownload}
+                              className="py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-3 text-base"
+                            >
+                              <Download className="w-5 h-5" />
+                              Download Professional PDF
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {!pdfBlob && !converting && (
+                        <motion.div
+                          key="convert"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 20 }}
+                          className="mt-6"
+                        >
+                          <button
+                            onClick={handleConvert}
+                            disabled={files.length === 0}
+                            className={`w-full py-4 px-6 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold flex items-center justify-center gap-3 ${
+                              showChangesWarning
+                                ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 animate-pulse"
+                                : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                            }`}
+                          >
+                            <ImageIcon className="w-6 h-6" />
+                            {`Convert ${files.length} Image${files.length !== 1 ? "s" : ""} to PDF`}
+                            {!showChangesWarning &&
+                              compressionQuality !== "none" &&
+                              ` (${
+                                compressionQuality === "custom"
+                                  ? `${customQualityValue}%`
+                                  : compressionQuality
+                              } quality)`}
+                            {!showChangesWarning && reverseOrder && " (Reverse Order)"}
+                          </button>
+
+                          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
+                            {showChangesWarning ? (
+                              <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                                ⚠️ You have made changes to images or settings. Click above to convert again with the latest
+                                changes.
+                              </span>
+                            ) : compressionQuality === "none" ? (
+                              `Images will be converted with maximum 100% quality, ${
+                                marginSize === "no-margin"
+                                  ? "no margin"
+                                  : marginSize + " margin"
+                              } and ${reverseOrder ? "reverse" : "normal"} order for professional output`
+                            ) : (
+                              `Images will be converted with ${
+                                compressionQuality === "custom"
+                                  ? `${customQualityValue}%`
+                                  : compressionQuality
+                              } quality (${compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality === "high" ? "85%" : compressionQuality === "medium" ? "75%" : "60%"} compression), ${
+                                marginSize === "no-margin"
+                                  ? "no margin"
+                                  : marginSize + " margin"
+                              } and ${reverseOrder ? "reverse" : "normal"} order for optimal results`
                             )}
                           </p>
-                          <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">
-                              File Size:{" "}
-                              {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB
-                            </span>
-                            <span className="text-gray-600 dark:text-gray-400">
-                              Pages: {files.length}
-                            </span>
-                            <span className="text-gray-600 dark:text-gray-400">
-                              Margin:{" "}
-                              {marginSize === "no-margin"
-                                ? "No Margin"
-                                : marginSize === "small"
-                                ? "Small (0.25\")"
-                                : "Big (1\")"}
-                            </span>
-                            <span className="text-gray-600 dark:text-gray-400">
-                              Order: {reverseOrder ? "Reverse" : "Normal"}
-                            </span>
-                            {!isMobile && compressionQuality !== "none" && (
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                                {compressionQuality === "custom"
-                                  ? `${customQualityValue}%`
-                                  : compressionQuality}{" "}
-                                Quality
-                              </span>
-                            )}
-                            {isMobile && (
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                                100% Quality
-                              </span>
-                            )}
-                            <span className="text-purple-600 dark:text-purple-400 font-semibold">
-                              Professional Layout
-                            </span>
-                            {isMobile && (
-                              <span className="text-green-600 dark:text-green-400 font-semibold">
-                                ✓ Mobile Optimized
-                              </span>
-                            )}
-                            {!isMobile && (
-                              <span className="text-green-600 dark:text-green-400 font-semibold">
-                                ✓ Desktop Power Mode
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+            )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <button
-                            onClick={handleConvertMore}
-                            className="py-3 px-6 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium text-base"
-                          >
-                            Convert More Files
-                          </button>
-                          <button
-                            onClick={handleDownload}
-                            className="py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-3 text-base"
-                          >
-                            <Download className="w-5 h-5" />
-                            Download Professional PDF
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {!pdfBlob && !converting && (
-                      <motion.div
-                        key="convert"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="mt-6"
-                      >
-                        <button
-                          onClick={handleConvert}
-                          disabled={files.length === 0}
-                          className={`w-full py-4 px-6 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold flex items-center justify-center gap-3 ${
-                            showChangesWarning
-                              ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 animate-pulse"
-                              : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                          }`}
-                        >
-                          {isMobile ? (
-                            <>
-                              <Smartphone className="w-6 h-6" />
-                              {`Create PDF (${files.length}/${MAX_FILES_MOBILE} images)`}
-                            </>
-                          ) : (
-                            <>
-                              <ImageIcon className="w-6 h-6" />
-                              {`Convert ${files.length} Image${files.length !== 1 ? "s" : ""} to PDF`}
-                            </>
-                          )}
-                          {!showChangesWarning &&
-                            !isMobile &&
-                            compressionQuality !== "none" &&
-                            ` (${
-                              compressionQuality === "custom"
-                                ? `${customQualityValue}%`
-                                : compressionQuality
-                            } quality)`}
-                          {!showChangesWarning && reverseOrder && " (Reverse Order)"}
-                        </button>
-
-                        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
-                          {showChangesWarning ? (
-                            <span className="text-amber-600 dark:text-amber-400 font-semibold">
-                              ⚠️ You have made changes to images or settings. Click above to convert again with the latest
-                              changes.
-                            </span>
-                          ) : isMobile ? (
-                            `Images will be converted with maximum 100% quality, ${
-                              marginSize === "no-margin"
-                                ? "no margin"
-                                : marginSize + " margin"
-                            } and ${reverseOrder ? "reverse" : "normal"} order for mobile`
-                          ) : compressionQuality === "none" ? (
-                            `Images will be converted with maximum 100% quality, ${
-                              marginSize === "no-margin"
-                                ? "no margin"
-                                : marginSize + " margin"
-                            } and ${reverseOrder ? "reverse" : "normal"} order for professional output`
-                          ) : (
-                            `Images will be converted with ${
-                              compressionQuality === "custom"
-                                ? `${customQualityValue}%`
-                                : compressionQuality
-                            } quality (${compressionQuality === "custom" ? `${customQualityValue}%` : compressionQuality === "high" ? "85%" : compressionQuality === "medium" ? "75%" : "60%"} compression), ${
-                              marginSize === "no-margin"
-                                ? "no margin"
-                                : marginSize + " margin"
-                            } and ${reverseOrder ? "reverse" : "normal"} order for optimal results`
-                          )}
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-            </div>
- 
-            {files.length === 0 && (
+            {files.length === 0 && !isMobile && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                   <div className="inline-flex p-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl mb-4">
                     <Target className="w-7 h-7 text-white" />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    {isMobile ? "Max 15 Images" : "Unlimited Files"}
+                    Unlimited Files
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {isMobile 
-                      ? "Upload up to 15 images on mobile, 10MB per file"
-                      : "Upload unlimited files with no size restrictions on desktop"
-                    }
+                    Upload unlimited files with no size restrictions on desktop
                   </p>
                 </div>
 
@@ -3888,10 +3884,7 @@ export default function JpgToPdf() {
                     Smart Size Reduction
                   </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {isMobile 
-                      ? "100% quality on mobile • Use desktop for compression options"
-                      : "Reduce PDF file size up to 80% with smart compression while maintaining quality"
-                    }
+                    Reduce PDF file size up to 80% with smart compression while maintaining quality
                   </p>
                 </div>
               </div>
