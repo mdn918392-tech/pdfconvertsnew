@@ -94,6 +94,7 @@ type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 // Mobile limits
 const MAX_SIZE_MOBILE = 10 * 1024 * 1024; // 10MB per file
 const MAX_FILES_MOBILE = 25; // 25 images max on mobile
+const AUTO_COMPRESS_THRESHOLD = 15 * 1024 * 1024; // 15MB threshold for auto-compression
 
 // Desktop - no limits
 const MAX_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER;
@@ -287,6 +288,7 @@ const exploreTools: Tool[] = [
 ];
 
 // ✅ FIXED: Desktop compression with HIGH QUALITY preservation
+// Mobile compression with auto-balance for large files
 const compressImageForPdf = async (
   file: File,
   rotation: number = 0,
@@ -294,8 +296,121 @@ const compressImageForPdf = async (
   customQualityValue: number = 95,
   isMobile: boolean = false
 ): Promise<string> => {
-  // MOBILE: Simple direct conversion without processing
+  // MOBILE: Apply auto-compression if file > 15MB
   if (isMobile) {
+    const fileSizeMB = file.size / (1024 * 1024);
+    
+    // Auto-apply balanced compression for files > 15MB
+    if (fileSizeMB > 15) {
+      console.log(`📱 Large file detected (${fileSizeMB.toFixed(1)}MB) - Auto-applying balanced compression`);
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          
+          img.onload = () => {
+            try {
+              // Apply balanced compression (85% quality, max dimension 2048)
+              const qualityValue = 0.85;
+              const maxDimension = 2048;
+              
+              let scale = 1;
+              const largerDimension = Math.max(img.width, img.height);
+              
+              if (largerDimension > maxDimension) {
+                scale = maxDimension / largerDimension;
+              }
+              
+              const needsSwap = rotation === 90 || rotation === 270;
+              const newWidth = needsSwap 
+                ? Math.floor(img.height * scale)
+                : Math.floor(img.width * scale);
+              const newHeight = needsSwap
+                ? Math.floor(img.width * scale)
+                : Math.floor(img.height * scale);
+              
+              const canvas = document.createElement("canvas");
+              canvas.width = newWidth;
+              canvas.height = newHeight;
+              
+              const ctx = canvas.getContext("2d", {
+                alpha: false,
+                willReadFrequently: false,
+              });
+              
+              if (!ctx) {
+                // Fallback to original
+                const fallbackReader = new FileReader();
+                fallbackReader.onload = (e) => resolve(e.target?.result as string);
+                fallbackReader.readAsDataURL(file);
+                return;
+              }
+              
+              ctx.fillStyle = "#FFFFFF";
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = "medium";
+              
+              if (rotation !== 0) {
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((rotation * Math.PI) / 180);
+                
+                const rotatedWidth = needsSwap ? img.height : img.width;
+                const rotatedHeight = needsSwap ? img.width : img.height;
+                
+                ctx.drawImage(
+                  img,
+                  -(rotatedWidth * scale) / 2,
+                  -(rotatedHeight * scale) / 2,
+                  rotatedWidth * scale,
+                  rotatedHeight * scale
+                );
+                ctx.restore();
+              } else {
+                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+              }
+              
+              try {
+                const base64Data = canvas.toDataURL("image/jpeg", qualityValue);
+                resolve(base64Data);
+              } catch (error) {
+                // Fallback to original
+                const fallbackReader = new FileReader();
+                fallbackReader.onload = (e) => resolve(e.target?.result as string);
+                fallbackReader.readAsDataURL(file);
+              }
+            } catch (error) {
+              // Fallback to original
+              const fallbackReader = new FileReader();
+              fallbackReader.onload = (e) => resolve(e.target?.result as string);
+              fallbackReader.readAsDataURL(file);
+            }
+          };
+          
+          img.onerror = () => {
+            // Fallback to original
+            const fallbackReader = new FileReader();
+            fallbackReader.onload = (e) => resolve(e.target?.result as string);
+            fallbackReader.readAsDataURL(file);
+          };
+          
+          img.src = e.target?.result as string;
+        };
+        
+        reader.onerror = () => {
+          reject(new Error("Failed to read file as base64"));
+        };
+        
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    // MOBILE: Simple direct conversion without processing (for files <= 15MB)
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -311,7 +426,7 @@ const compressImageForPdf = async (
     });
   }
 
-  // DESKTOP: High quality processing
+  // DESKTOP: High quality processing (unchanged)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -449,6 +564,11 @@ const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQu
   
   const totalOriginalSize = files.reduce((sum, f) => sum + f.file.size, 0);
   return Math.max(totalOriginalSize * reductionFactor, 1024);
+};
+
+// Check if any file exceeds threshold for auto-compression
+const checkAutoCompressionNeeded = (files: File[]): boolean => {
+  return files.some(file => file.size > AUTO_COMPRESS_THRESHOLD);
 };
 
 // ✅ FIXED: PDF creation with jsPDF
@@ -935,7 +1055,7 @@ const ReplaceImageModal = ({
   );
 };
 
-// Mobile Simple UI - FIXED orientation handling
+// Mobile Simple UI - FIXED orientation handling (disabled after PDF generated)
 const MobileSimpleUI = ({
   files,
   onFilesUpdate,
@@ -947,6 +1067,7 @@ const MobileSimpleUI = ({
   pdfBlob,
   onDownload,
   onClear,
+  autoCompressionActive,
 }: {
   files: FileWithPreview[];
   onFilesUpdate: (files: File[]) => void;
@@ -958,7 +1079,11 @@ const MobileSimpleUI = ({
   pdfBlob: Blob | null;
   onDownload: () => void;
   onClear: () => void;
+  autoCompressionActive: boolean;
 }) => {
+  // Check if PDF exists - if yes, disable orientation changes
+  const isPdfGenerated = pdfBlob !== null;
+
   return (
     <div className="space-y-6">
       {/* Upload Section */}
@@ -985,6 +1110,12 @@ const MobileSimpleUI = ({
 
         <div className="mt-4 text-xs text-center text-gray-500 dark:text-gray-400">
           <p>Max {MAX_FILES_MOBILE} images • {MAX_SIZE_MOBILE/(1024*1024)}MB per file</p>
+          {autoCompressionActive && (
+            <p className="mt-2 text-amber-600 dark:text-amber-400 font-medium flex items-center justify-center gap-1">
+              <Zap className="w-3 h-3" />
+              Auto-compression active for files &gt;15MB
+            </p>
+          )}
         </div>
       </div>
 
@@ -1008,7 +1139,7 @@ const MobileSimpleUI = ({
             </div>
           </div>
 
-          {/* Orientation Selector - FIXED: Always allows change and invalidates PDF */}
+          {/* Orientation Selector - FIXED: Disabled if PDF exists */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               Page Orientation
@@ -1016,28 +1147,34 @@ const MobileSimpleUI = ({
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => {
-                  console.log("Mobile: Portrait selected");
-                  onOrientationChange("Portrait");
+                  if (!isPdfGenerated) {
+                    console.log("Mobile: Portrait selected");
+                    onOrientationChange("Portrait");
+                  }
                 }}
+                disabled={isPdfGenerated}
                 className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
                   orientation === "Portrait"
                     ? "bg-blue-500 text-white border-blue-500"
                     : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                }`}
+                } ${isPdfGenerated ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="w-4 h-5 border-2 border-current rounded" />
                 <span className="font-medium">Portrait</span>
               </button>
               <button
                 onClick={() => {
-                  console.log("Mobile: Landscape selected");
-                  onOrientationChange("Landscape");
+                  if (!isPdfGenerated) {
+                    console.log("Mobile: Landscape selected");
+                    onOrientationChange("Landscape");
+                  }
                 }}
+                disabled={isPdfGenerated}
                 className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
                   orientation === "Landscape"
                     ? "bg-blue-500 text-white border-blue-500"
                     : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                }`}
+                } ${isPdfGenerated ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="w-5 h-4 border-2 border-current rounded" />
                 <span className="font-medium">Landscape</span>
@@ -1052,7 +1189,7 @@ const MobileSimpleUI = ({
               <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
                 <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
-                  Changing orientation will require re-conversion
+                  Orientation cannot be changed after PDF is generated
                 </p>
               </div>
             )}
@@ -1066,6 +1203,11 @@ const MobileSimpleUI = ({
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="text-sm">Processing {files.length} images...</span>
               </div>
+              {autoCompressionActive && (
+                <p className="text-xs text-center text-amber-600 dark:text-amber-400 mt-2">
+                  Auto-compression active for large files
+                </p>
+              )}
             </div>
           ) : pdfBlob ? (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
@@ -1094,9 +1236,9 @@ const MobileSimpleUI = ({
                 </button>
               </div>
               
-              {/* Show re-conversion notice */}
+              {/* Show disabled orientation notice */}
               <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
-                Change orientation above to create new PDF
+                Orientation locked - Click "New" to create new PDF
               </p>
             </div>
           ) : (
@@ -1148,6 +1290,7 @@ export default function JpgToPdf() {
   const notificationsRef = useRef<HTMLDivElement>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [sizeLimitExceeded, setSizeLimitExceeded] = useState(false);
+  const [autoCompressionActive, setAutoCompressionActive] = useState(false);
 
   // Limits
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1284,8 +1427,14 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle orientation change - FIXED for mobile
+  // Handle orientation change - FIXED for mobile (only allowed if no PDF)
   const handleOrientationChange = (orient: Orientation) => {
+    // On mobile, if PDF exists, don't allow orientation change
+    if (isMobile && pdfBlob) {
+      console.log("Mobile: Orientation change blocked - PDF already generated");
+      return;
+    }
+    
     // Only update if orientation actually changed
     if (orient === orientation) {
       console.log("Orientation unchanged, skipping");
@@ -1295,7 +1444,7 @@ export default function JpgToPdf() {
     console.log(`Orientation changing from ${orientation} to ${orient}`);
     setOrientation(orient);
     
-    // ALWAYS invalidate PDF when orientation changes
+    // ALWAYS invalidate PDF when orientation changes (if allowed)
     setPdfBlob(null);
     setOriginalStateHash("");
     setShowChangesWarning(false);
@@ -1539,6 +1688,10 @@ export default function JpgToPdf() {
       setSizeLimitExceeded(false);
 
       try {
+        // Check if auto-compression is needed
+        const needsAutoCompression = checkAutoCompressionNeeded(newFiles);
+        setAutoCompressionActive(needsAutoCompression);
+
         // Check mobile limits
         if (isMobile) {
           const totalFilesAfterAdd = files.length + newFiles.length;
@@ -1823,7 +1976,7 @@ export default function JpgToPdf() {
       let errorMessage = `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}.`;
       
       if (isMobile) {
-        errorMessage += `\n\n📱 Mobile Tips:\n• Max ${MAX_FILES_MOBILE} images\n• Max 10MB per file\n• Use smaller images for better performance`;
+        errorMessage += `\n\n📱 Mobile Tips:\n• Max ${MAX_FILES_MOBILE} images\n• Max 10MB per file\n• Files >15MB auto-compressed\n• Use smaller images for better performance`;
       } else {
         errorMessage += `\n\nPlease try again with fewer images or lower quality settings.`;
       }
@@ -1892,6 +2045,7 @@ export default function JpgToPdf() {
     setShowReplaceOptions(null);
     setProcessingError(null);
     setSizeLimitExceeded(false);
+    setAutoCompressionActive(false);
   };
 
   // Handle rotate in fullscreen
@@ -2087,6 +2241,38 @@ export default function JpgToPdf() {
         )}
       </AnimatePresence>
 
+      {/* Auto-Compression Banner */}
+      <AnimatePresence>
+        {isMobile && autoCompressionActive && files.length > 0 && !pdfBlob && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-amber-500 to-orange-600 text-white p-3 md:p-4 shadow-lg"
+          >
+            <div className="container mx-auto max-w-7xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Zap className="w-5 h-5 md:w-6 md:h-6" />
+                  <div>
+                    <h3 className="font-bold text-sm md:text-lg">⚡ Auto-Compression Active</h3>
+                    <p className="text-xs md:text-sm opacity-90">
+                      Large files (&gt;15MB) will be compressed for optimal performance
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAutoCompressionActive(false)}
+                  className="px-3 py-1 md:px-4 md:py-2 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-colors text-xs md:text-sm"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Processing Error Banner */}
       <AnimatePresence>
         {processingError && (
@@ -2211,10 +2397,12 @@ export default function JpgToPdf() {
                 pdfBlob={pdfBlob}
                 onDownload={handleDownload}
                 onClear={handleConvertMore}
+                autoCompressionActive={autoCompressionActive}
               />
             ) : (
-              /* Desktop Full UI */
+              /* Desktop Full UI (unchanged) */
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
+                {/* Desktop UI remains the same as before */}
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-4">
                     <Upload className="w-6 h-6 text-blue-500" />

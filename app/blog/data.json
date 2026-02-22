@@ -2123,6 +2123,121 @@
       "answer": "For sensitive documents, use browser-based tools that process locally – files never leave your device. PDFSwift does this. Other tools upload to servers and delete after processing (usually 1-2 hours). For tax returns, contracts, IDs – use local processing tools."
     }
   ]
+},
+
+{
+  "id": "passport-photo-indian-govt-exams-exact-size",
+  "title": "Passport Photo for Indian Govt Exams (Exact Size) – 2026 Guide",
+  "date": "Feb 23 2026",
+  
+  "description": "Exact photo size, format, and specifications for UPSC, NEET, RRB, and other Indian government exams. Includes file size, background rules, and common rejection reasons.",
+  "slug": "passport-photo-indian-govt-exams-exact-size",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Passport Photo Guide", "url": "/blog/passport-photo-indian-govt-exams-exact-size" }
+  ],
+  
+  "howto": {
+    "steps": [
+      "Check the exact photo requirements for your specific exam (UPSC, NEET, RRB, etc.)",
+      "Get a recent photo with plain white background and natural expression",
+      "Ensure face covers 70-80% of the frame (about 1 inch height from chin to forehead)",
+      "Scan or click photo in high resolution, save as JPG/JPEG only",
+      "Resize to required dimensions and file size using photo tool",
+      "Rename file as 'photo' (UPSC) or as per exam instructions",
+      "Upload and verify preview before final submission"
+    ],
+    "estimatedTime": "PT10M",
+    "totalTime": "PT15M",
+    "supply": ["Recent passport photo", "Scanner or camera", "Computer/phone", "Photo editing tool"],
+    "tool": ["PDFSwift Photo Resizer", "Adobe Express", "MS Paint", "Preview (Mac)"]
+  },
+  
+  "examSpecs": [
+    {
+      "exam": "UPSC CSE 2026",
+      "authority": "Union Public Service Commission",
+      "format": "JPG only",
+      "fileSize": "20 KB to 200 KB",
+      "dimensions": "Not specified in pixels, but face must cover 75% of frame",
+      "background": "Plain white, no shadows",
+      "livePhoto": "Mandatory – must capture live photo during application",
+      "specialRules": "Photo must be recent (within 10 days). Eyes open, both ears visible, neutral expression. No uniform, sunglasses, or hair covering face. Must match live captured photo exactly [citation:4][citation:10].",
+      "filename": "photo"
+    },
+    {
+      "exam": "NEET UG 2026",
+      "authority": "National Testing Agency (NTA)",
+      "format": "JPG/JPEG",
+      "fileSize": "10 KB to 200 KB",
+      "dimensions": "Passport size (exact pixel dimensions not specified)",
+      "background": "White background",
+      "specialRules": "80% face coverage, ears must be visible. Postcard size photo (4\" x 6\") also required separately with white background [citation:3].",
+      "filename": "As per instructions"
+    },
+    {
+      "exam": "RRB ALP 2026",
+      "authority": "Railway Recruitment Board",
+      "format": "JPG/JPEG",
+      "fileSize": "50 KB to 150 KB",
+      "dimensions": "35mm (W) x 45mm (H) or minimum 240x320 pixels at 150 DPI",
+      "background": "Plain white background",
+      "specialRules": "Dark colored dress (not white). Photo not older than 2 months before application closing date. Head should cover 50% of image. No shadow, no sunglasses/caps, no glare on glasses. Must match photo during document verification and medical – mismatch leads to lifetime debarment [citation:6].",
+      "filename": "As per instructions"
+    },
+    {
+      "exam": "RBI Office Attendant 2026",
+      "authority": "Reserve Bank of India",
+      "format": "JPG/JPEG",
+      "fileSize": "20 KB to 50 KB",
+      "dimensions": "4.5 cm x 3.5 cm (preferred: 200 x 230 pixels)",
+      "background": "White background",
+      "specialRules": "Recent passport-size color photo. Live photo capture also required during application [citation:8].",
+      "filename": "As per instructions"
+    }
+  ],
+  
+  "commonReasons": [
+    "Photo too old – must be recent (within 10 days for UPSC, 2 months for RRB)",
+    "Face coverage too small – should be 70-80% of frame",
+    "Wrong background – plain white mandatory, no patterns or shadows",
+    "Eyes closed or hair covering face",
+    "Smiling or unnatural expression – neutral expression required",
+    "Sunglasses or colored glasses – prescription glasses allowed only if clear, no glare",
+    "Uniform dress – avoid uniforms, dark dress preferred for RRB",
+    "File size too large or too small – must be within KB range",
+    "Wrong format – JPG/JPEG only, no PNG",
+    "Live photo mismatch – uploaded photo must match live capture exactly"
+  ],
+  
+  "faq": [
+    {
+      "question": "What is the exact photo size for UPSC 2026?",
+      "answer": "UPSC specifies file size between 20 KB to 200 KB in JPG format. They don't give exact pixel dimensions, but require face to cover about 75% (three-fourths) of the photograph. Background must be plain white, eyes open, both ears visible, neutral expression. Photo must be recent and you'll also need to capture a live photo during application [citation:4][citation:10]."
+    },
+    {
+      "question": "What are the photo requirements for NEET 2026?",
+      "answer": "NEET requires passport size photograph in JPG/JPEG format between 10 KB to 200 KB. White background, 80% face coverage, ears visible. You'll also need a separate postcard size photo (4\" x 6\") with same specifications [citation:3]."
+    },
+    {
+      "question": "What happens if my photo doesn't match the live capture?",
+      "answer": "For UPSC 2026, the uploaded photograph must match the live-captured image exactly. If there's any mismatch, the candidate will not be allowed to proceed with the application process. This is a new security measure introduced to prevent fraud and impersonation [citation:4][citation:10]."
+    },
+    {
+      "question": "Can I wear glasses in my exam photo?",
+      "answer": "Prescription glasses are allowed but must be clear and thin-framed with no flash reflection. Sunglasses or colored glasses are strictly prohibited. For RRB, ensure no glare on glasses [citation:1][citation:6]. UPSC also advises against glare on spectacles [citation:4]."
+    },
+    {
+      "question": "What dress should I wear for RRB exam photo?",
+      "answer": "RRB specifically requires dark-colored dress (not white) with plain white background. This ensures contrast between subject and background. Other exams don't specify dress color but avoid uniforms [citation:6]."
+    },
+    {
+      "question": "Is there a correction window if I upload wrong photo?",
+      "answer": "For UPSC 2026, there is NO correction window after submission. Errors in photographs or signatures will lead to outright rejection of the application and may invite disciplinary action. Verify everything before final submit [citation:2][citation:5][citation:10]. NEET offers a correction window in second week of March 2026 [citation:3]."
+    }
+  ]
 }
 
 
