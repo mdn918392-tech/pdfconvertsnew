@@ -130,7 +130,7 @@
  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
  <changefreq>monthly</changefreq>
 
-  <priority>0.85</priority>
+  <priority>0.95</priority>
 </url>
 <url>
   <loc>https://www.pdfswift.online/png-to-jpg</loc>
@@ -518,6 +518,15 @@
 <url>
   <loc>https://www.pdfswift.online/blog/passport-photo-indian-govt-exams-exact-size</loc>
  <lastmod>2026-02-23T00:00:00+00:00</lastmod>
+ <changefreq>weekly</changefreq>
+
+  <priority>0.65</priority>
+</url>
+
+
+<url>
+  <loc>https://www.pdfswift.online/blog/split-pdf-for-upload-limits-one-page-one-pdf</loc>
+ <lastmod>2026-02-24T00:00:00+00:00</lastmod>
  <changefreq>weekly</changefreq>
 
   <priority>0.65</priority>

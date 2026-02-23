@@ -2238,7 +2238,123 @@
       "answer": "For UPSC 2026, there is NO correction window after submission. Errors in photographs or signatures will lead to outright rejection of the application and may invite disciplinary action. Verify everything before final submit [citation:2][citation:5][citation:10]. NEET offers a correction window in second week of March 2026 [citation:3]."
     }
   ]
+},
+
+{
+  "id": "split-pdf-for-upload-limits-one-page-one-pdf",
+  "title": "Split PDF for Upload Limits (One Page One PDF) – 2026 Guide",
+  "date": "Feb 24 2026",
+ 
+  "description": "Need to split a PDF into single pages to meet upload limits? Here's how to split one PDF into multiple files for government forms, email attachments, and job portals.",
+  "slug": "split-pdf-for-upload-limits-one-page-one-pdf",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Split PDF Guide", "url": "/blog/split-pdf-for-upload-limits-one-page-one-pdf" }
+  ],
+  
+  "howto": {
+    "steps": [
+      "Upload your multi-page PDF to a splitter tool (PDFSwift, iLovePDF, Adobe Acrobat)",
+      "Choose splitting option: 'Extract pages' or 'Split every page'",
+      "Select 'All pages' or specify page ranges (e.g., 1-1 for first page only)",
+      "Choose naming convention: 'Page_1.pdf', 'Page_2.pdf' or custom names",
+      "Click 'Split' or 'Extract' and wait for processing",
+      "Download individual PDFs as ZIP file or one by one"
+    ],
+    "estimatedTime": "PT2M",
+    "totalTime": "PT3M",
+    "supply": ["Multi-page PDF", "Web browser", "Splitter tool"],
+    "tool": ["PDFSwift Splitter", "iLovePDF Split PDF", "Adobe Acrobat", "Smallpdf Split", "PDF24"]
+  },
+  
+  "uploadLimits": [
+    {
+      "platform": "Email (Gmail, Outlook)",
+      "limit": "25MB total",
+      "whySplit": "Large PDFs bounce back. Split into smaller chunks."
+    },
+    {
+      "platform": "Government Portals (UPSC, SSC)",
+      "limit": "50KB-2MB per file",
+      "whySplit": "Each document (photo, signature, form) needs separate upload."
+    },
+    {
+      "platform": "Job Portals (Naukri, LinkedIn)",
+      "limit": "2-5MB per file",
+      "whySplit": "Resumes with portfolios often exceed limits."
+    },
+    {
+      "platform": "College Applications",
+      "limit": "1-5MB per file",
+      "whySplit": "Multiple documents need separate uploads."
+    },
+    {
+      "platform": "WhatsApp / Telegram",
+      "limit": "100-200MB",
+      "whySplit": "Large PDFs fail to send. Split into smaller parts."
+    },
+    {
+      "platform": "Bank / Loan Applications",
+      "limit": "1-10MB per file",
+      "whySplit": "Income docs, statements need individual uploads."
+    }
+  ],
+  
+  "splitMethods": [
+    {
+      "method": "Split every page into separate PDFs",
+      "bestFor": "Creating individual files for each page (e.g., 10 pages = 10 PDFs)",
+      "example": "Document with 5 pages → Page1.pdf, Page2.pdf, Page3.pdf, Page4.pdf, Page5.pdf"
+    },
+    {
+      "method": "Extract specific page ranges",
+      "bestFor": "Getting only certain pages as separate files",
+      "example": "Pages 1-3 and 5-7 from a 10-page document"
+    },
+    {
+      "method": "Split by file size",
+      "bestFor": "Meeting email size limits (split every 5MB)",
+      "example": "20MB PDF → 4 files of ~5MB each"
+    },
+    {
+      "method": "Split by bookmark/chapter",
+      "bestFor": "Long reports, ebooks with bookmarks",
+      "example": "Each chapter becomes its own PDF"
+    }
+  ],
+  
+  "faq": [
+    {
+      "question": "How do I split a PDF into separate pages for free?",
+      "answer": "Use free online tools like PDFSwift, iLovePDF, or PDF24. Upload your PDF, select 'Split every page' or 'Extract pages', and download individual PDFs. No signup required, works on phone and computer. Takes about 30 seconds for a 20-page document."
+    },
+    {
+      "question": "What's the best way to split a PDF for email attachments?",
+      "answer": "If your PDF is too large for email (Gmail limit 25MB), use 'Split by file size' option. Set maximum file size to 20MB or 10MB. The tool automatically splits your PDF into chunks under that size. Alternatively, split every 10-20 pages depending on file size."
+    },
+    {
+      "question": "How do I split a PDF for government exam applications?",
+      "answer": "Most government portals (UPSC, SSC, RRB) require each document separately – photo, signature, 10th marksheet, 12th marksheet, graduation certificate, etc. First merge related pages into one PDF, then extract each document as separate PDF. Name files as required (e.g., 'photo.pdf', 'signature.pdf')."
+    },
+    {
+      "question": "Will splitting a PDF reduce quality?",
+      "answer": "No, splitting doesn't compress or reduce quality. Each page becomes its own PDF with the same resolution and content as the original. The file size per page stays the same – if your original 10-page PDF is 5MB, each page will be roughly 0.5MB."
+    },
+    {
+      "question": "Can I split a PDF on my phone?",
+      "answer": "Yes, works on iPhone and Android. Open any online PDF splitter in your mobile browser. Upload from phone storage or cloud. Select split options. Download individual PDFs or ZIP file. Some tools like PDFSwift work entirely in browser – no app download needed."
+    },
+    {
+      "question": "What if I need to split a password-protected PDF?",
+      "answer": "You need the password first. Remove protection using a PDF unlocker tool (requires password), then split the unprotected PDF. Most splitter tools can't open locked PDFs without password entry first."
+    }
+  ]
 }
+
+
+
 
 
 
