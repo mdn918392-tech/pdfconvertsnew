@@ -2351,6 +2351,95 @@
       "answer": "You need the password first. Remove protection using a PDF unlocker tool (requires password), then split the unprotected PDF. Most splitter tools can't open locked PDFs without password entry first."
     }
   ]
+},
+
+{
+  "id": "remove-pages-from-scanned-pdf-without-rescan",
+  "title": "Remove Pages from Scanned PDF (Without Re-scan) – 2026 Guide",
+  "date": "Feb 25 2026",
+  "image": "/images/remove-scanned-pdf-pages-guide.png",
+  "description": "Remove unwanted or blank pages from scanned PDFs without rescanning. Step-by-step guide using free online tools and desktop software. Works on any device.",
+  "slug": "remove-pages-from-scanned-pdf-without-rescan",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Remove Scanned PDF Pages", "url": "/blog/remove-pages-from-scanned-pdf-without-rescan" }
+  ],
+  
+  "howto": {
+    "steps": [
+      "Upload your scanned PDF to a page removal tool (Smallpdf, PDF24, or PDFSwift)",
+      "View all pages as thumbnails – blank pages are easy to spot",
+      "Click the trash icon on any page you want to remove",
+      "Hold Ctrl (Windows) or Cmd (Mac) to select multiple pages at once",
+      "Click 'Apply Changes' or 'Delete' to confirm removal",
+      "Download your cleaned PDF – original file stays untouched"
+    ],
+    "estimatedTime": "PT2M",
+    "totalTime": "PT3M",
+    "supply": ["Scanned PDF file", "Web browser", "Internet connection"],
+    "tool": ["Smallpdf Delete Pages", "PDF24 Tools", "PDFSwift", "Adobe Acrobat online", "Preview (Mac)"]
+  },
+  
+  "scannedPDFIssues": [
+    {
+      "issue": "Blank pages from scanner misfeed",
+      "explanation": "Scanners sometimes add blank pages when sheets feed unevenly or multiple sheets are pulled at once [citation:1].",
+      "fix": "Delete blank pages using thumbnail view – they're easy to spot"
+    },
+    {
+      "issue": "Duplicate pages",
+      "explanation": "Scanner may capture the same page twice if paper sticks or during batch scanning [citation:7].",
+      "fix": "Compare thumbnails, select duplicates, and delete"
+    },
+    {
+      "issue": "Extra pages from double-sided scanning",
+      "explanation": "When scanning double-sided documents, you might get extra blank reverse pages [citation:1].",
+      "fix": "Remove the unwanted reverse pages"
+    },
+    {
+      "issue": "Cover pages or dividers",
+      "explanation": "Scanned documents often include unnecessary title pages or section dividers [citation:3].",
+      "fix": "Delete them individually or by range"
+    },
+    {
+      "issue": "Faint marks that look like content",
+      "explanation": "Some pages look blank but contain faint scans, shadows, or specks that scanners detect as content [citation:1].",
+      "fix": "Preview at larger size – if only light texture, safe to delete"
+    }
+  ],
+  
+  "faq": [
+    {
+      "question": "Can I remove pages from a scanned PDF without Adobe Acrobat?",
+      "answer": "Yes, absolutely. You don't need Adobe Acrobat to delete pages from scanned PDFs. Free online tools like Smallpdf, PDF24, and PDFSwift let you remove pages directly in your browser. Desktop alternatives like Preview (Mac) or PDF24 Creator (Windows) work offline. No subscription needed [citation:1][citation:3][citation:6]."
+    },
+    {
+      "question": "How do I identify blank pages in a scanned PDF?",
+      "answer": "Upload your scanned PDF to any page removal tool – they show thumbnails of all pages. Blank pages appear as empty white squares. Click any thumbnail to see a larger preview – if nothing appears or only faint shadows/specks show, it's safe to delete. Some scanners leave faint marks that look like content, but if no visible text or images, delete it [citation:1][citation:7]."
+    },
+    {
+      "question": "Will removing pages affect the quality of remaining pages?",
+      "answer": "No. Deleting pages doesn't compress or re-encode the remaining pages. The pages you keep stay at their original scan resolution and quality. Your cleaned PDF will be smaller (fewer pages) but each kept page remains identical to the original [citation:1][citation:6]."
+    },
+    {
+      "question": "Can I delete multiple pages at once from a scanned PDF?",
+      "answer": "Yes. Most tools let you select multiple pages before deleting. Hold Ctrl (Windows) or Cmd (Mac) while clicking thumbnails to select several pages, then delete them all at once. Some tools also let you specify page ranges like '1-3,5,7-9' to keep or remove in bulk [citation:1][citation:7]."
+    },
+    {
+      "question": "Is it safe to upload scanned PDFs to online tools?",
+      "answer": "Most reputable tools are safe – they use TLS encryption and automatically delete files after processing (usually 1-2 hours). Smallpdf, for example, is GDPR-compliant and ISO/IEC 27001 certified [citation:1]. For sensitive documents, use browser-based tools that process locally (files never leave your device) or desktop software like Preview (Mac) or PDF24 Creator (Windows) that work completely offline [citation:3][citation:6]."
+    },
+    {
+      "question": "Can I remove pages from a password-protected scanned PDF?",
+      "answer": "Yes, but you need the password first. Most online tools will prompt for password when you upload a protected file. Once unlocked, you can delete pages normally. Alternatively, use a PDF unlocker tool first (requires password), then delete pages from the unprotected version [citation:1][citation:3]."
+    },
+    {
+      "question": "How do I remove pages on my phone?",
+      "answer": "Works on iPhone and Android. Open any online PDF tool in your mobile browser. Upload from phone storage, Google Drive, or Dropbox. Select pages to delete using thumbnails. Download cleaned PDF back to your phone. Takes about a minute – no app needed [citation:1][citation:6]."
+    }
+  ]
 }
 
 
