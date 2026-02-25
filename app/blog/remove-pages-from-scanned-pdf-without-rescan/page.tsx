@@ -804,7 +804,7 @@ export default function RemoveScannedPDFPages() {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Link
-                      href="/delete-pdf-pages"
+                      href="/remove-pages"
                       className="inline-flex items-center justify-center px-7 py-4 bg-white text-blue-700 font-bold rounded-lg hover:bg-blue-50 transition-all duration-300"
                     >
                       Remove Pages Now
