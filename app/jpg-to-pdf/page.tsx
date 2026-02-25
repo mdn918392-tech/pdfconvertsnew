@@ -38,6 +38,9 @@ import {
   Expand,
   Replace,
   Info,
+  Trash2,
+  Scissors,
+  Copy,
 } from "lucide-react";
 
 // Dynamically import heavy components only for desktop
@@ -287,7 +290,7 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// ✅ FIXED: Desktop compression with HIGH QUALITY preservation
+// Desktop compression with HIGH QUALITY preservation
 // Mobile compression with auto-balance for large files
 const compressImageForPdf = async (
   file: File,
@@ -571,7 +574,7 @@ const checkAutoCompressionNeeded = (files: File[]): boolean => {
   return files.some(file => file.size > AUTO_COMPRESS_THRESHOLD);
 };
 
-// ✅ FIXED: PDF creation with jsPDF
+// PDF creation with jsPDF
 const createPdfFromImages = async (
   imageDataUrls: string[],
   paperSize: PaperSize,
@@ -879,57 +882,91 @@ const DraggableItem = ({
   );
 };
 
-// Image Container Component
+// Image Container Component - FIXED for better fit with delete button
 const ImageContainer = ({ 
   file, 
   imageUrl, 
   rotation, 
   previewError,
-  onClick 
+  onClick,
+  onDelete,
+  showDelete = false
 }: { 
   file: FileWithPreview; 
   imageUrl: string | undefined; 
   rotation: number; 
   previewError: boolean;
   onClick: () => void;
+  onDelete?: (e: React.MouseEvent) => void;
+  showDelete?: boolean;
 }) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  
   return (
     <div
-      className="relative w-full h-48 md:h-56 lg:h-64 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer"
+      className="relative w-full aspect-square overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer border border-gray-200 dark:border-gray-700 group"
       onClick={onClick}
     >
-      {imageUrl && !previewError ? (
+      {imageUrl && !previewError && !imageError ? (
         <>
-          <img
-            src={imageUrl}
-            alt={file.file.name}
-            className="w-full h-full object-contain transition-transform duration-300"
-            style={{
-              transform: `rotate(${rotation}deg)`,
-              objectFit: 'contain',
-            }}
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-          <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors" />
+          <div className="absolute inset-0 flex items-center justify-center p-1">
+            <img
+              src={imageUrl}
+              alt={file.file.name}
+              className="max-w-full max-h-full object-contain transition-transform duration-300"
+              style={{
+                transform: `rotate(${rotation}deg)`,
+              }}
+              loading="lazy"
+              onLoad={() => setImageLoaded(true)}
+              onError={(e) => {
+                setImageError(true);
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+          {!imageLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
         </>
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center p-3">
-          <div className="relative mb-2">
-            <ImageIcon className="w-8 h-8 text-gray-400" />
-            {previewError && (
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                <X className="w-2 h-2 text-white" />
+        <div className="w-full h-full flex flex-col items-center justify-center p-2">
+          <div className="relative mb-1">
+            <ImageIcon className="w-6 h-6 text-gray-400" />
+            {(previewError || imageError) && (
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full flex items-center justify-center">
+                <X className="w-1 h-1 text-white" />
               </div>
             )}
           </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 text-center truncate max-w-full px-2">
-            {previewError ? 'Failed to load' : 'Loading...'}
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center truncate max-w-full px-1">
+            {(previewError || imageError) ? 'Failed to load' : 'Loading...'}
           </span>
         </div>
       )}
+      
+      {/* Delete button - Always visible on mobile, hover on desktop */}
+      {showDelete && onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(e);
+          }}
+          className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors z-20 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+          title="Delete image"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      )}
+      
+      {/* File size indicator */}
+      <div className="absolute bottom-1 left-1 bg-black/50 text-white text-[8px] px-1 py-0.5 rounded">
+        {(file.file.size / 1024).toFixed(0)}KB
+      </div>
     </div>
   );
 };
@@ -1055,7 +1092,62 @@ const ReplaceImageModal = ({
   );
 };
 
-// Mobile Simple UI - FIXED orientation handling (disabled after PDF generated)
+// Confirmation Modal for Delete
+const ConfirmDeleteModal = ({
+  onConfirm,
+  onCancel,
+  imageName,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+  imageName: string;
+}) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <div className="w-12 h-12 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+            <Trash2 className="w-6 h-6 text-red-500" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center mb-2">
+            Delete Image?
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+            Are you sure you want to delete "{imageName}"? This action cannot be undone.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium transition-colors text-sm"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Mobile Simple UI - FIXED with full functionality including delete
 const MobileSimpleUI = ({
   files,
   onFilesUpdate,
@@ -1068,6 +1160,11 @@ const MobileSimpleUI = ({
   onDownload,
   onClear,
   autoCompressionActive,
+  onRotateFile,
+  onRemoveFile,
+  onReplaceImage,
+  onReverseOrder,
+  reverseOrder,
 }: {
   files: FileWithPreview[];
   onFilesUpdate: (files: File[]) => void;
@@ -1080,22 +1177,178 @@ const MobileSimpleUI = ({
   onDownload: () => void;
   onClear: () => void;
   autoCompressionActive: boolean;
+  onRotateFile: (id: string, degrees: number) => void;
+  onRemoveFile: (file: FileWithPreview) => void;
+  onReplaceImage: (id: string, file: File) => void;
+  onReverseOrder: () => void;
+  reverseOrder: boolean;
 }) => {
-  // Check if PDF exists - if yes, disable orientation changes
-  const isPdfGenerated = pdfBlob !== null;
+  const [expandedImage, setExpandedImage] = useState<FileWithPreview | null>(null);
+  const [replacingImageId, setReplacingImageId] = useState<string | null>(null);
+  const [showReplaceOptions, setShowReplaceOptions] = useState<string | null>(null);
+  const [imageToDelete, setImageToDelete] = useState<FileWithPreview | null>(null);
+
+  // Display files in correct order
+  const displayFiles = reverseOrder ? [...files].reverse() : files;
+
+  // Handle expand image
+  const handleExpandImage = (file: FileWithPreview) => {
+    setExpandedImage(file);
+  };
+
+  // Handle move up (swap with previous)
+  const handleMoveUp = (index: number) => {
+    if (index <= 0) return;
+    
+    const actualIndex = reverseOrder ? files.length - 1 - index : index;
+    const prevIndex = reverseOrder ? files.length - 1 - (index - 1) : index - 1;
+    
+    const newFiles = [...files];
+    [newFiles[actualIndex], newFiles[prevIndex]] = [newFiles[prevIndex], newFiles[actualIndex]];
+    
+    // Update files by creating a new event
+    const fileList = newFiles.map(f => f.file);
+    onFilesUpdate(fileList);
+  };
+
+  // Handle move down (swap with next)
+  const handleMoveDown = (index: number) => {
+    if (index >= displayFiles.length - 1) return;
+    
+    const actualIndex = reverseOrder ? files.length - 1 - index : index;
+    const nextIndex = reverseOrder ? files.length - 1 - (index + 1) : index + 1;
+    
+    const newFiles = [...files];
+    [newFiles[actualIndex], newFiles[nextIndex]] = [newFiles[nextIndex], newFiles[actualIndex]];
+    
+    const fileList = newFiles.map(f => f.file);
+    onFilesUpdate(fileList);
+  };
+
+  // Handle delete with confirmation
+  const handleDeleteClick = (file: FileWithPreview, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImageToDelete(file);
+  };
+
+  const confirmDelete = () => {
+    if (imageToDelete) {
+      onRemoveFile(imageToDelete);
+      setImageToDelete(null);
+      if (expandedImage?.id === imageToDelete.id) {
+        setExpandedImage(null);
+      }
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Fullscreen Image Modal */}
+      <AnimatePresence>
+        {expandedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-2"
+            onClick={() => setExpandedImage(null)}
+          >
+            <div className="absolute top-4 right-4 flex gap-2 z-10">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRotateFile(expandedImage.id, -90);
+                }}
+                className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-full"
+              >
+                <RotateCcw className="w-5 h-5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRotateFile(expandedImage.id, 90);
+                }}
+                className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-full"
+              >
+                <RotateCw className="w-5 h-5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedImage(null);
+                }}
+                className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-3 bg-black/50 backdrop-blur-sm p-2 rounded-full">
+              <button
+                onClick={() => setReplacingImageId(expandedImage.id)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-full text-sm font-medium"
+              >
+                Replace
+              </button>
+              <button
+                onClick={() => {
+                  setImageToDelete(expandedImage);
+                  setExpandedImage(null);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-full text-sm font-medium"
+              >
+                Delete
+              </button>
+            </div>
+
+            <img
+              src={expandedImage.previewUrl}
+              alt={expandedImage.file.name}
+              className="max-w-full max-h-full object-contain"
+              style={{
+                transform: `rotate(${expandedImage.rotation}deg)`,
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Replace Image Modal */}
+      <AnimatePresence>
+        {replacingImageId && (
+          <ReplaceImageModal
+            imageName={files.find(f => f.id === replacingImageId)?.file.name || ""}
+            onReplace={(file) => {
+              onReplaceImage(replacingImageId, file);
+              setReplacingImageId(null);
+            }}
+            onCancel={() => setReplacingImageId(null)}
+            isMobile={true}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {imageToDelete && (
+          <ConfirmDeleteModal
+            imageName={imageToDelete.file.name}
+            onConfirm={confirmDelete}
+            onCancel={() => setImageToDelete(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Upload Section */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
-        <div className="text-center mb-6">
-          <div className="inline-flex p-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl mb-4">
-            <ImageIcon className="w-8 h-8 text-white" />
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
+        <div className="text-center mb-4">
+          <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl mb-2">
+            <ImageIcon className="w-5 h-5 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
             JPG to PDF
           </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-xs text-gray-600 dark:text-gray-400">
             Convert images to PDF on mobile
           </p>
         </div>
@@ -1108,7 +1361,7 @@ const MobileSimpleUI = ({
           maxFiles={MAX_FILES_MOBILE}
         />
 
-        <div className="mt-4 text-xs text-center text-gray-500 dark:text-gray-400">
+        <div className="mt-3 text-xs text-center text-gray-500 dark:text-gray-400">
           <p>Max {MAX_FILES_MOBILE} images • {MAX_SIZE_MOBILE/(1024*1024)}MB per file</p>
           {autoCompressionActive && (
             <p className="mt-2 text-amber-600 dark:text-amber-400 font-medium flex items-center justify-center gap-1">
@@ -1121,130 +1374,245 @@ const MobileSimpleUI = ({
 
       {files.length > 0 && (
         <>
-          {/* Selected Images Count */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-            <div className="flex items-center justify-between">
+          {/* Selected Images Header */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-3">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-blue-500" />
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {files.length} Image{files.length !== 1 ? 's' : ''} Selected
+                <ImageIcon className="w-4 h-4 text-blue-500" />
+                <span className="font-medium text-sm text-gray-900 dark:text-white">
+                  {files.length} Image{files.length !== 1 ? 's' : ''}
                 </span>
               </div>
               <button
                 onClick={onClear}
-                className="text-sm text-red-600 hover:text-red-700 dark:text-red-400"
+                className="text-xs text-red-600 hover:text-red-700 dark:text-red-400"
               >
                 Clear All
               </button>
             </div>
+
+            {/* Reverse Order Toggle */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="w-3 h-3 text-gray-500" />
+                <span className="text-xs text-gray-600 dark:text-gray-400">Reverse Order</span>
+              </div>
+              <button
+                onClick={onReverseOrder}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  reverseOrder
+                    ? "bg-purple-500 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                {reverseOrder ? "ON" : "OFF"}
+              </button>
+            </div>
           </div>
 
-          {/* Orientation Selector - FIXED: Disabled if PDF exists */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          {/* Images Grid - FIXED for proper fit with delete button */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+            {displayFiles.map((file, index) => {
+              const pageNumber = index + 1;
+              
+              return (
+                <div key={file.id} className="relative group">
+                  <ImageContainer
+                    file={file}
+                    imageUrl={file.previewUrl}
+                    rotation={file.rotation}
+                    previewError={file.previewError || false}
+                    onClick={() => handleExpandImage(file)}
+                    onDelete={(e) => handleDeleteClick(file, e)}
+                    showDelete={true}
+                  />
+                  
+                  {/* Page Number Badge */}
+                  <div className="absolute top-1 left-1 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-full z-10">
+                    {pageNumber}
+                  </div>
+
+                  {/* Rotation Badge */}
+                  {file.rotation !== 0 && (
+                    <div className="absolute top-1 right-8 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10">
+                      <RotateCw className="w-2 h-2" />
+                      {file.rotation}°
+                    </div>
+                  )}
+
+                  {/* Cut/Options Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowReplaceOptions(showReplaceOptions === file.id ? null : file.id);
+                    }}
+                    className="absolute bottom-1 right-1 p-1.5 bg-black/70 hover:bg-black/90 text-white rounded-lg text-[10px] z-20"
+                    title="More options"
+                  >
+                    <Scissors className="w-3 h-3" />
+                  </button>
+
+                  {/* Options Dropdown */}
+                  {showReplaceOptions === file.id && (
+                    <div className="absolute bottom-10 right-0 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-30">
+                      <button
+                        onClick={() => {
+                          setReplacingImageId(file.id);
+                          setShowReplaceOptions(null);
+                        }}
+                        className="w-full px-2 py-1.5 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-1"
+                      >
+                        <Replace className="w-3 h-3" />
+                        Replace
+                      </button>
+                      <button
+                        onClick={() => {
+                          onRotateFile(file.id, -90);
+                          setShowReplaceOptions(null);
+                        }}
+                        className="w-full px-2 py-1.5 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-1"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Rotate Left
+                      </button>
+                      <button
+                        onClick={() => {
+                          onRotateFile(file.id, 90);
+                          setShowReplaceOptions(null);
+                        }}
+                        className="w-full px-2 py-1.5 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-1"
+                      >
+                        <RotateCw className="w-3 h-3" />
+                        Rotate Right
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (index > 0) handleMoveUp(index);
+                          setShowReplaceOptions(null);
+                        }}
+                        disabled={index === 0}
+                        className="w-full px-2 py-1.5 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 flex items-center gap-1"
+                      >
+                        <ChevronUp className="w-3 h-3" />
+                        Move Up
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (index < displayFiles.length - 1) handleMoveDown(index);
+                          setShowReplaceOptions(null);
+                        }}
+                        disabled={index === displayFiles.length - 1}
+                        className="w-full px-2 py-1.5 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 flex items-center gap-1"
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                        Move Down
+                      </button>
+                      <button
+                        onClick={() => {
+                          setImageToDelete(file);
+                          setShowReplaceOptions(null);
+                        }}
+                        className="w-full px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Orientation Selector */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-3">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
               Page Orientation
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => {
-                  if (!isPdfGenerated) {
-                    console.log("Mobile: Portrait selected");
+                  if (!pdfBlob) {
                     onOrientationChange("Portrait");
                   }
                 }}
-                disabled={isPdfGenerated}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                disabled={!!pdfBlob}
+                className={`flex items-center justify-center gap-1 p-2 rounded-lg border transition-all text-xs ${
                   orientation === "Portrait"
                     ? "bg-blue-500 text-white border-blue-500"
                     : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                } ${isPdfGenerated ? "opacity-50 cursor-not-allowed" : ""}`}
+                } ${pdfBlob ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                <div className="w-4 h-5 border-2 border-current rounded" />
-                <span className="font-medium">Portrait</span>
+                <div className="w-3 h-4 border-2 border-current rounded" />
+                <span>Portrait</span>
               </button>
               <button
                 onClick={() => {
-                  if (!isPdfGenerated) {
-                    console.log("Mobile: Landscape selected");
+                  if (!pdfBlob) {
                     onOrientationChange("Landscape");
                   }
                 }}
-                disabled={isPdfGenerated}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                disabled={!!pdfBlob}
+                className={`flex items-center justify-center gap-1 p-2 rounded-lg border transition-all text-xs ${
                   orientation === "Landscape"
                     ? "bg-blue-500 text-white border-blue-500"
                     : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                } ${isPdfGenerated ? "opacity-50 cursor-not-allowed" : ""}`}
+                } ${pdfBlob ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                <div className="w-5 h-4 border-2 border-current rounded" />
-                <span className="font-medium">Landscape</span>
+                <div className="w-4 h-3 border-2 border-current rounded" />
+                <span>Landscape</span>
               </button>
             </div>
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
-              Page size: A4 (210 × 297 mm)
+            <p className="text-[10px] text-center text-gray-500 dark:text-gray-400 mt-2">
+              A4 Size • {reverseOrder ? "Reverse" : "Normal"} Order
             </p>
-            
-            {/* Show warning if PDF exists */}
-            {pdfBlob && (
-              <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
-                  Orientation cannot be changed after PDF is generated
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Progress/Convert/Download */}
           {converting ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
               <ProgressBar progress={progress} label="Creating PDF..." />
-              <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 dark:text-blue-400">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">Processing {files.length} images...</span>
+              <div className="flex items-center justify-center gap-2 mt-3 text-blue-600 dark:text-blue-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-xs">Processing {files.length} images...</span>
               </div>
               {autoCompressionActive && (
-                <p className="text-xs text-center text-amber-600 dark:text-amber-400 mt-2">
+                <p className="text-[10px] text-center text-amber-600 dark:text-amber-400 mt-1">
                   Auto-compression active for large files
                 </p>
               )}
             </div>
           ) : pdfBlob ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
-              <div className="text-center mb-4">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-4">
+              <div className="text-center mb-3">
+                <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-1" />
+                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-0.5">
                   PDF Ready!
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={onClear}
-                  className="py-3 px-4 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium"
+                  className="py-2 px-3 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium text-xs"
                 >
                   New
                 </button>
                 <button
                   onClick={onDownload}
-                  className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
+                  className="py-2 px-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium flex items-center justify-center gap-1 text-xs"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3 h-3" />
                   Download
                 </button>
               </div>
-              
-              {/* Show disabled orientation notice */}
-              <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
-                Orientation locked - Click "New" to create new PDF
-              </p>
             </div>
           ) : (
             <button
               onClick={onConvert}
-              className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+              className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl transition-all"
             >
               Convert {files.length} Image{files.length !== 1 ? 's' : ''} to PDF
             </button>
@@ -1357,7 +1725,6 @@ export default function JpgToPdf() {
         setPaperSize("A4");
         setCompressionQuality("none");
         setMarginSize("small");
-        setReverseOrder(false);
       }
     };
 
@@ -1427,7 +1794,7 @@ export default function JpgToPdf() {
     setProgress(0);
   };
 
-  // Handle orientation change - FIXED for mobile (only allowed if no PDF)
+  // Handle orientation change
   const handleOrientationChange = (orient: Orientation) => {
     // On mobile, if PDF exists, don't allow orientation change
     if (isMobile && pdfBlob) {
@@ -1456,7 +1823,6 @@ export default function JpgToPdf() {
 
   // Toggle reverse order
   const toggleReverseOrder = () => {
-    if (isMobile) return;
     setReverseOrder(!reverseOrder);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -1864,6 +2230,8 @@ export default function JpgToPdf() {
 
       if (!isMobile && reverseOrder) {
         filesToProcess = [...files].reverse();
+      } else if (isMobile && reverseOrder) {
+        filesToProcess = [...files].reverse();
       }
 
       setProgress(10);
@@ -2147,7 +2515,7 @@ export default function JpgToPdf() {
       )}
 
       <AnimatePresence>
-        {expandedImage && (
+        {expandedImage && !isMobile && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -2398,6 +2766,11 @@ export default function JpgToPdf() {
                 onDownload={handleDownload}
                 onClear={handleConvertMore}
                 autoCompressionActive={autoCompressionActive}
+                onRotateFile={handleRotateFile}
+                onRemoveFile={handleRemoveFile}
+                onReplaceImage={handleReplaceImage}
+                onReverseOrder={toggleReverseOrder}
+                reverseOrder={reverseOrder}
               />
             ) : (
               /* Desktop Full UI (unchanged) */
