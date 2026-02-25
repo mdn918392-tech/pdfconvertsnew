@@ -1765,19 +1765,34 @@ export default function PdfPageRemoverTool() {
                       </div>
 
                       {/* Reset & Another PDF */}
-                      <div className="text-center space-y-2 sm:space-y-3">
-                        <button
-                          onClick={handleReset}
-                          className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 md:py-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
-                        >
-                          <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
-                          Remove Pages from Another PDF
-                        </button>
-                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                          All processing happens in your browser • No files are
-                          uploaded
-                        </p>
-                      </div>
+<div className="text-center flex flex-col items-center gap-4 mt-8">
+
+  <button
+    onClick={handleReset}
+    className="
+      flex items-center justify-center gap-2
+      px-6 py-3
+      font-semibold
+      text-white
+      bg-gradient-to-r from-blue-500 to-indigo-600
+      hover:from-blue-600 hover:to-indigo-700
+      rounded-xl
+      shadow-md hover:shadow-xl
+      transition-all duration-300
+      transform hover:scale-105 active:scale-95
+      w-full sm:w-auto
+      text-sm sm:text-base
+    "
+  >
+    <FolderOpen className="w-5 h-5" />
+    <span>Remove Pages from Another PDF</span>
+  </button>
+
+  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-xs sm:max-w-md">
+    All processing happens in your browser • No files are uploaded
+  </p>
+
+</div>
                     </motion.div>
                   )}
                 </AnimatePresence>
