@@ -543,12 +543,20 @@
 
 <url>
   <loc>https://www.pdfswift.online/blog/capture-full-webpage-screenshot-mobile-convert-webp-to-jpg</loc>
- <lastmod>2026-02-25T00:00:00+00:00</lastmod>
+ <lastmod>2026-02-26T00:00:00+00:00</lastmod>
  <changefreq>weekly</changefreq>
 
   <priority>0.65</priority>
 </url>
 
+
+<url>
+  <loc>https://www.pdfswift.online/blog/split-pdf-into-equal-parts-2-3-5-sections</loc>
+ <lastmod>2026-02-27T00:00:00+00:00</lastmod>
+ <changefreq>weekly</changefreq>
+
+  <priority>0.65</priority>
+</url>
 
 </urlset>
 

@@ -2571,6 +2571,122 @@
       "answer": "Reputable converters like GroupDocs delete uploaded files after 24 hours and use encryption. They state: 'Your privacy is our priority. The converted JPG file is available for download right away, and all uploaded files are permanently deleted after 24 hours. No one else can access them' [citation:6][citation:10]. For sensitive images, use offline methods (Paint/Preview) or on-device conversion."
     }
   ]
+},
+{
+  "id": "split-pdf-into-equal-parts-2-3-5-sections",
+  "title": "How to Split PDF into Equal Parts (2, 3, 5 Sections Easily) – 2026 Guide",
+  "date": "Feb 27 2026",
+  "image": "/images/split-pdf-equal-parts-guide.png",
+  "description": "Learn how to split a PDF into 2, 3, or 5 equal parts for free. Step-by-step guide using online tools, desktop software, and mobile methods. Perfect for distributing chapters, sections, or reports.",
+  "slug": "split-pdf-into-equal-parts-2-3-5-sections",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Split PDF into Equal Parts", "url": "/blog/split-pdf-into-equal-parts-2-3-5-sections" }
+  ],
+  
+  "howto": {
+    "steps": [
+      "Go to PDFSwift Split PDF tool (no signup, files stay in browser)",
+      "Upload your PDF file (drag & drop or click to select)",
+      "Choose 'Split by intervals' or 'Split by number of pages' mode",
+      "For 2 equal parts: Enter 2 as the number of sections (if total pages is even) or enter half of total pages as interval ",
+      "For 3 equal parts: Enter 3 as the number of sections, or calculate pages per section (total ÷ 3, round up) ",
+      "For 5 equal parts: Enter 5 as the number of sections, or set interval to total ÷ 5 ",
+      "Click 'Split' and wait for processing (5-10 seconds)",
+      "Download all split files as a ZIP archive"
+    ],
+    "estimatedTime": "PT3M",
+    "totalTime": "PT4M",
+    "supply": ["PDF file", "Web browser", "Computer or phone"],
+    "tool": ["PDFSwift Split PDF", "Aspose Splitter", "Soda PDF", "PDF Candy", "Google Chrome"]
+  },
+  
+  "splitMethods": [
+    {
+      "method": "Split by intervals (every N pages)",
+      "description": "Divide PDF into sections of equal page count (e.g., every 10 pages) [citation:1][citation:3]",
+      "bestFor": "Creating equal-sized chunks when you know how many pages per section",
+      "example": "30-page PDF, interval 10 → 3 files (10 pages each)"
+    },
+    {
+      "method": "Split by number of sections",
+      "description": "Split into a specific number of equal parts (2, 3, 5, etc.) [citation:6]",
+      "bestFor": "When you need exactly X sections regardless of page count",
+      "example": "25-page PDF, 5 sections → 5 files (5 pages each)"
+    },
+    {
+      "method": "Split by page ranges",
+      "description": "Custom ranges for uneven splits (e.g., 1-10, 11-20, 21-25) [citation:4][citation:7]",
+      "bestFor": "When sections need different page counts or you want specific grouping",
+      "example": "Pages 1-8 (Chapter 1), 9-15 (Chapter 2), 16-25 (Chapter 3)"
+    },
+    {
+      "method": "Split every page",
+      "description": "Each page becomes its own PDF file [citation:1][citation:4]",
+      "bestFor": "Extracting individual pages for separate use",
+      "example": "10-page PDF → 10 files"
+    }
+  ],
+  
+  "examples": [
+    {
+      "scenario": "Split into 2 equal halves",
+      "totalPages": 20,
+      "method": "Split by number of sections: 2",
+      "result": "File 1: pages 1-10, File 2: pages 11-20"
+    },
+    {
+      "scenario": "Split into 3 equal parts",
+      "totalPages": 30,
+      "method": "Split by intervals: 10 pages",
+      "result": "File 1: pages 1-10, File 2: pages 11-20, File 3: pages 21-30"
+    },
+    {
+      "scenario": "Split into 5 equal parts (odd total)",
+      "totalPages": 27,
+      "method": "Split by number of sections: 5",
+      "result": "Files with 6,6,5,5,5 pages (distributed evenly) [citation:8]"
+    },
+    {
+      "scenario": "Split textbook into chapters",
+      "totalPages": 150,
+      "method": "Split by page ranges: 1-30, 31-60, 61-90, 91-120, 121-150",
+      "result": "5 files matching chapter boundaries"
+    }
+  ],
+  
+  "faq": [
+    {
+      "question": "How do I split a PDF into 2 equal parts?",
+      "answer": "Upload your PDF to a splitter tool like PDFSwift. Choose 'Split by number of sections' and enter 2. The tool will divide the document into two halves. If the PDF has an odd number of pages, the first half gets one extra page (e.g., 13 pages → 7 and 6) [citation:6][citation:8]."
+    },
+    {
+      "question": "Can I split a PDF into 3 equal parts for free?",
+      "answer": "Yes, completely free. Use online tools like PDFSwift, Aspose Splitter, or PDF Candy. Upload your file, select 'Split by number of sections' and enter 3. The tool automatically distributes pages into three files. For a 30-page PDF, you'll get three 10-page files [citation:2][citation:6]."
+    },
+    {
+      "question": "What if my PDF doesn't split evenly (e.g., 25 pages into 3 parts)?",
+      "answer": "Most tools handle this automatically. They distribute pages as evenly as possible – the first files get one extra page if needed. For 25 pages into 3 parts, you'll get files with 9, 8, and 8 pages. The content order is preserved, and no pages are lost [citation:8]."
+    },
+    {
+      "question": "Can I split a PDF into 5 parts on my phone?",
+      "answer": "Yes, works on iPhone and Android. Open PDFSwift in your mobile browser, upload from phone storage, choose split by number of sections (5), and download the ZIP file. No app needed. For iPhone, you can also use the Files app with built-in PDF tools [citation:4]."
+    },
+    {
+      "question": "Is there a file size limit for splitting PDFs?",
+      "answer": "Most free online tools accept up to 50-100MB per file [citation:4][citation:8]. For larger files, use desktop software like PDF Candy Desktop or Stirling-PDF which have no size limits. PDFSwift processes files locally in your browser, so very large files may be slower but still work [citation:9]."
+    },
+    {
+      "question": "Will splitting a PDF reduce quality?",
+      "answer": "No, splitting does not compress or re-encode the content. Each split file maintains the exact quality and resolution of the original. Pages are simply copied into new files without any quality loss [citation:8]."
+    },
+    {
+      "question": "Can I split a password-protected PDF?",
+      "answer": "You need the password first. Most online tools will prompt for password when you upload a protected file. Enter the password, then split normally. If you don't have the password, you cannot edit or split the file [citation:8]."
+    }
+  ]
 }
 
 
