@@ -2687,6 +2687,143 @@
       "answer": "You need the password first. Most online tools will prompt for password when you upload a protected file. Enter the password, then split normally. If you don't have the password, you cannot edit or split the file [citation:8]."
     }
   ]
+},
+
+{
+  "id": "extract-odd-even-pages-from-pdf-2026",
+  "title": "How to Extract Only Odd or Even Pages from PDF (2026 Guide)",
+  "date": "Feb 28 2026",
+ 
+  "description": "Learn how to extract odd or even pages from PDF files for double-sided printing, document organization, and more. Step-by-step guide using free online tools and desktop software.",
+  "slug": "extract-odd-even-pages-from-pdf-2026",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Extract Odd/Even Pages", "url": "/blog/extract-odd-even-pages-from-pdf-2026" }
+  ],
+  
+  "howto": {
+    "steps": [
+      "Go to a PDF tool that supports odd/even extraction (like Aspose or Sejda) [citation:2]",
+      "Upload your PDF file (drag & drop or click to select)",
+      "Select the split mode: 'Split by even and odd pages' [citation:2]",
+      "The tool will process your file and create two separate PDFs",
+      "Download the ZIP file containing both odd pages PDF and even pages PDF",
+      "Extract the file you need (odd pages or even pages)"
+    ],
+    "estimatedTime": "PT2M",
+    "totalTime": "PT3M",
+    "supply": ["PDF file", "Web browser", "Internet connection"],
+    "tool": ["PDFSwift (coming soon)", "Aspose PDF Splitter", "Sejda", "PDFsam Basic"]
+  },
+  
+  "useCases": [
+    {
+      "scenario": "Double-sided printing",
+      "explanation": "Print odd pages first, reload paper, then print even pages on the back [citation:10]"
+    },
+    {
+      "scenario": "Scanning duplex documents",
+      "explanation": "When you scan both sides and need to separate front from back"
+    },
+    {
+      "scenario": "Document reorganization",
+      "explanation": "Split a merged file into two separate documents based on page parity"
+    },
+    {
+      "scenario": "Creating booklets",
+      "explanation": "Prepare pages for booklet printing that requires odd/even separation"
+    },
+    {
+      "scenario": "Removing blank back pages",
+      "explanation": "Extract only the odd pages that contain content, discard blank evens"
+    }
+  ],
+  
+  "methods": [
+    {
+      "tool": "Aspose PDF Splitter",
+      "type": "Online",
+      "url": "products.aspose.app/words/splitter/pdf",
+      "features": "Split by even and odd pages, free, files deleted after 24 hours [citation:2]",
+      "steps": [
+        "Upload your PDF",
+        "Select 'Split PDF by even and odd pages' mode",
+        "Click the button to process",
+        "Download ZIP with odd and even files"
+      ]
+    },
+    {
+      "tool": "Sejda",
+      "type": "Online",
+      "url": "sejda.com",
+      "features": "Split at predefined pages (odd/even), retains bookmarks option [citation:1]",
+      "steps": [
+        "Go to Sejda PDF Splitter",
+        "Upload your PDF",
+        "Choose 'Split by odd and even pages'",
+        "Download your files"
+      ]
+    },
+    {
+      "tool": "PDFsam Basic",
+      "type": "Desktop",
+      "url": "pdfsam.org",
+      "features": "Free, open-source, works offline, split by odd/even pages [citation:3][citation:5]",
+      "steps": [
+        "Download and install PDFsam Basic",
+        "Open the 'Split' module",
+        "Select your PDF file",
+        "Choose 'Split after odd/even pages'",
+        "Click 'Run' to generate files"
+      ]
+    },
+    {
+      "tool": "PDF Barber",
+      "type": "Online (Offline-capable)",
+      "url": "pdfbarber.com",
+      "features": "Works offline in browser, no upload needed, split by odd/even [citation:4]",
+      "steps": [
+        "Visit PDF Barber website",
+        "Choose split tool",
+        "Drag your PDF into browser (stays local)",
+        "Use checkboxes to select odd/even pages",
+        "Save new PDF"
+      ]
+    }
+  ],
+  
+  "faq": [
+    {
+      "question": "Can I extract only odd or even pages from a PDF for free?",
+      "answer": "Yes, completely free. Online tools like Aspose and Sejda let you split PDFs by odd and even pages at no cost [citation:2]. For offline use, PDFsam Basic is free and open-source [citation:3]. Some tools have daily limits, but most are unlimited for basic splitting."
+    },
+    {
+      "question": "Why would I need to separate odd and even pages?",
+      "answer": "The most common reason is double-sided printing – print odd pages first, then flip the paper and print even pages on the back [citation:10]. It's also useful when scanning double-sided documents, reorganizing files, or removing blank back pages from scanned documents."
+    },
+    {
+      "question": "What happens if my PDF has an odd number of pages?",
+      "answer": "The odd pages file will contain pages 1,3,5... up to the last page. The even pages file will contain pages 2,4,6... up to the last even page. If you have 7 pages, odds will have 4 pages (1,3,5,7) and evens will have 3 pages (2,4,6)."
+    },
+    {
+      "question": "Is it safe to upload my PDF to online odd/even splitters?",
+      "answer": "Reputable tools like Aspose automatically delete your files from their servers after 24 hours [citation:2]. For maximum privacy, use offline tools like PDFsam Basic [citation:3] or browser-based tools like PDF Barber that process files locally without uploading [citation:4]."
+    },
+    {
+      "question": "Can I extract odd/even pages on my phone?",
+      "answer": "Yes, online tools like Aspose and Sejda work on mobile browsers. Upload from your phone storage, select odd/even split mode, and download the ZIP file. No app needed [citation:2]."
+    },
+    {
+      "question": "What's the difference between splitting and extracting?",
+      "answer": "Splitting by odd/even creates two separate files – one with odd pages, one with even pages. Extracting usually means pulling specific pages into a new file. For odd/even separation, you're essentially splitting the document into two files based on page parity [citation:1][citation:5]."
+    },
+    {
+      "question": "Can I merge odd and even pages back together after extracting?",
+      "answer": "Yes, you can use merge tools to combine them back. Tools like Sejda offer 'Alternate & Mix' specifically for merging odd and even page files back into proper order [citation:10]. This is useful if you've scanned front/back pages separately."
+    }
+  ]
 }
 
 
