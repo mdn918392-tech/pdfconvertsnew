@@ -2824,6 +2824,150 @@
       "answer": "Yes, you can use merge tools to combine them back. Tools like Sejda offer 'Alternate & Mix' specifically for merging odd and even page files back into proper order [citation:10]. This is useful if you've scanned front/back pages separately."
     }
   ]
+},
+
+{
+  "id": "split-pdf-for-email-attachments-under-gmail-limit",
+  "title": "Split PDF for Email Attachments (Under Gmail Limit) – Easy Method 2026",
+  "date": "Mar 02 2026",
+  "image": "/images/split-pdf-email-guide.png",
+  "description": "Learn how to split large PDF files to send via email under Gmail's 25MB limit using PDFSwift. Free online tool – no upload, 100% private. Works on iPhone, Android, and desktop.",
+  "slug": "split-pdf-for-email-attachments-under-gmail-limit",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Split PDF for Email", "url": "/blog/split-pdf-for-email-attachments-under-gmail-limit" }
+  ],
+  
+  "howto": {
+    "steps": [
+      "Open PDFSwift Split PDF tool (no signup needed)",
+      "Upload your large PDF file – drag & drop or click to select (file stays in your browser)",
+      "Choose split method: 'Split by file size' for Gmail limit",
+      "Set target size to 20MB (safe under Gmail's 25MB limit)",
+      "Click 'Split' – processes instantly in your browser",
+      "Download all split parts as a ZIP file",
+      "Attach each part to separate emails or use cloud storage"
+    ],
+    "estimatedTime": "PT2M",
+    "totalTime": "PT3M",
+    "supply": ["Large PDF file", "Web browser", "Email account"],
+    "tool": ["PDFSwift Split PDF", "PDFSwift Compress PDF", "Gmail", "Google Drive"]
+  },
+  
+  "emailLimits": [
+    {
+      "provider": "Gmail",
+      "limit": "25MB",
+      "safeSize": "20-22MB",
+      "notes": "Attachments over 25MB will bounce back"
+    },
+    {
+      "provider": "Outlook / Hotmail",
+      "limit": "20MB",
+      "safeSize": "15-18MB",
+      "notes": "Stricter limit than Gmail"
+    },
+    {
+      "provider": "Yahoo Mail",
+      "limit": "25MB",
+      "safeSize": "20-22MB",
+      "notes": "Similar to Gmail limits"
+    },
+    {
+      "provider": "iCloud Mail",
+      "limit": "20MB",
+      "safeSize": "15-18MB",
+      "notes": "Apple's email service limit"
+    },
+    {
+      "provider": "ProtonMail",
+      "limit": "25MB",
+      "safeSize": "20-22MB",
+      "notes": "Encrypted email service"
+    }
+  ],
+  
+  "splitMethods": [
+    {
+      "method": "Split by file size",
+      "description": "PDFSwift automatically divides your PDF into parts under a specific size",
+      "bestFor": "Hitting exact email limits (20MB for Gmail)",
+      "example": "50MB PDF → 3 files of ~17MB each"
+    },
+    {
+      "method": "Split every N pages",
+      "description": "Divide PDF into equal page chunks",
+      "bestFor": "When you know roughly how many pages fit in 25MB",
+      "example": "100-page PDF → split every 20 pages → 5 files"
+    },
+    {
+      "method": "Split into equal parts",
+      "description": "Split into specific number of files (2,3,4 parts)",
+      "bestFor": "When you want exactly 2-3 email attachments",
+      "example": "Split into 3 parts regardless of size"
+    },
+    {
+      "method": "Extract specific pages",
+      "description": "Send only the important pages",
+      "bestFor": "When only certain pages need to be shared",
+      "example": "Extract pages 5-10 from a 50-page PDF"
+    }
+  ],
+  
+  "alternatives": [
+    {
+      "option": "Compress first, then split",
+      "explanation": "Use PDFSwift Compress PDF tool to reduce file size before splitting",
+      "benefit": "Fewer split files needed"
+    },
+    {
+      "option": "Google Drive / Cloud storage",
+      "explanation": "Upload to Google Drive, share link via email",
+      "benefit": "No size limits, send once"
+    },
+    {
+      "option": "WeTransfer",
+      "explanation": "Free up to 2GB, sends download link via email",
+      "benefit": "Good for very large files"
+    }
+  ],
+  
+  "faq": [
+    {
+      "question": "What is Gmail's attachment size limit in 2026?",
+      "answer": "Gmail still has a 25MB limit for attachments in 2026. If your PDF is larger than 25MB, Gmail will reject it and bounce back. Using PDFSwift, you can split your PDF into smaller parts under 20MB to stay safely under the limit."
+    },
+    {
+      "question": "How do I split a PDF for email using PDFSwift?",
+      "answer": "It's simple: Go to PDFSwift Split PDF tool, upload your file (it stays in your browser – private and secure), choose 'Split by file size', set target to 20MB, click Split, and download your ZIP file. The whole process takes less than a minute."
+    },
+    {
+      "question": "Is PDFSwift really free? Any hidden charges?",
+      "answer": "PDFSwift is completely free forever. No signup, no subscription, no hidden charges. You can split as many PDFs as you want, any size, any time. We believe PDF tools should be free and accessible to everyone."
+    },
+    {
+      "question": "Is it safe to upload my PDF to PDFSwift?",
+      "answer": "PDFSwift processes files locally in your browser – they never leave your device. No upload, no servers, no third-party access. Your documents stay 100% private. This is especially important for sensitive emails containing contracts, invoices, or personal information."
+    },
+    {
+      "question": "Can I split PDF on my phone for email?",
+      "answer": "Yes! PDFSwift works perfectly on iPhone and Android. Open Safari (iPhone) or Chrome (Android), go to PDFSwift, upload from your phone storage, split the PDF, and attach directly to email. No app installation needed."
+    },
+    {
+      "question": "What if my PDF is 50MB? How many parts will I get?",
+      "answer": "With PDFSwift's 'Split by file size' set to 20MB, a 50MB PDF will split into 3 parts – approximately 17MB each. All parts are downloaded as a ZIP file. You can then send 3 separate emails or use cloud storage to share all parts at once."
+    },
+    {
+      "question": "Can I split a password-protected PDF?",
+      "answer": "PDFSwift supports password-protected PDFs. You'll be prompted to enter the password when you upload. Once unlocked, you can split normally. If you don't have the password, the file cannot be processed."
+    },
+    {
+      "question": "What's better – splitting or compressing for email?",
+      "answer": "Both! Use PDFSwift Compress PDF tool first to reduce file size. If it's still over 25MB, then split. This combination often results in fewer split files. For example, compress a 50MB PDF to 30MB, then split into 2 parts instead of 3."
+    }
+  ]
 }
 
 
