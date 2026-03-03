@@ -3122,7 +3122,240 @@
       "answer": "Yes, with PDFSwift PDF to Image tool. Choose high DPI (300+) to get the best possible quality. But remember: You can only extract what's there. If the PDF was created from low quality images, extraction won't improve them. Always keep original high quality sources when possible."
     }
   ]
+},
+{
+  "id": "best-image-size-for-website-speed-seo-optimization",
+  "title": "Best Image Size for Website (Speed + SEO Optimization Guide) 2026",
+  "date": "Mar 04 2026",
+  "description": "Learn the perfect image sizes for websites in 2026 – dimensions, file size, and format for faster loading and better SEO. Includes PDFSwift tools for optimization.",
+  "slug": "best-image-size-for-website-speed-seo-optimization",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "Image Size Guide", "url": "/blog/best-image-size-for-website-speed-seo-optimization" }
+  ],
+  
+  "howto": {
+    "steps": [
+      "Choose the right dimensions for your image (see table below)",
+      "Select optimal format: WebP (best), JPG (photos), PNG (graphics)",
+      "Compress file size under 100KB for most images",
+      "Use PDFSwift Image Resizer to resize without quality loss",
+      "Convert to WebP using PDFSwift tools (browser-based, private)",
+      "Implement lazy loading on your website",
+      "Test with Google PageSpeed Insights"
+    ],
+    "estimatedTime": "PT10M",
+    "totalTime": "PT15M",
+    "supply": ["Images", "Web browser", "PDFSwift tools"],
+    "tool": ["PDFSwift Image Resizer", "PDFSwift Image to PDF", "PDFSwift PDF to Image"]
+  },
+  
+  "imageDimensions": [
+    {
+      "type": "Hero / Banner Images",
+      "width": "1920-2560px",
+      "height": "1080-1440px",
+      "fileSize": "100-200KB",
+      "notes": "Full-width images, optimize aggressively"
+    },
+    {
+      "type": "Blog Post Images",
+      "width": "1200px",
+      "height": "630px",
+      "fileSize": "50-100KB",
+      "notes": "Social sharing optimal size"
+    },
+    {
+      "type": "Product Images",
+      "width": "800-1200px",
+      "height": "800-1200px",
+      "fileSize": "50-150KB",
+      "notes": "Square format, multiple angles"
+    },
+    {
+      "type": "Thumbnails",
+      "width": "150-300px",
+      "height": "150-300px",
+      "fileSize": "10-30KB",
+      "notes": "Small, fast-loading previews"
+    },
+    {
+      "type": "Background Images",
+      "width": "1920px",
+      "height": "1080px",
+      "fileSize": "50-100KB",
+      "notes": "Compress heavily, quality less critical"
+    },
+    {
+      "type": "Icons / Logos",
+      "width": "50-200px",
+      "height": "50-200px",
+      "fileSize": "5-20KB",
+      "notes": "Use SVG when possible, PNG for complex"
+    }
+  ],
+  
+  "formatComparison": [
+    {
+      "format": "WebP",
+      "bestFor": "Everything (modern websites)",
+      "compression": "25-35% smaller than JPG",
+      "quality": "Excellent",
+      "transparency": "✅ Yes",
+      "browserSupport": "97%+",
+      "recommendation": "Best choice in 2026"
+    },
+    {
+      "format": "JPG/JPEG",
+      "bestFor": "Photographs, complex gradients",
+      "compression": "Good",
+      "quality": "Good (lossy)",
+      "transparency": "❌ No",
+      "browserSupport": "100%",
+      "recommendation": "Good fallback for WebP"
+    },
+    {
+      "format": "PNG",
+      "bestFor": "Logos, screenshots, graphics with text",
+      "compression": "Poor (large files)",
+      "quality": "Excellent (lossless)",
+      "transparency": "✅ Yes",
+      "browserSupport": "100%",
+      "recommendation": "Use only when needed"
+    },
+    {
+      "format": "AVIF",
+      "bestFor": "Next-gen format",
+      "compression": "50% smaller than JPG",
+      "quality": "Excellent",
+      "transparency": "✅ Yes",
+      "browserSupport": "85%+",
+      "recommendation": "Future, but WebP safer now"
+    },
+    {
+      "format": "SVG",
+      "bestFor": "Icons, logos, illustrations",
+      "compression": "Vector (tiny files)",
+      "quality": "Infinite scaling",
+      "transparency": "✅ Yes",
+      "browserSupport": "98%+",
+      "recommendation": "Best for vector graphics"
+    }
+  ],
+  
+  "seoTips": [
+    {
+      "tip": "Use descriptive filenames",
+      "example": "red-apple-fruit.jpg instead of IMG_1234.jpg",
+      "impact": "Helps search engines understand image content"
+    },
+    {
+      "tip": "Add alt text",
+      "example": "alt='Fresh red apple on wooden table'",
+      "impact": "Accessibility + SEO ranking factor"
+    },
+    {
+      "tip": "Implement lazy loading",
+      "example": "loading='lazy' attribute",
+      "impact": "Faster initial page load"
+    },
+    {
+      "tip": "Use responsive images",
+      "example": "srcset with multiple sizes",
+      "impact": "Serve right size for each device"
+    },
+    {
+      "tip": "Optimize file size first",
+      "example": "Keep under 100KB for most images",
+      "impact": "Directly improves Core Web Vitals"
+    },
+    {
+      "tip": "Choose modern formats",
+      "example": "WebP with JPG fallback",
+      "impact": "Smaller files, faster loading"
+    }
+  ],
+  
+  "coreWebVitals": [
+    {
+      "metric": "LCP (Largest Contentful Paint)",
+      "target": "Under 2.5 seconds",
+      "imageImpact": "Hero images directly affect LCP",
+      "recommendation": "Keep hero images under 100-200KB"
+    },
+    {
+      "metric": "CLS (Cumulative Layout Shift)",
+      "target": "Under 0.1",
+      "imageImpact": "Missing width/height causes shifts",
+      "recommendation": "Always specify image dimensions"
+    },
+    {
+      "metric": "FID (First Input Delay)",
+      "target": "Under 100ms",
+      "imageImpact": "Indirect – heavy images block JS",
+      "recommendation": "Optimize all images"
+    }
+  ],
+  
+  "pdfswiftTools": [
+    {
+      "tool": "PDFSwift Image Resizer",
+      "whatItDoes": "Resize images to exact dimensions without quality loss",
+      "privacy": "100% private – files stay in browser",
+      "bestFor": "Getting perfect dimensions for web"
+    },
+    {
+      "tool": "PDFSwift Image to PDF",
+      "whatItDoes": "Convert images to PDF with quality control",
+      "privacy": "100% private – no upload",
+      "bestFor": "Creating image collections for web"
+    },
+    {
+      "tool": "PDFSwift PDF to Image",
+      "whatItDoes": "Extract images from PDF at custom DPI",
+      "privacy": "100% private – no upload",
+      "bestFor": "Repurposing PDF content for web"
+    }
+  ],
+  
+  "faq": [
+    {
+      "question": "What is the best image size for website in 2026?",
+      "answer": "There's no single 'best size' – it depends on usage. For hero images: 1920×1080px at 100-200KB. For blog posts: 1200×630px at 50-100KB. For thumbnails: 150×150px at 10-30KB. Most importantly, keep file size under 100KB for fast loading. Use PDFSwift Image Resizer to get exact dimensions without quality loss."
+    },
+    {
+      "question": "Which image format is best for SEO and speed?",
+      "answer": "WebP is the best format in 2026 – it's 25-35% smaller than JPG with the same quality, supports transparency, and has 97%+ browser support. Use JPG as fallback for older browsers. For logos and icons, SVG is best (vector, infinitely scalable). PDFSwift helps you convert images to optimal formats privately in your browser."
+    },
+    {
+      "question": "How does image size affect SEO?",
+      "answer": "Image size directly impacts Core Web Vitals – especially LCP (Largest Contentful Paint). Google uses page speed as a ranking factor. Large, unoptimized images slow down your site, increase bounce rates, and hurt rankings. Optimized images (under 100KB) load faster, improve user experience, and boost SEO."
+    },
+    {
+      "question": "What is the ideal file size for website images?",
+      "answer": "Aim for under 100KB for most images. Hero images can be 100-200KB if absolutely necessary. Thumbnails should be under 30KB. Use PDFSwift Image Resizer to compress without visible quality loss. Remember: smaller files = faster loading = better SEO."
+    },
+    {
+      "question": "Is PDFSwift safe for my website images?",
+      "answer": "100% safe. PDFSwift processes all images locally in your browser – they never leave your device. No upload, no servers, no third-party access. Your images stay private. Perfect for preparing website images without exposing them to online servers."
+    },
+    {
+      "question": "What's the difference between lossy and lossless compression?",
+      "answer": "Lossy compression (JPG, WebP) reduces file size by discarding some image data – quality decreases but files get much smaller. Lossless compression (PNG) preserves all original data – files are larger but quality is perfect. For web photos, lossy is best. For logos with text, lossless PNG is better. PDFSwift tools help you choose the right balance."
+    },
+    {
+      "question": "How do I resize images for website without losing quality?",
+      "answer": "Use PDFSwift Image Resizer – it's free, private, and works in your browser. Upload your image, enter desired dimensions, and download the resized version. The tool maintains quality while reducing file size. Always resize down, never up (upscaling creates pixelation)."
+    },
+    {
+      "question": "What are Core Web Vitals and how do images affect them?",
+      "answer": "Core Web Vitals are Google's metrics for user experience: LCP (loading speed), CLS (visual stability), and FID (interactivity). Images affect LCP directly – large hero images slow loading. Unspecified dimensions cause CLS (page jumps). Optimized images with proper dimensions improve all three metrics. PDFSwift helps you prepare images that meet these standards."
+    }
+  ]
 }
+
 
 
 
