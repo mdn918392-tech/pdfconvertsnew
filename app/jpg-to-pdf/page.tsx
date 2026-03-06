@@ -2083,11 +2083,14 @@ export default function JpgToPdf() {
 
   const displayFiles = !isMobile && reverseOrder ? [...files].reverse() : files;
   const getPageNumber = (displayIndex: number) => {
-    if (!isMobile && reverseOrder) {
-      return files.length - displayIndex;
-    }
+  if (!isMobile && reverseOrder) {
+    // In reverse order, display index 0 shows the last image in files array
+    // which becomes page 1 in the PDF
     return displayIndex + 1;
-  };
+  }
+  // In normal order, display index matches files array order
+  return displayIndex + 1;
+};
   const getImageUrl = (file: FileWithPreview) => file.previewUrl;
   const estimatedPdfSize = estimateCompressedSize(files, compressionQuality, customQualityValue);
 
