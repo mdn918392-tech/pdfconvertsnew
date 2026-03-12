@@ -3708,6 +3708,173 @@
       "answer": "No installation needed. PDFSwift works entirely in your web browser. Just open the website, upload your PDF, and extract pages. Works on Windows, Mac, Linux, iPhone, and Android – no apps, no downloads."
     }
   ]
+},
+
+{
+  "id": "passport-photo-size-india-2x2-35x45-explained",
+  "title": "Passport Photo Size for India (2x2, 35x45 mm Explained) – 2026 Guide",
+  "date": "Mar 12 2026",
+  "image": "/images/india-passport-photo-size-guide.png",
+  "description": "Complete guide to India passport photo size – 2x2 inch vs 35x45 mm explained. Exact dimensions, rules, and how PDFSwift helps you resize photos instantly – free and private.",
+  "slug": "passport-photo-size-india-2x2-35x45-explained",
+  
+  "breadcrumbs": [
+    { "name": "Home", "url": "/" },
+    { "name": "Blog", "url": "/blog" },
+    { "name": "India Passport Photo", "url": "/blog/passport-photo-size-india-2x2-35x45-explained" }
+  ],
+  
+  "howto": {
+    "steps": [
+      "Open PDFSwift Image Resizer (no signup, files stay in browser)",
+      "Upload your passport photo – drag & drop or click to select",
+      "Choose India passport preset or enter custom dimensions",
+      "For 2x2 inch: Enter 51mm x 51mm or 600 x 600 pixels [citation:2][citation:4]",
+      "For 35x45 mm: Enter 35mm x 45mm or 630 x 810 pixels [citation:8][citation:9]",
+      "Download resized photo – processed locally, 100% private",
+      "Print or upload to your passport application"
+    ],
+    "estimatedTime": "PT2M",
+    "totalTime": "PT3M",
+    "supply": ["Passport photo", "Web browser", "PDFSwift tools"],
+    "tool": ["PDFSwift Image Resizer", "PDFSwift Image to PDF", "PDFSwift Compress Image"]
+  },
+  
+  "sizeConfusion": [
+    {
+      "size": "2 x 2 inches (51mm x 51mm)",
+      "usedFor": "Passport applications at Indian embassies/consulates abroad [citation:2][citation:4][citation:10]",
+      "reason": "International standard followed by most countries, including USA"
+    },
+    {
+      "size": "35mm x 45mm (3.5cm x 4.5cm)",
+      "usedFor": "Domestic passport applications in India, official documents [citation:8][citation:9]",
+      "reason": "Indian government's standard specification for passport booklet"
+    }
+  ],
+  
+  "specifications": {
+    "source": "Embassy of India, Ministry of External Affairs [citation:1][citation:6]",
+    "commonRules": [
+      "Photo must be professional grade – home/printer photos rejected [citation:1]",
+      "Face should take up 70-80% of photograph (about 1 inch height) [citation:1][citation:6]",
+      "Ears must be visible [citation:1]",
+      "Eyes open and clearly visible – no hair across eyes [citation:1]",
+      "Natural skin tone – not too dark or light [citation:1][citation:6]",
+      "No red-eye, no flash reflection [citation:1][citation:6]",
+      "Face directly facing camera – portrait style [citation:1]",
+      "Plain white or light blue background [citation:1][citation:9]",
+      "No shadows on face or background [citation:1][citation:6]",
+      "Photo not older than 3 months [citation:1]",
+      "No uniforms for minors [citation:1]",
+      "No distracting objects – toys, chairs, other people [citation:1]",
+      "Photo must not be stapled or scratched [citation:1]"
+    ],
+    "glassesRules": [
+      "Prescription glasses allowed if frames don't cover eyes [citation:1]",
+      "No flash reflection or glare [citation:6]",
+      "No tinted or dark glasses [citation:2]"
+    ],
+    "headCovering": "Only for religious reasons – facial features must be clearly visible [citation:1][citation:2][citation:4]"
+  },
+  
+  "digitalSpecs": {
+    "pixelDimensions": "630 x 810 pixels (at 300 DPI) [citation:8][citation:9]",
+    "aspectRatio": "7:9 [citation:9]",
+    "fileSize": "10KB to 300KB for online uploads [citation:3]",
+    "format": "JPEG / JPG [citation:3]",
+    "resolution": "Minimum 300 DPI [citation:5]"
+  },
+  
+  "babyChildrenRules": [
+    {
+      "rule": "Infants under 1 year: Eyes may be partially or fully closed [citation:2][citation:3]",
+      "note": "Relaxed requirement for babies"
+    },
+    {
+      "rule": "Children under 10: Requirements relaxed for face height and eye position [citation:2]",
+      "note": "Still need frontal photo with clarity"
+    },
+    {
+      "rule": "No toys, pacifiers, or other objects in frame [citation:1][citation:2]",
+      "note": "Child alone in photo"
+    },
+    {
+      "rule": "No supporting hands visible – hands should not appear [citation:4][citation:10]",
+      "note": "Only face and tip of shoulders"
+    }
+  ],
+  
+  "commonMistakes": [
+    "Wrong size – using 2x2 when 35x45 required or vice versa",
+    "Colored background instead of white/light blue",
+    "Face too small or too large (less than 70% or more than 80%)",
+    "Ears not visible",
+    "Shadows on face or background",
+    "Glasses glare or frames covering eyes",
+    "Red-eye from flash",
+    "Smiling or mouth open",
+    "Head tilted or not centered",
+    "Photo older than 3 months",
+    "Uniform clothing",
+    "Stapled or scratched photo"
+  ],
+  
+  "pdfswiftTools": [
+    {
+      "tool": "PDFSwift Image Resizer",
+      "whatItDoes": "Resize photos to exact India passport dimensions (2x2 inch or 35x45 mm)",
+      "privacy": "100% private – files stay in browser",
+      "bestFor": "Getting perfect size for passport applications"
+    },
+    {
+      "tool": "PDFSwift Image to PDF",
+      "whatItDoes": "Convert multiple passport photos to PDF for printing",
+      "privacy": "100% private – no upload",
+      "bestFor": "Creating print-ready passport photo sheets"
+    },
+    {
+      "tool": "PDFSwift Compress Image",
+      "whatItDoes": "Reduce file size to 10-300KB for online uploads",
+      "privacy": "100% private – no upload",
+      "bestFor": "Meeting digital submission requirements [citation:3]"
+    }
+  ],
+  
+  "faq": [
+    {
+      "question": "What is the correct passport photo size for India – 2x2 inch or 35x45 mm?",
+      "answer": "Both are used depending on where you apply. For applications at Indian embassies/consulates abroad, 2x2 inches (51mm x 51mm) is required [citation:2][citation:4]. For domestic applications within India and official documents, 35mm x 45mm is the standard [citation:8][citation:9]. Always check your specific application form. PDFSwift Image Resizer supports both sizes."
+    },
+    {
+      "question": "What is the pixel size for India passport photo?",
+      "answer": "For 35mm x 45mm at 300 DPI, the pixel dimensions are 630 x 810 pixels with 7:9 aspect ratio [citation:8][citation:9]. For online uploads, file size should be between 10KB to 300KB in JPEG format [citation:3]."
+    },
+    {
+      "question": "What background color is required for India passport?",
+      "answer": "Plain white or light blue background is required [citation:1][citation:9]. No patterns, no shadows, and no other objects in the background. The lighting must be uniform [citation:6]."
+    },
+    {
+      "question": "Can I wear glasses in my India passport photo?",
+      "answer": "Yes, prescription glasses are allowed if frames are clear and thin and do not cover any part of the eyes [citation:1]. There should be no flash reflection or glare [citation:6]. Tinted or dark glasses are not permitted [citation:2]. To be safe, many people remove glasses for passport photos."
+    },
+    {
+      "question": "What is the face size requirement for India passport?",
+      "answer": "Face should take up 70-80% of the photograph – from forehead edge to bottom of chin should be about 1 inch height [citation:1][citation:6]. The head should be centered and facing forward [citation:2]."
+    },
+    {
+      "question": "Can I wear a head covering in my passport photo?",
+      "answer": "Head coverings are permitted only for religious reasons [citation:1][citation:2][citation:4]. Facial features from bottom of chin to top of forehead and both edges of the face must be clearly visible [citation:4]."
+    },
+    {
+      "question": "What are the rules for baby passport photos?",
+      "answer": "For infants under 1 year, eyes may be partially or fully closed [citation:2][citation:3]. For children under 10, requirements are relaxed for face height and eye position [citation:2]. No toys, pacifiers, or other objects in frame [citation:1]. Hands should not appear in the photo – only face and tip of shoulders [citation:4][citation:10]."
+    },
+    {
+      "question": "Is PDFSwift safe for my passport photo?",
+      "answer": "100% safe. PDFSwift processes all images locally in your browser – they never leave your device. No upload, no servers, no third-party access. Your personal ID photos stay completely private. Perfect for sensitive documents like passports."
+    }
+  ]
 }
 
 
