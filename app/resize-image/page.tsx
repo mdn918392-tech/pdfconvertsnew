@@ -1098,7 +1098,7 @@ export default function ResizeImage() {
                 </motion.div>
 
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-3 md:mb-4 bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 bg-clip-text text-transparent">
-                  Resize Image Online – Free Image Resizer Tool
+                Rotate Image Online Free – Flip & Rotate JPG, PNG & WebP | PDFSwift
                 </h1>
 
                 <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">

@@ -1,18 +1,19 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Resize Image Online – Free Image Resizer Tool | PDFSwift",
+  title: "Rotate Image Online Free – Flip & Rotate JPG, PNG & WebP | PDFSwift",
   description:
-    "Resize JPG, PNG, and WebP images online using PDFSwift. Set custom dimensions, maintain aspect ratio, and resize images securely without signup.",
+    "Rotate and flip JPG, PNG, and WebP images online for free with PDFSwift. Rotate images clockwise, counter-clockwise, or flip horizontally and vertically securely without losing quality.",
   keywords: [
-    "resize image online",
-    "image resizer",
-    "resize jpg png webp",
-    "online image resizer",
-    "free image resize tool",
-    "resize images without losing quality",
-    "secure image resizer",
-    "browser based image resizer",
+    "rotate image online",
+    "image rotator",
+    "flip image online",
+    "rotate jpg png webp",
+    "online image rotator",
+    "free image rotate tool",
+    "rotate images without losing quality",
+    "secure image rotator",
+    "browser based image rotator",
   ],
 };
 
@@ -22,7 +23,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function ResizeImageLayout({
+export default function RotateImageLayout({
   children,
 }: {
   children: React.ReactNode;

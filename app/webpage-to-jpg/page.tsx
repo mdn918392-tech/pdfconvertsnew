@@ -847,7 +847,7 @@ export default function WebpToJpg() {
                 </motion.div>
 
                 <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
-                  Webpage to JPG Converter – Create High-Quality JPG Images Online
+                 Webpage to JPG Converter Free – Convert Web Pages Online | PDFSwift
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">

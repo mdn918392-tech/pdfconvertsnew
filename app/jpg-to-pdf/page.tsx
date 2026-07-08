@@ -1633,7 +1633,7 @@ export default function JpgToPdf() {
           delete newUrls[id];
           return newUrls;
         });
-      }
+      } 
 
       setPdfBlob(null);
       setOriginalStateHash("");
@@ -2384,7 +2384,7 @@ export default function JpgToPdf() {
               </motion.div>
 
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Convert JPG to PDF Online Free
+                Convert JPG to PDF Online - Free, Fast & No Watermark | PDFSwift
               </h1>
             </div>
 

@@ -871,7 +871,7 @@ export default function PngToJpg() {
                 </motion.div>
 
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-orange-600 via-pink-600 to-orange-600 bg-clip-text text-transparent px-2">
-                  PNG to JPG Converter Online – Fast, Free & Secure
+                  Convert PNG to JPG Online - Free, Fast & No Watermark | PDFSwift
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
@@ -1298,6 +1298,7 @@ export default function PngToJpg() {
                 </div>
               </div>
             </section>
+            
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-6 md:mb-8">

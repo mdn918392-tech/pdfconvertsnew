@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 
 
 export const metadata: Metadata = {
-  title: "Convert JPG to PDF Online Free – High Quality PDF (2026)",
+  title: "Convert JPG to PDF Online - Free, Fast & No Watermark | PDFSwift",
   description:
-    "Convert JPG images to PDF online free without watermark or signup. Combine multiple JPG files into a single high-quality PDF instantly using a secure, browser-based JPG to PDF converter.",
+    "Convert JPG images to PDF online for free. Combine multiple JPGs into a single high-quality PDF instantly. Secure, fast, and no registration or watermark required.",
   keywords: [
     "convert jpg to pdf online free",
     "jpg to pdf converter",

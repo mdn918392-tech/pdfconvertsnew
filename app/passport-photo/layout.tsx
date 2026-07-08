@@ -4,10 +4,10 @@ import type { Metadata, Viewport } from "next";
    SEO METADATA
    ========================= */
 export const metadata: Metadata = {
-  title: "Passport Size Photo Maker Online – Free, HD & Print Ready | PDFSwift",
+  title: "Passport Size Photo Maker Online Free - HD & Print Ready | PDFSwift",
 
   description:
-    "Create passport size photos online for free. Supports India, USA, UK, Canada & more official sizes. HD, print-ready photos with no signup required.",
+    "Convert any photo into passport size online for free. Supports official visa and passport specs for all countries. Secure, fast, and no signup.",
 
   keywords: [
     "passport size photo maker online",

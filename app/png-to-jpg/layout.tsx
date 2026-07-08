@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 
 
 export const metadata: Metadata = {
-  title: "PNG to JPG Converter Online – Fast, Free & Secure",
+  title: "Convert PNG to JPG Online - Free, Fast & No Watermark | PDFSwift",
   description:
-    "Convert PNG images to JPG format instantly with high quality and secure processing using PDFSwift. Easily reduce image file size, maintain visual clarity, and download optimized JPG images in seconds. Our browser-based PNG to JPG converter works on all devices, requires no signup, and keeps your files completely private.",
+    "Convert PNG images to JPG format online for free. Maintain high visual clarity and download optimized JPGs instantly. 100% secure, browser-based, and no signup required.",
  keywords: [
   "PNG to JPG converter online",
   "convert PNG to JPG",

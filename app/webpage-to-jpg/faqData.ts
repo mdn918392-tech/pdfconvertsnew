@@ -39,4 +39,26 @@ export const faqData = [
     answer:
       "No installation or account creation is required. PDFSwift works entirely online in your browser.",
   },
+
+  // SEO FAQs
+  {
+    question: "How do I convert webpage content to JPG online for free?",
+    answer:
+      "Upload or provide webpage content, generate the preview, and download it as a high-quality JPG image. PDFSwift allows free webpage-to-JPG conversion without registration.",
+  },
+  {
+    question: "Can I convert webpage content into a JPG image?",
+    answer:
+      "Yes, PDFSwift can convert webpage content into a JPG image while preserving the layout, text clarity, and visual appearance.",
+  },
+  {
+    question: "What is the best webpage to JPG converter?",
+    answer:
+      "PDFSwift is a fast and secure webpage to JPG converter that works directly in your browser without requiring software installation or account creation.",
+  },
+  {
+    question: "Can I convert webpage content to JPG on mobile devices?",
+    answer:
+      "Yes, PDFSwift works on Android phones, iPhones, tablets, laptops, and desktop computers, allowing you to create JPG images from webpage content on any device.",
+  },
 ];

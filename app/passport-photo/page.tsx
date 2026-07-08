@@ -1358,21 +1358,23 @@ export default function PassportPhotoMaker() {
                   </span>
                 </motion.div>
 
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black 
-                  text-gray-900 dark:text-white 
-                  mb-2 sm:mb-4 
-                  bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 
-                  bg-clip-text text-transparent 
-                  px-2 leading-tight text-center">
-                  Passport Size Photo Maker Online
-                  <br className="hidden sm:block" />
-                  <span className="font-extrabold">
-                    – Free, HD & Print Ready
-                  </span>
-                  <span className="block text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mt-2">
-                    | PDFSwift
-                  </span>
-                </h1>
+               <h1
+  className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black
+             text-gray-900 dark:text-white
+             mb-2 sm:mb-4
+             bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600
+             bg-clip-text text-transparent
+             px-2 leading-tight text-center"
+>
+  Passport Size Photo Maker Online Free
+  <br className="hidden sm:block" />
+  <span className="font-extrabold">
+    – HD & Print Ready
+  </span>
+  <span className="block text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mt-2">
+    | PDFSwift
+  </span>
+</h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
                   Create passport size photos online instantly with PDFSwift. Choose official sizes for USA, India, UK, Canada & more. Select background color, DPI, and layouts to print multiple photos per page. Free, secure, and no signup required.

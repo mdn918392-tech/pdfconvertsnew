@@ -1642,7 +1642,7 @@ export default function PdfToImageConverterWithRotation() {
               </motion.div>
 
               <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-                PDF to Image Converter with Rotation
+                Convert PDF to Image Online - Free, JPG & PNG | PDFSwift
               </h1>
 
               <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">

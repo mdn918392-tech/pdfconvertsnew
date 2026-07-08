@@ -4,9 +4,9 @@ import HowToSchema from "./HowToSchema";
 import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
-  title: "Merge PDF Files Online Free – Combine PDFs Instantly (2026)",
+  title: "Merge PDF Files Online - Free, Fast & No Watermark | PDFSwift",
   description:
-    "Merge PDF files online free without watermark or signup. Combine multiple PDF documents into one file instantly using a secure, browser-based PDF merger tool with full privacy.",
+    "Merge and combine multiple PDF files into one single document online for free. Fast, secure, and instant download without any watermark or registration",
   keywords: [
     "merge pdf files online free",
     "merge pdf online",

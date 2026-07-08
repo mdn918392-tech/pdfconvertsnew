@@ -2,34 +2,35 @@ export default function WebpageToJpgHowToSchema() {
   const data = {
     "@context": "https://schema.org",
     "@type": "HowTo",
-    name: "How to convert a webpage to JPG online",
+    name: "How to convert webpage content to JPG online",
     description:
-      "Step-by-step guide to convert any webpage into high-quality JPG images online using PDFSwift. Fast, secure, and no signup required.",
+      "Step-by-step guide to convert webpage content into high-quality JPG images online using PDFSwift. Fast, secure, and no signup required.",
+    totalTime: "PT2M",
     step: [
       {
         "@type": "HowToStep",
-        name: "Enter webpage URL",
-        text: "Paste the URL of the webpage you want to convert into JPG format.",
+        name: "Add webpage content",
+        text: "Open the Webpage to JPG tool and add the webpage content you want to convert.",
       },
       {
         "@type": "HowToStep",
-        name: "Load webpage",
-        text: "The tool securely loads and captures the webpage content.",
+        name: "Generate preview",
+        text: "PDFSwift processes the webpage content in your browser and generates a preview.",
       },
       {
         "@type": "HowToStep",
         name: "Convert to JPG",
-        text: "Start the conversion to generate high-quality JPG images.",
+        text: "Start the conversion to create high-quality JPG images from the webpage content.",
       },
       {
         "@type": "HowToStep",
         name: "Preview converted images",
-        text: "Preview the JPG images before downloading them.",
+        text: "Check the converted JPG images before downloading them.",
       },
       {
         "@type": "HowToStep",
         name: "Download JPG images",
-        text: "Download converted JPG images individually or as a ZIP file.",
+        text: "Download the converted JPG images individually or as a ZIP file.",
       },
     ],
   };

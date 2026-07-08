@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Extract Pages from PDF Online Free – No Watermark (2026)",
+  title: "Extract PDF Pages Online - Free, Fast & No Watermark | PDFSwif",
   description:
-    "Extract pages from PDF online free without watermark or signup. Secure browser-based PDF page extractor to extract one or multiple pages instantly with complete privacy.",
+    "Extract or separate specific pages from your PDF files online for free. Fast, secure, and download instantly without any watermark. Try PDFSwift now",
   keywords: [
     "extract pages from pdf free",
     "extract one page from pdf",

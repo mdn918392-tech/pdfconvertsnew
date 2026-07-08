@@ -1349,7 +1349,7 @@ export default function PdfRotatorTool() {
             </motion.div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent px-2">
-             Rotate PDF Pages Online for Free – Fix Orientation Instantly
+           Rotate PDF Pages Online Free – Fix PDF Orientation | PDFSwift
 
             </h1>
 

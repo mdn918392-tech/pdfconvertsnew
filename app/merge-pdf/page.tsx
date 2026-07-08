@@ -432,7 +432,7 @@ export default function MergePdf() {
                 </motion.div>
 
                 <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                  Merge PDF Files Online Free
+                 Merge PDF Files Online - Free, Fast & No Watermark | PDFSwift
                 </h1>
 
                 <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
