@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
-import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from "jszip";
 import {
@@ -14,7 +13,6 @@ import {
   Sparkles,
   Zap,
   Shield,
-  Palette,
   Upload,
   Layers,
   Eye,
@@ -23,13 +21,18 @@ import {
   ArrowRight,
   Grid,
   X,
-  Plus,
   Archive,
   FolderClosed,
   AlertTriangle,
   Smartphone,
   Cpu,
   Monitor,
+  Camera,
+  Globe,
+  RefreshCw,
+  Settings,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
@@ -72,9 +75,9 @@ const tool = {
 const DEVICE_LIMITS = {
   MOBILE: {
     maxFiles: 5,
-    maxFileSize: 5 * 1024 * 1024, // 5MB per file
-    maxTotalSize: 20 * 1024 * 1024, // 20MB total
-    batchSize: 1, // Convert one at a time on mobile
+    maxFileSize: 5 * 1024 * 1024,
+    maxTotalSize: 20 * 1024 * 1024,
+    batchSize: 1,
     unlimited: false,
   },
   TABLET: {
@@ -85,10 +88,10 @@ const DEVICE_LIMITS = {
     unlimited: false,
   },
   DESKTOP: {
-    maxFiles: Infinity, // Unlimited files on desktop
-    maxFileSize: 50 * 1024 * 1024, // 50MB per file
-    maxTotalSize: Infinity, // Unlimited total size
-    batchSize: 5, // Convert 5 files at a time
+    maxFiles: Infinity,
+    maxFileSize: 50 * 1024 * 1024,
+    maxTotalSize: Infinity,
+    batchSize: 5,
     unlimited: true,
   },
 };
@@ -203,50 +206,6 @@ interface DownloadNotification {
   type: 'single' | 'zip' | 'multi';
 }
 
-// --- Performance Warning Component ---
-const PerformanceWarning = ({ deviceType, limits }: { deviceType: string, limits: any }) => {
-  const [dismissed, setDismissed] = useState(false);
-
-  if (dismissed || deviceType === 'desktop') return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
-    >
-      <div className="flex items-start gap-2 sm:gap-3">
-        <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <h3 className="font-bold text-yellow-800 dark:text-yellow-300 text-sm sm:text-base mb-1">
-            ⚠️ {deviceType === 'mobile' ? 'Mobile Device Detected' : 'Performance Notice'}
-          </h3>
-          <p className="text-yellow-700 dark:text-yellow-400 text-xs sm:text-sm">
-            {deviceType === 'mobile' 
-              ? `You're using a mobile device. For best performance, please upload up to ${limits.maxFiles} files (max ${limits.maxFileSize/1024/1024}MB each). Large files may cause slow processing.`
-              : `Processing ${limits.maxFiles} files maximum (${limits.maxTotalSize/1024/1024}MB total). For larger batches, use desktop browser.`
-            }
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <Smartphone className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="text-xs text-yellow-600 dark:text-yellow-500">
-              Browser-based processing • No server uploads
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={() => setDismissed(true)}
-          className="p-1 hover:bg-yellow-100 dark:hover:bg-yellow-800/30 rounded-full transition-colors"
-        >
-          <X className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-        </button>
-      </div>
-    </motion.div>
-  );
-};
-
-
-
 // --- Image Preview Component ---
 const ImagePreview = ({
   file,
@@ -268,13 +227,12 @@ const ImagePreview = ({
   const url = useMemo(() => createObjectURL(file), [file]);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // Clean up the object URL when the component unmounts
   useMemo(() => {
     return () => revokeObjectURL(url);
   }, [url]);
 
   const statusColor =
-    status && status.includes("Converted")
+    status && (status.includes("Converted") || status.includes("Screenshot"))
       ? "text-green-600 dark:text-green-400"
       : "text-blue-600 dark:text-blue-400";
 
@@ -288,45 +246,38 @@ const ImagePreview = ({
 
   return (
     <>
-      {/* Image Preview Modal */}
-      <AnimatePresence>
-        {previewOpen && (
+      {previewOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setPreviewOpen(false)}
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setPreviewOpen(false)}
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.9 }}
+            className="relative"
+            onClick={(e) => e.stopPropagation()}
           >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative"
-              onClick={(e) => e.stopPropagation()}
+            <button
+              onClick={() => setPreviewOpen(false)}
+              className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
             >
-              {/* Close Button */}
-              <button
-                onClick={() => setPreviewOpen(false)}
-                className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-
-              {/* Image Container */}
-              <div className="max-w-4xl max-h-[90vh]">
-                <img
-                  src={url}
-                  alt={filename}
-                  className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-                />
-              </div>
-            </motion.div>
+              <XCircle className="w-6 h-6" />
+            </button>
+            <div className="max-w-4xl max-h-[90vh]">
+              <img
+                src={url}
+                alt={filename}
+                className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+              />
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </motion.div>
+      )}
 
-      {/* Preview Card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -335,12 +286,10 @@ const ImagePreview = ({
         className="relative group"
       >
         <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
-          {/* Image Number Badge */}
           <div className="absolute top-3 left-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
             #{index + 1}
           </div>
 
-          {/* Image Container */}
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
             onClick={() => setPreviewOpen(true)}
@@ -353,12 +302,9 @@ const ImagePreview = ({
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <Eye className="w-8 h-8 text-white" />
             </div>
-
-            {/* Shine Effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000" />
           </div>
 
-          {/* File Info */}
           <div className="space-y-2">
             <p
               className="text-sm font-semibold truncate text-gray-900 dark:text-white"
@@ -366,17 +312,14 @@ const ImagePreview = ({
             >
               {filename}
             </p>
-
             <div className="flex items-center justify-between">
               <span
                 className={`text-xs px-3 py-1 rounded-full font-medium ${statusColor} bg-opacity-10 ${
-                  status.includes("Converted") ? "bg-green-500" : "bg-blue-500"
+                  status.includes("Converted") || status.includes("Screenshot") ? "bg-green-500" : "bg-blue-500"
                 }`}
               >
                 {status}
               </span>
-
-              {/* File Size */}
               {file.size && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {(file.size / 1024).toFixed(1)} KB
@@ -385,7 +328,6 @@ const ImagePreview = ({
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             {onRemove && (
               <motion.button
@@ -398,7 +340,6 @@ const ImagePreview = ({
                 <XCircle className="w-4 h-4" />
               </motion.button>
             )}
-
             {isDownloadable && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -464,7 +405,7 @@ const DownloadNotification = ({
           <p className="text-xs opacity-80 mb-2">
             {type === 'zip' 
               ? `All ${fileCount} files are now in a single ZIP archive`
-              : `${fileCount} WebP ${fileCount === 1 ? 'file' : 'files'} converted to JPG`
+              : `${fileCount} file${fileCount === 1 ? '' : 's'} processed`
             }
           </p>
           <div className="flex items-center gap-1 text-xs opacity-80">
@@ -483,6 +424,338 @@ const DownloadNotification = ({
         </button>
       </div>
     </motion.div>
+  );
+};
+
+// --- Website Screenshot Component (Captures in WebP format) ---
+const WebsiteScreenshot = ({
+  onScreenshotTaken,
+}: {
+  onScreenshotTaken: (blob: Blob, fileName: string) => void;
+}) => {
+  const [url, setUrl] = useState("");
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [showOptions, setShowOptions] = useState(false);
+  const [fullPage, setFullPage] = useState(true);
+  const [width, setWidth] = useState(1200);
+  const [height, setHeight] = useState(800);
+  const [recentUrls, setRecentUrls] = useState<string[]>([]);
+  const [showRecent, setShowRecent] = useState(false);
+
+  // Load recent URLs from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('screenshotRecentUrls');
+      if (saved) {
+        setRecentUrls(JSON.parse(saved).slice(0, 5));
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }, []);
+
+  const saveRecentUrl = (url: string) => {
+    try {
+      const updated = [url, ...recentUrls.filter(u => u !== url)].slice(0, 5);
+      setRecentUrls(updated);
+      localStorage.setItem('screenshotRecentUrls', JSON.stringify(updated));
+    } catch (e) {
+      // Ignore
+    }
+  };
+
+  const handleCapture = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!url.trim()) {
+      setError('Please enter a valid URL');
+      return;
+    }
+
+    // Add protocol if missing
+    let targetUrl = url.trim();
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      targetUrl = 'https://' + targetUrl;
+    }
+
+    // Validate URL
+    try {
+      new URL(targetUrl);
+    } catch {
+      setError('Please enter a valid URL (e.g., example.com)');
+      return;
+    }
+
+    setIsCapturing(true);
+    setError(null);
+    setProgress(10);
+    saveRecentUrl(targetUrl);
+
+    try {
+      // Call our API - Always capture in WebP format
+      const response = await fetch('/api/screenshot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: targetUrl,
+          fullPage,
+          width,
+          height,
+          format: 'webp', // Always WebP format
+          quality: 90,
+        }),
+      });
+
+      setProgress(50);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to capture screenshot');
+      }
+
+      const data = await response.json();
+      setProgress(80);
+
+      if (!data.success || !data.image) {
+        throw new Error('No image data received');
+      }
+
+      // Convert base64 to blob (WebP format)
+      const base64Data = data.image.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/webp' }); // WebP format
+
+      setProgress(100);
+
+      // Generate filename with .webp extension
+      const timestamp = new Date().getTime();
+      const domain = new URL(targetUrl).hostname;
+      const fileName = `screenshot_${domain}_${timestamp}.webp`; // .webp extension
+
+      onScreenshotTaken(blob, fileName);
+      
+      // Reset
+      setUrl('');
+      setProgress(0);
+      setShowOptions(false);
+
+    } catch (err: any) {
+      console.error('Screenshot error:', err);
+      setError(err.message || 'Failed to capture screenshot. Please try again.');
+    } finally {
+      setIsCapturing(false);
+      setProgress(0);
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-xl p-4 sm:p-6 border-2 border-blue-200 dark:border-blue-800/50 mb-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg shadow-lg">
+          <Globe className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+            📸 Website Screenshot (WebP)
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Capture any website as WebP, then convert to JPG
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+          </div>
+        </div>
+      )}
+
+      {isCapturing && progress > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
+            <span>Capturing screenshot...</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-blue-500 to-cyan-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleCapture} className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onFocus={() => setShowRecent(true)}
+              onBlur={() => setTimeout(() => setShowRecent(false), 200)}
+              placeholder="Enter website URL (e.g., example.com)"
+              className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors"
+              disabled={isCapturing}
+            />
+            
+            {/* Recent URLs Dropdown */}
+            <AnimatePresence>
+              {showRecent && recentUrls.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 overflow-hidden"
+                >
+                  {recentUrls.map((recentUrl, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        setUrl(recentUrl);
+                        setShowRecent(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                    >
+                      <Clock className="w-3 h-3 text-gray-400" />
+                      {recentUrl}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={isCapturing || !url.trim()}
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              {isCapturing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Capturing...
+                </>
+              ) : (
+                <>
+                  <Camera className="w-4 h-4" />
+                  Capture WebP
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowOptions(!showOptions)}
+              className="px-3 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {showOptions && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-4 space-y-3 border border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Full Page Toggle */}
+                  <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Capture Mode</label>
+                    <button
+                      type="button"
+                      onClick={() => setFullPage(!fullPage)}
+                      className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                        fullPage
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {fullPage ? (
+                        <Maximize2 className="w-4 h-4" />
+                      ) : (
+                        <Minimize2 className="w-4 h-4" />
+                      )}
+                      {fullPage ? 'Full Page' : 'Visible'}
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Format</label>
+                    <div className="w-full px-3 py-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-300 text-sm font-medium text-center">
+                      🟢 WebP (Convert to JPG below)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Width: {width}px</label>
+                    <input
+                      type="range"
+                      min="320"
+                      max="3840"
+                      value={width}
+                      onChange={(e) => setWidth(parseInt(e.target.value))}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Height: {height}px</label>
+                    <input
+                      type="range"
+                      min="240"
+                      max="2160"
+                      value={height}
+                      onChange={(e) => setHeight(parseInt(e.target.value))}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 flex items-center gap-2">
+                  <span>⚡</span>
+                  <span>Captured as WebP • Click "Convert" below to change to JPG</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </form>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+        <span className="flex items-center gap-1">
+          <Zap className="w-3 h-3" />
+          {fullPage ? 'Full page' : 'Visible area'}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+          📷 WebP format
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+          ⬇️ Convert to JPG below
+        </span>
+      </div>
+    </div>
   );
 };
 
@@ -531,9 +804,12 @@ export default function WebpToJpg() {
     let totalSize = files.reduce((acc, f) => acc + f.size, 0);
 
     for (const file of newFiles) {
-      // Check file type
-      if (!file.type.includes('webp')) {
-        errors.push(`"${file.name}" is not a WebP image`);
+      // Check if it's a screenshot (WebP) or WebP file
+      const isScreenshot = file.type.includes('webp') || file.name.endsWith('.webp');
+      
+      // Check file type - only WebP allowed
+      if (!isScreenshot) {
+        errors.push(`"${file.name}" is not a WebP image. Please upload WebP files only.`);
         continue;
       }
 
@@ -562,7 +838,7 @@ export default function WebpToJpg() {
     return { valid: validFiles, errors };
   };
 
-  // Generate unique filename
+  // Generate unique filename for JPG
   const generateUniqueFileName = (baseName: string, index: number) => {
     const timestamp = new Date().getTime();
     const randomId = Math.random().toString(36).substring(2, 9);
@@ -580,6 +856,34 @@ export default function WebpToJpg() {
         notificationsRef.current.scrollHeight;
     }
   }, [downloadNotifications]);
+
+  // Handle screenshot taken (WebP format)
+  const handleScreenshotTaken = (blob: Blob, fileName: string) => {
+    // Add screenshot as a WebP file
+    const screenshotFile = new File([blob], fileName, { type: 'image/webp' });
+    
+    // Add to files list
+    setFiles((prev) => [...prev, screenshotFile]);
+    setJpgBlobs([]);
+    setShowFeatures(false);
+
+    // Add download notification
+    const notification: DownloadNotification = {
+      id: Math.random().toString(36).substring(7),
+      fileName: fileName,
+      fileCount: 1,
+      timestamp: new Date(),
+      type: 'single',
+    };
+    setDownloadNotifications((prev) => [...prev, notification]);
+
+    // Auto-remove notification after 5 seconds
+    setTimeout(() => {
+      setDownloadNotifications((prev) =>
+        prev.filter((n) => n.id !== notification.id)
+      );
+    }, 5000);
+  };
 
   const handleConvert = async () => {
     if (files.length === 0) return;
@@ -602,8 +906,14 @@ export default function WebpToJpg() {
         await Promise.all(batch.map(async (file, batchIndex) => {
           try {
             const globalIndex = batchStart + batchIndex;
-            const uniqueFilename = generateUniqueFileName(file.name, globalIndex);
+            // Convert WebP to JPG
             const blob = await convertWebpToJpg(file);
+
+            // Generate appropriate filename
+            const baseName = file.name
+              .replace(/\.webp$/i, '')
+              .replace(/\.[^/.]+$/, '');
+            const uniqueFilename = generateUniqueFileName(baseName, globalIndex);
 
             blobs.push({
               blob: blob,
@@ -629,8 +939,8 @@ export default function WebpToJpg() {
       setJpgBlobs(blobs);
     } catch (error: any) {
       console.error("Conversion error:", error);
-      setProcessingError(error.message || "Failed to convert WebP to JPG. Please try again.");
-      alert(error.message || "Failed to convert WebP to JPG. Please try again.");
+      setProcessingError(error.message || "Failed to convert files to JPG. Please try again.");
+      alert(error.message || "Failed to convert files to JPG. Please try again.");
     } finally {
       setConverting(false);
     }
@@ -773,16 +1083,15 @@ export default function WebpToJpg() {
       : "0";
 
   // Get device-specific limits message
- const getLimitsMessage = () => {
-  if (deviceType === 'desktop') {
-    return "";
-  }
+  const getLimitsMessage = () => {
+    if (deviceType === 'desktop') {
+      return "";
+    }
 
-  return `Limits on ${deviceType}: ${currentLimits.maxFiles} files max, ${
-    currentLimits.maxFileSize / 1024 / 1024
-  }MB per file`;
-};
-
+    return `Limits on ${deviceType}: ${currentLimits.maxFiles} files max, ${
+      currentLimits.maxFileSize / 1024 / 1024
+    }MB per file`;
+  };
 
   return (
     <>
@@ -847,24 +1156,17 @@ export default function WebpToJpg() {
                 </motion.div>
 
                 <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
-                 Webpage to JPG Converter Free – Convert Web Pages Online | PDFSwift
+                  Webpage to JPG Converter Free – Convert Web Pages Online | PDFSwift
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Convert unlimited WebP images to JPG format instantly using PDFSwift. Fast, secure, and browser-based with no installation or signup required. 
+                  Take website screenshots in WebP format and convert them to JPG. Upload WebP images and convert to JPG instantly. Fast, secure, and browser-based. 
                   <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
                     {getLimitsMessage()}
                   </span>
                 </p>
               </div>
             </div>
-
-           
-
-            {/* --- Performance Warning --- */}
-            {hasFiles && deviceType !== 'desktop' && (
-              <PerformanceWarning deviceType={deviceType} limits={currentLimits} />
-            )}
 
             {/* --- Features Grid --- */}
             <AnimatePresence>
@@ -880,26 +1182,24 @@ export default function WebpToJpg() {
                       icon: Zap,
                       title: deviceType === 'desktop' ? "Unlimited Conversions" : "Fast Conversion",
                       desc: deviceType === 'desktop' 
-                        ? "Convert unlimited WebP files to JPG format with no restrictions" 
+                        ? "Convert unlimited WebP files & screenshots to JPG format with no restrictions" 
                         : "Convert WebP files to JPG format in seconds with our optimized engine",
                       gradient: "from-purple-500 to-pink-600",
                       bg: "from-purple-50 to-pink-50",
                       border: "border-purple-200",
                     },
                     {
-                      icon: Monitor,
-                      title: "Smart Processing",
-                      desc: deviceType === 'desktop' 
-                        ? `Full desktop power! Process ${currentLimits.batchSize} files at once with unlimited capacity`
-                        : `Automatic optimization for ${deviceType} devices. Batch processing with ${currentLimits.batchSize} files at a time.`,
+                      icon: Globe,
+                      title: "Website Screenshots",
+                      desc: "Capture any website as WebP, then convert to JPG. Full-page or visible area.",
                       gradient: "from-blue-500 to-cyan-600",
                       bg: "from-blue-50 to-cyan-50",
                       border: "border-blue-200",
                     },
                     {
                       icon: Shield,
-                      title: "Secure Processing",
-                      desc: "Your files are processed locally in your browser - no uploads to our servers",
+                      title: "Secure & Private",
+                      desc: "All processing happens in your browser. Your files stay private and secure.",
                       gradient: "from-indigo-500 to-purple-600",
                       bg: "from-indigo-50 to-purple-50",
                       border: "border-indigo-200",
@@ -930,6 +1230,11 @@ export default function WebpToJpg() {
 
             {/* --- Main Converter Card --- */}
             <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+              {/* Website Screenshot Section - Captures WebP */}
+              <WebsiteScreenshot 
+                onScreenshotTaken={handleScreenshotTaken}
+              />
+
               {/* Upload Section */}
               <div className="mb-4 sm:mb-6 md:mb-8">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
@@ -949,7 +1254,7 @@ export default function WebpToJpg() {
                   </div>
                 </div>
 
-                {/* FileUploader हमेशा दिखेगा */}
+                {/* FileUploader - Only WebP */}
                 <div className="mb-6">
                   <FileUploader
                     accept="image/webp"
@@ -1005,7 +1310,7 @@ export default function WebpToJpg() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Image className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
-                        Uploaded WebP Images {
+                        Uploaded WebP Files {
                           currentLimits.unlimited 
                             ? `(${files.length} files)` 
                             : `(${files.length}/${currentLimits.maxFiles})`
@@ -1026,7 +1331,7 @@ export default function WebpToJpg() {
                           file={file}
                           filename={file.name}
                           onRemove={() => handleRemoveFile(index)}
-                          status="Ready to Convert"
+                          status={file.name.startsWith('screenshot_') ? "Screenshot 📸" : "WebP Ready"}
                           index={index}
                         />
                       ))}
@@ -1052,7 +1357,7 @@ export default function WebpToJpg() {
                       <div className="space-y-3 sm:space-y-4">
                         <ProgressBar
                           progress={progress}
-                          label={`Converting ${files.length} files... (Batch of ${currentLimits.batchSize})`}
+                          label={`Converting ${files.length} WebP files to JPG... (Batch of ${currentLimits.batchSize})`}
                         />
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-purple-600 dark:text-purple-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
@@ -1276,7 +1581,7 @@ export default function WebpToJpg() {
               </div>
             )}
 
-            {/* --- How to Section (Updated for WebP to JPG) --- */}
+            {/* --- How to Section --- */}
             <section
               id="how-to-webp-to-jpg"
               className="mt-20 scroll-mt-24"
@@ -1285,30 +1590,35 @@ export default function WebpToJpg() {
                 How to Convert WebP to JPG Online
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 sm:gap-6">
                 {[
                   {
                     step: 1,
-                    title: "Upload WebP Files",
-                    description: "Drag & drop or select unlimited WebP images from your device",
+                    title: "Capture WebP Screenshot",
+                    description: "Take a website screenshot in WebP format",
                   },
                   {
                     step: 2,
-                    title: "Review Selection",
-                    description: "Preview uploaded WebP images before conversion",
+                    title: "Upload WebP Images",
+                    description: "Upload WebP images or screenshots",
                   },
                   {
                     step: 3,
-                    title: "Convert to JPG",
-                    description: "Click convert to transform WebP to JPG format",
+                    title: "Review Selection",
+                    description: "Preview uploaded WebP images",
                   },
                   {
                     step: 4,
-                    title: "Preview Results",
-                    description: "Check converted JPG images quality and size",
+                    title: "Convert to JPG",
+                    description: "Click convert to transform WebP to JPG",
                   },
                   {
                     step: 5,
+                    title: "Preview Results",
+                    description: "Check converted JPG images quality",
+                  },
+                  {
+                    step: 6,
                     title: "Download JPG",
                     description: "Download individual files or as ZIP archive",
                   },
@@ -1380,7 +1690,7 @@ export default function WebpToJpg() {
                 </Link>
               </div>
 
-              {/* Visible FAQ Section */}
+              {/* FAQ Section */}
               <section className="max-w-3xl mx-auto my-8 sm:my-12 md:my-16 px-2 sm:px-3 md:px-4">
                 <div className="text-center mb-4 sm:mb-6 md:mb-8">
                   <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3">
@@ -1414,4 +1724,4 @@ export default function WebpToJpg() {
       </div>
     </>
   );
-}   
+}
