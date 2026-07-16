@@ -10,6 +10,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^147.0.0",
     "@tailwindcss/line-clamp": "^0.4.4",
     "browser-image-compression": "^2.0.2",
     "canvas": "^3.2.0",
@@ -22,12 +23,13 @@
     "next": "16.0.7",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^3.11.174",
-    "puppeteer": "^25.3.0",
+    "puppeteer-core": "^25.3.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-image-crop": "^11.0.10",
     "react-pdf": "^10.2.0",
-    "react-responsive": "^10.0.1"
+    "react-responsive": "^10.0.1",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

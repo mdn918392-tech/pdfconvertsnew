@@ -1,3 +1,4 @@
+// app/webp-to-jpg/page.tsx
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -505,7 +506,7 @@ const WebsiteScreenshot = ({
           fullPage,
           width,
           height,
-          format: 'webp', // Always WebP format
+          format: 'webp',
           quality: 90,
         }),
       });
@@ -524,7 +525,7 @@ const WebsiteScreenshot = ({
         throw new Error('No image data received');
       }
 
-      // Convert base64 to blob (WebP format)
+      // Convert base64 to blob
       const base64Data = data.image.split(',')[1];
       const byteCharacters = atob(base64Data);
       const byteNumbers = new Array(byteCharacters.length);
@@ -532,14 +533,16 @@ const WebsiteScreenshot = ({
         byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
       const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/webp' }); // WebP format
+      const mimeType = data.format || 'image/webp';
+      const blob = new Blob([byteArray], { type: mimeType });
 
       setProgress(100);
 
-      // Generate filename with .webp extension
+      // Generate filename
       const timestamp = new Date().getTime();
       const domain = new URL(targetUrl).hostname;
-      const fileName = `screenshot_${domain}_${timestamp}.webp`; // .webp extension
+      const extension = mimeType.includes('webp') ? 'webp' : mimeType.includes('jpeg') ? 'jpg' : 'png';
+      const fileName = `screenshot_${domain}_${timestamp}.${extension}`;
 
       onScreenshotTaken(blob, fileName);
       
@@ -860,7 +863,7 @@ export default function WebpToJpg() {
   // Handle screenshot taken (WebP format)
   const handleScreenshotTaken = (blob: Blob, fileName: string) => {
     // Add screenshot as a WebP file
-    const screenshotFile = new File([blob], fileName, { type: 'image/webp' });
+    const screenshotFile = new File([blob], fileName, { type: blob.type || 'image/webp' });
     
     // Add to files list
     setFiles((prev) => [...prev, screenshotFile]);
