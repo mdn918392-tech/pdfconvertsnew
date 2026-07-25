@@ -5,12 +5,13 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from "jszip";
+import jsPDF from "jspdf";
 import {
   Download,
   ArrowLeft,
   XCircle,
   CheckCircle,
-  Image,
+  Image as ImageIcon, // Renamed to avoid conflict
   Sparkles,
   Zap,
   Shield,
@@ -28,12 +29,7 @@ import {
   Smartphone,
   Cpu,
   Monitor,
-  Camera,
-  Globe,
-  RefreshCw,
-  Settings,
-  Maximize2,
-  Minimize2,
+  FileText,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
@@ -204,7 +200,7 @@ interface DownloadNotification {
   fileName: string;
   fileCount: number;
   timestamp: Date;
-  type: 'single' | 'zip' | 'multi';
+  type: 'single' | 'zip' | 'pdf' | 'multi';
 }
 
 // --- Image Preview Component ---
@@ -372,6 +368,8 @@ const DownloadNotification = ({
     switch (type) {
       case 'zip':
         return `ZIP archive downloaded with ${fileCount} files`;
+      case 'pdf':
+        return `PDF document downloaded with ${fileCount} images`;
       case 'multi':
         return `${fileCount} files downloaded individually`;
       default:
@@ -387,18 +385,24 @@ const DownloadNotification = ({
       className={`bg-gradient-to-r ${
         type === 'zip' 
           ? 'from-purple-500 to-indigo-600' 
+          : type === 'pdf'
+          ? 'from-red-500 to-rose-600'
           : 'from-green-500 to-emerald-600'
       } text-white p-4 rounded-xl shadow-lg mb-2`}
     >
       <div className="flex items-start gap-3">
         {type === 'zip' ? (
           <Archive className="w-5 h-5 mt-0.5 flex-shrink-0" />
+        ) : type === 'pdf' ? (
+          <FileText className="w-5 h-5 mt-0.5 flex-shrink-0" />
         ) : (
           <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
         )}
         <div className="flex-1 min-w-0">
           <h4 className="font-bold text-sm mb-1">
-            {type === 'zip' ? 'ZIP Archive Downloaded! 📦' : getMessage()}
+            {type === 'zip' ? 'ZIP Archive Downloaded! 📦' : 
+             type === 'pdf' ? 'PDF Document Downloaded! 📄' : 
+             getMessage()}
           </h4>
           {type === 'single' && (
             <p className="text-xs opacity-90 truncate mb-1">{fileName}</p>
@@ -406,6 +410,8 @@ const DownloadNotification = ({
           <p className="text-xs opacity-80 mb-2">
             {type === 'zip' 
               ? `All ${fileCount} files are now in a single ZIP archive`
+              : type === 'pdf'
+              ? `${fileCount} image${fileCount === 1 ? '' : 's'} combined into one PDF`
               : `${fileCount} file${fileCount === 1 ? '' : 's'} processed`
             }
           </p>
@@ -428,340 +434,6 @@ const DownloadNotification = ({
   );
 };
 
-// --- Website Screenshot Component (Captures in WebP format) ---
-const WebsiteScreenshot = ({
-  onScreenshotTaken,
-}: {
-  onScreenshotTaken: (blob: Blob, fileName: string) => void;
-}) => {
-  const [url, setUrl] = useState("");
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [showOptions, setShowOptions] = useState(false);
-  const [fullPage, setFullPage] = useState(true);
-  const [width, setWidth] = useState(1200);
-  const [height, setHeight] = useState(800);
-  const [recentUrls, setRecentUrls] = useState<string[]>([]);
-  const [showRecent, setShowRecent] = useState(false);
-
-  // Load recent URLs from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('screenshotRecentUrls');
-      if (saved) {
-        setRecentUrls(JSON.parse(saved).slice(0, 5));
-      }
-    } catch (e) {
-      // Ignore
-    }
-  }, []);
-
-  const saveRecentUrl = (url: string) => {
-    try {
-      const updated = [url, ...recentUrls.filter(u => u !== url)].slice(0, 5);
-      setRecentUrls(updated);
-      localStorage.setItem('screenshotRecentUrls', JSON.stringify(updated));
-    } catch (e) {
-      // Ignore
-    }
-  };
-
-  const handleCapture = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!url.trim()) {
-      setError('Please enter a valid URL');
-      return;
-    }
-
-    // Add protocol if missing
-    let targetUrl = url.trim();
-    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-      targetUrl = 'https://' + targetUrl;
-    }
-
-    // Validate URL
-    try {
-      new URL(targetUrl);
-    } catch {
-      setError('Please enter a valid URL (e.g., example.com)');
-      return;
-    }
-
-    setIsCapturing(true);
-    setError(null);
-    setProgress(10);
-    saveRecentUrl(targetUrl);
-
-    try {
-      // Call our API - Always capture in WebP format
-      const response = await fetch('/api/screenshot', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: targetUrl,
-          fullPage,
-          width,
-          height,
-          format: 'webp',
-          quality: 90,
-        }),
-      });
-
-      setProgress(50);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to capture screenshot');
-      }
-
-      const data = await response.json();
-      setProgress(80);
-
-      if (!data.success || !data.image) {
-        throw new Error('No image data received');
-      }
-
-      // Convert base64 to blob
-      const base64Data = data.image.split(',')[1];
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const mimeType = data.format || 'image/webp';
-      const blob = new Blob([byteArray], { type: mimeType });
-
-      setProgress(100);
-
-      // Generate filename
-      const timestamp = new Date().getTime();
-      const domain = new URL(targetUrl).hostname;
-      const extension = mimeType.includes('webp') ? 'webp' : mimeType.includes('jpeg') ? 'jpg' : 'png';
-      const fileName = `screenshot_${domain}_${timestamp}.${extension}`;
-
-      onScreenshotTaken(blob, fileName);
-      
-      // Reset
-      setUrl('');
-      setProgress(0);
-      setShowOptions(false);
-
-    } catch (err: any) {
-      console.error('Screenshot error:', err);
-      setError(err.message || 'Failed to capture screenshot. Please try again.');
-    } finally {
-      setIsCapturing(false);
-      setProgress(0);
-    }
-  };
-
-  return (
-    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 rounded-xl p-4 sm:p-6 border-2 border-blue-200 dark:border-blue-800/50 mb-6">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg shadow-lg">
-          <Globe className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            📸 Website Screenshot (WebP)
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Capture any website as WebP, then convert to JPG
-          </p>
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-            <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
-          </div>
-        </div>
-      )}
-
-      {isCapturing && progress > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
-            <span>Capturing screenshot...</span>
-            <span>{progress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-blue-500 to-cyan-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleCapture} className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onFocus={() => setShowRecent(true)}
-              onBlur={() => setTimeout(() => setShowRecent(false), 200)}
-              placeholder="Enter website URL (e.g., example.com)"
-              className="w-full px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors"
-              disabled={isCapturing}
-            />
-            
-            {/* Recent URLs Dropdown */}
-            <AnimatePresence>
-              {showRecent && recentUrls.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 overflow-hidden"
-                >
-                  {recentUrls.map((recentUrl, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => {
-                        setUrl(recentUrl);
-                        setShowRecent(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                    >
-                      <Clock className="w-3 h-3 text-gray-400" />
-                      {recentUrl}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={isCapturing || !url.trim()}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap"
-            >
-              {isCapturing ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  Capturing...
-                </>
-              ) : (
-                <>
-                  <Camera className="w-4 h-4" />
-                  Capture WebP
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowOptions(!showOptions)}
-              className="px-3 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <AnimatePresence>
-          {showOptions && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-4 space-y-3 border border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Full Page Toggle */}
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Capture Mode</label>
-                    <button
-                      type="button"
-                      onClick={() => setFullPage(!fullPage)}
-                      className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                        fullPage
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      {fullPage ? (
-                        <Maximize2 className="w-4 h-4" />
-                      ) : (
-                        <Minimize2 className="w-4 h-4" />
-                      )}
-                      {fullPage ? 'Full Page' : 'Visible'}
-                    </button>
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Format</label>
-                    <div className="w-full px-3 py-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-300 text-sm font-medium text-center">
-                      🟢 WebP (Convert to JPG below)
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Width: {width}px</label>
-                    <input
-                      type="range"
-                      min="320"
-                      max="3840"
-                      value={width}
-                      onChange={(e) => setWidth(parseInt(e.target.value))}
-                      className="w-full accent-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Height: {height}px</label>
-                    <input
-                      type="range"
-                      min="240"
-                      max="2160"
-                      value={height}
-                      onChange={(e) => setHeight(parseInt(e.target.value))}
-                      className="w-full accent-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 flex items-center gap-2">
-                  <span>⚡</span>
-                  <span>Captured as WebP • Click "Convert" below to change to JPG</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </form>
-
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-        <span className="flex items-center gap-1">
-          <Zap className="w-3 h-3" />
-          {fullPage ? 'Full page' : 'Visible area'}
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-          📷 WebP format
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-          ⬇️ Convert to JPG below
-        </span>
-      </div>
-    </div>
-  );
-};
-
 // --- Main Component ---
 export default function WebpToJpg() {
   const [files, setFiles] = useState<File[]>([]);
@@ -773,6 +445,7 @@ export default function WebpToJpg() {
     DownloadNotification[]
   >([]);
   const [zipDownloading, setZipDownloading] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [processingError, setProcessingError] = useState<string | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -807,11 +480,11 @@ export default function WebpToJpg() {
     let totalSize = files.reduce((acc, f) => acc + f.size, 0);
 
     for (const file of newFiles) {
-      // Check if it's a screenshot (WebP) or WebP file
-      const isScreenshot = file.type.includes('webp') || file.name.endsWith('.webp');
+      // Check if it's a WebP file
+      const isWebP = file.type.includes('webp') || file.name.endsWith('.webp');
       
       // Check file type - only WebP allowed
-      if (!isScreenshot) {
+      if (!isWebP) {
         errors.push(`"${file.name}" is not a WebP image. Please upload WebP files only.`);
         continue;
       }
@@ -859,34 +532,6 @@ export default function WebpToJpg() {
         notificationsRef.current.scrollHeight;
     }
   }, [downloadNotifications]);
-
-  // Handle screenshot taken (WebP format)
-  const handleScreenshotTaken = (blob: Blob, fileName: string) => {
-    // Add screenshot as a WebP file
-    const screenshotFile = new File([blob], fileName, { type: blob.type || 'image/webp' });
-    
-    // Add to files list
-    setFiles((prev) => [...prev, screenshotFile]);
-    setJpgBlobs([]);
-    setShowFeatures(false);
-
-    // Add download notification
-    const notification: DownloadNotification = {
-      id: Math.random().toString(36).substring(7),
-      fileName: fileName,
-      fileCount: 1,
-      timestamp: new Date(),
-      type: 'single',
-    };
-    setDownloadNotifications((prev) => [...prev, notification]);
-
-    // Auto-remove notification after 5 seconds
-    setTimeout(() => {
-      setDownloadNotifications((prev) =>
-        prev.filter((n) => n.id !== notification.id)
-      );
-    }, 5000);
-  };
 
   const handleConvert = async () => {
     if (files.length === 0) return;
@@ -989,6 +634,89 @@ export default function WebpToJpg() {
       alert("Failed to create ZIP archive. Please try again.");
     } finally {
       setZipDownloading(false);
+    }
+  };
+
+  const handleDownloadAsPDF = async () => {
+    if (jpgBlobs.length === 0) return;
+
+    setPdfDownloading(true);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const margin = 10;
+      const maxWidth = pageWidth - (margin * 2);
+      const maxHeight = pageHeight - (margin * 2);
+
+      for (let i = 0; i < jpgBlobs.length; i++) {
+        const item = jpgBlobs[i];
+        
+        // Convert blob to base64
+        const base64Data = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(item.blob);
+        });
+
+        // Add new page for each image (except first)
+        if (i > 0) {
+          pdf.addPage();
+        }
+
+        // Get image dimensions using window.Image (native browser Image constructor)
+        const img = new window.Image();
+        img.src = base64Data;
+        await new Promise((resolve) => {
+          img.onload = resolve;
+        });
+
+        // Calculate aspect ratio
+        const imgWidth = img.width;
+        const imgHeight = img.height;
+        const aspectRatio = imgWidth / imgHeight;
+
+        // Calculate dimensions to fit page
+        let finalWidth = maxWidth;
+        let finalHeight = maxWidth / aspectRatio;
+
+        if (finalHeight > maxHeight) {
+          finalHeight = maxHeight;
+          finalWidth = maxHeight * aspectRatio;
+        }
+
+        // Center image on page
+        const x = (pageWidth - finalWidth) / 2;
+        const y = (pageHeight - finalHeight) / 2;
+
+        pdf.addImage(base64Data, 'JPEG', x, y, finalWidth, finalHeight);
+      }
+
+      // Save PDF
+      const pdfName = `converted_images_${new Date().getTime()}.pdf`;
+      pdf.save(pdfName);
+
+      // Add download notification
+      const notification: DownloadNotification = {
+        id: Math.random().toString(36).substring(7),
+        fileName: pdfName,
+        fileCount: jpgBlobs.length,
+        timestamp: new Date(),
+        type: 'pdf',
+      };
+      setDownloadNotifications((prev) => [...prev, notification]);
+
+      // Auto-remove notification after 5 seconds
+      setTimeout(() => {
+        setDownloadNotifications((prev) =>
+          prev.filter((n) => n.id !== notification.id)
+        );
+      }, 5000);
+    } catch (error) {
+      console.error("PDF creation error:", error);
+      alert("Failed to create PDF. Please try again.");
+    } finally {
+      setPdfDownloading(false);
     }
   };
 
@@ -1159,11 +887,12 @@ export default function WebpToJpg() {
                 </motion.div>
 
                 <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
-                  Webpage to JPG Converter Free – Convert Web Pages Online | PDFSwift
+                  WebP to JPG Converter Free – Convert WebP Images Online | PDFSwift
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Take website screenshots in WebP format and convert them to JPG. Upload WebP images and convert to JPG instantly. Fast, secure, and browser-based. 
+                  Upload WebP images and convert them to JPG format instantly. 
+                  Fast, secure, and browser-based. Download individually, as ZIP, or as PDF.
                   <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
                     {getLimitsMessage()}
                   </span>
@@ -1185,19 +914,19 @@ export default function WebpToJpg() {
                       icon: Zap,
                       title: deviceType === 'desktop' ? "Unlimited Conversions" : "Fast Conversion",
                       desc: deviceType === 'desktop' 
-                        ? "Convert unlimited WebP files & screenshots to JPG format with no restrictions" 
+                        ? "Convert unlimited WebP files to JPG format with no restrictions" 
                         : "Convert WebP files to JPG format in seconds with our optimized engine",
                       gradient: "from-purple-500 to-pink-600",
                       bg: "from-purple-50 to-pink-50",
                       border: "border-purple-200",
                     },
                     {
-                      icon: Globe,
-                      title: "Website Screenshots",
-                      desc: "Capture any website as WebP, then convert to JPG. Full-page or visible area.",
-                      gradient: "from-blue-500 to-cyan-600",
-                      bg: "from-blue-50 to-cyan-50",
-                      border: "border-blue-200",
+                      icon: FileText,
+                      title: "Export as PDF",
+                      desc: "Combine all converted JPG images into a single PDF document",
+                      gradient: "from-red-500 to-rose-600",
+                      bg: "from-red-50 to-rose-50",
+                      border: "border-red-200",
                     },
                     {
                       icon: Shield,
@@ -1233,11 +962,6 @@ export default function WebpToJpg() {
 
             {/* --- Main Converter Card --- */}
             <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
-              {/* Website Screenshot Section - Captures WebP */}
-              <WebsiteScreenshot 
-                onScreenshotTaken={handleScreenshotTaken}
-              />
-
               {/* Upload Section */}
               <div className="mb-4 sm:mb-6 md:mb-8">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
@@ -1312,7 +1036,7 @@ export default function WebpToJpg() {
                   <div className="space-y-3 sm:space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Image className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
                         Uploaded WebP Files {
                           currentLimits.unlimited 
                             ? `(${files.length} files)` 
@@ -1334,7 +1058,7 @@ export default function WebpToJpg() {
                           file={file}
                           filename={file.name}
                           onRemove={() => handleRemoveFile(index)}
-                          status={file.name.startsWith('screenshot_') ? "Screenshot 📸" : "WebP Ready"}
+                          status="WebP Ready"
                           index={index}
                         />
                       ))}
@@ -1386,7 +1110,7 @@ export default function WebpToJpg() {
                         onClick={handleConvert}
                         className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                       >
-                        <Image className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                         Convert {files.length} WebP to JPG
                         {deviceType === 'desktop' ? (
                           <Monitor className="w-3.5 h-3.5" />
@@ -1476,7 +1200,7 @@ export default function WebpToJpg() {
 
                 {/* --- Download Options Section --- */}
                 <div className="space-y-4 sm:space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* Download as ZIP Button */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
@@ -1495,8 +1219,30 @@ export default function WebpToJpg() {
                       ) : (
                         <>
                           <Archive className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                          Download as ZIP Archive ({jpgBlobs.length} files)
-                          <FolderClosed className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                          Download ZIP
+                        </>
+                      )}
+                    </motion.button>
+
+                    {/* Download as PDF Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDownloadAsPDF}
+                      disabled={pdfDownloading}
+                      className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
+                        pdfDownloading ? 'opacity-75 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {pdfDownloading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                          Creating PDF...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                          Download as PDF
                         </>
                       )}
                     </motion.button>
@@ -1509,8 +1255,7 @@ export default function WebpToJpg() {
                       className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                     >
                       <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                      Download All {jpgBlobs.length} Files Separately
-                      <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                      Download All Separately
                     </motion.button>
                   </div>
 
@@ -1519,7 +1264,7 @@ export default function WebpToJpg() {
                       onClick={handleReset}
                       className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
                     >
-                      <Image className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
+                      <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
                       Convert More Images
                     </button>
                   </div>
@@ -1593,37 +1338,32 @@ export default function WebpToJpg() {
                 How to Convert WebP to JPG Online
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
                 {[
                   {
                     step: 1,
-                    title: "Capture WebP Screenshot",
-                    description: "Take a website screenshot in WebP format",
+                    title: "Upload WebP Images",
+                    description: "Select WebP images from your device",
                   },
                   {
                     step: 2,
-                    title: "Upload WebP Images",
-                    description: "Upload WebP images or screenshots",
-                  },
-                  {
-                    step: 3,
                     title: "Review Selection",
                     description: "Preview uploaded WebP images",
                   },
                   {
-                    step: 4,
+                    step: 3,
                     title: "Convert to JPG",
                     description: "Click convert to transform WebP to JPG",
                   },
                   {
-                    step: 5,
+                    step: 4,
                     title: "Preview Results",
                     description: "Check converted JPG images quality",
                   },
                   {
-                    step: 6,
-                    title: "Download JPG",
-                    description: "Download individual files or as ZIP archive",
+                    step: 5,
+                    title: "Download",
+                    description: "Download as ZIP, PDF, or individual files",
                   },
                 ].map((item, index) => (
                   <div key={index} className="border rounded-xl p-4 sm:p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
