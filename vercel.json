@@ -1,8 +1,0 @@
-{
-    "functions": {
-      "api/screenshot.js": {
-        "maxDuration": 60,
-        "memory": 3008
-      }
-    }
-  }
