@@ -78,15 +78,17 @@ const exploreTools: Tool[] = [
     color: "from-rose-500 to-pink-500",
     href: "/remove-pages",
   },
-  {
-    id: "compress-pdf",
-    name: "Compress PDF",
-    description: "Reduce PDF file size",
-    category: "pdf",
-    icon: "📉",
-    color: "from-yellow-500 to-orange-500",
-    href: "/compress-pdf",
-  },
+    {
+  id: "add-pages-and-images-to-pdf",
+  name: "Add Pages & Images to PDF",
+  description: "Insert new pages and add images anywhere in your PDF",
+  category: "pdf",
+  icon: "📄➕",
+  color: "from-indigo-500 to-purple-500",
+  href: "/add-pages-and-images-to-pdf",
+  
+},
+
 ];
 
 export default function BlogToolsSection() {

@@ -61,16 +61,7 @@ export default function Home() {
       href: "/split-pdf",
       path: "/tools/split-pdf",
     },
-    {
-      id: "compress-pdf",
-      name: "Compress PDF",
-      description: "Reduce PDF file size",
-      category: "pdf",
-      icon: "🗜️",
-      color: "from-yellow-500 to-amber-500",
-      href: "/compress-pdf",
-      path: "/tools/compress-pdf",
-    },
+    
     {
       id: "extract-pages",
       name: "Extract Pages",
@@ -102,7 +93,7 @@ export default function Home() {
       path: "/tools/rotate-pdf",
     },
 
-    {
+  {
   id: "add-pages-and-images-to-pdf",
   name: "Add Pages & Images to PDF",
   description: "Insert new pages and add images anywhere in your PDF",
