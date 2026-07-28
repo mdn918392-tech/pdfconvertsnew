@@ -5,13 +5,13 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from "jszip";
-import jsPDF from "jspdf";
+import { PDFDocument } from "pdf-lib";
 import {
   Download,
   ArrowLeft,
   XCircle,
   CheckCircle,
-  Image as ImageIcon, // Renamed to avoid conflict
+  Image as ImageIcon,
   Sparkles,
   Zap,
   Shield,
@@ -24,7 +24,6 @@ import {
   Grid,
   X,
   Archive,
-  FolderClosed,
   AlertTriangle,
   Smartphone,
   Cpu,
@@ -221,12 +220,48 @@ const ImagePreview = ({
   index: number;
   onSingleDownload?: () => void;
 }) => {
-  const url = useMemo(() => createObjectURL(file), [file]);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  useMemo(() => {
-    return () => revokeObjectURL(url);
-  }, [url]);
+  useEffect(() => {
+    let url: string | null = null;
+    let isMounted = true;
+
+    const loadImage = async () => {
+      try {
+        // Check if file is a Blob or File
+        if (file && typeof file === 'object' && 'size' in file) {
+          url = URL.createObjectURL(file);
+          if (isMounted) {
+            setImageUrl(url);
+            // Test if image loads
+            const img = new Image();
+            img.onload = () => {
+              if (isMounted) setImageLoaded(true);
+            };
+            img.onerror = () => {
+              if (isMounted) setImageError(true);
+            };
+            img.src = url;
+          }
+        }
+      } catch (error) {
+        console.error("Error creating object URL:", error);
+        if (isMounted) setImageError(true);
+      }
+    };
+
+    loadImage();
+
+    return () => {
+      isMounted = false;
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [file]);
 
   const statusColor =
     status && (status.includes("Converted") || status.includes("Screenshot"))
@@ -241,9 +276,19 @@ const ImagePreview = ({
     }
   };
 
+  // Fallback display when image fails to load
+  const renderFallback = () => (
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
+      <div className="text-center">
+        <ImageIcon className="w-8 h-8 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
+        <span className="text-xs text-gray-500 dark:text-gray-400">No preview</span>
+      </div>
+    </div>
+  );
+
   return (
     <>
-      {previewOpen && (
+      {previewOpen && imageUrl && !imageError && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -266,7 +311,7 @@ const ImagePreview = ({
             </button>
             <div className="max-w-4xl max-h-[90vh]">
               <img
-                src={url}
+                src={imageUrl}
                 alt={filename}
                 className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
               />
@@ -289,13 +334,22 @@ const ImagePreview = ({
 
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
-            onClick={() => setPreviewOpen(true)}
+            onClick={() => {
+              if (imageUrl && !imageError) {
+                setPreviewOpen(true);
+              }
+            }}
           >
-            <img
-              src={url}
-              alt={filename}
-              className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
-            />
+            {imageUrl && !imageError ? (
+              <img
+                src={imageUrl}
+                alt={filename}
+                className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              renderFallback()
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <Eye className="w-8 h-8 text-white" />
             </div>
@@ -317,7 +371,7 @@ const ImagePreview = ({
               >
                 {status}
               </span>
-              {file.size && (
+              {file && typeof file === 'object' && 'size' in file && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {(file.size / 1024).toFixed(1)} KB
                 </span>
@@ -637,64 +691,86 @@ export default function WebpToJpg() {
     }
   };
 
+  // ✅ FIXED: PDF generation using pdf-lib for proper resource isolation
   const handleDownloadAsPDF = async () => {
     if (jpgBlobs.length === 0) return;
 
     setPdfDownloading(true);
     try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const margin = 10;
-      const maxWidth = pageWidth - (margin * 2);
-      const maxHeight = pageHeight - (margin * 2);
-
+      // Create a new PDF document
+      const pdfDoc = await PDFDocument.create();
+      
+      // Process each image and add it as a separate page
       for (let i = 0; i < jpgBlobs.length; i++) {
         const item = jpgBlobs[i];
         
-        // Convert blob to base64
-        const base64Data = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(item.blob);
-        });
-
-        // Add new page for each image (except first)
-        if (i > 0) {
-          pdf.addPage();
-        }
-
-        // Get image dimensions using window.Image (native browser Image constructor)
-        const img = new window.Image();
-        img.src = base64Data;
-        await new Promise((resolve) => {
-          img.onload = resolve;
-        });
-
-        // Calculate aspect ratio
-        const imgWidth = img.width;
-        const imgHeight = img.height;
-        const aspectRatio = imgWidth / imgHeight;
-
-        // Calculate dimensions to fit page
+        // Read the blob as ArrayBuffer
+        const arrayBuffer = await item.blob.arrayBuffer();
+        
+        // Embed the JPG image - each image is embedded separately
+        // This ensures each page has its own image resource
+        const image = await pdfDoc.embedJpg(arrayBuffer);
+        
+        // Get image dimensions
+        const imgWidth = image.width;
+        const imgHeight = image.height;
+        
+        // Calculate aspect ratio and fit to A4 page
+        const pageWidth = 595.28; // A4 in points (1 point = 1/72 inch)
+        const pageHeight = 841.89;
+        const margin = 28.35; // 1cm margin in points
+        
+        const maxWidth = pageWidth - (margin * 2);
+        const maxHeight = pageHeight - (margin * 2);
+        
         let finalWidth = maxWidth;
-        let finalHeight = maxWidth / aspectRatio;
-
+        let finalHeight = (maxWidth / imgWidth) * imgHeight;
+        
         if (finalHeight > maxHeight) {
           finalHeight = maxHeight;
-          finalWidth = maxHeight * aspectRatio;
+          finalWidth = (maxHeight / imgHeight) * imgWidth;
         }
-
-        // Center image on page
+        
+        // Center the image on the page
         const x = (pageWidth - finalWidth) / 2;
         const y = (pageHeight - finalHeight) / 2;
-
-        pdf.addImage(base64Data, 'JPEG', x, y, finalWidth, finalHeight);
+        
+        // Add a new page for each image
+        const page = pdfDoc.addPage([pageWidth, pageHeight]);
+        
+        // Draw the image on the page
+        // CRITICAL: Each page gets its own embedded image object
+        // No shared resources between pages
+        page.drawImage(image, {
+          x: x,
+          y: y,
+          width: finalWidth,
+          height: finalHeight,
+        });
       }
-
-      // Save PDF
+      
+      // Save the PDF
+      const pdfBytes = await pdfDoc.save({
+        useObjectStreams: false,
+      });
+      
+      // ✅ FIXED: Convert Uint8Array to ArrayBuffer for Blob
+      const arrayBuffer = new ArrayBuffer(pdfBytes.length);
+      const view = new Uint8Array(arrayBuffer);
+      view.set(pdfBytes);
+      
+      const pdfBlob = new Blob([arrayBuffer], { type: 'application/pdf' });
       const pdfName = `converted_images_${new Date().getTime()}.pdf`;
-      pdf.save(pdfName);
+      
+      // Create a download link
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = pdfName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       // Add download notification
       const notification: DownloadNotification = {
