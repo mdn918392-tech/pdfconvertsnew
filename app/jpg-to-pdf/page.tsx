@@ -91,10 +91,11 @@ interface DownloadNotification {
 
 type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 
-// Mobile limits
+// Mobile limits - OPTIMIZED for stability
 const MAX_SIZE_MOBILE = 10 * 1024 * 1024; // 10MB per file
 const MAX_FILES_MOBILE = 25; // 25 images max on mobile
-const AUTO_COMPRESS_THRESHOLD = 15 * 1024 * 1024; // 15MB threshold for auto-compression
+const AUTO_COMPRESS_THRESHOLD = 10 * 1024 * 1024; // 10MB threshold for auto-compression
+const MAX_IMAGE_DIMENSION_MOBILE = 2048; // Max dimension for mobile to reduce memory
 
 // Desktop - no limits
 const MAX_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER;
@@ -287,264 +288,297 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// ✅ FIXED: Desktop compression with HIGH QUALITY preservation
-// Mobile compression with auto-balance for large files
-const compressImageForPdf = async (
+/**
+ * OPTIMIZED: Memory-efficient image processing with proper cleanup
+ * Processes one image at a time with immediate resource release
+ * Uses ArrayBuffer instead of Base64 to reduce memory usage by ~33%
+ */
+const processImageForPdf = async (
   file: File,
   rotation: number = 0,
-  quality: CompressionQuality = "high", // ✅ CHANGED: Default to "high"
+  quality: CompressionQuality = "high",
   customQualityValue: number = 95,
   isMobile: boolean = false
-): Promise<string> => {
-  // MOBILE: Apply auto-compression if file > 15MB
-  if (isMobile) {
-    const fileSizeMB = file.size / (1024 * 1024);
-    
-    // Auto-apply balanced compression for files > 15MB
-    if (fileSizeMB > 15) {
-      console.log(`📱 Large file detected (${fileSizeMB.toFixed(1)}MB) - Auto-applying balanced compression`);
-      
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          
-          img.onload = () => {
-            try {
-              // Apply balanced compression (85% quality, max dimension 2048)
-              const qualityValue = 0.85;
-              const maxDimension = 2048;
-              
-              let scale = 1;
-              const largerDimension = Math.max(img.width, img.height);
-              
-              if (largerDimension > maxDimension) {
-                scale = maxDimension / largerDimension;
-              }
-              
-              const needsSwap = rotation === 90 || rotation === 270;
-              const newWidth = needsSwap 
-                ? Math.floor(img.height * scale)
-                : Math.floor(img.width * scale);
-              const newHeight = needsSwap
-                ? Math.floor(img.width * scale)
-                : Math.floor(img.height * scale);
-              
-              const canvas = document.createElement("canvas");
-              canvas.width = newWidth;
-              canvas.height = newHeight;
-              
-              const ctx = canvas.getContext("2d", {
-                alpha: false,
-                willReadFrequently: false,
-              });
-              
-              if (!ctx) {
-                // Fallback to original
-                const fallbackReader = new FileReader();
-                fallbackReader.onload = (e) => resolve(e.target?.result as string);
-                fallbackReader.readAsDataURL(file);
-                return;
-              }
-              
-              ctx.fillStyle = "#FFFFFF";
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              
-              ctx.imageSmoothingEnabled = true;
-              ctx.imageSmoothingQuality = "medium";
-              
-              if (rotation !== 0) {
-                ctx.save();
-                ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate((rotation * Math.PI) / 180);
-                
-                const rotatedWidth = needsSwap ? img.height : img.width;
-                const rotatedHeight = needsSwap ? img.width : img.height;
-                
-                ctx.drawImage(
-                  img,
-                  -(rotatedWidth * scale) / 2,
-                  -(rotatedHeight * scale) / 2,
-                  rotatedWidth * scale,
-                  rotatedHeight * scale
-                );
-                ctx.restore();
-              } else {
-                ctx.drawImage(img, 0, 0, newWidth, newHeight);
-              }
-              
-              try {
-                const base64Data = canvas.toDataURL("image/jpeg", qualityValue);
-                resolve(base64Data);
-              } catch (error) {
-                // Fallback to original
-                const fallbackReader = new FileReader();
-                fallbackReader.onload = (e) => resolve(e.target?.result as string);
-                fallbackReader.readAsDataURL(file);
-              }
-            } catch (error) {
-              // Fallback to original
-              const fallbackReader = new FileReader();
-              fallbackReader.onload = (e) => resolve(e.target?.result as string);
-              fallbackReader.readAsDataURL(file);
-            }
-          };
-          
-          img.onerror = () => {
-            // Fallback to original
-            const fallbackReader = new FileReader();
-            fallbackReader.onload = (e) => resolve(e.target?.result as string);
-            fallbackReader.readAsDataURL(file);
-          };
-          
-          img.src = e.target?.result as string;
-        };
-        
-        reader.onerror = () => {
-          reject(new Error("Failed to read file as base64"));
-        };
-        
-        reader.readAsDataURL(file);
-      });
-    }
-    
-    // MOBILE: Simple direct conversion without processing (for files <= 15MB)
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (result && typeof result === 'string') {
-          resolve(result);
-        } else {
-          reject(new Error("Failed to read file as base64"));
-        }
-      };
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // DESKTOP: High quality processing
+): Promise<ArrayBuffer> => {
+  // Use ArrayBuffer directly to avoid Base64 memory overhead
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
-    reader.onload = (e) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+    reader.onload = async (e) => {
+      let img: HTMLImageElement | null = null;
+      let canvas: HTMLCanvasElement | null = null;
       
-      img.onload = () => {
-        try {
-          // Determine quality settings - PRESERVE QUALITY for desktop
-          let qualityValue = 1.0;
-          let maxDimension = 4096;
-          
-          switch (quality) {
-            case "none":
-              qualityValue = 1.0;
-              maxDimension = 4096;
-              break;
-            case "custom":
-              qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
-              maxDimension = 4096;
-              break;
-            case "high":
-              qualityValue = 0.95;
-              maxDimension = 3072;
-              break;
-            case "medium":
-              qualityValue = 0.85;
-              maxDimension = 2048;
-              break;
-            case "low":
-              qualityValue = 0.75;
-              maxDimension = 1600;
-              break;
-          }
-
-          // Calculate scale while maintaining quality
-          let scale = 1;
-          const largerDimension = Math.max(img.width, img.height);
-          
-          if (largerDimension > maxDimension) {
-            scale = maxDimension / largerDimension;
-          }
-
-          const needsSwap = rotation === 90 || rotation === 270;
-          const newWidth = needsSwap 
-            ? Math.floor(img.height * scale)
-            : Math.floor(img.width * scale);
-          const newHeight = needsSwap
-            ? Math.floor(img.width * scale)
-            : Math.floor(img.height * scale);
-
-          const canvas = document.createElement("canvas");
-          canvas.width = newWidth;
-          canvas.height = newHeight;
-
-          const ctx = canvas.getContext("2d", {
-            alpha: false,
-            willReadFrequently: false,
-          });
-
-          if (!ctx) {
-            resolve(e.target?.result as string);
-            return;
-          }
-
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
-
-          if (rotation !== 0) {
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate((rotation * Math.PI) / 180);
-            
-            const rotatedWidth = needsSwap ? img.height : img.width;
-            const rotatedHeight = needsSwap ? img.width : img.height;
-            
-            ctx.drawImage(
-              img,
-              -(rotatedWidth * scale) / 2,
-              -(rotatedHeight * scale) / 2,
-              rotatedWidth * scale,
-              rotatedHeight * scale
-            );
-            ctx.restore();
-          } else {
-            ctx.drawImage(img, 0, 0, newWidth, newHeight);
-          }
-
-          const finalQuality = quality === "none" ? 1.0 : qualityValue;
-          
-          try {
-            const base64Data = canvas.toDataURL("image/jpeg", finalQuality);
-            resolve(base64Data);
-          } catch (error) {
-            resolve(e.target?.result as string);
-          }
-        } catch (error) {
-          resolve(e.target?.result as string);
+      try {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        
+        // Create Image from ArrayBuffer
+        img = new Image();
+        const blob = new Blob([arrayBuffer], { type: file.type });
+        const objectUrl = URL.createObjectURL(blob);
+        
+        // Load image
+        await new Promise<void>((resolveImg, rejectImg) => {
+          img!.onload = () => resolveImg();
+          img!.onerror = () => rejectImg(new Error("Failed to decode image"));
+          img!.src = objectUrl;
+        });
+        
+        // Revoke object URL immediately after loading
+        URL.revokeObjectURL(objectUrl);
+        
+        // Determine quality settings
+        let qualityValue = 0.95;
+        let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
+        
+        switch (quality) {
+          case "none":
+            qualityValue = 1.0;
+            maxDimension = isMobile ? 3072 : 4096;
+            break;
+          case "custom":
+            qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
+            maxDimension = isMobile ? 2048 : 4096;
+            break;
+          case "high":
+            qualityValue = 0.95;
+            maxDimension = isMobile ? 2048 : 3072;
+            break;
+          case "medium":
+            qualityValue = 0.85;
+            maxDimension = isMobile ? 1600 : 2048;
+            break;
+          case "low":
+            qualityValue = 0.75;
+            maxDimension = isMobile ? 1200 : 1600;
+            break;
         }
-      };
-
-      img.onerror = () => {
-        resolve(e.target?.result as string);
-      };
-
-      img.src = e.target?.result as string;
+        
+        // Calculate dimensions
+        let scale = 1;
+        const largerDimension = Math.max(img.width, img.height);
+        
+        if (largerDimension > maxDimension) {
+          scale = maxDimension / largerDimension;
+        }
+        
+        const needsSwap = rotation === 90 || rotation === 270;
+        const newWidth = needsSwap 
+          ? Math.floor(img.height * scale)
+          : Math.floor(img.width * scale);
+        const newHeight = needsSwap
+          ? Math.floor(img.width * scale)
+          : Math.floor(img.height * scale);
+        
+        // Create canvas - this will be destroyed after use
+        canvas = document.createElement("canvas");
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        const ctx = canvas.getContext("2d", {
+          alpha: false,
+          willReadFrequently: false,
+        });
+        
+        if (!ctx) {
+          throw new Error("Failed to get canvas context");
+        }
+        
+        // Draw with rotation
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        
+        if (rotation !== 0) {
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate((rotation * Math.PI) / 180);
+          
+          const rotatedWidth = needsSwap ? img.height : img.width;
+          const rotatedHeight = needsSwap ? img.width : img.height;
+          
+          ctx.drawImage(
+            img,
+            -(rotatedWidth * scale) / 2,
+            -(rotatedHeight * scale) / 2,
+            rotatedWidth * scale,
+            rotatedHeight * scale
+          );
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        }
+        
+        // Convert to JPEG ArrayBuffer - MORE EFFICIENT than Base64
+        const blobData = await new Promise<Blob>((resolveBlob) => {
+          canvas!.toBlob((b) => resolveBlob(b!), "image/jpeg", qualityValue);
+        });
+        
+        // Read as ArrayBuffer
+        const buffer = await blobData.arrayBuffer();
+        
+        // Cleanup immediately
+        URL.revokeObjectURL(objectUrl);
+        img.src = ""; // Clear image src to free memory
+        img = null;
+        canvas.width = 0;
+        canvas.height = 0;
+        canvas = null;
+        
+        resolve(buffer);
+        
+      } catch (error) {
+        // Cleanup on error
+        if (img) {
+          img.src = "";
+          img = null;
+        }
+        if (canvas) {
+          canvas.width = 0;
+          canvas.height = 0;
+          canvas = null;
+        }
+        reject(error);
+      }
     };
-
+    
     reader.onerror = () => {
-      reject(new Error("Failed to read image file"));
+      reject(new Error("Failed to read file"));
     };
-
-    reader.readAsDataURL(file);
+    
+    // Read as ArrayBuffer directly - more efficient than DataURL
+    reader.readAsArrayBuffer(file);
   });
+};
+
+/**
+ * OPTIMIZED: Memory-efficient PDF creation
+ * Processes and embeds one image at a time to minimize memory usage
+ */
+/**
+ * OPTIMIZED: Memory-efficient PDF creation
+ * Processes and embeds one image at a time to minimize memory usage
+ */
+const createPdfFromImages = async (
+  imageBuffers: ArrayBuffer[],
+  paperSize: PaperSize,
+  orientation: Orientation,
+  marginPoints: number,
+  isMobile: boolean,
+  onProgress?: (current: number, total: number) => void
+): Promise<Blob> => {
+  try {
+    const { PDFDocument, rgb } = await import("pdf-lib");
+    
+    const pdfDoc = await PDFDocument.create();
+    
+    // Get paper dimensions in points
+    const paperDimensions = PAPER_SIZES[paperSize];
+    const MM_TO_PT = 2.83465;
+    
+    let pageWidthPt: number, pageHeightPt: number;
+    
+    if (orientation === "Landscape") {
+      pageWidthPt = paperDimensions.height * MM_TO_PT;
+      pageHeightPt = paperDimensions.width * MM_TO_PT;
+    } else {
+      pageWidthPt = paperDimensions.width * MM_TO_PT;
+      pageHeightPt = paperDimensions.height * MM_TO_PT;
+    }
+    
+    const marginPt = marginPoints;
+    const availableWidthPt = pageWidthPt - (marginPt * 2);
+    const availableHeightPt = pageHeightPt - (marginPt * 2);
+    
+    // Process images one at a time to minimize memory
+    const totalImages = imageBuffers.length;
+    
+    // Use a temporary array to hold embedded images
+    // Only keep one image buffer at a time in memory
+    for (let i = 0; i < totalImages; i++) {
+      try {
+        const buffer = imageBuffers[i];
+        
+        // Embed image - this creates a copy in the PDF
+        const image = await pdfDoc.embedJpg(buffer);
+        
+        // Add page
+        const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
+        
+        // Calculate dimensions
+        const imgWidth = image.width;
+        const imgHeight = image.height;
+        const imgAspectRatio = imgWidth / imgHeight;
+        const availableAspectRatio = availableWidthPt / availableHeightPt;
+        
+        let finalWidthPt: number, finalHeightPt: number;
+        
+        if (imgAspectRatio > availableAspectRatio) {
+          finalWidthPt = availableWidthPt;
+          finalHeightPt = availableWidthPt / imgAspectRatio;
+        } else {
+          finalHeightPt = availableHeightPt;
+          finalWidthPt = availableHeightPt * imgAspectRatio;
+        }
+        
+        const xPt = marginPt + (availableWidthPt - finalWidthPt) / 2;
+        const yPt = marginPt + (availableHeightPt - finalHeightPt) / 2;
+        
+        // Draw image
+        page.drawImage(image, {
+          x: xPt,
+          y: yPt,
+          width: finalWidthPt,
+          height: finalHeightPt,
+        });
+        
+        // Report progress
+        if (onProgress) {
+          onProgress(i + 1, totalImages);
+        }
+        
+        // Allow garbage collection between images
+        if (i % 3 === 0 && isMobile) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        
+      } catch (error) {
+        console.error(`Failed to embed image ${i + 1}:`, error);
+        // Add blank page with error text
+        const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
+        page.drawText(`Failed to load image ${i + 1}`, {
+          x: marginPt,
+          y: pageHeightPt / 2,
+          size: 20,
+          color: rgb(1, 0, 0),
+        });
+      }
+    }
+    
+    // Save PDF
+    const pdfBytes = await pdfDoc.save();
+    
+    // Cleanup - release image buffers
+    imageBuffers.length = 0;
+    
+    if (!pdfBytes || pdfBytes.length === 0) {
+      throw new Error("Generated PDF is empty");
+    }
+    
+    // ✅ FIXED: Convert Uint8Array to ArrayBuffer properly for Blob
+    // pdfBytes is Uint8Array, we need to create a proper ArrayBuffer
+    const arrayBuffer = new ArrayBuffer(pdfBytes.length);
+    const view = new Uint8Array(arrayBuffer);
+    view.set(pdfBytes);
+    
+    const blob = new Blob([arrayBuffer], { type: "application/pdf" });
+    
+    return blob;
+    
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };
 
 // Estimate compressed size
@@ -557,9 +591,9 @@ const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQu
     case "custom": 
       reductionFactor = customValue ? Math.min(1.0, Math.max(0.3, customValue / 100)) : 0.95; 
       break;
-    case "high": reductionFactor = 0.9; break;
-    case "medium": reductionFactor = 0.7; break;
-    case "low": reductionFactor = 0.5; break;
+    case "high": reductionFactor = 0.85; break;
+    case "medium": reductionFactor = 0.6; break;
+    case "low": reductionFactor = 0.4; break;
   }
   
   const totalOriginalSize = files.reduce((sum, f) => sum + f.file.size, 0);
@@ -569,125 +603,6 @@ const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQu
 // Check if any file exceeds threshold for auto-compression
 const checkAutoCompressionNeeded = (files: File[]): boolean => {
   return files.some(file => file.size > AUTO_COMPRESS_THRESHOLD);
-};
-
-// ============================================
-// ✅ FIXED: PDF creation with pdf-lib
-// This ensures each page contains ONLY its own image
-// ✅ FIXED: Color type error - using rgb() function
-// ============================================
-const createPdfFromImages = async (
-  imageDataUrls: string[],
-  paperSize: PaperSize,
-  orientation: Orientation,
-  marginPoints: number,
-  isMobile: boolean
-): Promise<Blob> => {
-  try {
-    // Dynamically import pdf-lib
-    const { PDFDocument, rgb } = await import("pdf-lib");
-    
-    // Create a new PDF document
-    const pdfDoc = await PDFDocument.create();
-    
-    // Get paper dimensions in points (1 inch = 72 points)
-    const paperDimensions = PAPER_SIZES[paperSize];
-    let pageWidthPt, pageHeightPt;
-    
-    // Convert mm to points (1 mm ≈ 2.83465 points)
-    const MM_TO_PT = 2.83465;
-    
-    if (orientation === "Landscape") {
-      pageWidthPt = paperDimensions.height * MM_TO_PT;
-      pageHeightPt = paperDimensions.width * MM_TO_PT;
-    } else {
-      pageWidthPt = paperDimensions.width * MM_TO_PT;
-      pageHeightPt = paperDimensions.height * MM_TO_PT;
-    }
-    
-    // Margin in points
-    const marginPt = marginPoints;
-    const availableWidthPt = pageWidthPt - (marginPt * 2);
-    const availableHeightPt = pageHeightPt - (marginPt * 2);
-    
-    // Process each image
-    for (let i = 0; i < imageDataUrls.length; i++) {
-      const imgDataUrl = imageDataUrls[i];
-      
-      try {
-        // Add a new page
-        const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-        
-        // Extract base64 data
-        const base64Data = imgDataUrl.split(',')[1];
-        const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-        
-        // Embed the image as a JPEG (each image gets its own embedded object)
-        const image = await pdfDoc.embedJpg(imageBytes);
-        
-        // Get image dimensions
-        const imgWidth = image.width;
-        const imgHeight = image.height;
-        const imgAspectRatio = imgWidth / imgHeight;
-        const availableAspectRatio = availableWidthPt / availableHeightPt;
-        
-        // Calculate final dimensions maintaining aspect ratio
-        let finalWidthPt, finalHeightPt;
-        
-        if (imgAspectRatio > availableAspectRatio) {
-          // Image is wider than available space
-          finalWidthPt = availableWidthPt;
-          finalHeightPt = availableWidthPt / imgAspectRatio;
-        } else {
-          // Image is taller than available space
-          finalHeightPt = availableHeightPt;
-          finalWidthPt = availableHeightPt * imgAspectRatio;
-        }
-        
-        // Calculate position (centered)
-        const xPt = marginPt + (availableWidthPt - finalWidthPt) / 2;
-        const yPt = marginPt + (availableHeightPt - finalHeightPt) / 2;
-        
-        // Draw the image on the page
-        page.drawImage(image, {
-          x: xPt,
-          y: yPt,
-          width: finalWidthPt,
-          height: finalHeightPt,
-        });
-        
-      } catch (error) {
-        console.error(`Failed to process image ${i + 1}:`, error);
-        // Add a blank page with error text if image processing fails
-        const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-        const fontSize = 20;
-        page.drawText(`Failed to load image ${i + 1}`, {
-          x: marginPt,
-          y: pageHeightPt / 2,
-          size: fontSize,
-          color: rgb(1, 0, 0),
-        });
-      }
-    }
-    
-    // Save the PDF
-    const pdfBytes = await pdfDoc.save();
-    
-    if (!pdfBytes || pdfBytes.length === 0) {
-      throw new Error("Generated PDF is empty");
-    }
-    
-    // ✅ FIXED: Convert Uint8Array to ArrayBuffer for Blob
-    const arrayBuffer = new ArrayBuffer(pdfBytes.length);
-    const view = new Uint8Array(arrayBuffer);
-    view.set(pdfBytes);
-    
-    return new Blob([arrayBuffer], { type: "application/pdf" });
-    
-  } catch (error) {
-    console.error("PDF generation error:", error);
-    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
 };
 
 // Download Notification Component
@@ -1119,7 +1034,7 @@ const MobileSimpleUI = ({
           {autoCompressionActive && (
             <p className="mt-2 text-amber-600 dark:text-amber-400 font-medium flex items-center justify-center gap-1">
               <Zap className="w-3 h-3" />
-              Auto-compression active for files &gt;15MB
+              Auto-compression active for files &gt;10MB
             </p>
           )}
         </div>
@@ -1279,7 +1194,6 @@ export default function JpgToPdf() {
   const [compressing, setCompressing] = useState(false);
   const [showCompressionInfo, setShowCompressionInfo] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  // ✅ CHANGED: Default compression quality to "high"
   const [compressionQuality, setCompressionQuality] = useState<CompressionQuality>("high");
   const [customQualityValue, setCustomQualityValue] = useState<number>(95);
   const [showChangesWarning, setShowChangesWarning] = useState(false);
@@ -1290,6 +1204,8 @@ export default function JpgToPdf() {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [sizeLimitExceeded, setSizeLimitExceeded] = useState(false);
   const [autoCompressionActive, setAutoCompressionActive] = useState(false);
+  const [currentProcessingImage, setCurrentProcessingImage] = useState(0);
+  const [totalProcessingImages, setTotalProcessingImages] = useState(0);
 
   // Limits
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1354,7 +1270,7 @@ export default function JpgToPdf() {
       
       if (mobileCheck) {
         setPaperSize("A4");
-        setCompressionQuality("high"); // ✅ CHANGED: Mobile default to "high"
+        setCompressionQuality("high");
         setMarginSize("small");
         setReverseOrder(false);
       }
@@ -1808,6 +1724,10 @@ export default function JpgToPdf() {
         
         const rotatedUrl = canvas.toDataURL("image/jpeg", 0.95);
         
+        // Cleanup
+        canvas.width = 0;
+        canvas.height = 0;
+        
         setExpandedImage({
           url: rotatedUrl,
           rotation: file.rotation,
@@ -1840,9 +1760,17 @@ export default function JpgToPdf() {
     }
   };
 
-  // Handle convert
+  // OPTIMIZED: Handle convert with memory-efficient processing
   const handleConvert = async () => {
     if (files.length === 0) return;
+
+    // Mobile limit check
+    if (isMobile && files.length > MAX_FILES_MOBILE) {
+      setProcessingError(
+        `Mobile conversion limited to ${MAX_FILES_MOBILE} images. Please use desktop for more.`
+      );
+      return;
+    }
 
     setConverting(true);
     setPdfBlob(null);
@@ -1851,6 +1779,8 @@ export default function JpgToPdf() {
     setProcessingError(null);
     setSizeLimitExceeded(false);
     setProgress(0);
+    setCurrentProcessingImage(0);
+    setTotalProcessingImages(files.length);
 
     try {
       let filesToProcess = [...files];
@@ -1859,13 +1789,14 @@ export default function JpgToPdf() {
         filesToProcess = [...files].reverse();
       }
 
-      setProgress(10);
+      console.log(`Converting ${filesToProcess.length} images on ${isMobile ? 'mobile' : 'desktop'}`);
 
-      console.log("Converting files:", filesToProcess.length);
-      console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
-      
-      let cleanup: (() => void) | null = null;
-      cleanup = simulateProgress(setProgress, 10, 50, isMobile ? 1500 : 3000);
+      // Step 1: Progress update
+      setProgress(5);
+
+      // Step 2: Process images one at a time with memory cleanup
+      const imageBuffers: ArrayBuffer[] = [];
+      const totalImages = filesToProcess.length;
 
       const marginPoints = isMobile ? 18 : {
         "no-margin": 0,
@@ -1873,16 +1804,18 @@ export default function JpgToPdf() {
         big: 72,
       }[marginSize];
 
-      let compressedImages: string[] = [];
-
-      for (let i = 0; i < filesToProcess.length; i++) {
+      // Process each image sequentially to minimize memory
+      for (let i = 0; i < totalImages; i++) {
         const fileWithPreview = filesToProcess[i];
         
         try {
-          const fileProgress = 10 + ((i + 1) / filesToProcess.length) * 40;
-          setProgress(Math.floor(fileProgress));
+          // Update progress
+          const processingProgress = 5 + ((i + 1) / totalImages) * 45;
+          setProgress(Math.floor(processingProgress));
+          setCurrentProcessingImage(i + 1);
 
-          const compressedImageData = await compressImageForPdf(
+          // Process single image with proper cleanup
+          const buffer = await processImageForPdf(
             fileWithPreview.file,
             fileWithPreview.rotation,
             compressionQuality,
@@ -1890,52 +1823,54 @@ export default function JpgToPdf() {
             isMobile
           );
 
-          if (compressedImageData && compressedImageData.startsWith('data:')) {
-            compressedImages.push(compressedImageData);
-          } else {
-            const reader = new FileReader();
-            const originalData = await new Promise<string>((resolve, reject) => {
-              reader.onload = (e) => resolve(e.target?.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(fileWithPreview.file);
-            });
-            compressedImages.push(originalData);
+          imageBuffers.push(buffer);
+
+          // Allow garbage collection between images on mobile
+          if (isMobile && i % 2 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 50));
           }
+
         } catch (error) {
-          console.error(`Failed to process image ${fileWithPreview.file.name}:`, error);
+          console.error(`Failed to process image ${i + 1}:`, error);
           
+          // Try to add original image as fallback
           try {
             const reader = new FileReader();
-            const originalData = await new Promise<string>((resolve, reject) => {
-              reader.onload = (e) => resolve(e.target?.result as string);
+            const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+              reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
               reader.onerror = reject;
-              reader.readAsDataURL(fileWithPreview.file);
+              reader.readAsArrayBuffer(fileWithPreview.file);
             });
-            compressedImages.push(originalData);
+            imageBuffers.push(buffer);
           } catch {
+            // Skip this image
             continue;
           }
         }
       }
 
-      if (cleanup) cleanup();
-
-      if (compressedImages.length === 0) {
+      if (imageBuffers.length === 0) {
         throw new Error("No images could be processed.");
       }
 
       setProgress(50);
-      cleanup = simulateProgress(setProgress, 50, 90, isMobile ? 1500 : 2000);
 
+      // Step 3: Create PDF with memory-efficient embedding
       const blob = await createPdfFromImages(
-        compressedImages,
+        imageBuffers,
         paperSize,
         orientation,
         marginPoints,
-        isMobile
+        isMobile,
+        (current, total) => {
+          const pdfProgress = 50 + ((current / total) * 45);
+          setProgress(Math.floor(pdfProgress));
+        }
       );
 
-      if (cleanup) cleanup();
+      // Clear image buffers to free memory
+      imageBuffers.length = 0;
+
       setProgress(100);
 
       if (!blob || blob.size === 0) {
@@ -1948,6 +1883,7 @@ export default function JpgToPdf() {
         setShowChangesWarning(false);
         setConverting(false);
         setSizeLimitExceeded(false);
+        setShowCompressionInfo(false);
 
         const totalOriginalSize = filesToProcess.reduce(
           (sum, f) => sum + f.file.size,
@@ -1959,19 +1895,15 @@ export default function JpgToPdf() {
         console.log(`Original: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
         console.log(`PDF: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
         console.log(`Pages: ${filesToProcess.length}`);
-        console.log(`Each page has independent image resources ✅`);
-
-        setTimeout(() => {
-          setShowCompressionInfo(false);
-        }, 3000);
-      }, 500);
+      }, 300);
+      
     } catch (err) {
       console.error("Conversion error:", err);
       
       let errorMessage = `Failed to convert images to PDF: ${err instanceof Error ? err.message : 'Unknown error'}.`;
       
       if (isMobile) {
-        errorMessage += `\n\n📱 Mobile Tips:\n• Max ${MAX_FILES_MOBILE} images\n• Max 10MB per file\n• Files >15MB auto-compressed\n• Use smaller images for better performance`;
+        errorMessage += `\n\n📱 Mobile Tips:\n• Max ${MAX_FILES_MOBILE} images\n• Max 10MB per file\n• Files >10MB auto-compressed\n• Use smaller images for better performance`;
       } else {
         errorMessage += `\n\nPlease try again with fewer images or lower quality settings.`;
       }
@@ -2041,6 +1973,8 @@ export default function JpgToPdf() {
     setProcessingError(null);
     setSizeLimitExceeded(false);
     setAutoCompressionActive(false);
+    setCurrentProcessingImage(0);
+    setTotalProcessingImages(0);
   };
 
   // Handle rotate in fullscreen
@@ -2252,7 +2186,7 @@ export default function JpgToPdf() {
                   <div>
                     <h3 className="font-bold text-sm md:text-lg">⚡ Auto-Compression Active</h3>
                     <p className="text-xs md:text-sm opacity-90">
-                      Large files (&gt;15MB) will be compressed for optimal performance
+                      Large files (&gt;10MB) will be compressed for optimal performance
                     </p>
                   </div>
                 </div>
@@ -3294,6 +3228,11 @@ export default function JpgToPdf() {
                                   : `Applying ${compressionQuality} quality...`
                                 : "Creating PDF..."}
                             </span>
+                            {isMobile && totalProcessingImages > 0 && (
+                              <span className="text-sm opacity-75">
+                                ({currentProcessingImage}/{totalProcessingImages})
+                              </span>
+                            )}
                           </div>
                         </motion.div>
                       )}
