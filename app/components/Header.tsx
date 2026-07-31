@@ -41,6 +41,7 @@ export default function Header() {
     { name: "Remove Pages", href: "remove-pages" },
     { name: "Rotate PDF", href: "rotate-pdf" },
     { name: "Add Pages & Images to PDF", href: "add-pages-and-images-to-pdf" },
+     { name: "PDF filter", href: "pdf-filter" },
   ];
 
   // ✅ Image Tools

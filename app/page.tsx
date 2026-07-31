@@ -104,6 +104,17 @@ export default function Home() {
   path: "/tools/add-pages-and-images-to-pdf",
 },
 
+{
+  id: "pdf-filter",
+  name: "PDF filter",
+  description: "Apply filters and visual effects to PDF files online",
+  category: "pdf",
+  icon: "📄✨",
+  color: "from-purple-500 to-pink-600",
+  href: "/pdf-filter",
+  path: "/tools/pdf-filter",
+},
+
 
     // Image Tools
 
