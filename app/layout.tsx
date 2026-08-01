@@ -6,7 +6,6 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Script from "next/script";
 
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -23,38 +22,30 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://pdfswift.online"),
 
-
- // ✅ GOOGLE SEARCH CONSOLE VERIFICATION
+  // ✅ GOOGLE SEARCH CONSOLE VERIFICATION
   verification: {
     google: "GWJBBJ9dBrK1D1Q9Uiwv42KrnsCFfw4Sy3qtmMGBlrY",
   },
 
-
-
-
-
-
-  title: {
-    default: "PDFSwift – Free Online PDF Tools to Edit, Convert & Compress",
-    template: "%s | PDFSwift",
-  },
+  // FIXED: Use simple string instead of object
+  title: "PDFSwift – Free Online PDF Tools to Edit, Convert & Compress",
+  
   description:
     "PDFSwift is a powerful, free online PDF tool designed to help you convert, compress, merge, split, rotate, and edit PDF files quickly and securely — without any signup or installation required.",
   keywords: [
-
-  "PDF converter",
-  "merge PDF online",
-  "split PDF online",
-  "compress PDF online",
-  "JPG to PDF converter",
-  "PDF to JPG converter",
-  "online PDF tools",
-  "free PDF tools",
+    "PDF converter",
+    "merge PDF online",
+    "split PDF online",
+    "compress PDF online",
+    "JPG to PDF converter",
+    "PDF to JPG converter",
+    "online PDF tools",
+    "free PDF tools",
     "PDF editor online",
-  "secure PDF editor",
-  "browser based PDF tools",
-  "edit PDF without signup"
-],
+    "secure PDF editor",
+    "browser based PDF tools",
+    "edit PDF without signup"
+  ],
 
   authors: [{ name: "PDFSwift Team" }],
   creator: "PDFSwift",
@@ -126,7 +117,7 @@ export default function RootLayout({
     url: "https://pdfswift.online",
     potentialAction: {
       "@type": "SearchAction",
-      target: "https://pdfswift.online/search?q={search_term_string}",
+      "target": "https://pdfswift.online/search?q={search_term_string}",
       "query-input": "required name=search_term_string",
     },
   };
@@ -139,8 +130,8 @@ export default function RootLayout({
     url: "https://pdfswift.online",
     logo: "https://pdfswift.online/icons/favicon.ico",
     sameAs: [
-      "https://twitter.com/pdfswift", // optional
-      "https://github.com/pdfswift",  // optional
+      "https://twitter.com/pdfswift",
+      "https://github.com/pdfswift",
     ],
   };
 
@@ -168,55 +159,25 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
 
-
-
-
-            {/* ✅ Google Analytics (GA4) */}
-
-         
-         <Script
+        {/* ✅ Google Analytics (GA4) */}
+        <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-PRWCRV02GZ"
           strategy="afterInteractive"
-          />
-           <Script id="google-analytics" strategy="afterInteractive">
-           {`
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', 'G-PRWCRV02GZ');
-
           `}
         </Script>
-
-  
-
-
-
-
-
-
-
-        
       </head>
 
-
-
-
-        
-
-        
-
-
-
-
-
-
-
-
-       <body
+      <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900`}
-       >
+      >
         <Header />
         <main className="min-h-screen">{children}</main>
         <Footer />
