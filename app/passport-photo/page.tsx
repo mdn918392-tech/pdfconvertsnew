@@ -246,210 +246,19 @@ const layoutOptions = [
   { id: "6x4", name: "6×4 Sheet", grid: "6×4", value: 24, icon: Columns },
 ];
 
-// COMPREHENSIVE PAPER SIZES (All standard sizes)
+// PAPER SIZES - Only A4 and Custom
 const paperSizes = [
-  // Standard Photo Sizes
-  {
-    id: "4x6",
-    name: "4×6 inches",
-    width: 1200,
-    height: 1800,
-    description: "Standard photo print size",
-    category: "photo",
-    printWidth: 4,
-    printHeight: 6,
-    unit: "inches"
-  },
-  {
-    id: "5x7",
-    name: "5×7 inches",
-    width: 1500,
-    height: 2100,
-    description: "Medium photo print",
-    category: "photo",
-    printWidth: 5,
-    printHeight: 7,
-    unit: "inches"
-  },
-  {
-    id: "6x8",
-    name: "6×8 inches",
-    width: 1800,
-    height: 2400,
-    description: "Large photo print",
-    category: "photo",
-    printWidth: 6,
-    printHeight: 8,
-    unit: "inches"
-  },
-  {
-    id: "8x10",
-    name: "8×10 inches",
-    width: 2400,
-    height: 3000,
-    description: "Portrait photo size",
-    category: "photo",
-    printWidth: 8,
-    printHeight: 10,
-    unit: "inches"
-  },
-  {
-    id: "10x12",
-    name: "10×12 inches",
-    width: 3000,
-    height: 3600,
-    description: "Large portrait size",
-    category: "photo",
-    printWidth: 10,
-    printHeight: 12,
-    unit: "inches"
-  },
-  // ISO A Series
-  {
-    id: "a8",
-    name: "A8 (52×74 mm)",
-    width: 614,
-    height: 874,
-    description: "Smallest A size",
-    category: "iso",
-    printWidth: 52,
-    printHeight: 74,
-    unit: "mm"
-  },
-  {
-    id: "a7",
-    name: "A7 (74×105 mm)",
-    width: 874,
-    height: 1241,
-    description: "Small size",
-    category: "iso",
-    printWidth: 74,
-    printHeight: 105,
-    unit: "mm"
-  },
-  {
-    id: "a6",
-    name: "A6 (105×148 mm)",
-    width: 1241,
-    height: 1748,
-    description: "Postcard size",
-    category: "iso",
-    printWidth: 105,
-    printHeight: 148,
-    unit: "mm"
-  },
-  {
-    id: "a5",
-    name: "A5 (148×210 mm)",
-    width: 1748,
-    height: 2480,
-    description: "Notebook size",
-    category: "iso",
-    printWidth: 148,
-    printHeight: 210,
-    unit: "mm"
-  },
   {
     id: "a4",
     name: "A4 (210×297 mm)",
     width: 2480,
     height: 3508,
-    description: "Standard office paper",
-    category: "iso",
+    description: "Standard A4 paper",
+    category: "standard",
     printWidth: 210,
     printHeight: 297,
     unit: "mm"
   },
-  {
-    id: "a3",
-    name: "A3 (297×420 mm)",
-    width: 3508,
-    height: 4961,
-    description: "Large format printing",
-    category: "iso",
-    printWidth: 297,
-    printHeight: 420,
-    unit: "mm"
-  },
-  {
-    id: "a2",
-    name: "A2 (420×594 mm)",
-    width: 4961,
-    height: 7016,
-    description: "Poster size",
-    category: "iso",
-    printWidth: 420,
-    printHeight: 594,
-    unit: "mm"
-  },
-  {
-    id: "a1",
-    name: "A1 (594×841 mm)",
-    width: 7016,
-    height: 9933,
-    description: "Large poster",
-    category: "iso",
-    printWidth: 594,
-    printHeight: 841,
-    unit: "mm"
-  },
-  {
-    id: "a0",
-    name: "A0 (841×1189 mm)",
-    width: 9933,
-    height: 14043,
-    description: "Architectural drawings",
-    category: "iso",
-    printWidth: 841,
-    printHeight: 1189,
-    unit: "mm"
-  },
-  // North American Paper Sizes
-  {
-    id: "letter",
-    name: "Letter (8.5×11 in)",
-    width: 2550,
-    height: 3300,
-    description: "US Letter paper",
-    category: "na",
-    printWidth: 8.5,
-    printHeight: 11,
-    unit: "inches"
-  },
-  {
-    id: "legal",
-    name: "Legal (8.5×14 in)",
-    width: 2550,
-    height: 4200,
-    description: "US Legal paper",
-    category: "na",
-    printWidth: 8.5,
-    printHeight: 14,
-    unit: "inches"
-  },
-  {
-    id: "tabloid",
-    name: "Tabloid (11×17 in)",
-    width: 3300,
-    height: 5100,
-    description: "US Tabloid/ANSI B",
-    category: "na",
-    printWidth: 11,
-    printHeight: 17,
-    unit: "inches"
-  },
-  {
-    id: "ledger",
-    name: "Ledger (17×11 in)",
-    width: 5100,
-    height: 3300,
-    description: "US Ledger (landscape)",
-    category: "na",
-    printWidth: 17,
-    printHeight: 11,
-    unit: "inches"
-  },
-  // Custom Size
   {
     id: "custom",
     name: "Custom Size",
@@ -900,9 +709,8 @@ export default function PassportPhotoMaker() {
   const [customHeight, setCustomHeight] = useState<number>(3508); // Default A4 height
   const [spacing, setSpacing] = useState(20);
   const [margin, setMargin] = useState(50);
-  const [isHD, setIsHD] = useState(true);
+  const [isHighQuality, setIsHighQuality] = useState(true);
   const [dpi, setDpi] = useState(300);
-  const [selectedPaperCategory, setSelectedPaperCategory] = useState<string>("all"); // "all", "iso", "na", "photo"
 
   // New states for dynamic photo count and sheet management
   const [photoCount, setPhotoCount] = useState<number>(1);
@@ -913,12 +721,6 @@ export default function PassportPhotoMaker() {
     rows: number;
     photosPerSheet: number;
   }>({ cols: 1, rows: 1, photosPerSheet: 1 });
-
-  // Filter paper sizes by category
-  const filteredPaperSizes = paperSizes.filter((paper) => {
-    if (selectedPaperCategory === "all") return true;
-    return paper.category === selectedPaperCategory;
-  });
 
   // Calculate effective paper dimensions
   const getEffectivePaperDimensions = () => {
@@ -949,7 +751,7 @@ export default function PassportPhotoMaker() {
     const dimensions = `${selectedSize.width}x${selectedSize.height}`;
     const countryCode = photoType.replace(/\s+/g, "_").toLowerCase();
     const layoutText = isGrid ? `_${layout}_grid` : "_single";
-    const qualityText = isHD ? "_hd" : "_standard";
+    const qualityText = isHighQuality ? "_high_quality" : "_standard";
     const sheetText = sheetNumber
       ? `_sheet${sheetNumber}_of_${totalSheets}`
       : "";
@@ -1076,12 +878,12 @@ export default function PassportPhotoMaker() {
     setShowFeatures(false);
 
     try {
-      // Calculate DPI scaling factor for HD quality
-      const scaleFactor = isHD ? dpi / 96 : 1;
+      // Calculate DPI scaling factor for high quality
+      const scaleFactor = isHighQuality ? dpi / 96 : 1;
       const scaledWidth = Math.floor(selectedSize.width * scaleFactor);
       const scaledHeight = Math.floor(selectedSize.height * scaleFactor);
 
-      // Step 1: Resize image to passport size with HD quality
+      // Step 1: Resize image to passport size with high quality
       setProgress(10);
       const resizedBlob = await resizeImage(
         file,
@@ -1164,7 +966,7 @@ export default function PassportPhotoMaker() {
 
       img.onload = () => {
         // Set canvas dimensions with DPI scaling
-        const scaleFactor = isHD ? dpi / 96 : 1;
+        const scaleFactor = isHighQuality ? dpi / 96 : 1;
         canvas.width = Math.floor(selectedSize.width * scaleFactor);
         canvas.height = Math.floor(selectedSize.height * scaleFactor);
 
@@ -1281,20 +1083,11 @@ export default function PassportPhotoMaker() {
     { name: "Light Gray", value: "#f0f0f0" },
   ];
 
-  // DPI options for HD quality
+  // DPI options for high quality
   const dpiOptions = [
     { value: 150, label: "150 DPI (Good)" },
     { value: 300, label: "300 DPI (Excellent - Recommended)" },
     { value: 600, label: "600 DPI (Professional)" },
-  ];
-
-  // Paper size categories
-  const paperCategories = [
-    { id: "all", name: "All Sizes" },
-    { id: "iso", name: "ISO A Series" },
-    { id: "na", name: "North American" },
-    { id: "photo", name: "Photo Sizes" },
-    { id: "custom", name: "Custom" },
   ];
 
   return (
@@ -1369,7 +1162,7 @@ export default function PassportPhotoMaker() {
   Passport Size Photo Maker Online Free
   <br className="hidden sm:block" />
   <span className="font-extrabold">
-    – HD & Print Ready
+    – High Quality & Print Ready
   </span>
   <span className="block text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mt-2">
     | PDFSwift
@@ -1380,7 +1173,7 @@ export default function PassportPhotoMaker() {
                   Create passport size photos online instantly with PDFSwift. Choose official sizes for USA, India, UK, Canada & more. Select background color, DPI, and layouts to print multiple photos per page. Free, secure, and no signup required.
                   options
                   <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    Official sizes • Multiple photos per page • HD quality •
+                    Official sizes • Multiple photos per page • High quality •
                     Print-ready
                   </span>
                 </p>
@@ -1534,7 +1327,7 @@ export default function PassportPhotoMaker() {
                       <input
                         type="range"
                         min="1"
-                        max={maxPhotosPerSheet * 5} // Allow up to 5 sheets worth of photos
+                        max={maxPhotosPerSheet * 5}
                         value={photoCount}
                         onChange={(e) =>
                           setPhotoCount(parseInt(e.target.value))
@@ -1564,7 +1357,7 @@ export default function PassportPhotoMaker() {
                       </div>
                     </div>
 
-                    {/* Paper Size Selection */}
+                    {/* Paper Size Selection - Only A4 and Custom */}
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-medium text-gray-700 dark:text-gray-300">
@@ -1575,26 +1368,9 @@ export default function PassportPhotoMaker() {
                         </span>
                       </div>
 
-                      {/* Paper Category Tabs */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {paperCategories.map((category) => (
-                          <button
-                            key={category.id}
-                            onClick={() => setSelectedPaperCategory(category.id)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                              selectedPaperCategory === category.id
-                                ? "bg-purple-500 text-white"
-                                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                            }`}
-                          >
-                            {category.name}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Paper Size Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-2">
-                        {filteredPaperSizes.map((paperSize) => (
+                      {/* Paper Size Grid - Only A4 and Custom */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {paperSizes.map((paperSize) => (
                           <button
                             key={paperSize.id}
                             onClick={() => handlePaperSizeSelect(paperSize)}
@@ -1610,10 +1386,12 @@ export default function PassportPhotoMaker() {
                             <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                               {paperSize.description}
                             </div>
-                            <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                              {paperSize.width} × {paperSize.height}px
-                            </div>
-                            {paperSize.category !== "custom" && (
+                            {paperSize.id !== "custom" && (
+                              <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                {paperSize.width} × {paperSize.height}px
+                              </div>
+                            )}
+                            {paperSize.id !== "custom" && (
                               <div className="text-xs text-gray-500 dark:text-gray-500">
                                 {paperSize.printWidth} × {paperSize.printHeight} {paperSize.unit}
                               </div>
@@ -1762,34 +1540,34 @@ export default function PassportPhotoMaker() {
                   </h3>
 
                   <div className="space-y-6">
-                    {/* HD Quality Toggle */}
+                    {/* High Quality Toggle */}
                     <div className="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 rounded-lg">
                       <div>
                         <h4 className="font-medium text-gray-700 dark:text-gray-300">
-                          High Definition (HD)
+                          High Quality Mode
                         </h4>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {isHD
+                          {isHighQuality
                             ? "Enabled - Professional print quality"
                             : "Disabled - Standard quality"}
                         </p>
                       </div>
                       <button
-                        onClick={() => setIsHD(!isHD)}
+                        onClick={() => setIsHighQuality(!isHighQuality)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                          isHD ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                          isHighQuality ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
                         }`}
                       >
                         <span
                           className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                            isHD ? "translate-x-6" : "translate-x-1"
+                            isHighQuality ? "translate-x-6" : "translate-x-1"
                           }`}
                         />
                       </button>
                     </div>
 
-                    {/* DPI Selection (Only shown when HD is enabled) */}
-                    {isHD && (
+                    {/* DPI Selection (Only shown when High Quality is enabled) */}
+                    {isHighQuality && (
                       <div>
                         <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
                           Print Resolution (DPI)
@@ -1995,7 +1773,7 @@ export default function PassportPhotoMaker() {
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
                       Layout: {layoutCalculation.cols} ×{" "}
                       {layoutCalculation.rows} per sheet •{" "}
-                      {isHD ? `${dpi} DPI HD` : "Standard"} quality • Ready to
+                      {isHighQuality ? `${dpi} DPI High Quality` : "Standard"} quality • Ready to
                       print
                     </p>
                   </div>
@@ -2081,8 +1859,8 @@ export default function PassportPhotoMaker() {
                     },
                     {
                       icon: Printer,
-                      title: "Multiple Paper Sizes",
-                      desc: "Supports A4, A3, Letter, Legal, Tabloid, and custom sizes for printing",
+                      title: "A4 & Custom Paper Support",
+                      desc: "Print on A4 paper or create custom size sheets for your passport photos",
                       gradient: "from-green-500 to-emerald-600",
                       bg: "from-green-50 to-emerald-50",
                       border: "border-green-200",
@@ -2200,7 +1978,7 @@ export default function PassportPhotoMaker() {
                         <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
                         <h3 className="font-semibold text-lg">Generate Photos</h3>
                         <p className="text-gray-600 text-sm mt-2">
-                          Create HD, print-ready passport photo sheets instantly.
+                          Create high quality, print-ready passport photo sheets instantly.
                         </p>
                       </div>
 
@@ -2277,7 +2055,7 @@ export default function PassportPhotoMaker() {
                     Frequently Asked Questions
                   </h2>
                   <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                    Everything you need to know about editing PDFs online
+                    Everything you need to know about creating passport photos online
                   </p>
                 </div>
 

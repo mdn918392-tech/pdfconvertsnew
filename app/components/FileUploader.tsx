@@ -12,8 +12,8 @@ interface FileUploaderProps {
   existingFilesCount?: number; // नया prop
   hasExistingPdf?: boolean;    // नया prop
   isMobile?: boolean;
-  maxFiles?: number; // Add this line - maximum number of files allowed
-  unlimited?: boolean; // नया prop - बस यह add किया
+  maxFiles?: number; // maximum number of files allowed
+  unlimited?: boolean; // नया prop
 }
 
 export default function FileUploader({
@@ -21,39 +21,34 @@ export default function FileUploader({
   multiple = false,
   onFilesSelected,
   maxSize = 1024,
-  maxFiles, // Add this line
-  unlimited = false, // नया prop default false
+  maxFiles,
+  unlimited = false,
 }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [deviceMaxSize, setDeviceMaxSize] = useState(maxSize);
-  const [isDesktop, setIsDesktop] = useState(false); // नया state
+  const [isDesktop, setIsDesktop] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Device detection - runs only on client side
   useEffect(() => {
     const checkDevice = () => {
-      const isMobileDevice = window.innerWidth <= 768; // Mobile detection
+      const isMobileDevice = window.innerWidth <= 768;
       const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       );
       
-      // Phone के लिए 35MB, laptop/desktop के लिए 100MB
       const calculatedMaxSize = (isMobileDevice || isMobileUserAgent) ? 35 : 100;
       setDeviceMaxSize(calculatedMaxSize);
-      
-      // Desktop detection for alert
       setIsDesktop(!isMobileDevice && !isMobileUserAgent);
     };
 
     checkDevice();
-    
-    // Optional: Listen to window resize for responsiveness
     window.addEventListener('resize', checkDevice);
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
   //
-  // 3️⃣ HANDLE FILE SELECTION
+  // HANDLE FILE SELECTION
   //
   const handleFiles = useCallback(
     (newFilesList: FileList | null) => {
@@ -74,29 +69,32 @@ export default function FileUploader({
 
       if (validNewFiles.length === 0) return;
 
-      // Desktop पर alert न दिखाएं
-      if (!isDesktop && !unlimited) {
+      // ⚠️ ONLY show the alert when limit is EXCEEDED
+      if (!unlimited && maxFiles && validNewFiles.length > maxFiles) {
         alert(
           `You selected ${validNewFiles.length} files.\n\n` +
           `Mobile devices support a maximum of ${maxFiles} files at a time for better performance.\n\n` +
-          `👉 Tip: Please use a Desktop/Laptop browser to upload more files (up to 500 files).`
+          `⚠️ Tip: Please use a Desktop/Laptop browser to upload more files (up to 500 files).`
         );
-      }
-
-      // Call parent callback immediately with the new files
-      if (multiple) {
-        onFilesSelected(validNewFiles);
+        // Only take first maxFiles files
+        const limitedFiles = validNewFiles.slice(0, maxFiles);
+        onFilesSelected(limitedFiles);
       } else {
-        onFilesSelected(validNewFiles.slice(0, 1));
+        // No limit exceeded, pass all files
+        if (multiple) {
+          onFilesSelected(validNewFiles);
+        } else {
+          onFilesSelected(validNewFiles.slice(0, 1));
+        }
       }
 
       if (inputRef.current) inputRef.current.value = "";
     },
-    [multiple, onFilesSelected, deviceMaxSize, maxFiles, unlimited, isDesktop] // isDesktop dependency add की
+    [multiple, onFilesSelected, deviceMaxSize, maxFiles, unlimited]
   );
 
   //
-  // 5️⃣ DRAG & DROP HANDLERS
+  // DRAG & DROP HANDLERS
   //
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();

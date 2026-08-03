@@ -215,161 +215,6 @@ interface ResizeOptions {
   format: "jpg" | "png" | "webp";
 }
 
-// Preset Sizes with HD categories
-const presetSizes = [
-  // Mobile & Small Sizes
-  {
-    name: "Thumbnail",
-    width: 150,
-    height: 150,
-    description: "Profile picture",
-    category: "mobile",
-    icon: Smartphone,
-  },
-  {
-    name: "Small",
-    width: 640,
-    height: 480,
-    description: "Web use",
-    category: "mobile",
-    icon: Smartphone,
-  },
-
-  // Tablet Sizes
-  {
-    name: "Medium",
-    width: 1024,
-    height: 768,
-    description: "Social media",
-    category: "tablet",
-    icon: Tablet,
-  },
-  {
-    name: "iPad Pro",
-    width: 1366,
-    height: 1024,
-    description: "Tablet display",
-    category: "tablet",
-    icon: Tablet,
-  },
-
-  // HD Resolutions
-  {
-    name: "HD Ready",
-    width: 1280,
-    height: 720,
-    description: "720p HD",
-    category: "hd",
-    icon: Monitor,
-  },
-  {
-    name: "Full HD",
-    width: 1920,
-    height: 1080,
-    description: "1080p Full HD",
-    category: "hd",
-    icon: Tv,
-  },
-  {
-    name: "2K QHD",
-    width: 2560,
-    height: 1440,
-    description: "1440p Quad HD",
-    category: "hd",
-    icon: Monitor,
-  },
-  {
-    name: "4K UHD",
-    width: 3840,
-    height: 2160,
-    description: "2160p Ultra HD",
-    category: "hd",
-    icon: Tv,
-  },
-  {
-    name: "8K UHD",
-    width: 7680,
-    height: 4320,
-    description: "4320p 8K Ultra HD",
-    category: "hd",
-    icon: Tv,
-  },
-
-  // Social Media
-  {
-    name: "Instagram Post",
-    width: 1080,
-    height: 1080,
-    description: "Square format",
-    category: "social",
-    icon: Camera,
-  },
-  {
-    name: "Instagram Story",
-    width: 1080,
-    height: 1920,
-    description: "Vertical format",
-    category: "social",
-    icon: Smartphone,
-  },
-  {
-    name: "Facebook Cover",
-    width: 820,
-    height: 312,
-    description: "Facebook cover",
-    category: "social",
-    icon: Camera,
-  },
-  {
-    name: "Twitter Header",
-    width: 1500,
-    height: 500,
-    description: "Twitter/X header",
-    category: "social",
-    icon: Camera,
-  },
-  {
-    name: "YouTube Thumbnail",
-    width: 1280,
-    height: 720,
-    description: "YouTube thumbnail",
-    category: "social",
-    icon: Film,
-  },
-];
-
-// Preset categories with colors and icons
-const presetCategories = [
-  {
-    id: "mobile",
-    name: "Mobile & Small",
-    icon: Smartphone,
-    color: "from-blue-500 to-cyan-500",
-    bgColor: "bg-blue-50 dark:bg-blue-900/20",
-  },
-  {
-    id: "tablet",
-    name: "Tablet",
-    icon: Tablet,
-    color: "from-purple-500 to-pink-500",
-    bgColor: "bg-purple-50 dark:bg-purple-900/20",
-  },
-  {
-    id: "hd",
-    name: "HD Resolutions",
-    icon: Monitor,
-    color: "from-green-500 to-emerald-500",
-    bgColor: "bg-green-50 dark:bg-green-900/20",
-  },
-  {
-    id: "social",
-    name: "Social Media",
-    icon: Camera,
-    color: "from-orange-500 to-red-500",
-    bgColor: "bg-orange-50 dark:bg-orange-900/20",
-  },
-];
-
 // --- Real-time Preview Component ---
 const RealTimePreview = ({
   file,
@@ -897,7 +742,6 @@ export default function ResizeImage() {
   const [downloadNotifications, setDownloadNotifications] = useState<
     DownloadNotification[]
   >([]);
-  const [activePresetCategory, setActivePresetCategory] = useState<string>("all");
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   // Resize options state
@@ -908,12 +752,6 @@ export default function ResizeImage() {
     quality: 90,
     format: "jpg" as const,
   });
-
-  // Filter presets based on active category
-  const filteredPresets = useMemo(() => {
-    if (activePresetCategory === "all") return presetSizes;
-    return presetSizes.filter(preset => preset.category === activePresetCategory);
-  }, [activePresetCategory]);
 
   // Generate unique filename
   const generateUniqueFileName = (baseName: string, format: string) => {
@@ -1027,14 +865,6 @@ export default function ResizeImage() {
     setShowFeatures(true);
   };
 
-  const handlePresetSelect = (preset: (typeof presetSizes)[0]) => {
-    setResizeOptions((prev) => ({
-      ...prev,
-      width: preset.width,
-      height: preset.height,
-    }));
-  };
-
   const hasFile = file !== null;
   const hasResult = resizedFile !== null;
   const isReadyToResize = hasFile && !hasResult && !resizing;
@@ -1098,7 +928,7 @@ export default function ResizeImage() {
                 </motion.div>
 
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-3 md:mb-4 bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 bg-clip-text text-transparent">
-                Resize Image Online Free – Scale & Convert JPG, PNG & WebP | PDFSwift
+                  Resize Image Online Free – Resize JPG, PNG & WebP | PDFSwift
                 </h1>
 
                 <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
@@ -1106,7 +936,7 @@ export default function ResizeImage() {
                   custom dimensions, maintain aspect ratio, and resize images
                   securely without signup.
                   <span className="block text-green-600 dark:text-green-400 font-medium mt-1 md:mt-2 text-sm md:text-base">
-                    Full HD (1920x1080), 4K UHD, Mobile & Social Media Presets
+                    Full HD (1920×1080), 4K UHD, Mobile & Social Media Presets
                   </span>
                 </p>
               </div>
@@ -1124,8 +954,8 @@ export default function ResizeImage() {
                   {[
                     {
                       icon: Monitor,
-                      title: "HD & 4K Support",
-                      desc: "Resize to Full HD (1920x1080), 2K, 4K, and even 8K resolutions",
+                      title: "High Resolution Support",
+                      desc: "Resize to standard resolutions like 1920×1080, 2560×1440, and 3840×2160 pixels",
                       gradient: "from-green-500 to-emerald-600",
                       bg: "from-green-50 to-emerald-50",
                       border: "border-green-200",
@@ -1233,247 +1063,176 @@ export default function ResizeImage() {
                 )}
               </div>
 
-              {/* --- Real-time Preview --- */}
+              {/* --- Two Column Layout: Resize Options (Left) + Live Preview (Right) --- */}
               {hasFile && file && (
-                <div className="mb-6 md:mb-8 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-4 md:p-6 border border-blue-200 dark:border-blue-700">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                      <Eye className="w-5 h-5 text-blue-500" />
-                      Live Preview
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 md:mb-8">
+                  {/* Left Column - Resize Options */}
+                  <div className="bg-gradient-to-br from-gray-50 to-green-50 dark:from-gray-800 dark:to-green-950/20 rounded-xl p-4 md:p-6 border border-gray-200 dark:border-gray-700 order-2 lg:order-1">
+                    <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <Maximize2 className="w-5 h-5 text-green-500" />
+                      Resize Options
                     </h3>
-                  </div>
 
-                  <RealTimePreview
-                    file={file}
-                    width={resizeOptions.width}
-                    height={resizeOptions.height}
-                    maintainAspectRatio={resizeOptions.maintainAspectRatio}
-                    format={resizeOptions.format}
-                    quality={resizeOptions.quality}
-                  />
+                    <div className="space-y-6">
+                      {/* Custom Dimensions */}
+                      <div>
+                        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3 text-base">
+                          Custom Dimensions
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                              Width (px)
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10000"
+                              value={resizeOptions.width}
+                              onChange={(e) =>
+                                setResizeOptions((prev) => ({
+                                  ...prev,
+                                  width: parseInt(e.target.value) || 1,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-900/50 text-base"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                              Height (px)
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10000"
+                              value={resizeOptions.height}
+                              onChange={(e) =>
+                                setResizeOptions((prev) => ({
+                                  ...prev,
+                                  height: parseInt(e.target.value) || 1,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-900/50 text-base"
+                            />
+                          </div>
+                        </div>
+                      </div>
 
-                  <div className="mt-4 text-sm text-blue-600 dark:text-blue-400">
-                    <p className="flex items-center gap-2">
-                      <RefreshCw className="w-3 h-3" />
-                      Preview updates automatically as you change settings
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* --- Resize Options --- */}
-              {hasFile && (
-                <div className="mb-8 md:mb-10 bg-gradient-to-br from-gray-50 to-green-50 dark:from-gray-800 dark:to-green-950/20 rounded-xl p-4 md:p-6 border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <Maximize2 className="w-5 h-5 text-green-500" />
-                    Resize Options
-                  </h3>
-
-                  <div className="space-y-8">
-                    {/* Preset Categories Filter */}
-                    <div>
-                      <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3 text-base">
-                        <Grid className="w-4 h-4 inline mr-2" />
-                        Preset Categories
-                      </h4>
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      {/* Aspect Ratio Toggle */}
+                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-green-50 dark:from-gray-800 dark:to-green-900/20 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div>
+                          <h4 className="font-medium text-gray-700 dark:text-gray-300 text-base">
+                            Maintain Aspect Ratio
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Prevent image distortion
+                          </p>
+                        </div>
                         <button
-                          onClick={() => setActivePresetCategory("all")}
-                          className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                            activePresetCategory === "all"
-                              ? "bg-gradient-to-r from-gray-800 to-gray-900 text-white border-gray-900"
-                              : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                          onClick={() =>
+                            setResizeOptions((prev) => ({
+                              ...prev,
+                              maintainAspectRatio: !prev.maintainAspectRatio,
+                            }))
+                          }
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            resizeOptions.maintainAspectRatio
+                              ? "bg-green-500"
+                              : "bg-gray-300 dark:bg-gray-700"
                           }`}
                         >
-                          All Presets
-                        </button>
-                        {presetCategories.map((category) => (
-                          <button
-                            key={category.id}
-                            onClick={() => setActivePresetCategory(category.id)}
-                            className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all flex items-center gap-1.5 ${
-                              activePresetCategory === category.id
-                                ? `bg-gradient-to-r ${category.color} text-white border-transparent`
-                                : `${category.bgColor} text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600`
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                              resizeOptions.maintainAspectRatio
+                                ? "translate-x-6"
+                                : "translate-x-1"
                             }`}
-                          >
-                            <category.icon className="w-3.5 h-3.5" />
-                            {category.name}
-                          </button>
-                        ))}
+                          />
+                        </button>
                       </div>
 
-                      {/* Preset Sizes Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {filteredPresets.map((preset, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handlePresetSelect(preset)}
-                            className={`p-3 rounded-lg border transition-all duration-300 text-left group ${
-                              resizeOptions.width === preset.width &&
-                              resizeOptions.height === preset.height
-                                ? "border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md"
-                                : "border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700 hover:shadow-lg"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="p-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                <preset.icon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                              </div>
-                              <div className="font-medium text-sm text-gray-900 dark:text-white">
-                                {preset.name}
-                              </div>
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {preset.width} × {preset.height}
-                            </div>
-                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                              {preset.description}
-                            </div>
-                          </button>
-                        ))}
+                      {/* Output Format */}
+                      <div>
+                        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3 text-base">
+                          Output Format
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {(["jpg", "png", "webp"] as const).map((format) => (
+                            <button
+                              key={format}
+                              onClick={() =>
+                                setResizeOptions((prev) => ({
+                                  ...prev,
+                                  format,
+                                }))
+                              }
+                              className={`px-3 py-2 rounded-lg border font-medium text-sm ${
+                                resizeOptions.format === format
+                                  ? "border-green-500 bg-green-500 text-white"
+                                  : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-green-300 dark:hover:border-green-700"
+                              }`}
+                            >
+                              {format.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Quality Slider */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="font-medium text-gray-700 dark:text-gray-300 text-base">
+                            Quality
+                          </h4>
+                          <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                            {resizeOptions.quality}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="100"
+                          value={resizeOptions.quality}
+                          onChange={(e) =>
+                            setResizeOptions((prev) => ({
+                              ...prev,
+                              quality: parseInt(e.target.value),
+                            }))
+                          }
+                          className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-green-500"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <span>Low</span>
+                          <span>High</span>
+                        </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Left Column - Custom Dimensions */}
-                      <div className="space-y-6">
-                        <div>
-                          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3 text-base">
-                            Custom Dimensions
-                          </h4>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                Width (px)
-                              </label>
-                              <input
-                                type="number"
-                                min="1"
-                                max="10000"
-                                value={resizeOptions.width}
-                                onChange={(e) =>
-                                  setResizeOptions((prev) => ({
-                                    ...prev,
-                                    width: parseInt(e.target.value) || 1,
-                                  }))
-                                }
-                                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-900/50 text-base"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                Height (px)
-                              </label>
-                              <input
-                                type="number"
-                                min="1"
-                                max="10000"
-                                value={resizeOptions.height}
-                                onChange={(e) =>
-                                  setResizeOptions((prev) => ({
-                                    ...prev,
-                                    height: parseInt(e.target.value) || 1,
-                                  }))
-                                }
-                                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-900/50 text-base"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                  {/* Right Column - Live Preview */}
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-4 md:p-6 border border-blue-200 dark:border-blue-700 order-1 lg:order-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Eye className="w-5 h-5 text-blue-500" />
+                        Live Preview
+                      </h3>
+                    </div>
 
-                      {/* Right Column - Settings */}
-                      <div className="space-y-6">
-                        {/* Format Options */}
-                        <div>
-                          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3 text-base">
-                            Output Format
-                          </h4>
-                          <div className="flex flex-wrap gap-2">
-                            {(["jpg", "png", "webp"] as const).map((format) => (
-                              <button
-                                key={format}
-                                onClick={() =>
-                                  setResizeOptions((prev) => ({
-                                    ...prev,
-                                    format,
-                                  }))
-                                }
-                                className={`px-3 py-2 rounded-lg border font-medium text-sm ${
-                                  resizeOptions.format === format
-                                    ? "border-green-500 bg-green-500 text-white"
-                                    : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-green-300 dark:hover:border-green-700"
-                                }`}
-                              >
-                                {format.toUpperCase()}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                    <RealTimePreview
+                      file={file}
+                      width={resizeOptions.width}
+                      height={resizeOptions.height}
+                      maintainAspectRatio={resizeOptions.maintainAspectRatio}
+                      format={resizeOptions.format}
+                      quality={resizeOptions.quality}
+                    />
 
-                        {/* Quality Slider */}
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-medium text-gray-700 dark:text-gray-300 text-base">
-                              Quality
-                            </h4>
-                            <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                              {resizeOptions.quality}%
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="1"
-                            max="100"
-                            value={resizeOptions.quality}
-                            onChange={(e) =>
-                              setResizeOptions((prev) => ({
-                                ...prev,
-                                quality: parseInt(e.target.value),
-                              }))
-                            }
-                            className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-green-500"
-                          />
-                          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            <span>Low</span>
-                            <span>High</span>
-                          </div>
-                        </div>
-
-                        {/* Aspect Ratio Toggle */}
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-green-50 dark:from-gray-800 dark:to-green-900/20 rounded-lg border border-gray-200 dark:border-gray-700">
-                          <div>
-                            <h4 className="font-medium text-gray-700 dark:text-gray-300 text-base">
-                              Maintain Aspect Ratio
-                            </h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Prevent image distortion
-                            </p>
-                          </div>
-                          <button
-                            onClick={() =>
-                              setResizeOptions((prev) => ({
-                                ...prev,
-                                maintainAspectRatio: !prev.maintainAspectRatio,
-                              }))
-                            }
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                              resizeOptions.maintainAspectRatio
-                                ? "bg-green-500"
-                                : "bg-gray-300 dark:bg-gray-700"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                                resizeOptions.maintainAspectRatio
-                                  ? "translate-x-6"
-                                  : "translate-x-1"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      </div>
+                    <div className="mt-4 text-sm text-blue-600 dark:text-blue-400">
+                      <p className="flex items-center gap-2">
+                        <RefreshCw className="w-3 h-3" />
+                        Preview updates automatically as you change settings
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1544,21 +1303,17 @@ export default function ResizeImage() {
                         className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all text-lg flex items-center justify-center gap-3"
                       >
                         <Maximize2 className="w-5 h-5" />
-                        {resizeOptions.width >= 3840 ? "Resize to 4K UHD" :
-                         resizeOptions.width >= 2560 ? "Resize to 2K QHD" :
-                         resizeOptions.width >= 1920 ? "Resize to Full HD" :
-                         `Resize to ${resizeOptions.width}×${resizeOptions.height}px`}
+                        {resizeOptions.width >= 3840 ? "Resize to 3840×2160" :
+                         resizeOptions.width >= 2560 ? "Resize to 2560×1440" :
+                         resizeOptions.width >= 1920 ? "Resize to 1920×1080" :
+                         `Resize to ${resizeOptions.width}×${resizeOptions.height}`}
                         <Zap className="w-5 h-5" />
                       </motion.button>
                     )}
                   </div>
                 </div>
               )}
-
-           
             </div>
-
-             
 
             {/* --- Results and Download Area --- */}
             {hasResult && resizedFile && (
@@ -1579,10 +1334,10 @@ export default function ResizeImage() {
                       Resizing Complete! 🎉
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-base md:text-lg">
-                      {resizeOptions.width >= 3840 ? "Successfully resized to 4K UHD" :
-                       resizeOptions.width >= 2560 ? "Successfully resized to 2K QHD" :
-                       resizeOptions.width >= 1920 ? "Successfully resized to Full HD" :
-                       `Successfully resized to ${resizeOptions.width}×${resizeOptions.height}px`}
+                      {resizeOptions.width >= 3840 ? "Successfully resized to 3840×2160" :
+                       resizeOptions.width >= 2560 ? "Successfully resized to 2560×1440" :
+                       resizeOptions.width >= 1920 ? "Successfully resized to 1920×1080" :
+                       `Successfully resized to ${resizeOptions.width}×${resizeOptions.height}`}
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                       Format: {resizeOptions.format.toUpperCase()} • Quality:{" "}
@@ -1591,7 +1346,7 @@ export default function ResizeImage() {
                   </div>
                   <div className="flex items-center justify-center">
                     <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl text-sm md:text-base">
-                      HD Ready
+                      Optimized
                     </div>
                   </div>
                 </div>
@@ -1629,7 +1384,7 @@ export default function ResizeImage() {
                     className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:shadow-2xl transition-all text-lg flex items-center justify-center gap-3"
                   >
                     <Download className="w-6 h-6" />
-                    Download HD Image
+                    Download Resized Image
                     <Sparkles className="w-5 h-5" />
                   </motion.button>
 
@@ -1702,50 +1457,51 @@ export default function ResizeImage() {
                 </div>
               </div>
             </div>
-              {/* How-to Steps Section */}
-              <section className="mt-12 md:mt-20">
-                <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-10">
-                  How to Resize Images Online
-                </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                  {[
-                    {
-                      number: "1",
-                      title: "Upload Image",
-                      desc: "Upload JPG, PNG, or WebP images using drag & drop or file picker.",
-                    },
-                    {
-                      number: "2",
-                      title: "Select Size & Presets",
-                      desc: "Choose presets like Full HD, 4K, Instagram, or enter custom dimensions.",
-                    },
-                    {
-                      number: "3",
-                      title: "Resize with Live Preview",
-                      desc: "Adjust quality, maintain aspect ratio, and preview changes instantly.",
-                    },
-                    {
-                      number: "4",
-                      title: "Download Image",
-                      desc: "Download resized images in high quality instantly.",
-                    },
-                  ].map((step, index) => (
-                    <div
-                      key={index}
-                      className="border rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800"
-                    >
-                      <div className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        {step.number}
-                      </div>
-                      <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">
-                        {step.desc}
-                      </p>
+            {/* How-to Steps Section */}
+            <section className="mt-12 md:mt-20">
+              <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-10">
+                How to Resize Images Online
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                {[
+                  {
+                    number: "1",
+                    title: "Upload Image",
+                    desc: "Upload JPG, PNG, or WebP images using drag & drop or file picker.",
+                  },
+                  {
+                    number: "2",
+                    title: "Set Dimensions",
+                    desc: "Enter custom width and height or use aspect ratio lock.",
+                  },
+                  {
+                    number: "3",
+                    title: "Choose Format & Quality",
+                    desc: "Select output format (JPG, PNG, WebP) and adjust quality.",
+                  },
+                  {
+                    number: "4",
+                    title: "Download Image",
+                    desc: "Download resized images in high quality instantly.",
+                  },
+                ].map((step, index) => (
+                  <div
+                    key={index}
+                    className="border rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800"
+                  >
+                    <div className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400 mb-2">
+                      {step.number}
                     </div>
-                  ))}
-                </div>
-              </section>
+                    <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                      {step.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             {/* Explore All Tools Section */}
             <div className="mb-8">
