@@ -901,7 +901,7 @@ export default function RemoveMultiplePagesFromPDF() {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Link
-                      href="remove-pages"
+                      href="/remove-pages"
                       className="inline-flex items-center justify-center px-7 py-4 bg-white text-blue-700 font-bold rounded-lg hover:bg-blue-50 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl"
                       aria-label="Try PDF editor"
                     >

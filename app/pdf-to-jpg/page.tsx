@@ -381,7 +381,7 @@ const ImageRotator = ({
       <div className="relative w-full h-full flex items-center justify-center">
         <img
           src={imageData}
-          alt={`Page ${pageNumber} of ${fileName}`}
+          alt={`Page ${pageNumber}`}
           className="w-auto h-auto max-w-full max-h-full object-contain p-2 select-none transition-transform duration-300"
           style={{ transform: `rotate(${rotation}deg)` }}
           draggable="false"
@@ -538,7 +538,7 @@ const PdfPageRenderer = ({
         <div className="relative w-full h-full">
           <img
             src={pageImage}
-            alt={`Page ${pageNumber} of ${fileName}`}
+            alt={`Page ${pageNumber}`}
             className="w-full h-full object-contain p-2 select-none"
             draggable="false"
           />
@@ -551,7 +551,7 @@ const PdfPageRenderer = ({
   );
 };
 
-// --- ZOOM MODAL COMPONENT (FIXED WITH ROTATION SUPPORT) ---
+// --- ZOOM MODAL COMPONENT (FIXED - Removed filename) ---
 interface ZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -801,6 +801,13 @@ const ZoomModal = ({
         <X className="w-6 h-6 text-white" />
       </button>
 
+      {/* Page info - FIXED: Removed fileName */}
+      <div className="absolute top-4 left-4 z-50 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg">
+        <span className="text-white text-sm font-medium">
+          Page {pageNumber}
+        </span>
+      </div>
+
       {/* Zoom controls */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm z-50 shadow-lg">
         <button
@@ -858,13 +865,6 @@ const ZoomModal = ({
             </div>
           </>
         )}
-      </div>
-
-      {/* Page info */}
-      <div className="absolute top-4 left-4 z-50 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg">
-        <span className="text-white text-sm font-medium">
-          Page {pageNumber} • {fileName}
-        </span>
       </div>
 
       {/* Image container */}
@@ -1821,7 +1821,7 @@ export default function PdfToImageConverterWithRotation() {
               {/* Content Area */}
               {files.length > 0 && (
                 <div className="space-y-6 sm:space-y-8">
-                  {/* Selected File Info */}
+                  {/* Selected File Info - FIXED: Removed filename */}
                   <div className="p-4 sm:p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-xl sm:rounded-2xl border-2 border-blue-200 dark:border-blue-800/30">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                       <div className="flex items-center gap-3 sm:gap-4">
@@ -1829,14 +1829,13 @@ export default function PdfToImageConverterWithRotation() {
                           <FileImage className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg truncate">
-                            {files[0].name}
+                          <h3 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">
+                            PDF Document
                           </h3>
                           <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                             {(files[0].size / 1024 / 1024).toFixed(2)} MB •
                             <span className="ml-1 text-blue-600 dark:text-blue-400 font-medium">
-                              Output: {imageSettings.format.toUpperCase()} (
-                              {imageSettings.dpi} DPI)
+                              Output: {imageSettings.format.toUpperCase()} ({imageSettings.dpi} DPI)
                             </span>
                           </p>
                         </div>
@@ -1910,8 +1909,6 @@ export default function PdfToImageConverterWithRotation() {
                         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                       </motion.button>
                     )}
-
-                    
 
                     {/* Results */}
                     {converted && (
@@ -2054,8 +2051,9 @@ export default function PdfToImageConverterWithRotation() {
                                         <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg mb-1">
                                           Page {page.pageNumber}
                                         </h4>
+                                        {/* FIXED: Removed filename, showing format and DPI instead */}
                                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2 sm:mb-3">
-                                          {page.fileName}
+                                          {imageSettings.format.toUpperCase()} • {imageSettings.dpi} DPI
                                         </p>
                                         <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                                           <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
@@ -2356,8 +2354,6 @@ export default function PdfToImageConverterWithRotation() {
                             Convert Another PDF
                           </button>
                         </div>
-
-  
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -2376,49 +2372,49 @@ export default function PdfToImageConverterWithRotation() {
               pageImageData={zoomModal.pageImageData}
             />
 
-              <section className="max-w-6xl mx-auto mt-16 px-4">
-      <h2 className="text-3xl font-bold text-center mb-10">
-        How to Convert PDF to JPG
-      </h2>
+            <section className="max-w-6xl mx-auto mt-16 px-4">
+              <h2 className="text-3xl font-bold text-center mb-10">
+                How to Convert PDF to JPG
+              </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Step 1 */}
-        <div className="border rounded-xl p-6 text-center">
-          <div className="text-3xl font-bold text-blue-600 mb-2">1</div>
-          <h3 className="font-semibold text-lg">Upload PDF</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Upload your PDF file using drag & drop or file picker.
-          </p>
-        </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {/* Step 1 */}
+                <div className="border rounded-xl p-6 text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">1</div>
+                  <h3 className="font-semibold text-lg">Upload PDF</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Upload your PDF file using drag & drop or file picker.
+                  </p>
+                </div>
 
-        {/* Step 2 */}
-        <div className="border rounded-xl p-6 text-center">
-          <div className="text-3xl font-bold text-blue-600 mb-2">2</div>
-          <h3 className="font-semibold text-lg">Choose Settings</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Select JPG/PNG format, image quality, DPI, and resolution.
-          </p>
-        </div>
+                {/* Step 2 */}
+                <div className="border rounded-xl p-6 text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">2</div>
+                  <h3 className="font-semibold text-lg">Choose Settings</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Select JPG/PNG format, image quality, DPI, and resolution.
+                  </p>
+                </div>
 
-        {/* Step 3 */}
-        <div className="border rounded-xl p-6 text-center">
-          <div className="text-3xl font-bold text-blue-600 mb-2">3</div>
-          <h3 className="font-semibold text-lg">Rotate Pages</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Rotate individual pages or rotate all images together.
-          </p>
-        </div>
+                {/* Step 3 */}
+                <div className="border rounded-xl p-6 text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">3</div>
+                  <h3 className="font-semibold text-lg">Rotate Pages</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Rotate individual pages or rotate all images together.
+                  </p>
+                </div>
 
-        {/* Step 4 */}
-        <div className="border rounded-xl p-6 text-center">
-          <div className="text-3xl font-bold text-blue-600 mb-2">4</div>
-          <h3 className="font-semibold text-lg">Download Images</h3>
-          <p className="text-gray-600 text-sm mt-2">
-            Download images individually or as a ZIP file instantly.
-          </p>
-        </div>
-      </div>
-    </section>
+                {/* Step 4 */}
+                <div className="border rounded-xl p-6 text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">4</div>
+                  <h3 className="font-semibold text-lg">Download Images</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Download images individually or as a ZIP file instantly.
+                  </p>
+                </div>
+              </div>
+            </section>
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
@@ -2475,70 +2471,68 @@ export default function PdfToImageConverterWithRotation() {
                   <span>View All</span>
                 </Link>
               </div>
+
               {/* --- FAQ Section --- */}
-<section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
-  {/* Header */}
-  <div className="text-center mb-6 sm:mb-8 md:mb-12">
-    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
-      Frequently Asked Questions
-    </h2>
-    <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Everything you need to know about editing PDFs online
-    </p>
-  </div>
+              <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
+                {/* Header */}
+                <div className="text-center mb-6 sm:mb-8 md:mb-12">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
+                    Frequently Asked Questions
+                  </h2>
+                  <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Everything you need to know about editing PDFs online
+                  </p>
+                </div>
 
-  {/* FAQ Cards */}
-  <div className="space-y-3 sm:space-y-4">
-    {faqData.map((faq, index) => (
-      <details
-        key={index}
-        className="
-          group rounded-xl border border-gray-200 dark:border-gray-700
-          bg-white dark:bg-gray-900
-          transition-all duration-300
-          hover:border-blue-400/60 dark:hover:border-blue-500/60
-          open:shadow-lg open:border-blue-500
-        "
-      >
-        {/* Question */}
-        <summary
-          className="
-            flex cursor-pointer list-none items-center justify-between
-            px-4 sm:px-5 py-3 sm:py-4
-            text-sm sm:text-base md:text-lg
-            font-semibold text-gray-900 dark:text-white
-          "
-        >
-          <span>{faq.question}</span>
+                {/* FAQ Cards */}
+                <div className="space-y-3 sm:space-y-4">
+                  {faqData.map((faq, index) => (
+                    <details
+                      key={index}
+                      className="
+                        group rounded-xl border border-gray-200 dark:border-gray-700
+                        bg-white dark:bg-gray-900
+                        transition-all duration-300
+                        hover:border-blue-400/60 dark:hover:border-blue-500/60
+                        open:shadow-lg open:border-blue-500
+                      "
+                    >
+                      {/* Question */}
+                      <summary
+                        className="
+                          flex cursor-pointer list-none items-center justify-between
+                          px-4 sm:px-5 py-3 sm:py-4
+                          text-sm sm:text-base md:text-lg
+                          font-semibold text-gray-900 dark:text-white
+                        "
+                      >
+                        <span>{faq.question}</span>
 
-          {/* Arrow */}
-          <span
-            className="
-              ml-3 flex h-6 w-6 items-center justify-center
-              rounded-full bg-gray-100 dark:bg-gray-800
-              text-gray-500 dark:text-gray-400
-              transition-transform duration-300
-              group-open:rotate-180
-            "
-          >
-            ▼
-          </span>
-        </summary>
+                        {/* Arrow */}
+                        <span
+                          className="
+                            ml-3 flex h-6 w-6 items-center justify-center
+                            rounded-full bg-gray-100 dark:bg-gray-800
+                            text-gray-500 dark:text-gray-400
+                            transition-transform duration-300
+                            group-open:rotate-180
+                          "
+                        >
+                          ▼
+                        </span>
+                      </summary>
 
-        {/* Answer */}
-        <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
-          <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-            {faq.answer}
-          </p>
-        </div>
-      </details>
-    ))}
-  </div>
-</section>
-
+                      {/* Answer */}
+                      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
+                        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                          {faq.answer}
+                        </p>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </section>
             </div>
-
-          
 
             {/* Info Footer */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-center mt-8 sm:mt-12">
