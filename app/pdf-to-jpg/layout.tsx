@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 
 export const metadata: Metadata = {
-  title: "Convert PDF to Image Online - Free, JPG & PNG | PDFSwift",
+  title: "Convert PDF to JPG/PNG - Free, Fast & No Watermark | PDFSwift",
   description:
     "Convert PDF to images online for free. Extract PDF pages into high-quality JPG or PNG images instantly. Safe, secure, and no watermark or registration required.",
   keywords: [

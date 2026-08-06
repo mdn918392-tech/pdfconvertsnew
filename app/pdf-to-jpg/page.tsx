@@ -1,82 +1,49 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
-import FAQSchema from "./FAQSchema";
-import { faqData } from "./faqData";
-import ArticleSchema from "./ArticleSchema";
-import HowToSchema from "./HowToSchema";
-import BreadcrumbSchema from "./BreadcrumbSchema";
 import JSZip from "jszip";
-import { saveAs } from "file-saver";
-
+import * as pdfjsLib from 'pdfjs-dist';
 import {
   Download,
   ArrowLeft,
+  XCircle,
   CheckCircle,
-  FileText,
-  ArrowRight,
-  Grid,
   Image as ImageIcon,
-  Layers,
-  ChevronRight,
   Sparkles,
   Zap,
-  Edit,
-  File,
-  Tablet,
-  SquareGanttChart,
-  Clock,
   Shield,
-  X,
-  Maximize2,
-  Minimize2,
-  ZoomIn,
-  ZoomOut,
-  Loader2,
-  ChevronLeft,
-  ChevronRight as ChevronRightIcon,
   Palette,
-  ImagePlus,
-  FileImage,
+  Upload,
+  Layers,
+  Eye,
+  Clock,
   Check,
-  RotateCw,
-  RotateCcw,
-  Rotate3D,
-  RefreshCw,
-  Settings,
-  Grid3x3,
-  FolderOpen,
+  ArrowRight,
+  Grid,
+  X,
+  Plus,
   Archive,
-  FolderArchive,
+  FolderClosed,
+  FileText,
+  FileImage,
+  File,
 } from "lucide-react";
-import FileUploader from "@/app/components/FileUploader";
-import ProgressBar from "@/app/components/ProgressBar";
+import FileUploader from "../components/FileUploader";
+import ProgressBar from "../components/ProgressBar";
 import { downloadFile } from "../../utils/imageUtils";
-import { PDFDocument } from "pdf-lib";
+import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
+import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
+import { faqData } from "./faqData";
 
-// Import pdfjs-dist with proper configuration
-import * as pdfjsLib from "pdfjs-dist";
-
-// Check if we're in browser before setting worker
-if (typeof window !== "undefined" && typeof document !== "undefined") {
-  try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-  } catch (error) {
-    console.warn("Failed to set PDF.js worker source:", error);
-  }
-}
-
-// Page Info with image data and rotation
-type PageData = {
-  pageNumber: number;
-  fileName: string;
-  imageData?: string;
-  rotation: number; // 0, 90, 180, 270 degrees
-  rotatedImageData?: string; // Cache rotated images for performance
-};
+// --- Helper Functions ---
+const createObjectURL = (fileOrBlob: Blob | File) =>
+  URL.createObjectURL(fileOrBlob);
+const revokeObjectURL = (url: string) => URL.revokeObjectURL(url);
 
 // Define Tool type
 type Tool = {
@@ -91,18 +58,19 @@ type Tool = {
 };
 
 const tool = {
-  id: "pdf-to-jpg",
-  name: "PDF to JPG",
-  description: "Convert PDF pages to JPG images",
+  id: "pdf-to-image",
+  name: "PDF to Image",
+  description: "Convert PDF pages to JPG or PNG images",
   category: "pdf",
   icon: "🖼️",
-  color: "from-green-500 to-emerald-500",
-  href: "/pdf-to-jpg",
-  path: "/tools/pdf-to-jpg",
+  color: "from-purple-500 to-pink-500",
+  href: "/pdf-to-image",
+  path: "/tools/pdf-to-image",
 };
 
 // Explore All Tools Data
 const exploreTools: Tool[] = [
+  
   {
     id: "split-pdf",
     name: "Split PDF",
@@ -195,1373 +163,741 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// --- TOOL ICON HELPER FUNCTION ---
-const getToolIcon = (label: string): React.ReactNode => {
-  const lowerLabel = label.toLowerCase();
-  if (lowerLabel.includes("rotate") || lowerLabel.includes("rotator"))
-    return <Rotate3D className="w-5 h-5 text-white" />;
-  if (
-    lowerLabel.includes("jpg") ||
-    lowerLabel.includes("png") ||
-    lowerLabel.includes("image")
-  )
-    return <ImageIcon className="w-5 h-5 text-white" />;
-  if (lowerLabel.includes("word"))
-    return <FileText className="w-5 h-5 text-white" />;
-  if (lowerLabel.includes("powerpoint"))
-    return <Layers className="w-5 h-5 text-white" />;
-  if (lowerLabel.includes("excel"))
-    return <SquareGanttChart className="w-5 h-5 text-white" />;
-  if (lowerLabel.includes("editor"))
-    return <Edit className="w-5 h-5 text-white" />;
-  if (lowerLabel.includes("converter") || lowerLabel.includes("creator"))
-    return <Zap className="w-5 h-5 text-white" />;
-  if (lowerLabel.includes("mobile app"))
-    return <Tablet className="w-5 h-5 text-white" />;
-  return <File className="w-5 h-5 text-white" />;
-};
-
-// --- TOOL DESCRIPTION HELPER FUNCTION ---
-const getToolDescription = (label: string): string => {
-  const lowerLabel = label.toLowerCase();
-  if (lowerLabel.includes("rotate") || lowerLabel.includes("rotator"))
-    return "Rotate PDF pages to any angle before converting to images.";
-  if (
-    lowerLabel.includes("jpg") ||
-    lowerLabel.includes("png") ||
-    lowerLabel.includes("image")
-  )
-    return "Convert PDF pages to high-quality JPG or PNG images.";
-  if (lowerLabel.includes("word"))
-    return "Convert PDF documents directly to editable DOCX format.";
-  if (lowerLabel.includes("creator"))
-    return "Combine multiple documents or images into a new PDF.";
-  if (lowerLabel.includes("converter"))
-    return "Convert files to/from PDF, including JPG, PNG, and more.";
-  if (lowerLabel.includes("text editor"))
-    return "Quickly edit text content within your PDF pages.";
-  if (lowerLabel.includes("mobile app"))
-    return "Dedicated tool for optimizing PDF tasks on the go.";
-  if (lowerLabel.includes("powerpoint"))
-    return "Convert PDF content into editable PPT/PPTX slides.";
-  if (lowerLabel.includes("excel"))
-    return "Export tables and data directly from PDF to XLSX format.";
-  if (lowerLabel === "pdf file" || lowerLabel === "pdf")
-    return "View, read, and manage your PDF documents easily.";
-  if (lowerLabel === "image editor")
-    return "Edit and enhance your converted images.";
-  return "Quickly process your document for immediate results.";
-};
-
-// Image format options
-type ImageFormat = "jpg" | "png";
-type ImageQuality = "high" | "medium" | "low";
-
-interface ImageSettings {
-  format: ImageFormat;
-  quality: ImageQuality;
-  dpi: number;
-}
-
-// PDF data interface
-interface PdfData {
-  base64: string;
-  pageCount: number;
-}
-
-// --- IMAGE ROTATOR COMPONENT ---
-interface ImageRotatorProps {
-  imageData: string;
-  rotation: number;
-  onRotationChange: (rotation: number) => void;
-  onZoomClick?: () => void;
-  fileName: string;
+// --- Component Interface ---
+interface ConvertedFile {
+  blob: Blob;
+  name: string;
+  originalFile: File;
+  timestamp: number;
   pageNumber: number;
 }
 
-const ImageRotator = ({
-  imageData,
-  rotation,
-  onRotationChange,
-  onZoomClick,
-  fileName,
-  pageNumber,
-}: ImageRotatorProps) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const rotateClockwise = () => {
-    const newRotation = (rotation + 90) % 360;
-    onRotationChange(newRotation);
-  };
-
-  const rotateCounterClockwise = () => {
-    const newRotation = (rotation - 90 + 360) % 360;
-    onRotationChange(newRotation);
-  };
-
-  const resetRotation = () => {
-    onRotationChange(0);
-  };
-
-  const getRotationText = () => {
-    switch (rotation) {
-      case 0:
-        return "0° (Normal)";
-      case 90:
-        return "90° (Right)";
-      case 180:
-        return "180° (Upside down)";
-      case 270:
-        return "270° (Left)";
-      default:
-        return `${rotation}°`;
-    }
-  };
-
-  return (
-    <div
-      className="w-full h-40 sm:h-44 flex-shrink-0 bg-white dark:bg-gray-800 rounded-lg shadow-md flex items-center justify-center border border-gray-200 dark:border-gray-700 relative overflow-hidden cursor-pointer group"
-      onClick={onZoomClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Rotation overlay button */}
-      <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="p-1.5 bg-black/70 rounded-full backdrop-blur-sm">
-          <ZoomIn className="w-4 h-4 text-white" />
-        </div>
-      </div>
-
-      {/* Rotation controls */}
-      <div
-        className={`absolute bottom-2 left-2 z-30 flex flex-col gap-1 transition-all duration-300 ${
-          isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-        }`}
-      >
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            rotateCounterClockwise();
-          }}
-          className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-          title="Rotate counter-clockwise"
-        >
-          <RotateCcw className="w-3 h-3 text-white" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            resetRotation();
-          }}
-          className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-          title="Reset rotation"
-        >
-          <RefreshCw className="w-3 h-3 text-white" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            rotateClockwise();
-          }}
-          className="p-1.5 bg-black/70 hover:bg-black/90 rounded-full backdrop-blur-sm transition-colors"
-          title="Rotate clockwise"
-        >
-          <RotateCw className="w-3 h-3 text-white" />
-        </button>
-      </div>
-
-      {/* Tap hint for mobile */}
-      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 sm:hidden">
-        <div className="px-2 py-1 bg-black/60 rounded-full backdrop-blur-sm">
-          <span className="text-xs text-white">Tap to zoom</span>
-        </div>
-      </div>
-
-      {/* Rotated image */}
-      <div className="relative w-full h-full flex items-center justify-center">
-        <img
-          src={imageData}
-          alt={`Page ${pageNumber}`}
-          className="w-auto h-auto max-w-full max-h-full object-contain p-2 select-none transition-transform duration-300"
-          style={{ transform: `rotate(${rotation}deg)` }}
-          draggable="false"
-        />
-
-        {/* Rotation indicator */}
-        <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-70 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-          <RotateCw className="w-3 h-3" />
-          <span>{getRotationText()}</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- PDF PAGE RENDERER WITH ZOOM FUNCTIONALITY ---
-interface PdfPageRendererProps {
-  pageNumber: number;
-  pdfData: PdfData | null;
+interface DownloadNotification {
+  id: string;
   fileName: string;
-  onZoomClick?: () => void;
+  fileCount: number;
+  timestamp: Date;
+  type: 'single' | 'zip' | 'multi';
 }
 
-const PdfPageRenderer = ({
+// --- Image Preview Component ---
+const ImagePreview = ({
+  file,
+  onRemove,
+  status,
+  isDownloadable = false,
+  filename = "image.jpg",
+  index,
+  onSingleDownload,
   pageNumber,
-  pdfData,
-  fileName,
-  onZoomClick,
-}: PdfPageRendererProps) => {
-  const [pageImage, setPageImage] = useState<string | null>(null);
+}: {
+  file: Blob | File;
+  onRemove?: () => void;
+  status: string;
+  isDownloadable?: boolean;
+  filename: string;
+  index: number;
+  onSingleDownload?: () => void;
+  pageNumber?: number;
+}) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const isMounted = useRef(true);
 
+  // Create object URL
   useEffect(() => {
-    isMounted.current = true;
+    if (!file) {
+      setError(true);
+      setLoading(false);
+      return;
+    }
 
-    const renderPage = async () => {
-      if (!pdfData || !isMounted.current) {
+    let url: string | null = null;
+    let img: HTMLImageElement | null = null;
+
+    try {
+      url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+
+      // Verify the image can be loaded
+      img = new Image();
+      img.onload = () => {
+        setLoading(false);
+        setError(false);
+      };
+      img.onerror = () => {
         setError(true);
         setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(false);
-
-        // Convert base64 back to Uint8Array
-        const binaryString = atob(pdfData.base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to load image preview:', filename);
         }
-
-        // Load PDF document
-        const loadingTask = pdfjsLib.getDocument({ data: bytes });
-        const pdf = await loadingTask.promise;
-
-        // Get specific page
-        const page = await pdf.getPage(pageNumber);
-
-        // Set viewport based on device width
-        const viewportWidth = Math.min(window.innerWidth * 0.8, 400);
-        const scale = viewportWidth / page.getViewport({ scale: 1 }).width;
-        const viewport = page.getViewport({ scale });
-
-        // Create canvas
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-
-        if (!context) {
-          throw new Error("Could not get canvas context");
-        }
-
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        // Render page to canvas
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-        };
-
-        await page.render(renderContext).promise;
-
-        // Convert canvas to image URL
-        const imageUrl = canvas.toDataURL("image/png", 0.8);
-
-        if (isMounted.current) {
-          setPageImage(imageUrl);
-        }
-      } catch (error) {
-        console.error("Error rendering page:", error);
-        if (isMounted.current) {
+      };
+      
+      // Set timeout to handle images that take too long to load
+      const timeoutId = setTimeout(() => {
+        if (loading) {
           setError(true);
-        }
-      } finally {
-        if (isMounted.current) {
           setLoading(false);
+          if (img) {
+            img.onload = null;
+            img.onerror = null;
+          }
         }
-      }
-    };
+      }, 5000);
 
-    renderPage();
+      img.src = url;
 
-    return () => {
-      isMounted.current = false;
-      if (pageImage) {
-        URL.revokeObjectURL(pageImage);
+      return () => {
+        clearTimeout(timeoutId);
+        if (url) {
+          URL.revokeObjectURL(url);
+        }
+        if (img) {
+          img.onload = null;
+          img.onerror = null;
+        }
+      };
+    } catch (err) {
+      setError(true);
+      setLoading(false);
+      if (url) {
+        URL.revokeObjectURL(url);
       }
-    };
-  }, [pdfData, pageNumber]);
+    }
+  }, [file, filename, loading]);
+
+  const statusColor =
+    status && status.includes("Converted")
+      ? "text-green-600 dark:text-green-400"
+      : "text-blue-600 dark:text-blue-400";
+
+  const handleIndividualDownload = () => {
+    if (onSingleDownload) {
+      onSingleDownload();
+    } else if (file) {
+      downloadFile(file as Blob, filename);
+    }
+  };
+
+  const formatFileSize = (size: number) => {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleImageError = () => {
+    setError(true);
+  };
 
   return (
-    <div
-      className="w-full h-40 sm:h-44 flex-shrink-0 bg-white dark:bg-gray-800 rounded-lg shadow-md flex items-center justify-center border border-gray-200 dark:border-gray-700 relative overflow-hidden cursor-pointer group"
-      onClick={onZoomClick}
-    >
-      {/* Zoom overlay button */}
-      <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="p-1.5 bg-black/70 rounded-full backdrop-blur-sm">
-          <ZoomIn className="w-4 h-4 text-white" />
-        </div>
-      </div>
+    <>
+      <AnimatePresence>
+        {previewOpen && previewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setPreviewOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="absolute -top-10 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
 
-      {/* Tap hint for mobile */}
-      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 sm:hidden">
-        <div className="px-2 py-1 bg-black/60 rounded-full backdrop-blur-sm">
-          <span className="text-xs text-white">Tap to zoom</span>
-        </div>
-      </div>
+              <div className="max-w-4xl max-h-[90vh]">
+                {error ? (
+                  <div className="bg-gray-800 rounded-xl p-8 flex flex-col items-center justify-center">
+                    <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
+                    <p className="text-white text-lg">Preview not available</p>
+                    <p className="text-gray-400 text-sm mt-2">
+                      This image cannot be displayed
+                    </p>
+                  </div>
+                ) : (
+                  <img
+                    src={previewUrl}
+                    alt={filename}
+                    className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+                    onError={handleImageError}
+                  />
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center p-4">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400 mb-2" />
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Loading page {pageNumber}...
-          </span>
-        </div>
-      ) : error ? (
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center p-4">
-          <span className="text-xs font-bold text-blue-800 dark:text-blue-300">
-            Page
-          </span>
-          <span className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
-            {pageNumber}
-          </span>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-            Preview not available
-          </p>
-        </div>
-      ) : pageImage ? (
-        <div className="relative w-full h-full">
-          <img
-            src={pageImage}
-            alt={`Page ${pageNumber}`}
-            className="w-full h-full object-contain p-2 select-none"
-            draggable="false"
-          />
-          <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-70 group-hover:opacity-100 transition-opacity">
-            Page {pageNumber}
+      {/* Preview Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+        whileHover={{ y: -5, scale: 1.02 }}
+        className="relative group"
+      >
+        <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
+          {/* Page Number Badge */}
+          <div className="absolute top-3 left-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+            Page {pageNumber || index + 1}
+          </div>
+
+          {/* Image Container */}
+          <div
+            className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
+            onClick={() => previewUrl && !error && setPreviewOpen(true)}
+          >
+            {loading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+              </div>
+            ) : error || !previewUrl ? (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800">
+                <FileImage className="w-10 h-10 text-gray-400 mb-2" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Preview not available
+                </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  {formatFileSize(file.size || 0)}
+                </span>
+              </div>
+            ) : (
+              <>
+                <img
+                  src={previewUrl}
+                  alt={filename}
+                  className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
+                  onError={handleImageError}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <Eye className="w-8 h-8 text-white" />
+                </div>
+
+                {/* Shine Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000" />
+              </>
+            )}
+          </div>
+
+          {/* File Info */}
+          <div className="space-y-2">
+            <p
+              className="text-sm font-semibold truncate text-gray-900 dark:text-white"
+              title={filename}
+            >
+              {filename}
+            </p>
+
+            <div className="flex items-center justify-between">
+              <span
+                className={`text-xs px-3 py-1 rounded-full font-medium ${statusColor} bg-opacity-10 ${
+                  status.includes("Converted") ? "bg-green-500" : "bg-purple-500"
+                }`}
+              >
+                {status}
+              </span>
+
+              {/* File Size */}
+              {file.size && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatFileSize(file.size)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            {/* Remove Button (For Input Files) */}
+            {onRemove && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onRemove}
+                className="p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                aria-label={`Remove ${filename}`}
+              >
+                <XCircle className="w-4 h-4" />
+              </motion.button>
+            )}
+
+            {/* Download Button (For Output Files) */}
+            {isDownloadable && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleIndividualDownload}
+                className="p-1.5 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
+                title={`Download ${filename}`}
+                disabled={!file}
+              >
+                <Download className="w-4 h-4" />
+              </motion.button>
+            )}
           </div>
         </div>
-      ) : null}
-    </div>
+      </motion.div>
+    </>
   );
 };
 
-// --- ZOOM MODAL COMPONENT (FIXED - Removed filename) ---
-interface ZoomModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  pageNumber: number;
-  pdfData: PdfData | null;
-  fileName: string;
-  pageRotation?: number;
-  pageImageData?: string;
-}
-
-const ZoomModal = ({
-  isOpen,
-  onClose,
-  pageNumber,
-  pdfData,
+// --- Download Notification Component ---
+const DownloadNotification = ({
+  id,
   fileName,
-  pageRotation = 0,
-  pageImageData,
-}: ZoomModalProps) => {
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [displayImage, setDisplayImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isMounted = useRef(true);
-  const [currentRotation, setCurrentRotation] = useState(pageRotation);
-
-  useEffect(() => {
-    setCurrentRotation(pageRotation);
-  }, [pageRotation]);
-
-  useEffect(() => {
-    isMounted.current = true;
-
-    const prepareZoomImage = async () => {
-      if (!isOpen || !isMounted.current) return;
-
-      try {
-        setLoading(true);
-        setDisplayImage(null);
-
-        // If we have pre-rotated image data, use it
-        if (pageImageData) {
-          // Create a temporary image to apply rotation to
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-
-            if (!ctx) {
-              if (isMounted.current) {
-                setDisplayImage(pageImageData);
-                setLoading(false);
-              }
-              return;
-            }
-
-            // Calculate dimensions based on rotation
-            let width = img.width;
-            let height = img.height;
-
-            if (currentRotation === 90 || currentRotation === 270) {
-              width = img.height;
-              height = img.width;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-
-            // Clear canvas with white background
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Translate to center, rotate, and draw
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate((currentRotation * Math.PI) / 180);
-            ctx.translate(-img.width / 2, -img.height / 2);
-            ctx.drawImage(img, 0, 0);
-
-            const rotatedImageUrl = canvas.toDataURL("image/png", 1.0);
-
-            if (isMounted.current) {
-              setDisplayImage(rotatedImageUrl);
-              setLoading(false);
-            }
-          };
-          img.onerror = () => {
-            if (isMounted.current) {
-              setDisplayImage(pageImageData);
-              setLoading(false);
-            }
-          };
-          img.src = pageImageData;
-        }
-        // Otherwise, render from PDF and apply rotation
-        else if (pdfData) {
-          // Convert base64 back to Uint8Array for zoom
-          const binaryString = atob(pdfData.base64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-
-          const loadingTask = pdfjsLib.getDocument({ data: bytes });
-          const pdf = await loadingTask.promise;
-          const page = await pdf.getPage(pageNumber);
-
-          // Calculate optimal scale for zoom modal
-          const baseScale = 1.5;
-          const scale = baseScale * zoomLevel;
-          const viewport = page.getViewport({ scale });
-
-          // Limit maximum dimensions for performance
-          const MAX_WIDTH = 2000;
-          const MAX_HEIGHT = 2000;
-
-          let finalScale = scale;
-          if (viewport.width > MAX_WIDTH || viewport.height > MAX_HEIGHT) {
-            const widthScale = MAX_WIDTH / viewport.width;
-            const heightScale = MAX_HEIGHT / viewport.height;
-            finalScale = Math.min(widthScale, heightScale) * scale;
-          }
-
-          const finalViewport = page.getViewport({ scale: finalScale });
-
-          const canvas = document.createElement("canvas");
-          const context = canvas.getContext("2d");
-
-          if (!context) {
-            setLoading(false);
-            return;
-          }
-
-          // Adjust canvas size for rotation
-          let canvasWidth = finalViewport.width;
-          let canvasHeight = finalViewport.height;
-
-          if (currentRotation === 90 || currentRotation === 270) {
-            canvasWidth = finalViewport.height;
-            canvasHeight = finalViewport.width;
-          }
-
-          canvas.width = canvasWidth;
-          canvas.height = canvasHeight;
-
-          // Set white background for canvas
-          context.fillStyle = "#ffffff";
-          context.fillRect(0, 0, canvas.width, canvas.height);
-
-          // Apply rotation
-          context.translate(canvas.width / 2, canvas.height / 2);
-          context.rotate((currentRotation * Math.PI) / 180);
-          context.translate(
-            -finalViewport.width / 2,
-            -finalViewport.height / 2
-          );
-
-          await page.render({
-            canvasContext: context,
-            viewport: finalViewport,
-          }).promise;
-
-          const imageUrl = canvas.toDataURL("image/png", 1.0);
-
-          if (isMounted.current) {
-            setDisplayImage(imageUrl);
-            setLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error("Error rendering zoom page:", error);
-        if (isMounted.current) {
-          setLoading(false);
-        }
-      }
-    };
-
-    if (isOpen) {
-      prepareZoomImage();
+  fileCount,
+  timestamp,
+  type,
+  onClose,
+}: DownloadNotification & { onClose: () => void }) => {
+  const getMessage = () => {
+    switch (type) {
+      case 'zip':
+        return `ZIP archive downloaded with ${fileCount} files`;
+      case 'multi':
+        return `${fileCount} files downloaded individually`;
+      default:
+        return 'File downloaded successfully! 🎉';
     }
-
-    return () => {
-      isMounted.current = false;
-      if (displayImage && displayImage.startsWith("data:")) {
-        URL.revokeObjectURL(displayImage);
-      }
-    };
-  }, [isOpen, pdfData, pageNumber, zoomLevel, currentRotation, pageImageData]);
-
-  const handleZoomIn = () => {
-    setZoomLevel((prev) => Math.min(prev + 0.25, 3));
   };
-
-  const handleZoomOut = () => {
-    setZoomLevel((prev) => Math.max(prev - 0.25, 0.5));
-  };
-
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-  };
-
-  const handleClose = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onClose();
-    setZoomLevel(1);
-    setIsFullscreen(false);
-  };
-
-  // Handle escape key
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (isFullscreen) {
-          setIsFullscreen(false);
-        } else {
-          handleClose(e as any);
-        }
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEsc);
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEsc);
-    };
-  }, [isOpen, isFullscreen]);
-
-  if (!isOpen) return null;
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
-        isFullscreen ? "bg-black" : "bg-black/90 backdrop-blur-sm"
-      }`}
-      onClick={handleClose}
+      initial={{ opacity: 0, x: 50 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 50 }}
+      className={`bg-gradient-to-r ${
+        type === 'zip' 
+          ? 'from-purple-500 to-indigo-600' 
+          : 'from-green-500 to-emerald-600'
+      } text-white p-4 rounded-xl shadow-lg mb-2`}
     >
-      {/* Close button */}
-      <button
-        onClick={handleClose}
-        className="absolute top-4 right-4 z-50 p-2 bg-black/70 hover:bg-black/90 rounded-full transition-colors shadow-lg"
-      >
-        <X className="w-6 h-6 text-white" />
-      </button>
-
-      {/* Page info - FIXED: Removed fileName */}
-      <div className="absolute top-4 left-4 z-50 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm shadow-lg">
-        <span className="text-white text-sm font-medium">
-          Page {pageNumber}
-        </span>
-      </div>
-
-      {/* Zoom controls */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-black/70 rounded-full px-4 py-2 backdrop-blur-sm z-50 shadow-lg">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleZoomOut();
-          }}
-          className="p-2 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
-          disabled={zoomLevel <= 0.5}
-          title="Zoom Out"
-        >
-          <ZoomOut className="w-5 h-5 text-white" />
-        </button>
-
-        <span className="text-white text-sm font-medium min-w-[60px] text-center">
-          {Math.round(zoomLevel * 100)}%
-        </span>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleZoomIn();
-          }}
-          className="p-2 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
-          disabled={zoomLevel >= 3}
-          title="Zoom In"
-        >
-          <ZoomIn className="w-5 h-5 text-white" />
-        </button>
-
-        <div className="h-6 w-px bg-white/30 mx-1"></div>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleFullscreen();
-          }}
-          className="p-2 hover:bg-white/20 rounded-full transition-colors"
-          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-        >
-          {isFullscreen ? (
-            <Minimize2 className="w-5 h-5 text-white" />
-          ) : (
-            <Maximize2 className="w-5 h-5 text-white" />
-          )}
-        </button>
-
-        {/* Rotation info */}
-        {currentRotation !== 0 && (
-          <>
-            <div className="h-6 w-px bg-white/30 mx-1"></div>
-            <div className="flex items-center gap-1 px-2 py-1 bg-white/20 rounded">
-              <RotateCw className="w-4 h-4 text-white" />
-              <span className="text-white text-sm">{currentRotation}°</span>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Image container */}
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        ref={containerRef}
-        className={`relative ${
-          isFullscreen ? "w-full h-full" : "max-w-[90vw] max-h-[80vh]"
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {loading ? (
-          <div className="flex items-center justify-center w-full h-full min-h-[200px]">
-            <div className="text-center">
-              <Loader2 className="w-12 h-12 animate-spin text-white mx-auto mb-4" />
-              <p className="text-white/80 text-sm">
-                Loading page {pageNumber}...
-              </p>
-            </div>
-          </div>
-        ) : displayImage ? (
-          <div
-            className={`flex items-center justify-center ${
-              isFullscreen ? "w-full h-full" : "w-auto h-auto"
-            }`}
-          >
-            <img
-              src={displayImage}
-              alt={`Zoomed view - Page ${pageNumber}`}
-              className="max-w-full max-h-full object-contain"
-              style={{
-                transform: `scale(${zoomLevel})`,
-                transformOrigin: "center",
-                transition: "transform 0.2s ease",
-              }}
-              draggable="false"
-            />
-          </div>
+      <div className="flex items-start gap-3">
+        {type === 'zip' ? (
+          <Archive className="w-5 h-5 mt-0.5 flex-shrink-0" />
         ) : (
-          <div className="flex items-center justify-center w-full h-full min-h-[200px]">
-            <div className="text-center">
-              <p className="text-white/80 text-sm">Unable to load image</p>
-            </div>
-          </div>
+          <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
         )}
-      </motion.div>
-
-      {/* Instructions for mobile */}
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 sm:hidden z-50">
-        <div className="bg-black/70 rounded-lg px-4 py-2 backdrop-blur-sm">
-          <p className="text-white/80 text-xs text-center">
-            Pinch to zoom • Double tap to {isFullscreen ? "exit" : "enter"}{" "}
-            fullscreen
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-sm mb-1">
+            {type === 'zip' ? 'ZIP Archive Downloaded! 📦' : getMessage()}
+          </h4>
+          {type === 'single' && (
+            <p className="text-xs opacity-90 truncate mb-1">{fileName}</p>
+          )}
+          <p className="text-xs opacity-80 mb-2">
+            {type === 'zip' 
+              ? `All ${fileCount} files are now in a single ZIP archive`
+              : `${fileCount} PDF ${fileCount === 1 ? 'page' : 'pages'} converted to images`
+            }
           </p>
+          <div className="flex items-center gap-1 text-xs opacity-80">
+            <Clock className="w-3 h-3" />
+            {timestamp.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </div>
         </div>
+        <button
+          onClick={onClose}
+          className="p-1 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
     </motion.div>
   );
 };
 
-// --- Smart filename generator for converted images ---
-const generateImageFilename = (
-  originalFilename: string,
-  pageNumber: number,
-  totalPages: number,
-  format: ImageFormat,
-  rotation: number = 0
-): string => {
-  const now = new Date();
-  const dateStr = now.toISOString().split("T")[0];
-
-  // Clean original filename
-  const cleanName = originalFilename
-    .replace(/\.pdf$/i, "")
-    .replace(/[^a-zA-Z0-9\s-_]/g, "")
-    .substring(0, 30)
-    .trim();
-
-  // Add rotation info to filename if rotated
-  const rotationSuffix = rotation !== 0 ? `_rotated${rotation}` : "";
-
-  if (totalPages === 1) {
-    return `${cleanName}_${dateStr}${rotationSuffix}.${format}`;
-  } else {
-    return `${cleanName}_page${pageNumber}_${dateStr}${rotationSuffix}.${format}`;
-  }
-};
-
-// --- Function to rotate an image ---
-const rotateImage = (imageData: string, rotation: number): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx) {
-        reject(new Error("Could not get canvas context"));
-        return;
-      }
-
-      // Swap width and height for 90° or 270° rotations
-      if (rotation === 90 || rotation === 270) {
-        canvas.width = img.height;
-        canvas.height = img.width;
-      } else {
-        canvas.width = img.width;
-        canvas.height = img.height;
-      }
-
-      // Translate to center, rotate, then translate back
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((rotation * Math.PI) / 180);
-      ctx.translate(-img.width / 2, -img.height / 2);
-      ctx.drawImage(img, 0, 0);
-
-      resolve(canvas.toDataURL("image/png"));
-    };
-    img.onerror = reject;
-    img.src = imageData;
-  });
-};
-
-// --- Function to convert data URL to Blob ---
-const dataURLtoBlob = (dataURL: string): Blob => {
-  const arr = dataURL.split(",");
-  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  return new Blob([u8arr], { type: mime });
-};
-
-export default function PdfToImageConverterWithRotation() {
+// --- Main Component ---
+export default function PdfToImage() {
   const [files, setFiles] = useState<File[]>([]);
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [converted, setConverted] = useState(false);
-  const [pageData, setPageData] = useState<PageData[]>([]);
-  const [pdfData, setPdfData] = useState<PdfData | null>(null);
-  const [showUploadInfo, setShowUploadInfo] = useState(true);
-  const [zoomModal, setZoomModal] = useState<{
-    isOpen: boolean;
-    pageNumber: number;
-    fileName: string;
-    pageRotation?: number;
-    pageImageData?: string;
-  }>({
-    isOpen: false,
-    pageNumber: 1,
-    fileName: "",
-  });
+  const [imageBlobs, setImageBlobs] = useState<ConvertedFile[]>([]);
+  const [showFeatures, setShowFeatures] = useState(true);
+  const [downloadNotifications, setDownloadNotifications] = useState<
+    DownloadNotification[]
+  >([]);
+  const [zipDownloading, setZipDownloading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [outputFormat, setOutputFormat] = useState<'jpg' | 'png'>('jpg');
+  const [imageQuality, setImageQuality] = useState<number>(90);
+  const [pageRange, setPageRange] = useState<{start: number, end: number}>({start: 1, end: 0});
+  const [showPageRange, setShowPageRange] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
+  const [pdfWorkerLoaded, setPdfWorkerLoaded] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Image settings state
-  const [imageSettings, setImageSettings] = useState<ImageSettings>({
-    format: "jpg",
-    quality: "high",
-    dpi: 300,
-  });
+  // Initialize pdf.js worker - SIMPLIFIED APPROACH
+  useEffect(() => {
+    // Use a simple approach that works with Next.js
+    // Set the worker source directly to a CDN URL
+    const version = '3.11.174';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
+    setPdfWorkerLoaded(true);
+    console.log('PDF worker initialized with CDN');
+  }, []);
 
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(12);
-  const [downloadingAll, setDownloadingAll] = useState(false);
-  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [creatingZip, setCreatingZip] = useState(false);
-  const [zipProgress, setZipProgress] = useState(0);
+  // Detect device type
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      ) || window.innerWidth < 768;
+      setIsMobile(mobile);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(pageData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, pageData.length);
-  const currentPageData = pageData.slice(startIndex, endIndex);
-
-  // Convert ArrayBuffer to base64 for storage
-  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
+  // Generate unique filename
+  const generateUniqueFileName = (baseName: string, pageNumber: number) => {
+    const timestamp = new Date().getTime();
+    const randomId = Math.random().toString(36).substring(2, 9);
+    const cleanBaseName = baseName
+      .replace(/\.pdf$/i, "")
+      .replace(/\.[^/.]+$/, "");
+    const page = pageNumber.toString().padStart(3, "0");
+    return `${cleanBaseName}_page_${page}_${timestamp}_${randomId}.${outputFormat}`;
   };
 
-  // Convert PDF to images
+  // Auto-scroll notifications
+  useEffect(() => {
+    if (notificationsRef.current && downloadNotifications.length > 0) {
+      notificationsRef.current.scrollTop =
+        notificationsRef.current.scrollHeight;
+    }
+  }, [downloadNotifications]);
+
+  // Get total pages from PDF
+  const getPdfPageCount = async (file: File): Promise<number> => {
+    try {
+      const pdfUrl = URL.createObjectURL(file);
+      const loadingTask = pdfjsLib.getDocument(pdfUrl);
+      const pdf = await loadingTask.promise;
+      const count = pdf.numPages;
+      URL.revokeObjectURL(pdfUrl);
+      return count;
+    } catch (error) {
+      console.error('Error getting page count:', error);
+      return 0;
+    }
+  };
+
+  // Handle file selection and get page counts
+  const handleFilesSelected = async (newFiles: File[]) => {
+    const maxSize = isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024;
+    const maxFiles = isMobile ? 10 : 50;
+    
+    const filteredFiles = newFiles.filter(file => {
+      if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+        alert(`File "${file.name}" is not a PDF document.`);
+        return false;
+      }
+      
+      if (file.size === 0 || file.size > maxSize) {
+        alert(`File "${file.name}" is too large (${(file.size/1024/1024).toFixed(1)}MB) or corrupted. Maximum size is ${isMobile ? '30MB' : '200MB'} for ${isMobile ? 'mobile' : 'desktop'}.`);
+        return false;
+      }
+      return true;
+    });
+    
+    const totalFiles = files.length + filteredFiles.length;
+    if (totalFiles > maxFiles) {
+      alert(`Maximum ${maxFiles} files allowed for ${isMobile ? 'mobile' : 'desktop'} devices.`);
+      return;
+    }
+    
+    if (filteredFiles.length > 0) {
+      setFiles((prev) => [...prev, ...filteredFiles]);
+      setImageBlobs([]);
+      setShowFeatures(false);
+      
+      // Get total pages for the first file (for page range feature)
+      if (filteredFiles.length > 0) {
+        const pages = await getPdfPageCount(filteredFiles[0]);
+        setTotalPages(pages);
+        setPageRange({start: 1, end: pages});
+      }
+    }
+  };
+
+  const convertPdfToImages = async (pdfFile: File): Promise<ConvertedFile[]> => {
+    const convertedFiles: ConvertedFile[] = [];
+    
+    try {
+      const pdfUrl = URL.createObjectURL(pdfFile);
+      const loadingTask = pdfjsLib.getDocument(pdfUrl);
+      const pdf = await loadingTask.promise;
+      const pageCount = pdf.numPages;
+      
+      if (pageCount === 0) {
+        throw new Error('PDF has no pages');
+      }
+      
+      // Determine which pages to convert
+      let startPage = 1;
+      let endPage = pageCount;
+      
+      if (showPageRange) {
+        startPage = Math.max(1, pageRange.start);
+        endPage = Math.min(pageCount, pageRange.end || pageCount);
+      }
+      
+      // Update progress based on total pages
+      const totalPagesToConvert = endPage - startPage + 1;
+      
+      for (let i = startPage; i <= endPage; i++) {
+        try {
+          const page = await pdf.getPage(i);
+          const scale = 2.0; // 2x for high quality
+          const viewport = page.getViewport({ scale });
+          
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          
+          if (!context) {
+            throw new Error('Could not get canvas context');
+          }
+          
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          
+          const renderContext = {
+            canvasContext: context,
+            viewport: viewport,
+          };
+          
+          await page.render(renderContext).promise;
+          
+          const mimeType = outputFormat === 'jpg' ? 'image/jpeg' : 'image/png';
+          const quality = outputFormat === 'jpg' ? imageQuality / 100 : undefined;
+          
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  resolve(blob);
+                } else {
+                  reject(new Error('Failed to create blob from canvas'));
+                }
+              },
+              mimeType,
+              quality
+            );
+          });
+          
+          const filename = generateUniqueFileName(pdfFile.name, i);
+          
+          convertedFiles.push({
+            blob,
+            name: filename,
+            originalFile: pdfFile,
+            timestamp: Date.now(),
+            pageNumber: i,
+          });
+          
+          // Update progress
+          const progressValue = ((i - startPage + 1) / totalPagesToConvert) * 100;
+          setProgress(progressValue);
+          
+          canvas.width = 0;
+          canvas.height = 0;
+          
+        } catch (pageError) {
+          console.error(`Error rendering page ${i}:`, pageError);
+        }
+      }
+      
+      URL.revokeObjectURL(pdfUrl);
+      
+      if (convertedFiles.length === 0) {
+        throw new Error('Failed to convert any pages from the PDF');
+      }
+      
+      return convertedFiles;
+      
+    } catch (error) {
+      console.error('PDF conversion error:', error);
+      throw new Error(`Failed to convert PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleConvert = async () => {
     if (files.length === 0) return;
 
+    if (!pdfWorkerLoaded) {
+      alert('PDF worker is still loading. Please wait a moment and try again.');
+      return;
+    }
+
     setConverting(true);
     setProgress(0);
-    setShowUploadInfo(false);
+    setImageBlobs([]);
+    setShowFeatures(false);
 
     try {
-      const file = files[0];
-
-      // Simulate progress for better UX
-      setProgress(20);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const arrayBuffer = await file.arrayBuffer();
-
-      // Store as base64
-      const base64 = arrayBufferToBase64(arrayBuffer);
-
-      setProgress(40);
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Use PDF-lib for page count
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
-      const pageCount = pdfDoc.getPageCount();
-
-      setProgress(60);
-
-      // Generate page data with initial rotation 0
-      const newPageData: PageData[] = Array.from(
-        { length: pageCount },
-        (_, i) => ({
-          pageNumber: i + 1,
-          fileName: generateImageFilename(
-            file.name,
-            i + 1,
-            pageCount,
-            imageSettings.format,
-            0
-          ),
-          rotation: 0,
-        })
-      );
-
-      // Render all pages to images
-      setProgress(70);
-
-      // Convert base64 back to Uint8Array for rendering
-      const binaryString = atob(base64);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      let allConverted: ConvertedFile[] = [];
+      let failedFiles: string[] = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const file = files[i];
+          
+          if (file.size === 0 || file.size > (isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024)) {
+            failedFiles.push(`${file.name} (invalid size)`);
+            continue;
+          }
+          
+          const converted = await convertPdfToImages(file);
+          allConverted = [...allConverted, ...converted];
+          
+        } catch (error: any) {
+          console.error(`Error converting PDF ${i}:`, error);
+          failedFiles.push(files[i].name);
+        }
       }
-
-      const loadingTask = pdfjsLib.getDocument({ data: bytes });
-      const pdf = await loadingTask.promise;
-
-      // Render all pages
-      for (let i = 0; i < pageCount; i++) {
-        const page = await pdf.getPage(i + 1);
-
-        // Calculate scale based on DPI
-        const scale = imageSettings.dpi / 96;
-        const viewport = page.getViewport({ scale });
-
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-
-        if (!context) continue;
-
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        await page.render({
-          canvasContext: context,
-          viewport: viewport,
-        }).promise;
-
-        // Convert to image data URL
-        const quality =
-          imageSettings.quality === "high"
-            ? 0.9
-            : imageSettings.quality === "medium"
-            ? 0.7
-            : 0.5;
-        const imageUrl = canvas.toDataURL(
-          `image/${imageSettings.format}`,
-          quality
-        );
-
-        newPageData[i].imageData = imageUrl;
-
-        // Update progress
-        setProgress(70 + Math.round(((i + 1) / pageCount) * 25));
+      
+      setImageBlobs(allConverted);
+      
+      if (failedFiles.length > 0) {
+        const message = `Successfully converted ${allConverted.length > 0 ? 'some' : 'none'} of ${files.length} PDF files.\n\nFailed files (${failedFiles.length}):\n${failedFiles.slice(0, 3).join('\n')}${failedFiles.length > 3 ? `\n...and ${failedFiles.length - 3} more` : ''}`;
+        alert(message);
       }
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setPageData(newPageData);
-      setPdfData({ base64, pageCount });
-      setProgress(100);
-
-      setTimeout(() => {
-        setConverted(true);
-        setConverting(false);
-        setCurrentPage(1); // Reset to first page
-      }, 300);
-    } catch (error) {
+      
+      if (allConverted.length === 0 && failedFiles.length > 0) {
+        throw new Error('All PDF files failed to convert. Please check the files and try again.');
+      }
+      
+    } catch (error: any) {
       console.error("Conversion error:", error);
-      alert("Failed to process PDF. Please make sure it's a valid PDF file.");
-      setConverting(false);
-      setProgress(0);
-    }
-  };
-
-  // Update rotation for a single page
-  const handleRotationChange = async (
-    pageIndex: number,
-    newRotation: number
-  ) => {
-    const updatedPageData = [...pageData];
-    const pageInfo = updatedPageData[pageIndex];
-
-    if (pageInfo?.imageData) {
-      // Clear cached rotated image
-      updatedPageData[pageIndex] = {
-        ...pageInfo,
-        rotation: newRotation,
-        rotatedImageData: undefined,
-        fileName: generateImageFilename(
-          files[0].name,
-          pageInfo.pageNumber,
-          pageData.length,
-          imageSettings.format,
-          newRotation
-        ),
-      };
-
-      setPageData(updatedPageData);
-    }
-  };
-
-  // Get rotated image data (with caching)
-  const getRotatedImageData = async (
-    pageInfo: PageData
-  ): Promise<string> => {
-    if (pageInfo.rotation === 0 && pageInfo.imageData) {
-      return pageInfo.imageData;
-    }
-
-    // Check if we have cached rotated image
-    if (pageInfo.rotatedImageData) {
-      return pageInfo.rotatedImageData;
-    }
-
-    // Rotate and cache
-    if (pageInfo.imageData) {
-      const rotatedImage = await rotateImage(pageInfo.imageData, pageInfo.rotation);
-      
-      // Update cache
-      const updatedPageData = [...pageData];
-      const pageIndex = pageInfo.pageNumber - 1;
-      updatedPageData[pageIndex] = {
-        ...pageInfo,
-        rotatedImageData: rotatedImage,
-      };
-      setPageData(updatedPageData);
-      
-      return rotatedImage;
-    }
-
-    throw new Error("No image data available");
-  };
-
-  // Rotate all images
-  const rotateAllImages = async (rotation: number) => {
-    if (pageData.length === 0) return;
-
-    setConverting(true);
-    setProgress(0);
-
-    try {
-      const updatedPageData = [...pageData];
-
-      for (let i = 0; i < updatedPageData.length; i++) {
-        const pageInfo = updatedPageData[i];
-        if (pageInfo?.imageData) {
-          // Clear cached rotated image
-          updatedPageData[i] = {
-            ...pageInfo,
-            rotation: rotation,
-            rotatedImageData: undefined,
-            fileName: generateImageFilename(
-              files[0].name,
-              pageInfo.pageNumber,
-              pageData.length,
-              imageSettings.format,
-              rotation
-            ),
-          };
-        }
-
-        // Update progress
-        const progress = Math.round(((i + 1) / updatedPageData.length) * 100);
-        setProgress(progress);
-      }
-
-      setPageData(updatedPageData);
-      setDownloadSuccess(
-        `✓ All ${updatedPageData.length} images rotated to ${rotation}°!`
-      );
-      setTimeout(() => setDownloadSuccess(null), 3000);
-    } catch (error) {
-      console.error("Error rotating all images:", error);
-      setDownloadSuccess("✗ Failed to rotate images. Please try again.");
-      setTimeout(() => setDownloadSuccess(null), 3000);
+      alert(error.message || "Failed to convert PDF to images. Please try again.");
     } finally {
       setConverting(false);
-      setProgress(0);
     }
   };
 
-  // Download a single image with rotation applied
-  const handleDownloadImage = async (pageIndex: number, fileName: string) => {
-    const pageInfo = pageData[pageIndex];
-    if (!pageInfo?.imageData) {
-      alert("Image not available.");
-      return;
-    }
+  const handleDownloadAllAsZip = async () => {
+    if (imageBlobs.length === 0) return;
 
-    const statusElement = document.getElementById(`status-${pageIndex}`);
-    if (statusElement) {
-      statusElement.innerText = "Processing...";
-      statusElement.className =
-        "text-xs text-yellow-600 dark:text-yellow-400 mt-1 font-medium animate-pulse";
-    }
-
-    try {
-      const imageData = await getRotatedImageData(pageInfo);
-
-      // Convert data URL to blob
-      const blob = dataURLtoBlob(imageData);
-      downloadFile(blob, fileName);
-
-      // Show success message
-      setDownloadSuccess(
-        `✓ Page ${
-          pageIndex + 1
-        } downloaded as ${imageSettings.format.toUpperCase()}!`
-      );
-      setTimeout(() => setDownloadSuccess(null), 3000);
-
-      if (statusElement) {
-        statusElement.innerText = "✓ Downloaded!";
-        statusElement.className =
-          "text-xs text-green-600 dark:text-green-400 mt-1 font-medium";
-      }
-    } catch (error) {
-      console.error(`Error downloading image ${pageIndex + 1}:`, error);
-      setDownloadSuccess(`✗ Failed to download page ${pageIndex + 1}`);
-      setTimeout(() => setDownloadSuccess(null), 3000);
-
-      if (statusElement) {
-        statusElement.innerText = "✗ Download failed";
-        statusElement.className =
-          "text-xs text-red-600 dark:text-red-400 mt-1 font-medium";
-      }
-    } finally {
-      setTimeout(() => {
-        if (statusElement) {
-          statusElement.innerText = "Ready to download";
-          statusElement.className =
-            "text-xs text-blue-600 dark:text-blue-400 mt-1";
-        }
-      }, 2000);
-    }
-  };
-
-  // Download all images with rotation applied
-  const handleDownloadAll = async () => {
-    if (pageData.length === 0) {
-      alert("No images available.");
-      return;
-    }
-
-    setDownloadingAll(true);
-    setDownloadProgress(0);
-
-    try {
-      for (let i = 0; i < pageData.length; i++) {
-        const pageInfo = pageData[i];
-        if (!pageInfo?.imageData) continue;
-
-        const fileName = pageInfo.fileName;
-        const imageData = await getRotatedImageData(pageInfo);
-
-        // Convert data URL to blob
-        const blob = dataURLtoBlob(imageData);
-        downloadFile(blob, fileName);
-
-        // Update progress
-        const progress = Math.round(((i + 1) / pageData.length) * 100);
-        setDownloadProgress(progress);
-
-        // Small delay to prevent browser freezing
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-
-      // Success message
-      setDownloadSuccess(
-        `✓ Successfully downloaded all ${pageData.length} images!`
-      );
-      setTimeout(() => setDownloadSuccess(null), 5000);
-    } catch (error) {
-      console.error("Error downloading all images:", error);
-      setDownloadSuccess("✗ Failed to download some images. Please try again.");
-      setTimeout(() => setDownloadSuccess(null), 3000);
-    } finally {
-      setDownloadingAll(false);
-      setDownloadProgress(0);
-    }
-  };
-
-  // Download current page images
-  const handleDownloadCurrentPage = async () => {
-    if (currentPageData.length === 0) return;
-
-    setDownloadingAll(true);
-    setDownloadProgress(0);
-
-    try {
-      for (let i = 0; i < currentPageData.length; i++) {
-        const pageInfo = currentPageData[i];
-        if (!pageInfo?.imageData) continue;
-
-        const fileName = pageInfo.fileName;
-        const imageData = await getRotatedImageData(pageInfo);
-
-        // Convert data URL to blob
-        const blob = dataURLtoBlob(imageData);
-        downloadFile(blob, fileName);
-
-        const progress = Math.round(((i + 1) / currentPageData.length) * 100);
-        setDownloadProgress(progress);
-
-        // Small delay to prevent browser freezing
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-
-      setDownloadSuccess(
-        `✓ Successfully downloaded ${currentPageData.length} images!`
-      );
-      setTimeout(() => setDownloadSuccess(null), 3000);
-    } catch (error) {
-      console.error("Error downloading current page images:", error);
-      setDownloadSuccess("✗ Failed to download images. Please try again.");
-      setTimeout(() => setDownloadSuccess(null), 3000);
-    } finally {
-      setDownloadingAll(false);
-      setDownloadProgress(0);
-    }
-  };
-
-  // Download all images as ZIP file
-  const handleDownloadZip = async () => {
-    if (pageData.length === 0) {
-      alert("No images available.");
-      return;
-    }
-
-    setCreatingZip(true);
-    setZipProgress(0);
-
+    setZipDownloading(true);
     try {
       const zip = new JSZip();
-      const folderName = files[0].name.replace(/\.pdf$/i, "");
-      const folder = zip.folder(`${folderName}_converted_images`) || zip;
-
-      for (let i = 0; i < pageData.length; i++) {
-        const pageInfo = pageData[i];
-        if (!pageInfo?.imageData) continue;
-
-        // Get rotated image
-        const imageData = await getRotatedImageData(pageInfo);
-        
-        // Convert data URL to blob
-        const blob = dataURLtoBlob(imageData);
-        
-        // Get file extension
-        const ext = imageSettings.format;
-        
-        // Add file to zip
-        folder.file(pageInfo.fileName, blob);
-
-        // Update progress
-        const progress = Math.round(((i + 1) / pageData.length) * 100);
-        setZipProgress(progress);
-
-        // Small delay to prevent UI freezing
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-
-      // Generate ZIP file
-      const zipBlob = await zip.generateAsync({ type: "blob" }, (metadata) => {
-        setZipProgress(Math.round(metadata.percent));
+      
+      imageBlobs.forEach((item) => {
+        if (item.blob && item.blob.size > 0) {
+          zip.file(item.name, item.blob);
+        }
       });
 
-      // Download ZIP file
-      const zipFileName = `${folderName}_${new Date().toISOString().split('T')[0]}.zip`;
-      saveAs(zipBlob, zipFileName);
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      
+      const zipName = `pdf_images_${new Date().getTime()}.zip`;
+      downloadFile(zipBlob, zipName);
 
-      // Success message
-      setDownloadSuccess(
-        `✓ Successfully created ZIP file with ${pageData.length} images!`
-      );
-      setTimeout(() => setDownloadSuccess(null), 5000);
+      const notification: DownloadNotification = {
+        id: Math.random().toString(36).substring(7),
+        fileName: zipName,
+        fileCount: imageBlobs.length,
+        timestamp: new Date(),
+        type: 'zip',
+      };
+      setDownloadNotifications((prev) => [...prev, notification]);
+
+      setTimeout(() => {
+        setDownloadNotifications((prev) =>
+          prev.filter((n) => n.id !== notification.id)
+        );
+      }, 5000);
     } catch (error) {
-      console.error("Error creating ZIP file:", error);
-      setDownloadSuccess("✗ Failed to create ZIP file. Please try again.");
-      setTimeout(() => setDownloadSuccess(null), 3000);
+      console.error("ZIP creation error:", error);
+      alert("Failed to create ZIP archive. Please try again.");
     } finally {
-      setCreatingZip(false);
-      setZipProgress(0);
+      setZipDownloading(false);
     }
   };
 
-  const handleFilesSelected = (newFiles: File[]) => {
-    setFiles(newFiles);
-    setConverted(false);
-    setPageData([]);
-    setPdfData(null);
-    setShowUploadInfo(false);
-    setCurrentPage(1);
-    setDownloadSuccess(null);
+  const handleDownloadAllSeparate = () => {
+    imageBlobs.forEach((item) => {
+      if (item.blob && item.blob.size > 0) {
+        downloadFile(item.blob, item.name);
+      }
+    });
+
+    const notification: DownloadNotification = {
+      id: Math.random().toString(36).substring(7),
+      fileName: imageBlobs.length === 1 ? imageBlobs[0].name : "Multiple files",
+      fileCount: imageBlobs.length,
+      timestamp: new Date(),
+      type: imageBlobs.length === 1 ? 'single' : 'multi',
+    };
+    setDownloadNotifications((prev) => [...prev, notification]);
+
+    setTimeout(() => {
+      setDownloadNotifications((prev) =>
+        prev.filter((n) => n.id !== notification.id)
+      );
+    }, 5000);
+  };
+
+  const handleSingleDownload = (index: number) => {
+    const item = imageBlobs[index];
+    if (!item || !item.blob || item.blob.size === 0) {
+      alert("Cannot download this file. It may be corrupted.");
+      return;
+    }
+
+    downloadFile(item.blob, item.name);
+
+    const notification: DownloadNotification = {
+      id: Math.random().toString(36).substring(7),
+      fileName: item.name,
+      fileCount: 1,
+      timestamp: new Date(),
+      type: 'single',
+    };
+    setDownloadNotifications((prev) => [...prev, notification]);
+
+    setTimeout(() => {
+      setDownloadNotifications((prev) =>
+        prev.filter((n) => n.id !== notification.id)
+      );
+    }, 5000);
+  };
+
+  const handleRemoveFile = (indexToRemove: number) => {
+    setFiles((prevFiles) =>
+      prevFiles.filter((_, index) => index !== indexToRemove)
+    );
+    setImageBlobs([]);
   };
 
   const handleReset = () => {
     setFiles([]);
-    setConverted(false);
-    setPageData([]);
-    setPdfData(null);
+    setImageBlobs([]);
     setProgress(0);
-    setShowUploadInfo(true);
-    setCurrentPage(1);
-    setDownloadSuccess(null);
+    setShowFeatures(true);
+    setPageRange({start: 1, end: totalPages});
   };
 
-  const handlePageZoom = (pageNumber: number, fileName: string) => {
-    const pageIndex = pageNumber - 1;
-    const pageInfo = pageData[pageIndex];
-
-    setZoomModal({
-      isOpen: true,
-      pageNumber,
-      fileName,
-      pageRotation: pageInfo?.rotation || 0,
-      pageImageData: pageInfo?.imageData,
-    });
-  };
-
-  // Update image settings
-  const updateImageFormat = (format: ImageFormat) => {
-    setImageSettings((prev) => ({ ...prev, format }));
-
-    // Update filenames
-    if (files.length > 0 && pageData.length > 0) {
-      const updatedPageData = pageData.map((page, index) => ({
-        ...page,
-        fileName: generateImageFilename(
-          files[0].name,
-          index + 1,
-          pageData.length,
-          format,
-          page.rotation
-        ),
-      }));
-      setPageData(updatedPageData);
-    }
-  };
-
-  const updateImageQuality = (quality: ImageQuality) => {
-    setImageSettings((prev) => ({ ...prev, quality }));
-  };
-
-  const updateDPI = (dpi: number) => {
-    setImageSettings((prev) => ({ ...prev, dpi }));
-  };
-
-  // Pagination controls
-  const goToPage = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-  };
-
-  const nextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  // Items per page options
-  const itemsPerPageOptions = [12, 24, 36, 48];
+  const hasFiles = files.length > 0;
+  const hasResults = imageBlobs.length > 0;
+  const isReadyToConvert = hasFiles && !hasResults && !converting && pdfWorkerLoaded;
+  const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
   return (
     <>
@@ -1570,854 +906,608 @@ export default function PdfToImageConverterWithRotation() {
       <BreadcrumbSchema />
       <HowToSchema />
       <ArticleSchema />
-       
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-8 md:py-12">
-        <div className="container mx-auto px-4 max-w-6xl">
+      
+      {/* Download Success Notifications */}
+      <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
+        <div
+          ref={notificationsRef}
+          className="space-y-2 max-h-64 overflow-y-auto pr-2"
+        >
+          <AnimatePresence>
+            {downloadNotifications.map((notification) => (
+              <DownloadNotification
+                key={notification.id}
+                {...notification}
+                onClose={() =>
+                  setDownloadNotifications((prev) =>
+                    prev.filter((n) => n.id !== notification.id)
+                  )
+                }
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-purple-950/20 py-6 sm:py-8 md:py-12">
+        <div className="container mx-auto px-3 sm:px-4 max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Success Message Overlay */}
-            <AnimatePresence>
-              {downloadSuccess && (
+            {/* --- Header Section --- */}
+            <div className="mb-6 sm:mb-8 md:mb-12">
+              <a
+                href="/"
+                className="inline-flex items-center gap-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-all font-medium group mb-3 sm:mb-6"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                <span className="text-sm">Back to Tools</span>
+              </a>
+
+              <div className="text-center mb-4 sm:mb-6 md:mb-8">
                 <motion.div
-                  initial={{ opacity: 0, y: -50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -50 }}
-                  className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  className={`inline-flex items-center justify-center
+                    w-14 h-14 md:w-16 md:h-16
+                    bg-gradient-to-br ${tool.color}
+                    rounded-2xl md:rounded-3xl
+                    mb-3 md:mb-4 shadow-xl`}
                 >
-                  <div
-                    className={`p-4 rounded-xl shadow-2xl backdrop-blur-sm ${
-                      downloadSuccess.startsWith("✓")
-                        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
-                        : "bg-gradient-to-r from-red-500 to-orange-600 text-white"
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-3">
-                      {downloadSuccess.startsWith("✓") ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <X className="w-5 h-5" />
-                      )}
-                      <span className="font-medium">{downloadSuccess}</span>
+                  <span className="text-2xl md:text-3xl text-white select-none">
+                    {tool.icon}
+                  </span>
+                </motion.div>
+
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
+                  Convert PDF to JPG/PNG - Free, Fast & No Watermark | PDFSwift
+                </h1>
+
+                <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
+                  Convert your PDF pages to high-quality JPG or PNG images with
+                  superior quality
+                  <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
+                    {isMobile ? "Mobile: Up to 30MB per PDF" : "Desktop: Up to 200MB per PDF"}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* --- Features Grid --- */}
+            <AnimatePresence>
+              {showFeatures && !hasFiles && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-6 sm:mb-8 md:mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
+                >
+                  {[
+                    {
+                      icon: FileText,
+                      title: "PDF to Image",
+                      desc: isMobile 
+                        ? "Convert PDF pages to images on mobile devices"
+                        : "Convert PDF documents to high-quality images",
+                      gradient: "from-purple-500 to-pink-600",
+                      bg: "from-purple-50 to-pink-50",
+                      border: "border-purple-200",
+                    },
+                    {
+                      icon: Palette,
+                      title: "Multiple Formats",
+                      desc: "Choose between JPG (with adjustable quality) or PNG (lossless) output",
+                      gradient: "from-blue-500 to-cyan-600",
+                      bg: "from-blue-50 to-cyan-50",
+                      border: "border-blue-200",
+                    },
+                    {
+                      icon: Archive,
+                      title: "ZIP Download",
+                      desc: "Download all converted images in a single ZIP archive for easy organization",
+                      gradient: "from-purple-500 to-indigo-600",
+                      bg: "from-purple-50 to-indigo-50",
+                      border: "border-purple-200",
+                    },
+                  ].map((feature, index) => (
+                    <div
+                      key={index}
+                      className={`bg-gradient-to-br ${feature.bg} dark:from-gray-800 dark:to-gray-900 p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl md:rounded-2xl border-2 ${feature.border} dark:border-gray-700`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+                        <div
+                          className={`p-1.5 sm:p-2 bg-gradient-to-r ${feature.gradient} rounded-lg sm:rounded-xl`}
+                        >
+                          <feature.icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
+                        </div>
+                        <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white">
+                          {feature.title}
+                        </h3>
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        {feature.desc}
+                      </p>
                     </div>
-                  </div>
+                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-              <a
-                href="/"
-                className="inline-flex items-center gap-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all font-medium group"
-              >
-                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                <span className="hidden sm:inline">Back to Tools</span>
-              </a>
-
-              <div className="flex items-center gap-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-gray-800 dark:to-purple-950/30 px-4 py-2 rounded-full">
-                <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                  Secure & Private
-                </span>
-              </div>
-            </div>
-
-            {/* Hero Section */}
-            <div className="text-center mb-10 md:mb-12">
-              <motion.div
-                initial={{ scale: 0.5 }}
-                animate={{ scale: 1 }}
-                className={`inline-flex items-center justify-center
-                  w-14 h-14 md:w-16 md:h-16
-                  bg-gradient-to-br ${tool.color}
-                  rounded-2xl md:rounded-3xl
-                  mb-3 md:mb-4 shadow-xl`}
-              >
-                <span className="text-2xl md:text-3xl text-white select-none">
-                  {tool.icon}
-                </span>
-              </motion.div>
-
-              <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Convert PDF to Image Online - Free, JPG & PNG | PDFSwift
-              </h1>
-
-              <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                Convert PDF pages to high-quality JPG or PNG images, rotate them as needed, and download instantly.
-                <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1">
-                  Rotate individual images or batch rotate all pages!
-                </span>
-              </p>
-            </div>
-
-            {/* Main Card */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-2xl p-4 sm:p-6 md:p-8 mb-8">
+            {/* --- Main Converter Card --- */}
+            <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
               {/* Upload Section */}
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-xl">
-                    <FolderOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="mb-4 sm:mb-6 md:mb-8">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
+                  <div className="p-1.5 sm:p-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-xl">
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                      Upload PDF
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                      Upload PDF Documents
                     </h2>
-                    <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
-                      Select your PDF file to convert and rotate
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                      Select PDF files to convert to images
+                      {isMobile && (
+                        <span className="block text-purple-600 dark:text-purple-400 mt-1">
+                          Max 30MB per file • 10 files max
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
 
-                <FileUploader
-                  accept="application/pdf"
-                  multiple={false}
-                  onFilesSelected={handleFilesSelected}
-                />
+                {/* FileUploader */}
+                <div className="mb-6">
+                  <FileUploader
+                    accept="application/pdf"
+                    multiple={true}
+                    onFilesSelected={handleFilesSelected}
+                    maxFiles={isMobile ? 10 : 50}
+                    maxSize={isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                    {isMobile 
+                      ? "For best results on mobile, use PDF files under 30MB"
+                      : "Desktop browser recommended for files above 30MB"
+                    }
+                  </p>
+                </div>
 
-                {/* Image Settings */}
-                {files.length > 0 && !converted && !converting && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="mt-6 p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl border-2 border-blue-200 dark:border-blue-800/30"
-                  >
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                      <Settings className="w-5 h-5 text-blue-600" />
-                      Conversion Settings
-                    </h3>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {/* Format Selection */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Output Format
-                        </label>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => updateImageFormat("jpg")}
-                            className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
-                              imageSettings.format === "jpg"
-                                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-                                : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                            }`}
-                          >
-                            JPG
-                          </button>
-                          <button
-                            onClick={() => updateImageFormat("png")}
-                            className={`flex-1 py-2 px-3 rounded-lg font-medium transition-all ${
-                              imageSettings.format === "png"
-                                ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md"
-                                : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                            }`}
-                          >
-                            PNG
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Quality Selection */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Image Quality
-                        </label>
-                        <div className="flex gap-2">
-                          {(["low", "medium", "high"] as ImageQuality[]).map(
-                            (quality) => (
-                              <button
-                                key={quality}
-                                onClick={() => updateImageQuality(quality)}
-                                className={`flex-1 py-2 px-2 text-xs rounded-lg font-medium transition-all ${
-                                  imageSettings.quality === quality
-                                    ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md"
-                                    : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                }`}
-                              >
-                                {quality.charAt(0).toUpperCase() +
-                                  quality.slice(1)}
-                              </button>
-                            )
-                          )}
-                        </div>
-                      </div>
-
-                      {/* DPI Selection */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Resolution (DPI)
-                        </label>
-                        <div className="flex gap-2">
-                          {[150, 300, 600].map((dpi) => (
-                            <button
-                              key={dpi}
-                              onClick={() => updateDPI(dpi)}
-                              className={`flex-1 py-2 px-2 text-xs rounded-lg font-medium transition-all ${
-                                imageSettings.dpi === dpi
-                                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md"
-                                  : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                              }`}
-                            >
-                              {dpi} DPI
-                            </button>
-                          ))}
-                        </div>
+                {/* Format & Quality Selection */}
+                {hasFiles && (
+                  <div className="flex flex-wrap items-center gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Output Format:</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setOutputFormat('jpg')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            outputFormat === 'jpg'
+                              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          JPG
+                        </button>
+                        <button
+                          onClick={() => setOutputFormat('png')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            outputFormat === 'png'
+                              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          PNG
+                        </button>
                       </div>
                     </div>
-                  </motion.div>
+                    
+                    {outputFormat === 'jpg' && (
+                      <div className="flex items-center gap-3 ml-auto">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Quality:</span>
+                        <input
+                          type="range"
+                          min="10"
+                          max="100"
+                          value={imageQuality}
+                          onChange={(e) => setImageQuality(parseInt(e.target.value))}
+                          className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-purple-600"
+                        />
+                        <span className="text-sm font-semibold text-purple-600 dark:text-purple-400 min-w-[2.5rem]">
+                          {imageQuality}%
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Page Range Toggle */}
+                    <div className="flex items-center gap-3 ml-auto">
+                      <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showPageRange}
+                          onChange={(e) => setShowPageRange(e.target.checked)}
+                          className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                        />
+                        Custom Page Range
+                      </label>
+                    </div>
+                  </div>
                 )}
 
-                {/* Features Grid - Responsive */}
-                <AnimatePresence>
-                  {showUploadInfo && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4"
-                    >
-                      <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-xl sm:rounded-2xl border border-blue-200 dark:border-blue-800/50">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <Rotate3D className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-                          <span className="text-sm sm:text-base font-semibold text-blue-800 dark:text-blue-300">
-                            Image Rotation
-                          </span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-blue-700/80 dark:text-blue-400/80 mt-1 sm:mt-2">
-                          Rotate images to any angle before download
-                        </p>
-                      </div>
+                {/* Page Range Inputs */}
+                {hasFiles && showPageRange && (
+                  <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">From:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={totalPages || 1}
+                        value={pageRange.start}
+                        onChange={(e) => setPageRange({...pageRange, start: parseInt(e.target.value) || 1})}
+                        className="w-20 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">To:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={totalPages || 1}
+                        value={pageRange.end}
+                        onChange={(e) => setPageRange({...pageRange, end: parseInt(e.target.value) || 1})}
+                        className="w-20 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm"
+                      />
+                    </div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      (Total: {totalPages} pages)
+                    </span>
+                  </div>
+                )}
 
-                      <div className="p-3 sm:p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-900/20 rounded-xl sm:rounded-2xl border border-purple-200 dark:border-purple-800/50">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <FolderArchive className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                          <span className="text-sm sm:text-base font-semibold text-purple-800 dark:text-purple-300">
-                            ZIP Download
-                          </span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-purple-700/80 dark:text-purple-400/80 mt-1 sm:mt-2">
-                          Download all images in a single ZIP file
-                        </p>
-                      </div>
+                {/* PDF Worker Loading Status */}
+                {!pdfWorkerLoaded && (
+                  <div className="text-center p-2 text-amber-600 dark:text-amber-400 text-sm">
+                    ⏳ Loading PDF renderer... Please wait.
+                  </div>
+                )}
 
-                      <div className="p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-900/20 rounded-xl sm:rounded-2xl border border-green-200 dark:border-green-800/50">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                          <span className="text-sm sm:text-base font-semibold text-green-800 dark:text-green-300">
-                            Real-time Preview
-                          </span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-green-700/80 dark:text-green-400/80 mt-1 sm:mt-2">
-                          See rotation changes instantly
-                        </p>
+                {hasFiles && (
+                  <div className="text-center mb-6">
+                    <div className="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-full">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
+                        <span className="font-medium text-purple-700 dark:text-purple-300">
+                          {files.length} PDF {files.length === 1 ? 'file' : 'files'} selected
+                        </span>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
+                        <span>
+                          • {(totalSize / 1024 / 1024).toFixed(2)} MB total
+                        </span>
+                        {isMobile && totalSize > 100 * 1024 * 1024 && (
+                          <span className="text-red-600"> • Large files may cause issues on mobile</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Content Area */}
-              {files.length > 0 && (
-                <div className="space-y-6 sm:space-y-8">
-                  {/* Selected File Info - FIXED: Removed filename */}
-                  <div className="p-4 sm:p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-xl sm:rounded-2xl border-2 border-blue-200 dark:border-blue-800/30">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-md">
-                          <FileImage className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">
-                            PDF Document
-                          </h3>
-                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                            {(files[0].size / 1024 / 1024).toFixed(2)} MB •
-                            <span className="ml-1 text-blue-600 dark:text-blue-400 font-medium">
-                              Output: {imageSettings.format.toUpperCase()} ({imageSettings.dpi} DPI)
-                            </span>
-                          </p>
-                        </div>
-                      </div>
+              {/* --- File Previews and Conversion Area --- */}
+              {hasFiles && (
+                <div className="space-y-4 sm:space-y-6 md:space-y-8">
+                  {/* --- Input PDF Previews --- */}
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                        Uploaded PDF Files
+                      </h3>
                       <button
                         onClick={handleReset}
-                        className="px-4 py-2 sm:px-6 sm:py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors mt-2 sm:mt-0"
+                        className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors"
                       >
-                        Change File
+                        Clear All
                       </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-purple-50 dark:from-gray-800 dark:to-purple-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700">
+                      {files.map((file, index) => (
+                        <div
+                          key={index}
+                          className="relative bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-md"
+                        >
+                          <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-20 mb-3 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-lg">
+                              <FileText className="w-8 h-8 text-white" />
+                            </div>
+                            <p className="text-xs font-medium truncate w-full text-gray-900 dark:text-white">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                            <button
+                              onClick={() => handleRemoveFile(index)}
+                              className="mt-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Processing State */}
-                  <AnimatePresence mode="wait">
-                    {converting && !converted && (
-                      <motion.div
-                        key="converting"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="space-y-4 sm:space-y-6"
-                      >
-                        <div className="text-center">
-                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
-                            Converting PDF to Images 🖼️
-                          </h3>
-                          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                            Processing pages with {imageSettings.dpi} DPI...
-                          </p>
-                        </div>
-
+                  {/* --- Progress and Action Buttons --- */}
+                  <div className="space-y-4 sm:space-y-6">
+                    {converting && (
+                      <div className="space-y-3 sm:space-y-4">
                         <ProgressBar
                           progress={progress}
-                          label={
-                            progress < 40
-                              ? "Loading PDF..."
-                              : progress < 70
-                              ? "Converting pages to images..."
-                              : "Preparing downloads..."
-                          }
+                          label={`Converting ${files.length} PDF ${files.length === 1 ? 'file' : 'files'}...`}
                         />
-
-                        <div className="flex justify-center">
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-50 dark:bg-blue-950/30 rounded-full">
-                            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 animate-pulse" />
-                            <span className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
-                              Converting to {imageSettings.format.toUpperCase()}
-                            </span>
-                          </div>
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-purple-600 dark:text-purple-400">
+                          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
+                          <span className="text-xs sm:text-sm font-medium">
+                            {isMobile ? "Processing on mobile..." : "Processing your PDFs..."}
+                          </span>
                         </div>
-                      </motion.div>
+                        {isMobile && totalSize > 50 * 1024 * 1024 && (
+                          <div className="text-center text-xs text-purple-600 dark:text-purple-400">
+                            Large files may take longer on mobile devices
+                          </div>
+                        )}
+                      </div>
                     )}
 
-                    {/* Convert Button */}
-                    {!converted && !converting && (
+                    {isReadyToConvert && (
                       <motion.button
-                        key="convert"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleConvert}
-                        className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl sm:rounded-2xl shadow-xl hover:shadow-2xl transition-all text-base sm:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                       >
-                        <Rotate3D className="w-5 h-5 sm:w-6 sm:h-6" />
-                        <span>
-                          Convert to {imageSettings.format.toUpperCase()}
-                        </span>
-                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <FileImage className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                        Convert {files.length} PDF to {outputFormat.toUpperCase()}
+                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                       </motion.button>
                     )}
 
-                    {/* Results */}
-                    {converted && (
-                      <motion.div
-                        key="results"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6 sm:space-y-8"
-                      >
-                        {/* Success Banner */}
-                        <div className="p-4 sm:p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl sm:rounded-2xl border-2 border-green-200 dark:border-green-800/50">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                            <div className="flex items-center justify-center sm:justify-start">
-                              <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/50 rounded-lg sm:rounded-xl">
-                                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-400" />
-                              </div>
-                            </div>
-                            <div className="flex-1 text-center sm:text-left">
-                              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1">
-                                PDF Successfully Converted! 🎉
-                              </h3>
-                              <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
-                                Converted {pageData.length} pages to{" "}
-                                {imageSettings.format.toUpperCase()} images
-                              </p>
-                              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-1">
-                                Rotate images before downloading
-                              </p>
-                            </div>
-                            <div className="flex items-center justify-center">
-                              <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-sm sm:text-base">
-                                {pageData.length} Images
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Download All Progress */}
-                        {(downloadingAll || creatingZip) && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border-2 border-blue-200 dark:border-blue-800/30"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium text-blue-700 dark:text-blue-300">
-                                {creatingZip ? "Creating ZIP file" : "Downloading"}{" "}
-                                {creatingZip ? zipProgress : downloadProgress}% complete
-                              </span>
-                              <span className="text-sm text-gray-600 dark:text-gray-400">
-                                {Math.round(
-                                  ((creatingZip ? zipProgress : downloadProgress) / 100) * pageData.length
-                                )}{" "}
-                                of {pageData.length} images
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ 
-                                  width: `${creatingZip ? zipProgress : downloadProgress}%` 
-                                }}
-                                className={`h-2 rounded-full ${
-                                  creatingZip 
-                                    ? "bg-gradient-to-r from-orange-500 to-amber-600"
-                                    : "bg-gradient-to-r from-blue-500 to-purple-600"
-                                }`}
-                              />
-                            </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                              {creatingZip 
-                                ? "Please wait while ZIP file is being created..." 
-                                : "Please wait while all images are being downloaded..."
-                              }
-                            </p>
-                          </motion.div>
-                        )}
-
-                        {/* Image Grid */}
-                        <div>
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
-                            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 sm:gap-3">
-                              <Grid3x3 className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
-                              Converted Images with Rotation (Page {currentPage}{" "}
-                              of {totalPages})
-                            </h3>
-                            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
-                              Hover for rotation controls • Click to zoom
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                            {currentPageData.map((page, index) => {
-                              const actualIndex = startIndex + index;
-                              return (
-                                <motion.div
-                                  key={page.pageNumber}
-                                  initial={{ opacity: 0, scale: 0.9 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ delay: index * 0.05 }}
-                                  whileHover={{ y: -4 }}
-                                  className="group"
-                                >
-                                  <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl sm:rounded-2xl border-2 border-gray-200 dark:border-gray-700 p-4 sm:p-5 shadow-lg hover:shadow-2xl transition-all duration-300">
-                                    <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4">
-                                      {page.imageData ? (
-                                        <ImageRotator
-                                          imageData={page.imageData}
-                                          rotation={page.rotation}
-                                          onRotationChange={(newRotation) =>
-                                            handleRotationChange(
-                                              actualIndex,
-                                              newRotation
-                                            )
-                                          }
-                                          onZoomClick={() =>
-                                            handlePageZoom(
-                                              page.pageNumber,
-                                              page.fileName
-                                            )
-                                          }
-                                          fileName={page.fileName}
-                                          pageNumber={page.pageNumber}
-                                        />
-                                      ) : (
-                                        <PdfPageRenderer
-                                          pageNumber={page.pageNumber}
-                                          pdfData={pdfData}
-                                          fileName={page.fileName}
-                                          onZoomClick={() =>
-                                            handlePageZoom(
-                                              page.pageNumber,
-                                              page.fileName
-                                            )
-                                          }
-                                        />
-                                      )}
-
-                                      <div className="w-full">
-                                        <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg mb-1">
-                                          Page {page.pageNumber}
-                                        </h4>
-                                        {/* FIXED: Removed filename, showing format and DPI instead */}
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2 sm:mb-3">
-                                          {imageSettings.format.toUpperCase()} • {imageSettings.dpi} DPI
-                                        </p>
-                                        <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
-                                          <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-                                            {imageSettings.format.toUpperCase()}
-                                          </span>
-                                          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
-                                            {imageSettings.dpi} DPI
-                                          </span>
-                                          <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
-                                            {page.rotation}°
-                                          </span>
-                                        </div>
-
-                                        <div className="space-y-2 sm:space-y-3">
-                                          <span
-                                            id={`status-${actualIndex}`}
-                                            className="text-xs text-blue-600 dark:text-blue-400 font-medium"
-                                          >
-                                            Ready to download
-                                          </span>
-
-                                          <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={() =>
-                                              handleDownloadImage(
-                                                actualIndex,
-                                                page.fileName
-                                              )
-                                            }
-                                            className="w-full py-2 sm:py-2.5 px-3 sm:px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg sm:rounded-xl shadow-md hover:shadow-xl transition-all flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
-                                          >
-                                            <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                                            Download{" "}
-                                            {imageSettings.format.toUpperCase()}
-                                          </motion.button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Batch Rotation Controls */}
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border-2 border-indigo-200 dark:border-indigo-800/30">
-                          <h4 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                            <Rotate3D className="w-5 h-5 text-indigo-600" />
-                            Batch Rotate All Images
-                          </h4>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
-                            <button
-                              onClick={() => rotateAllImages(90)}
-                              disabled={converting}
-                              className="py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                            >
-                              <RotateCw className="w-4 h-4" />
-                              Rotate 90° Right
-                            </button>
-                            <button
-                              onClick={() => rotateAllImages(180)}
-                              disabled={converting}
-                              className="py-2 px-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                              Rotate 180°
-                            </button>
-                            <button
-                              onClick={() => rotateAllImages(270)}
-                              disabled={converting}
-                              className="py-2 px-4 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                            >
-                              <RotateCcw className="w-4 h-4" />
-                              Rotate 90° Left
-                            </button>
-                            <button
-                              onClick={() => rotateAllImages(0)}
-                              disabled={converting}
-                              className="py-2 px-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                              Reset All
-                            </button>
-                          </div>
-
-                          <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                            Apply the same rotation to all {pageData.length}{" "}
-                            images at once
-                          </p>
-                        </div>
-
-                        {/* Pagination Controls */}
-                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 border-2 border-blue-200 dark:border-blue-800/30">
-                          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
-                            <div>
-                              <h4 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg">
-                                Showing {startIndex + 1}-{endIndex} of{" "}
-                                {pageData.length} images
-                                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                                  (12 per page)
-                                </span>
-                              </h4>
-                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                                Navigate through images using pagination
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <label className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium">
-                                Items per page:
-                              </label>
-                              <select
-                                value={itemsPerPage}
-                                onChange={(e) =>
-                                  setItemsPerPage(Number(e.target.value))
-                                }
-                                className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm"
-                              >
-                                {itemsPerPageOptions.map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Pagination Buttons */}
-                          <div className="flex flex-wrap items-center justify-center gap-2">
-                            <button
-                              onClick={prevPage}
-                              disabled={currentPage === 1}
-                              className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                            >
-                              <ChevronLeft className="w-4 h-4" />
-                            </button>
-
-                            {Array.from(
-                              { length: Math.min(5, totalPages) },
-                              (_, i) => {
-                                let pageNum;
-                                if (totalPages <= 5) {
-                                  pageNum = i + 1;
-                                } else if (currentPage <= 3) {
-                                  pageNum = i + 1;
-                                } else if (currentPage >= totalPages - 2) {
-                                  pageNum = totalPages - 4 + i;
-                                } else {
-                                  pageNum = currentPage - 2 + i;
-                                }
-
-                                return (
-                                  <button
-                                    key={pageNum}
-                                    onClick={() => goToPage(pageNum)}
-                                    className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                                      currentPage === pageNum
-                                        ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white"
-                                        : "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                    }`}
-                                  >
-                                    {pageNum}
-                                  </button>
-                                );
-                              }
-                            )}
-
-                            <button
-                              onClick={nextPage}
-                              disabled={currentPage === totalPages}
-                              className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                            >
-                              <ChevronRightIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Download All Buttons Section with ZIP option */}
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl sm:rounded-2xl p-4 sm:p-8 border-2 border-indigo-200 dark:border-indigo-800/50">
-                          <div className="text-center mb-4 sm:mb-6">
-                            <h4 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
-                              Batch Download Options
-                            </h4>
-                            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
-                              Choose how you want to download images
-                            </p>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                              {/* Current Page Download */}
-                              <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-blue-200 dark:border-blue-700">
-                                <h5 className="font-bold text-gray-900 dark:text-white mb-2">
-                                  Download Current Page
-                                </h5>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                                  Download {endIndex - startIndex} images from current view
-                                </p>
-                                <motion.button
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  onClick={handleDownloadCurrentPage}
-                                  disabled={downloadingAll || creatingZip}
-                                  className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                >
-                                  {downloadingAll ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                                      Downloading...
-                                    </>
-                                  ) : (
-                                    `Download ${endIndex - startIndex} Images`
-                                  )}
-                                </motion.button>
-                              </div>
-
-                              {/* All Images Individual Download */}
-                              <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-purple-200 dark:border-purple-700">
-                                <h5 className="font-bold text-gray-900 dark:text-white mb-2">
-                                  Download All Images
-                                </h5>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                                  Download all {pageData.length} images individually
-                                </p>
-                                <motion.button
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  onClick={handleDownloadAll}
-                                  disabled={downloadingAll || creatingZip}
-                                  className="w-full py-2.5 px-4 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                >
-                                  {downloadingAll ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                                      Downloading...
-                                    </>
-                                  ) : (
-                                    `Download All ${pageData.length} Images`
-                                  )}
-                                </motion.button>
-                              </div>
-
-                              {/* ZIP Download */}
-                              <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-amber-200 dark:border-amber-700">
-                                <h5 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center justify-center gap-2">
-                                  <Archive className="w-5 h-5 text-amber-600" />
-                                  Download as ZIP
-                                </h5>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                                  Get all {pageData.length} images in one ZIP file
-                                </p>
-                                <motion.button
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  onClick={handleDownloadZip}
-                                  disabled={downloadingAll || creatingZip}
-                                  className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                >
-                                  {creatingZip ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                                      Creating ZIP...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Archive className="w-4 h-4 inline mr-2" />
-                                      Download ZIP File
-                                    </>
-                                  )}
-                                </motion.button>
-                              </div>
-                            </div>
-
-                            <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
-                              <span className="font-medium text-green-600 dark:text-green-400">
-                                Tip:
-                              </span>{" "}
-                              For better organization, download as ZIP to get all images in a single compressed folder
-                            </p>
-
-                            <p
-                              id="status-all-1"
-                              className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2"
-                            >
-                              Ready for batch download
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Convert Another */}
-                        <div className="text-center">
-                          <button
-                            onClick={handleReset}
-                            className="inline-flex items-center gap-1 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg sm:rounded-xl transition-colors text-sm sm:text-base"
-                          >
-                            <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
-                            Convert Another PDF
-                          </button>
-                        </div>
-                      </motion.div>
+                    {hasFiles && !isReadyToConvert && !converting && !pdfWorkerLoaded && (
+                      <div className="text-center text-amber-600 dark:text-amber-400 text-sm p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                        ⏳ PDF renderer is initializing. Please wait a moment...
+                      </div>
                     )}
-                  </AnimatePresence>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Zoom Modal */}
-            <ZoomModal
-              isOpen={zoomModal.isOpen}
-              onClose={() => setZoomModal({ ...zoomModal, isOpen: false })}
-              pageNumber={zoomModal.pageNumber}
-              pdfData={pdfData}
-              fileName={zoomModal.fileName}
-              pageRotation={zoomModal.pageRotation}
-              pageImageData={zoomModal.pageImageData}
-            />
+            {/* --- Results and Download Area --- */}
+            {hasResults && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-purple-200 dark:border-purple-800/50 p-3 sm:p-4 md:p-6 lg:p-8 shadow-lg sm:shadow-xl md:shadow-2xl mb-6 md:mb-8"
+              >
+                {/* Success Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
+                  <div className="flex items-center justify-center sm:justify-start">
+                    <div className="p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg sm:rounded-xl shadow-lg">
+                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
+                      Conversion Complete! 🎉
+                    </h2>
+                    <p className="text-purple-700 dark:text-purple-300 font-medium text-sm sm:text-base">
+                      Successfully converted {imageBlobs.length} PDF pages to {outputFormat.toUpperCase()} images
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
+                      Choose your download option below
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center mt-2 sm:mt-0">
+                    <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
+                      {imageBlobs.length} Pages
+                    </div>
+                  </div>
+                </div>
 
-            <section className="max-w-6xl mx-auto mt-16 px-4">
+                {/* --- Output Image Previews --- */}
+                <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Download className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                    Converted {outputFormat.toUpperCase()} Images
+                  </h3>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-purple-100 dark:border-purple-800/30">
+                    {imageBlobs.map((item, index) => (
+                      <ImagePreview
+                        key={index}
+                        file={item.blob}
+                        filename={item.name}
+                        status="Converted ✓"
+                        isDownloadable={true}
+                        index={index}
+                        pageNumber={item.pageNumber}
+                        onSingleDownload={() => handleSingleDownload(index)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* --- Download Options Section --- */}
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    {/* Download as ZIP Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDownloadAllAsZip}
+                      disabled={zipDownloading}
+                      className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
+                        zipDownloading ? 'opacity-75 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {zipDownloading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                          Creating ZIP...
+                        </>
+                      ) : (
+                        <>
+                          <Archive className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                          Download as ZIP Archive ({imageBlobs.length} images)
+                          <FolderClosed className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                        </>
+                      )}
+                    </motion.button>
+
+                    {/* Download All Separately Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDownloadAllSeparate}
+                      className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                    >
+                      <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                      Download All {imageBlobs.length} Images Separately
+                      <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                    </motion.button>
+                  </div>
+
+                  <div className="text-center">
+                    <button
+                      onClick={handleReset}
+                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
+                    >
+                      <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
+                      Convert More PDFs
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* --- Stats Footer --- */}
+            {(hasFiles || hasResults) && (
+              <div className="mt-6 sm:mt-10 md:mt-14">
+                <div className="max-w-6xl mx-auto px-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                    {[
+                      {
+                        value: files.length,
+                        label: "PDFs Uploaded",
+                        color: "text-purple-600",
+                        bg: "bg-purple-50 dark:bg-purple-900/10",
+                      },
+                      {
+                        value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`,
+                        label: "Total Size",
+                        color: "text-blue-600",
+                        bg: "bg-blue-50 dark:bg-blue-900/10",
+                      },
+                      {
+                        value: imageBlobs.length,
+                        label: "Pages Converted",
+                        color: "text-green-600",
+                        bg: "bg-green-50 dark:bg-green-900/10",
+                      },
+                      {
+                        value: outputFormat.toUpperCase(),
+                        label: "Output Format",
+                        color: "text-pink-600",
+                        bg: "bg-pink-50 dark:bg-pink-900/10",
+                      },
+                    ].map((stat, index) => (
+                      <div
+                        key={index}
+                        className={`flex flex-col items-center justify-center
+                        rounded-2xl border border-gray-200 dark:border-gray-800
+                        ${stat.bg}
+                        p-4 sm:p-6
+                        shadow-sm hover:shadow-lg
+                        transition-all duration-300`}
+                      >
+                        <div
+                          className={`text-xl sm:text-2xl md:text-3xl xl:text-4xl font-extrabold
+                          ${stat.color} dark:${stat.color.replace("600", "400")}`}
+                        >
+                          {stat.value}
+                        </div>
+
+                        <div className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                          {stat.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* How To Section */}
+            <section
+              id="how-to-pdf-to-image"
+              className="mt-20 scroll-mt-24"
+            >
               <h2 className="text-3xl font-bold text-center mb-10">
-                How to Convert PDF to JPG
+                How to Convert PDF to {outputFormat.toUpperCase()} Online
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {/* Step 1 */}
-                <div className="border rounded-xl p-6 text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">1</div>
-                  <h3 className="font-semibold text-lg">Upload PDF</h3>
+              <div className="grid gap-6 md:grid-cols-5">
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
+                  <h3 className="font-semibold text-lg">Upload PDF Files</h3>
                   <p className="text-gray-600 text-sm mt-2">
-                    Upload your PDF file using drag & drop or file picker.
+                    Upload PDF files ({isMobile ? "max 30MB" : "up to 200MB"}) using drag & drop or file picker.
                   </p>
                 </div>
 
-                {/* Step 2 */}
-                <div className="border rounded-xl p-6 text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">2</div>
-                  <h3 className="font-semibold text-lg">Choose Settings</h3>
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
+                  <h3 className="font-semibold text-lg">Choose Format & Quality</h3>
                   <p className="text-gray-600 text-sm mt-2">
-                    Select JPG/PNG format, image quality, DPI, and resolution.
+                    Select JPG or PNG output format and adjust quality for JPG.
                   </p>
                 </div>
 
-                {/* Step 3 */}
-                <div className="border rounded-xl p-6 text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">3</div>
-                  <h3 className="font-semibold text-lg">Rotate Pages</h3>
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
+                  <h3 className="font-semibold text-lg">Convert PDF to Images</h3>
                   <p className="text-gray-600 text-sm mt-2">
-                    Rotate individual pages or rotate all images together.
+                    Click the convert button to transform PDF pages into images.
                   </p>
                 </div>
 
-                {/* Step 4 */}
-                <div className="border rounded-xl p-6 text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">4</div>
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
+                  <h3 className="font-semibold text-lg">Preview Results</h3>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Preview converted images with page numbers.
+                  </p>
+                </div>
+
+                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">5</div>
                   <h3 className="font-semibold text-lg">Download Images</h3>
                   <p className="text-gray-600 text-sm mt-2">
-                    Download images individually or as a ZIP file instantly.
+                    Download images individually or as a single ZIP archive.
                   </p>
                 </div>
               </div>
             </section>
 
             {/* Explore All Tools Section */}
-            <div className="mb-6 md:mb-8">
+            <div className="mb-6 md:mb-8 mt-12">
               <div className="flex items-center justify-between mb-6 md:mb-8">
                 <div>
                   <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
@@ -2438,7 +1528,7 @@ export default function PdfToImageConverterWithRotation() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     whileHover={{ scale: 1.03, y: -5 }}
-                    className="group bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-4 md:p-5 hover:border-blue-300 dark:hover:border-cyan-700 transition-all shadow-lg hover:shadow-2xl"
+                    className="group bg-white dark:bg-gray-800 rounded-xl md:rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-4 md:p-5 hover:border-purple-300 dark:hover:border-purple-700 transition-all shadow-lg hover:shadow-2xl"
                   >
                     <div className="flex items-start gap-3 md:gap-4">
                       <div
@@ -2447,13 +1537,13 @@ export default function PdfToImageConverterWithRotation() {
                         <span className="text-xl md:text-2xl">{tool.icon}</span>
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 md:mb-2 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 md:mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                           {tool.name}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-3 md:mb-4">
                           {tool.description}
                         </p>
-                        <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 font-medium text-xs md:text-sm">
+                        <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-medium text-xs md:text-sm">
                           <span>Use Tool</span>
                           <ArrowRight className="w-3 h-3 md:w-4 md:h-4 group-hover:translate-x-1 transition-transform" />
                         </div>
@@ -2465,113 +1555,116 @@ export default function PdfToImageConverterWithRotation() {
               <div className="flex justify-end">
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2 m-4 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl transition-all text-sm"
+                  className="inline-flex items-center gap-2 m-4 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-xl md:rounded-2xl shadow-lg hover:shadow-xl transition-all text-sm"
                 >
                   <Grid className="w-4 h-4" />
                   <span>View All</span>
                 </Link>
               </div>
-
-              {/* --- FAQ Section --- */}
-              <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
-                {/* Header */}
-                <div className="text-center mb-6 sm:mb-8 md:mb-12">
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
-                    Frequently Asked Questions
-                  </h2>
-                  <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                    Everything you need to know about editing PDFs online
-                  </p>
-                </div>
-
-                {/* FAQ Cards */}
-                <div className="space-y-3 sm:space-y-4">
-                  {faqData.map((faq, index) => (
-                    <details
-                      key={index}
-                      className="
-                        group rounded-xl border border-gray-200 dark:border-gray-700
-                        bg-white dark:bg-gray-900
-                        transition-all duration-300
-                        hover:border-blue-400/60 dark:hover:border-blue-500/60
-                        open:shadow-lg open:border-blue-500
-                      "
-                    >
-                      {/* Question */}
-                      <summary
-                        className="
-                          flex cursor-pointer list-none items-center justify-between
-                          px-4 sm:px-5 py-3 sm:py-4
-                          text-sm sm:text-base md:text-lg
-                          font-semibold text-gray-900 dark:text-white
-                        "
-                      >
-                        <span>{faq.question}</span>
-
-                        {/* Arrow */}
-                        <span
-                          className="
-                            ml-3 flex h-6 w-6 items-center justify-center
-                            rounded-full bg-gray-100 dark:bg-gray-800
-                            text-gray-500 dark:text-gray-400
-                            transition-transform duration-300
-                            group-open:rotate-180
-                          "
-                        >
-                          ▼
-                        </span>
-                      </summary>
-
-                      {/* Answer */}
-                      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
-                        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-                          {faq.answer}
-                        </p>
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              </section>
             </div>
 
-            {/* Info Footer */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-center mt-8 sm:mt-12">
-              <div className="p-3 sm:p-4">
-                <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl sm:rounded-2xl mb-2 sm:mb-3">
-                  <Rotate3D className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-sm sm:text-base">
-                  Smart Rotation
-                </h4>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  Rotate individual images or apply batch rotation to all pages
+            {/* FAQ Section */}
+            <section className="max-w-3xl mx-auto my-16 px-4">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                  Frequently Asked Questions
+                </h2>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Everything you need to know about converting PDF files to images
                 </p>
               </div>
 
-              <div className="p-3 sm:p-4">
-                <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 rounded-xl sm:rounded-2xl mb-2 sm:mb-3">
-                  <Archive className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
-                </div>
-                <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-sm sm:text-base">
-                  ZIP Download
-                </h4>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  Download all images in a single ZIP file for easy sharing
-                </p>
-              </div>
+              <div className="space-y-4">
+                {[
+                  {
+                    question: "What is the maximum file size for conversion?",
+                    answer: `For mobile devices: Maximum 35MB per PDF file. For desktop browsers: Up to 200MB per PDF file. We recommend using desktop browsers for files larger than 30MB.`
+                  },
+                  {
+                    question: "Is there any limit on the number of PDF files I can convert at once?",
+                    answer: `Mobile: Up to 10 files at once. Desktop: Up to 50 files at once. For best performance, convert files in batches if you have many large files.`
+                  },
+                  {
+                    question: "What image formats are available for output?",
+                    answer: `You can choose between JPG (with adjustable quality from 10% to 100%) and PNG (lossless format). JPG files are smaller in size, while PNG files preserve transparency and have better quality.`
+                  },
+                  {
+                    question: "Can I convert password-protected PDF files?",
+                    answer: `Currently, we do not support password-protected PDF files. Please remove the password protection before converting to images.`
+                  },
+                  {
+                    question: "How do I download converted images?",
+                    answer: `You can download images individually by clicking the download button on each image, or download all images at once as a ZIP archive using the "Download as ZIP Archive" button.`
+                  },
+                  {
+                    question: "Is the conversion secure? Are my files uploaded to your servers?",
+                    answer: `All conversion happens directly in your browser (client-side). Your PDF files are never uploaded to any server, ensuring complete privacy and security.`
+                  },
+                  {
+                    question: "What quality settings are available?",
+                    answer: `For JPG output, you can adjust quality from 10% (smallest file size, lower quality) to 100% (largest file size, best quality). PNG output uses lossless compression with no quality loss.`
+                  },
 
-              <div className="p-3 sm:p-4">
-                <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 rounded-xl sm:rounded-2xl mb-2 sm:mb-3">
-                  <Download className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
-                </div>
-                <h4 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-sm sm:text-base">
-                  Batch Download
-                </h4>
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                  Download rotated images individually or all at once
-                </p>
+                   {
+      question: "Is the PDF to JPG converter on pdfswift free to use?",
+      answer:
+        "Yes, the PDF to JPG converter on pdfswift is completely free to use. You can convert PDF files to JPG images online without any signup, subscription, or hidden charges.",
+    },
+    {
+      question: "Is it safe to convert PDF files to JPG on pdfswift?",
+      answer:
+        "Yes, it is 100% safe and secure. All PDF to JPG conversions on pdfswift happen directly in your browser. Your PDF files are never uploaded, stored, or shared on any server, ensuring complete privacy and data security.",
+    },
+    {
+      question: "Will converting PDF to JPG reduce image quality?",
+      answer:
+        "No, pdfswift preserves the original quality of your PDF pages while converting them to JPG images. Text clarity, colors, and resolution remain sharp and accurate in the output images.",
+    },
+    {
+      question: "Can I convert all pages of a PDF into JPG images?",
+      answer:
+        "Yes, you can convert all pages of a PDF into individual JPG images or select specific pages only. Each page is converted into a high-quality JPG file for easy viewing and sharing.",
+    },
+    {
+      question: "Can I download PDF pages as separate JPG files?",
+      answer:
+        "Yes, each PDF page is converted into a separate JPG image. You can download them individually or as a ZIP file for convenience.",
+    },
+    {
+      question: "Are the converted JPG images watermarked?",
+      answer:
+        "No, pdfswift does not add any watermarks, logos, or branding to the converted JPG images. All output files are clean and fully owned by you.",
+    },
+    {
+      question: "How fast is the PDF to JPG conversion process?",
+      answer:
+        "The PDF to JPG conversion is very fast because it runs directly in your browser. Most PDFs are converted within seconds, depending on file size and the number of pages.",
+    },
+    {
+      question: "Do I need to install software or create an account to use pdfswift?",
+      answer:
+        "No installation or account creation is required. pdfswift works entirely online in your browser and is fully compatible with mobile, tablet, and desktop devices.",
+    },
+                  {
+                    question: "What happens to text and fonts in the PDF?",
+                    answer: `All text, fonts, and images from the PDF are rendered as images. The text will no longer be selectable or searchable after conversion, which is why this is called PDF to Image conversion.`
+                  }
+                ].map((faq, index) => (
+                  <details
+                    key={index}
+                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+                    bg-white dark:bg-gray-800"
+                  >
+                    <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+                      {faq.question}
+                    </summary>
+                    <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </details>
+                ))}
               </div>
-            </div>
+            </section>
           </motion.div>
         </div>
       </div>
