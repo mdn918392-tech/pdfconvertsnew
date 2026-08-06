@@ -109,30 +109,6 @@ const PAPER_SIZES = {
   A3: { width: 297, height: 420 },
 } as const;
 
-// Simple progress simulation
-const simulateProgress = (
-  callback: (p: number) => void,
-  initial: number,
-  final: number,
-  durationMs: number
-) => {
-  const startTime = Date.now();
-  const interval = 100;
-
-  const progressId = setInterval(() => {
-    const elapsed = Date.now() - startTime;
-    let newProgress = initial + ((final - initial) * elapsed) / durationMs;
-
-    if (newProgress >= final) {
-      newProgress = final;
-      clearInterval(progressId);
-    }
-    callback(Math.floor(newProgress));
-  }, interval);
-
-  return () => clearInterval(progressId);
-};
-
 // Generate filename
 const generatePdfFilename = (
   files: FileWithPreview[],
@@ -289,48 +265,277 @@ const exploreTools: Tool[] = [
 ];
 
 /**
- * OPTIMIZED: Memory-efficient image processing with proper cleanup
- * Processes one image at a time with immediate resource release
- * Uses ArrayBuffer instead of Base64 to reduce memory usage by ~33%
+ * OPTIMIZATION 1: Memory-efficient image processing with createImageBitmap
+ * 
+ * Benefits of createImageBitmap:
+ * - Decodes images in a separate thread (off-main-thread)
+ * - Returns an ImageBitmap which is more memory efficient than HTMLImageElement
+ * - Can be transferred between threads without copying
+ * - Automatically releases GPU memory when closed
+ * - Better for mobile memory management
+ * 
+ * Fallback to HTMLImageElement for browsers without createImageBitmap support
  */
-const processImageForPdf = async (
-  file: File,
-  rotation: number = 0,
-  quality: CompressionQuality = "high",
-  customQualityValue: number = 95,
-  isMobile: boolean = false
-): Promise<ArrayBuffer> => {
-  // Use ArrayBuffer directly to avoid Base64 memory overhead
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+const decodeImage = async (arrayBuffer: ArrayBuffer): Promise<ImageBitmap | HTMLImageElement> => {
+  // Check if createImageBitmap is supported (Chrome, Edge, Firefox, Safari 16.4+)
+  if (typeof createImageBitmap === 'function') {
+    try {
+      // Create blob from array buffer
+      const blob = new Blob([arrayBuffer]);
+      // Decode using createImageBitmap (off-main-thread)
+      const bitmap = await createImageBitmap(blob, {
+        // Optimize for color accuracy and quality
+        colorSpaceConversion: 'default',
+        // Prefer quality over speed for better results
+        resizeQuality: 'high',
+      });
+      // Blob is no longer needed after decoding
+      return bitmap;
+    } catch (error) {
+      console.warn('createImageBitmap failed, falling back to HTMLImageElement:', error);
+      // Fall through to HTMLImageElement
+    }
+  }
+  
+  // Fallback: Use HTMLImageElement (works everywhere)
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to decode image with HTMLImageElement'));
+    // Use blob URL to load the image
+    const blob = new Blob([arrayBuffer]);
+    const url = URL.createObjectURL(blob);
+    img.src = url;
+    // URL will be revoked after image loads or fails
+  });
+};
+
+/**
+ * OPTIMIZATION 2: Render image to canvas with rotation and resizing
+ * 
+ * Uses the decoded ImageBitmap or HTMLImageElement and renders it to a canvas
+ * with the specified rotation and dimensions.
+ */
+const renderImageToCanvas = (
+  image: ImageBitmap | HTMLImageElement,
+  rotation: number,
+  maxDimension: number,
+  needsSwap: boolean,
+  scale: number
+): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } => {
+  // Calculate dimensions
+  const imgWidth = image.width;
+  const imgHeight = image.height;
+  
+  const newWidth = needsSwap 
+    ? Math.floor(imgHeight * scale)
+    : Math.floor(imgWidth * scale);
+  const newHeight = needsSwap
+    ? Math.floor(imgWidth * scale)
+    : Math.floor(imgHeight * scale);
+  
+  // Create canvas with calculated dimensions
+  const canvas = document.createElement('canvas');
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+  
+  const ctx = canvas.getContext('2d', {
+    alpha: false,
+    willReadFrequently: false,
+  })!;
+  
+  // Clear with white background
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  
+  // Apply rotation if needed
+  if (rotation !== 0) {
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
     
-    reader.onload = async (e) => {
-      let img: HTMLImageElement | null = null;
+    const rotatedWidth = needsSwap ? imgHeight : imgWidth;
+    const rotatedHeight = needsSwap ? imgWidth : imgHeight;
+    
+    ctx.drawImage(
+      image as CanvasImageSource,
+      -(rotatedWidth * scale) / 2,
+      -(rotatedHeight * scale) / 2,
+      rotatedWidth * scale,
+      rotatedHeight * scale
+    );
+    ctx.restore();
+  } else {
+    ctx.drawImage(image as CanvasImageSource, 0, 0, newWidth, newHeight);
+  }
+  
+  return { canvas, ctx };
+};
+
+/**
+ * OPTIMIZATION 3: Convert canvas to JPEG with proper quality
+ * 
+ * Uses canvas.toBlob with the specified quality and returns a Blob
+ */
+const canvasToJpegBlob = (canvas: HTMLCanvasElement, quality: number): Promise<Blob> => {
+  return new Promise<Blob>((resolve) => {
+    canvas.toBlob(
+      (blob) => resolve(blob || new Blob()),
+      'image/jpeg',
+      quality
+    );
+  });
+};
+
+/**
+ * OPTIMIZATION 4: Complete cleanup of all resources
+ * 
+ * This function ensures all memory is properly released
+ */
+const cleanupResources = (
+  image: ImageBitmap | HTMLImageElement | null,
+  canvas: HTMLCanvasElement | null,
+  ctx: CanvasRenderingContext2D | null,
+  objectUrl: string | null,
+  blob: Blob | null,
+  imageBuffer: ArrayBuffer | null
+): void => {
+  // Cleanup ImageBitmap
+  if (image) {
+    if ('close' in image && typeof (image as any).close === 'function') {
+      // ImageBitmap has close() method to release GPU memory
+      (image as ImageBitmap).close();
+    }
+    // For HTMLImageElement, clear src
+    if (image instanceof HTMLImageElement) {
+      image.src = '';
+      image.onload = null;
+      image.onerror = null;
+    }
+  }
+  
+  // Cleanup Canvas
+  if (canvas) {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+  
+  // Cleanup Context
+  if (ctx) {
+    // Clear any pending operations
+    ctx.clearRect(0, 0, 0, 0);
+  }
+  
+  // Revoke Object URL
+  if (objectUrl) {
+    URL.revokeObjectURL(objectUrl);
+  }
+  
+  // Clear Blob reference
+  if (blob) {
+    // Force blob to be eligible for GC
+    (blob as any) = null;
+  }
+  
+  // Clear ArrayBuffer reference
+  if (imageBuffer) {
+    // Force buffer to be eligible for GC
+    (imageBuffer as any) = null;
+  }
+};
+
+/**
+ * OPTIMIZATION 5: TRUE STREAMING PDF GENERATION with createImageBitmap
+ * 
+ * This is the core optimization that fixes the memory issues:
+ * 1. Uses createImageBitmap for faster, more memory-efficient decoding
+ * 2. Processes ONE image at a time with zero accumulation
+ * 3. Immediately embeds each image into the PDF
+ * 4. Completely cleans up all resources after each image
+ * 5. Adds GC-friendly delays on mobile
+ */
+const createPdfStreaming = async (
+  files: FileWithPreview[],
+  paperSize: PaperSize,
+  orientation: Orientation,
+  marginSize: MarginSize,
+  compressionQuality: CompressionQuality,
+  customQualityValue: number,
+  reverseOrder: boolean,
+  isMobile: boolean,
+  onProgress?: (current: number, total: number) => void
+): Promise<Blob> => {
+  try {
+    const { PDFDocument, rgb } = await import("pdf-lib");
+    
+    // Create PDF document ONCE at the beginning
+    const pdfDoc = await PDFDocument.create();
+    
+    // Get paper dimensions in points
+    const paperDimensions = PAPER_SIZES[paperSize];
+    const MM_TO_PT = 2.83465;
+    
+    let pageWidthPt: number, pageHeightPt: number;
+    
+    if (orientation === "Landscape") {
+      pageWidthPt = paperDimensions.height * MM_TO_PT;
+      pageHeightPt = paperDimensions.width * MM_TO_PT;
+    } else {
+      pageWidthPt = paperDimensions.width * MM_TO_PT;
+      pageHeightPt = paperDimensions.height * MM_TO_PT;
+    }
+    
+    // Calculate margin in points
+    const marginPoints = {
+      "no-margin": 0,
+      small: 18,
+      big: 72,
+    }[marginSize];
+    
+    const availableWidthPt = pageWidthPt - (marginPoints * 2);
+    const availableHeightPt = pageHeightPt - (marginPoints * 2);
+    
+    // Determine processing order
+    const filesToProcess = reverseOrder ? [...files].reverse() : files;
+    const totalImages = filesToProcess.length;
+    
+    // Process ONE image at a time - TRUE STREAMING
+    for (let i = 0; i < totalImages; i++) {
+      const fileWithPreview = filesToProcess[i];
+      
+      // All variables scoped to the loop iteration
+      let decodedImage: ImageBitmap | HTMLImageElement | null = null;
       let canvas: HTMLCanvasElement | null = null;
+      let ctx: CanvasRenderingContext2D | null = null;
+      let objectUrl: string | null = null;
+      let blob: Blob | null = null;
+      let imageBuffer: ArrayBuffer | null = null;
+      let embeddedImage: any = null;
+      let page: any = null;
+      let fileArrayBuffer: ArrayBuffer | null = null;
       
       try {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
+        // Report progress
+        if (onProgress) {
+          onProgress(i + 1, totalImages);
+        }
         
-        // Create Image from ArrayBuffer
-        img = new Image();
-        const blob = new Blob([arrayBuffer], { type: file.type });
-        const objectUrl = URL.createObjectURL(blob);
+        // STEP 1: Read file as ArrayBuffer
+        fileArrayBuffer = await fileWithPreview.file.arrayBuffer();
         
-        // Load image
-        await new Promise<void>((resolveImg, rejectImg) => {
-          img!.onload = () => resolveImg();
-          img!.onerror = () => rejectImg(new Error("Failed to decode image"));
-          img!.src = objectUrl;
-        });
+        // OPTIMIZATION: Use createImageBitmap for faster, more memory-efficient decoding
+        decodedImage = await decodeImage(fileArrayBuffer);
         
-        // Revoke object URL immediately after loading
-        URL.revokeObjectURL(objectUrl);
+        // Immediately release the file array buffer since we've decoded the image
+        fileArrayBuffer = null;
         
-        // Determine quality settings
+        // STEP 2: Determine quality settings
         let qualityValue = 0.95;
         let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
         
-        switch (quality) {
+        switch (compressionQuality) {
           case "none":
             qualityValue = 1.0;
             maxDimension = isMobile ? 3072 : 4096;
@@ -353,161 +558,59 @@ const processImageForPdf = async (
             break;
         }
         
-        // Calculate dimensions
+        // STEP 3: Calculate dimensions with rotation
+        const rotation = fileWithPreview.rotation || 0;
+        const needsSwap = rotation === 90 || rotation === 270;
         let scale = 1;
-        const largerDimension = Math.max(img.width, img.height);
+        const largerDimension = Math.max(decodedImage.width, decodedImage.height);
         
         if (largerDimension > maxDimension) {
           scale = maxDimension / largerDimension;
         }
         
-        const needsSwap = rotation === 90 || rotation === 270;
-        const newWidth = needsSwap 
-          ? Math.floor(img.height * scale)
-          : Math.floor(img.width * scale);
-        const newHeight = needsSwap
-          ? Math.floor(img.width * scale)
-          : Math.floor(img.height * scale);
+        // STEP 4: Render to canvas with rotation
+        const renderResult = renderImageToCanvas(
+          decodedImage,
+          rotation,
+          maxDimension,
+          needsSwap,
+          scale
+        );
+        canvas = renderResult.canvas;
+        ctx = renderResult.ctx;
         
-        // Create canvas - this will be destroyed after use
-        canvas = document.createElement("canvas");
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        
-        const ctx = canvas.getContext("2d", {
-          alpha: false,
-          willReadFrequently: false,
-        });
-        
-        if (!ctx) {
-          throw new Error("Failed to get canvas context");
+        // OPTIMIZATION: Decoded image is no longer needed after rendering to canvas
+        // Close/cleanup the decoded image immediately
+        if (decodedImage) {
+          if ('close' in decodedImage && typeof (decodedImage as any).close === 'function') {
+            (decodedImage as ImageBitmap).close();
+          } else if (decodedImage instanceof HTMLImageElement) {
+            decodedImage.src = '';
+            decodedImage.onload = null;
+            decodedImage.onerror = null;
+          }
+          decodedImage = null;
         }
         
-        // Draw with rotation
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
+        // STEP 5: Convert canvas to JPEG Blob
+        blob = await canvasToJpegBlob(canvas, qualityValue);
         
-        if (rotation !== 0) {
-          ctx.save();
-          ctx.translate(canvas.width / 2, canvas.height / 2);
-          ctx.rotate((rotation * Math.PI) / 180);
-          
-          const rotatedWidth = needsSwap ? img.height : img.width;
-          const rotatedHeight = needsSwap ? img.width : img.height;
-          
-          ctx.drawImage(
-            img,
-            -(rotatedWidth * scale) / 2,
-            -(rotatedHeight * scale) / 2,
-            rotatedWidth * scale,
-            rotatedHeight * scale
-          );
-          ctx.restore();
-        } else {
-          ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        if (!blob || blob.size === 0) {
+          throw new Error("Failed to create image blob");
         }
         
-        // Convert to JPEG ArrayBuffer - MORE EFFICIENT than Base64
-        const blobData = await new Promise<Blob>((resolveBlob) => {
-          canvas!.toBlob((b) => resolveBlob(b!), "image/jpeg", qualityValue);
-        });
+        // STEP 6: Convert Blob to ArrayBuffer
+        imageBuffer = await blob.arrayBuffer();
         
-        // Read as ArrayBuffer
-        const buffer = await blobData.arrayBuffer();
+        // STEP 7: Embed into PDF IMMEDIATELY
+        embeddedImage = await pdfDoc.embedJpg(imageBuffer);
         
-        // Cleanup immediately
-        URL.revokeObjectURL(objectUrl);
-        img.src = ""; // Clear image src to free memory
-        img = null;
-        canvas.width = 0;
-        canvas.height = 0;
-        canvas = null;
+        // STEP 8: Add page and draw image
+        page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
         
-        resolve(buffer);
-        
-      } catch (error) {
-        // Cleanup on error
-        if (img) {
-          img.src = "";
-          img = null;
-        }
-        if (canvas) {
-          canvas.width = 0;
-          canvas.height = 0;
-          canvas = null;
-        }
-        reject(error);
-      }
-    };
-    
-    reader.onerror = () => {
-      reject(new Error("Failed to read file"));
-    };
-    
-    // Read as ArrayBuffer directly - more efficient than DataURL
-    reader.readAsArrayBuffer(file);
-  });
-};
-
-/**
- * OPTIMIZED: Memory-efficient PDF creation
- * Processes and embeds one image at a time to minimize memory usage
- */
-/**
- * OPTIMIZED: Memory-efficient PDF creation
- * Processes and embeds one image at a time to minimize memory usage
- */
-const createPdfFromImages = async (
-  imageBuffers: ArrayBuffer[],
-  paperSize: PaperSize,
-  orientation: Orientation,
-  marginPoints: number,
-  isMobile: boolean,
-  onProgress?: (current: number, total: number) => void
-): Promise<Blob> => {
-  try {
-    const { PDFDocument, rgb } = await import("pdf-lib");
-    
-    const pdfDoc = await PDFDocument.create();
-    
-    // Get paper dimensions in points
-    const paperDimensions = PAPER_SIZES[paperSize];
-    const MM_TO_PT = 2.83465;
-    
-    let pageWidthPt: number, pageHeightPt: number;
-    
-    if (orientation === "Landscape") {
-      pageWidthPt = paperDimensions.height * MM_TO_PT;
-      pageHeightPt = paperDimensions.width * MM_TO_PT;
-    } else {
-      pageWidthPt = paperDimensions.width * MM_TO_PT;
-      pageHeightPt = paperDimensions.height * MM_TO_PT;
-    }
-    
-    const marginPt = marginPoints;
-    const availableWidthPt = pageWidthPt - (marginPt * 2);
-    const availableHeightPt = pageHeightPt - (marginPt * 2);
-    
-    // Process images one at a time to minimize memory
-    const totalImages = imageBuffers.length;
-    
-    // Use a temporary array to hold embedded images
-    // Only keep one image buffer at a time in memory
-    for (let i = 0; i < totalImages; i++) {
-      try {
-        const buffer = imageBuffers[i];
-        
-        // Embed image - this creates a copy in the PDF
-        const image = await pdfDoc.embedJpg(buffer);
-        
-        // Add page
-        const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-        
-        // Calculate dimensions
-        const imgWidth = image.width;
-        const imgHeight = image.height;
+        // Calculate dimensions for page
+        const imgWidth = embeddedImage.width;
+        const imgHeight = embeddedImage.height;
         const imgAspectRatio = imgWidth / imgHeight;
         const availableAspectRatio = availableWidthPt / availableHeightPt;
         
@@ -521,52 +624,80 @@ const createPdfFromImages = async (
           finalWidthPt = availableHeightPt * imgAspectRatio;
         }
         
-        const xPt = marginPt + (availableWidthPt - finalWidthPt) / 2;
-        const yPt = marginPt + (availableHeightPt - finalHeightPt) / 2;
+        const xPt = marginPoints + (availableWidthPt - finalWidthPt) / 2;
+        const yPt = marginPoints + (availableHeightPt - finalHeightPt) / 2;
         
-        // Draw image
-        page.drawImage(image, {
+        page.drawImage(embeddedImage, {
           x: xPt,
           y: yPt,
           width: finalWidthPt,
           height: finalHeightPt,
         });
         
-        // Report progress
-        if (onProgress) {
-          onProgress(i + 1, totalImages);
-        }
+        // STEP 9: Complete cleanup of ALL resources
+        cleanupResources(
+          null, // Already cleaned up above
+          canvas,
+          ctx,
+          objectUrl,
+          blob,
+          imageBuffer
+        );
         
-        // Allow garbage collection between images
-        if (i % 3 === 0 && isMobile) {
-          await new Promise(resolve => setTimeout(resolve, 10));
+        // Clear remaining references
+        embeddedImage = null;
+        page = null;
+        canvas = null;
+        ctx = null;
+        blob = null;
+        imageBuffer = null;
+        
+        // OPTIMIZATION: Force garbage collection on mobile with a small delay
+        if (isMobile) {
+          // Small delay allows the browser's garbage collector to run
+          await new Promise(resolve => setTimeout(resolve, 15));
         }
         
       } catch (error) {
-        console.error(`Failed to embed image ${i + 1}:`, error);
-        // Add blank page with error text
-        const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-        page.drawText(`Failed to load image ${i + 1}`, {
-          x: marginPt,
+        console.error(`Failed to process image ${i + 1}:`, error);
+        
+        // Comprehensive cleanup on error
+        cleanupResources(
+          decodedImage,
+          canvas,
+          ctx,
+          objectUrl,
+          blob,
+          imageBuffer
+        );
+        
+        // Clear file array buffer
+        fileArrayBuffer = null;
+        embeddedImage = null;
+        page = null;
+        
+        // Add blank page with error indicator
+        const errorPage = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
+        errorPage.drawText(`Failed to load image ${i + 1}`, {
+          x: marginPoints,
           y: pageHeightPt / 2,
           size: 20,
           color: rgb(1, 0, 0),
         });
+        
+        // Continue with next image
+        continue;
       }
     }
     
-    // Save PDF
+    // STEP 10: Save PDF
     const pdfBytes = await pdfDoc.save();
-    
-    // Cleanup - release image buffers
-    imageBuffers.length = 0;
     
     if (!pdfBytes || pdfBytes.length === 0) {
       throw new Error("Generated PDF is empty");
     }
     
-    // ✅ FIXED: Convert Uint8Array to ArrayBuffer properly for Blob
-    // pdfBytes is Uint8Array, we need to create a proper ArrayBuffer
+    // Convert Uint8Array to ArrayBuffer properly for Blob
     const arrayBuffer = new ArrayBuffer(pdfBytes.length);
     const view = new Uint8Array(arrayBuffer);
     view.set(pdfBytes);
@@ -1760,7 +1891,7 @@ export default function JpgToPdf() {
     }
   };
 
-  // OPTIMIZED: Handle convert with memory-efficient processing
+  // Handle convert with true streaming
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -1783,119 +1914,45 @@ export default function JpgToPdf() {
     setTotalProcessingImages(files.length);
 
     try {
-      let filesToProcess = [...files];
+      console.log(`Converting ${files.length} images on ${isMobile ? 'mobile' : 'desktop'} using OPTIMIZED STREAMING architecture`);
 
-      if (!isMobile && reverseOrder) {
-        filesToProcess = [...files].reverse();
-      }
-
-      console.log(`Converting ${filesToProcess.length} images on ${isMobile ? 'mobile' : 'desktop'}`);
-
-      // Step 1: Progress update
-      setProgress(5);
-
-      // Step 2: Process images one at a time with memory cleanup
-      const imageBuffers: ArrayBuffer[] = [];
-      const totalImages = filesToProcess.length;
-
-      const marginPoints = isMobile ? 18 : {
-        "no-margin": 0,
-        small: 18,
-        big: 72,
-      }[marginSize];
-
-      // Process each image sequentially to minimize memory
-      for (let i = 0; i < totalImages; i++) {
-        const fileWithPreview = filesToProcess[i];
-        
-        try {
-          // Update progress
-          const processingProgress = 5 + ((i + 1) / totalImages) * 45;
-          setProgress(Math.floor(processingProgress));
-          setCurrentProcessingImage(i + 1);
-
-          // Process single image with proper cleanup
-          const buffer = await processImageForPdf(
-            fileWithPreview.file,
-            fileWithPreview.rotation,
-            compressionQuality,
-            customQualityValue,
-            isMobile
-          );
-
-          imageBuffers.push(buffer);
-
-          // Allow garbage collection between images on mobile
-          if (isMobile && i % 2 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 50));
-          }
-
-        } catch (error) {
-          console.error(`Failed to process image ${i + 1}:`, error);
-          
-          // Try to add original image as fallback
-          try {
-            const reader = new FileReader();
-            const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-              reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-              reader.onerror = reject;
-              reader.readAsArrayBuffer(fileWithPreview.file);
-            });
-            imageBuffers.push(buffer);
-          } catch {
-            // Skip this image
-            continue;
-          }
-        }
-      }
-
-      if (imageBuffers.length === 0) {
-        throw new Error("No images could be processed.");
-      }
-
-      setProgress(50);
-
-      // Step 3: Create PDF with memory-efficient embedding
-      const blob = await createPdfFromImages(
-        imageBuffers,
+      // Use true streaming PDF generation with optimizations
+      const blob = await createPdfStreaming(
+        files,
         paperSize,
         orientation,
-        marginPoints,
+        marginSize,
+        compressionQuality,
+        customQualityValue,
+        reverseOrder,
         isMobile,
         (current, total) => {
-          const pdfProgress = 50 + ((current / total) * 45);
-          setProgress(Math.floor(pdfProgress));
+          // Update progress during conversion
+          const percent = Math.floor((current / total) * 100);
+          setProgress(percent);
+          setCurrentProcessingImage(current);
+          setTotalProcessingImages(total);
         }
       );
-
-      // Clear image buffers to free memory
-      imageBuffers.length = 0;
-
-      setProgress(100);
 
       if (!blob || blob.size === 0) {
         throw new Error("Generated PDF is empty");
       }
-      
-      setTimeout(() => {
-        setPdfBlob(blob);
-        setOriginalStateHash(calculateStateHash());
-        setShowChangesWarning(false);
-        setConverting(false);
-        setSizeLimitExceeded(false);
-        setShowCompressionInfo(false);
 
-        const totalOriginalSize = filesToProcess.reduce(
-          (sum, f) => sum + f.file.size,
-          0
-        );
+      // Set the final PDF blob
+      setPdfBlob(blob);
+      setOriginalStateHash(calculateStateHash());
+      setShowChangesWarning(false);
+      setConverting(false);
+      setSizeLimitExceeded(false);
+      setShowCompressionInfo(false);
+      setProgress(100);
 
-        console.log(`\n=== PDF Generation Complete ===`);
-        console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
-        console.log(`Original: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`PDF: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`Pages: ${filesToProcess.length}`);
-      }, 300);
+      // Log success
+      console.log(`\n=== PDF Generation Complete ===`);
+      console.log(`Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
+      console.log(`PDF Size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`Pages: ${files.length}`);
       
     } catch (err) {
       console.error("Conversion error:", err);

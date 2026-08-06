@@ -30,6 +30,8 @@ import {
   FileText,
   FileImage,
   File,
+  Smartphone,
+  Monitor,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
@@ -180,7 +182,7 @@ interface DownloadNotification {
   type: 'single' | 'zip' | 'multi';
 }
 
-// --- Image Preview Component ---
+// --- Image Preview Component (Mobile-Optimized) ---
 const ImagePreview = ({
   file,
   onRemove,
@@ -204,6 +206,23 @@ const ImagePreview = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      ) || window.innerWidth < 768;
+      setIsMobile(mobile);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Create object URL
   useEffect(() => {
@@ -220,7 +239,6 @@ const ImagePreview = ({
       url = URL.createObjectURL(file);
       setPreviewUrl(url);
 
-      // Verify the image can be loaded
       img = new Image();
       img.onload = () => {
         setLoading(false);
@@ -234,7 +252,6 @@ const ImagePreview = ({
         }
       };
       
-      // Set timeout to handle images that take too long to load
       const timeoutId = setTimeout(() => {
         if (loading) {
           setError(true);
@@ -272,11 +289,47 @@ const ImagePreview = ({
       ? "text-green-600 dark:text-green-400"
       : "text-blue-600 dark:text-blue-400";
 
-  const handleIndividualDownload = () => {
-    if (onSingleDownload) {
-      onSingleDownload();
-    } else if (file) {
-      downloadFile(file as Blob, filename);
+  // Improved download handler with mobile support
+  const handleIndividualDownload = async () => {
+    if (isDownloading) return;
+    
+    setIsDownloading(true);
+    setDownloadSuccess(false);
+    
+    try {
+      if (onSingleDownload) {
+        onSingleDownload();
+      } else if (file) {
+        // For mobile devices, use a different approach if needed
+        if (isMobile) {
+          // Create a temporary anchor element for mobile
+          const link = document.createElement('a');
+          const url = URL.createObjectURL(file);
+          link.href = url;
+          link.download = filename;
+          document.body.appendChild(link);
+          
+          // Trigger download
+          link.click();
+          
+          // Clean up
+          setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          }, 100);
+        } else {
+          // Desktop download
+          downloadFile(file as Blob, filename);
+        }
+        
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 3000);
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file. Please try again.');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -338,36 +391,39 @@ const ImagePreview = ({
         )}
       </AnimatePresence>
 
-      {/* Preview Card */}
+      {/* Preview Card - Mobile Optimized */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
-        whileHover={{ y: -5, scale: 1.02 }}
+        whileHover={!isMobile ? { y: -5, scale: 1.02 } : {}}
         className="relative group"
       >
-        <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
+        <div className={`bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 
+          ${isMobile ? 'rounded-xl p-3' : 'rounded-2xl p-4'} 
+          border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden`}
+        >
           {/* Page Number Badge */}
-          <div className="absolute top-3 left-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
+          <div className="absolute top-2 left-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full z-10">
             Page {pageNumber || index + 1}
           </div>
 
           {/* Image Container */}
           <div
-            className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
+            className={`relative w-full ${isMobile ? 'h-28' : 'h-36'} mb-3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image`}
             onClick={() => previewUrl && !error && setPreviewOpen(true)}
           >
             {loading ? (
               <div className="w-full h-full flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <div className={`animate-spin rounded-full border-b-2 border-purple-500 ${isMobile ? 'h-6 w-6' : 'h-8 w-8'}`}></div>
               </div>
             ) : error || !previewUrl ? (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800">
-                <FileImage className="w-10 h-10 text-gray-400 mb-2" />
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <FileImage className={`${isMobile ? 'w-6 h-6' : 'w-10 h-10'} text-gray-400 mb-1`} />
+                <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500 dark:text-gray-400`}>
                   Preview not available
                 </span>
-                <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <span className={`${isMobile ? 'text-[8px]' : 'text-xs'} text-gray-400 dark:text-gray-500 mt-0.5`}>
                   {formatFileSize(file.size || 0)}
                 </span>
               </div>
@@ -380,7 +436,7 @@ const ImagePreview = ({
                   onError={handleImageError}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                  <Eye className="w-8 h-8 text-white" />
+                  <Eye className={`${isMobile ? 'w-5 h-5' : 'w-8 h-8'} text-white`} />
                 </div>
 
                 {/* Shine Effect */}
@@ -390,9 +446,9 @@ const ImagePreview = ({
           </div>
 
           {/* File Info */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <p
-              className="text-sm font-semibold truncate text-gray-900 dark:text-white"
+              className={`${isMobile ? 'text-[10px]' : 'text-sm'} font-semibold truncate text-gray-900 dark:text-white`}
               title={filename}
             >
               {filename}
@@ -400,7 +456,7 @@ const ImagePreview = ({
 
             <div className="flex items-center justify-between">
               <span
-                className={`text-xs px-3 py-1 rounded-full font-medium ${statusColor} bg-opacity-10 ${
+                className={`${isMobile ? 'text-[8px] px-2 py-0.5' : 'text-xs px-3 py-1'} rounded-full font-medium ${statusColor} bg-opacity-10 ${
                   status.includes("Converted") ? "bg-green-500" : "bg-purple-500"
                 }`}
               >
@@ -409,42 +465,66 @@ const ImagePreview = ({
 
               {/* File Size */}
               {file.size && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className={`${isMobile ? 'text-[8px]' : 'text-xs'} text-gray-500 dark:text-gray-400`}>
                   {formatFileSize(file.size)}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {/* Action Buttons - Mobile Optimized */}
+          <div className={`absolute top-2 right-2 flex gap-1.5 
+            ${!isMobile ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'} 
+            transition-opacity duration-300`}
+          >
             {/* Remove Button (For Input Files) */}
             {onRemove && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onRemove}
-                className="p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                className={`${isMobile ? 'p-2' : 'p-1.5'} bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors`}
                 aria-label={`Remove ${filename}`}
               >
-                <XCircle className="w-4 h-4" />
+                <XCircle className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
               </motion.button>
             )}
 
-            {/* Download Button (For Output Files) */}
+            {/* Download Button (For Output Files) - Larger on Mobile */}
             {isDownloadable && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleIndividualDownload}
-                className="p-1.5 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
+                disabled={isDownloading || !file}
+                className={`relative ${isMobile ? 'p-2.5' : 'p-1.5'} 
+                  ${downloadSuccess ? 'bg-green-500' : 'bg-green-500'} 
+                  text-white rounded-full shadow-lg hover:bg-green-600 transition-colors
+                  ${isDownloading ? 'opacity-75 cursor-not-allowed' : ''}`}
                 title={`Download ${filename}`}
-                disabled={!file}
               >
-                <Download className="w-4 h-4" />
+                {isDownloading ? (
+                  <div className={`animate-spin rounded-full border-2 border-white border-t-transparent ${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                ) : downloadSuccess ? (
+                  <Check className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                ) : (
+                  <Download className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                )}
               </motion.button>
             )}
           </div>
+
+          {/* Mobile Download Success Toast */}
+          {isMobile && downloadSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute bottom-12 left-2 right-2 bg-green-500 text-white text-[10px] font-medium py-1 px-2 rounded-lg text-center"
+            >
+              Downloaded ✓
+            </motion.div>
+          )}
         </div>
       </motion.div>
     </>
@@ -542,8 +622,6 @@ export default function PdfToImage() {
 
   // Initialize pdf.js worker - SIMPLIFIED APPROACH
   useEffect(() => {
-    // Use a simple approach that works with Next.js
-    // Set the worker source directly to a CDN URL
     const version = '3.11.174';
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
     setPdfWorkerLoaded(true);
@@ -854,6 +932,7 @@ export default function PdfToImage() {
     }, 5000);
   };
 
+  // Improved single download handler with mobile support
   const handleSingleDownload = (index: number) => {
     const item = imageBlobs[index];
     if (!item || !item.blob || item.blob.size === 0) {
@@ -861,7 +940,31 @@ export default function PdfToImage() {
       return;
     }
 
-    downloadFile(item.blob, item.name);
+    // For mobile devices, use a more compatible approach
+    if (isMobile) {
+      try {
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(item.blob);
+        link.href = url;
+        link.download = item.name;
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 100);
+      } catch (error) {
+        console.error('Mobile download error:', error);
+        // Fallback: Try opening in new tab
+        const url = URL.createObjectURL(item.blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } else {
+      // Desktop download
+      downloadFile(item.blob, item.name);
+    }
 
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
@@ -908,7 +1011,7 @@ export default function PdfToImage() {
       <ArticleSchema />
       
       {/* Download Success Notifications */}
-      <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
+      <div className={`fixed ${isMobile ? 'bottom-4' : 'top-4'} right-4 z-50 w-full max-w-xs sm:max-w-sm`}>
         <div
           ref={notificationsRef}
           className="space-y-2 max-h-64 overflow-y-auto pr-2"
@@ -948,18 +1051,18 @@ export default function PdfToImage() {
 
               <div className="text-center mb-4 sm:mb-6 md:mb-8">
                 <motion.div
-                  initial={{ scale: 0.5 }}
-                  animate={{ scale: 1 }}
-                  className={`inline-flex items-center justify-center
-                    w-14 h-14 md:w-16 md:h-16
-                    bg-gradient-to-br ${tool.color}
-                    rounded-2xl md:rounded-3xl
-                    mb-3 md:mb-4 shadow-xl`}
-                >
-                  <span className="text-2xl md:text-3xl text-white select-none">
-                    {tool.icon}
-                  </span>
-                </motion.div>
+  initial={{ scale: 0.5 }}
+  animate={{ scale: 1 }}
+  className="inline-flex items-center justify-center
+    w-14 h-14 md:w-16 md:h-16
+    bg-gradient-to-br from-green-500 to-emerald-500
+    rounded-2xl md:rounded-3xl
+    mb-3 md:mb-4 shadow-xl"
+ >
+  <span className="text-2xl md:text-3xl text-white select-none">
+    {tool.icon}
+  </span>
+</motion.div>
 
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
                   Convert PDF to JPG/PNG - Free, Fast & No Watermark | PDFSwift
@@ -969,7 +1072,7 @@ export default function PdfToImage() {
                   Convert your PDF pages to high-quality JPG or PNG images with
                   superior quality
                   <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    {isMobile ? "Mobile: Up to 30MB per PDF" : "Desktop: Up to 200MB per PDF"}
+                    {isMobile ? "📱 Mobile: Up to 30MB per PDF" : "💻 Desktop: Up to 200MB per PDF"}
                   </span>
                 </p>
               </div>
@@ -1214,27 +1317,27 @@ export default function PdfToImage() {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-purple-50 dark:from-gray-800 dark:to-purple-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700">
+                    <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'} gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-purple-50 dark:from-gray-800 dark:to-purple-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700`}>
                       {files.map((file, index) => (
                         <div
                           key={index}
-                          className="relative bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-md"
+                          className={`relative bg-white dark:bg-gray-800 rounded-xl ${isMobile ? 'p-2' : 'p-4'} border-2 border-gray-200 dark:border-gray-700 shadow-md`}
                         >
                           <div className="flex flex-col items-center text-center">
-                            <div className="w-16 h-20 mb-3 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-lg">
-                              <FileText className="w-8 h-8 text-white" />
+                            <div className={`${isMobile ? 'w-12 h-16' : 'w-16 h-20'} mb-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-lg`}>
+                              <FileText className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-white`} />
                             </div>
-                            <p className="text-xs font-medium truncate w-full text-gray-900 dark:text-white">
+                            <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium truncate w-full text-gray-900 dark:text-white`}>
                               {file.name}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <p className={`${isMobile ? 'text-[8px]' : 'text-xs'} text-gray-500 dark:text-gray-400 mt-0.5`}>
                               {(file.size / 1024 / 1024).toFixed(2)} MB
                             </p>
                             <button
                               onClick={() => handleRemoveFile(index)}
-                              className="mt-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                              className={`mt-1.5 ${isMobile ? 'p-1.5' : 'p-1.5'} bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors`}
                             >
-                              <XCircle className="w-4 h-4" />
+                              <XCircle className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
                             </button>
                           </div>
                         </div>
@@ -1271,11 +1374,11 @@ export default function PdfToImage() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleConvert}
-                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                        className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${isMobile ? 'text-base' : ''}`}
                       >
-                        <FileImage className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                        <FileImage className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6'}`} />
                         Convert {files.length} PDF to {outputFormat.toUpperCase()}
-                        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+                        <Sparkles className={`${isMobile ? 'w-4 h-4' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5'}`} />
                       </motion.button>
                     )}
 
@@ -1299,8 +1402,8 @@ export default function PdfToImage() {
                 {/* Success Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
                   <div className="flex items-center justify-center sm:justify-start">
-                    <div className="p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg sm:rounded-xl shadow-lg">
-                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
+                    <div className={`p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg sm:rounded-xl shadow-lg`}>
+                      <CheckCircle className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8'} text-white`} />
                     </div>
                   </div>
                   <div className="flex-1 text-center sm:text-left">
@@ -1315,7 +1418,7 @@ export default function PdfToImage() {
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
-                    <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
+                    <div className={`px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base ${isMobile ? 'text-base px-4 py-2' : ''}`}>
                       {imageBlobs.length} Pages
                     </div>
                   </div>
@@ -1324,11 +1427,16 @@ export default function PdfToImage() {
                 {/* --- Output Image Previews --- */}
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                   <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Download className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                    <Download className={`${isMobile ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'} text-purple-500`} />
                     Converted {outputFormat.toUpperCase()} Images
+                    {isMobile && (
+                      <span className="text-xs text-blue-600 dark:text-blue-400 ml-2">
+                        (Tap download icon below)
+                      </span>
+                    )}
                   </h3>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-purple-100 dark:border-purple-800/30">
+                  <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'} gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-purple-100 dark:border-purple-800/30`}>
                     {imageBlobs.map((item, index) => (
                       <ImagePreview
                         key={index}
@@ -1355,7 +1463,7 @@ export default function PdfToImage() {
                       disabled={zipDownloading}
                       className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
                         zipDownloading ? 'opacity-75 cursor-not-allowed' : ''
-                      }`}
+                      } ${isMobile ? 'text-base py-3.5' : ''}`}
                     >
                       {zipDownloading ? (
                         <>
@@ -1364,9 +1472,9 @@ export default function PdfToImage() {
                         </>
                       ) : (
                         <>
-                          <Archive className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                          <Archive className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6'}`} />
                           Download as ZIP Archive ({imageBlobs.length} images)
-                          <FolderClosed className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                          <FolderClosed className={`${isMobile ? 'w-4 h-4' : 'w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5'}`} />
                         </>
                       )}
                     </motion.button>
@@ -1376,20 +1484,20 @@ export default function PdfToImage() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleDownloadAllSeparate}
-                      className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                      className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${isMobile ? 'text-base py-3.5' : ''}`}
                     >
-                      <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                      <Download className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6'}`} />
                       Download All {imageBlobs.length} Images Separately
-                      <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                      <Sparkles className={`${isMobile ? 'w-4 h-4' : 'w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5'}`} />
                     </motion.button>
                   </div>
 
                   <div className="text-center">
                     <button
                       onClick={handleReset}
-                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
+                      className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base ${isMobile ? 'text-sm py-2.5' : ''}`}
                     >
-                      <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
+                      <FileText className={`${isMobile ? 'w-3.5 h-3.5' : 'w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4'}`} />
                       Convert More PDFs
                     </button>
                   </div>
@@ -1401,7 +1509,7 @@ export default function PdfToImage() {
             {(hasFiles || hasResults) && (
               <div className="mt-6 sm:mt-10 md:mt-14">
                 <div className="max-w-6xl mx-auto px-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                  <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'} gap-4 sm:gap-6`}>
                     {[
                       {
                         value: files.length,
@@ -1433,18 +1541,18 @@ export default function PdfToImage() {
                         className={`flex flex-col items-center justify-center
                         rounded-2xl border border-gray-200 dark:border-gray-800
                         ${stat.bg}
-                        p-4 sm:p-6
+                        ${isMobile ? 'p-3' : 'p-4 sm:p-6'}
                         shadow-sm hover:shadow-lg
                         transition-all duration-300`}
                       >
                         <div
-                          className={`text-xl sm:text-2xl md:text-3xl xl:text-4xl font-extrabold
+                          className={`${isMobile ? 'text-lg' : 'text-xl sm:text-2xl md:text-3xl xl:text-4xl'} font-extrabold
                           ${stat.color} dark:${stat.color.replace("600", "400")}`}
                         >
                           {stat.value}
                         </div>
 
-                        <div className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                        <div className={`mt-1 ${isMobile ? 'text-[10px]' : 'text-xs sm:text-sm'} text-gray-600 dark:text-gray-400 font-medium`}>
                           {stat.label}
                         </div>
                       </div>
@@ -1459,50 +1567,44 @@ export default function PdfToImage() {
               id="how-to-pdf-to-image"
               className="mt-20 scroll-mt-24"
             >
-              <h2 className="text-3xl font-bold text-center mb-10">
+              <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-center mb-10`}>
                 How to Convert PDF to {outputFormat.toUpperCase()} Online
               </h2>
 
-              <div className="grid gap-6 md:grid-cols-5">
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
-                  <h3 className="font-semibold text-lg">Upload PDF Files</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Upload PDF files ({isMobile ? "max 30MB" : "up to 200MB"}) using drag & drop or file picker.
-                  </p>
-                </div>
-
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
-                  <h3 className="font-semibold text-lg">Choose Format & Quality</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Select JPG or PNG output format and adjust quality for JPG.
-                  </p>
-                </div>
-
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
-                  <h3 className="font-semibold text-lg">Convert PDF to Images</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Click the convert button to transform PDF pages into images.
-                  </p>
-                </div>
-
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
-                  <h3 className="font-semibold text-lg">Preview Results</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Preview converted images with page numbers.
-                  </p>
-                </div>
-
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">5</div>
-                  <h3 className="font-semibold text-lg">Download Images</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Download images individually or as a single ZIP archive.
-                  </p>
-                </div>
+              <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-5'}`}>
+                {[
+                  {
+                    step: "1",
+                    title: "Upload PDF Files",
+                    desc: `Upload PDF files (${isMobile ? "max 30MB" : "up to 200MB"}) using drag & drop or file picker.`
+                  },
+                  {
+                    step: "2",
+                    title: "Choose Format & Quality",
+                    desc: "Select JPG or PNG output format and adjust quality for JPG."
+                  },
+                  {
+                    step: "3",
+                    title: "Convert PDF to Images",
+                    desc: "Click the convert button to transform PDF pages into images."
+                  },
+                  {
+                    step: "4",
+                    title: "Preview Results",
+                    desc: "Preview converted images with page numbers."
+                  },
+                  {
+                    step: "5",
+                    title: "Download Images",
+                    desc: isMobile ? "Tap the download icon on each image or use the bulk download options below." : "Download images individually or as a single ZIP archive."
+                  }
+                ].map((item, idx) => (
+                  <div key={idx} className={`border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition ${isMobile ? 'p-4' : ''}`}>
+                    <div className="text-4xl font-bold text-purple-600 mb-2">{item.step}</div>
+                    <h3 className="font-semibold text-lg">{item.title}</h3>
+                    <p className="text-gray-600 text-sm mt-2">{item.desc}</p>
+                  </div>
+                ))}
               </div>
             </section>
 
@@ -1510,7 +1612,7 @@ export default function PdfToImage() {
             <div className="mb-6 md:mb-8 mt-12">
               <div className="flex items-center justify-between mb-6 md:mb-8">
                 <div>
-                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                  <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 dark:text-white`}>
                     Explore All Tools
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
@@ -1519,7 +1621,7 @@ export default function PdfToImage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'} gap-4 md:gap-6`}>
                 {exploreTools.slice(0, 8).map((tool, index) => (
                   <motion.a
                     key={tool.id}
@@ -1534,10 +1636,10 @@ export default function PdfToImage() {
                       <div
                         className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-lg md:rounded-xl shadow-lg`}
                       >
-                        <span className="text-xl md:text-2xl">{tool.icon}</span>
+                        <span className={`${isMobile ? 'text-xl' : 'text-2xl'}`}>{tool.icon}</span>
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 md:mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        <h3 className={`font-bold text-gray-900 dark:text-white ${isMobile ? 'text-base' : 'text-lg'} mb-1 md:mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors`}>
                           {tool.name}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-3 md:mb-4">
@@ -1566,7 +1668,7 @@ export default function PdfToImage() {
             {/* FAQ Section */}
             <section className="max-w-3xl mx-auto my-16 px-4">
               <div className="text-center mb-8">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 dark:text-white mb-3`}>
                   Frequently Asked Questions
                 </h2>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
@@ -1594,7 +1696,9 @@ export default function PdfToImage() {
                   },
                   {
                     question: "How do I download converted images?",
-                    answer: `You can download images individually by clicking the download button on each image, or download all images at once as a ZIP archive using the "Download as ZIP Archive" button.`
+                    answer: isMobile 
+                      ? `On mobile: Tap the download icon (↓) on each image to download individually. You can also use the "Download as ZIP Archive" button for bulk download.`
+                      : `You can download images individually by clicking the download button on each image, or download all images at once as a ZIP archive using the "Download as ZIP Archive" button.`
                   },
                   {
                     question: "Is the conversion secure? Are my files uploaded to your servers?",
@@ -1604,47 +1708,38 @@ export default function PdfToImage() {
                     question: "What quality settings are available?",
                     answer: `For JPG output, you can adjust quality from 10% (smallest file size, lower quality) to 100% (largest file size, best quality). PNG output uses lossless compression with no quality loss.`
                   },
-
-                   {
-      question: "Is the PDF to JPG converter on pdfswift free to use?",
-      answer:
-        "Yes, the PDF to JPG converter on pdfswift is completely free to use. You can convert PDF files to JPG images online without any signup, subscription, or hidden charges.",
-    },
-    {
-      question: "Is it safe to convert PDF files to JPG on pdfswift?",
-      answer:
-        "Yes, it is 100% safe and secure. All PDF to JPG conversions on pdfswift happen directly in your browser. Your PDF files are never uploaded, stored, or shared on any server, ensuring complete privacy and data security.",
-    },
-    {
-      question: "Will converting PDF to JPG reduce image quality?",
-      answer:
-        "No, pdfswift preserves the original quality of your PDF pages while converting them to JPG images. Text clarity, colors, and resolution remain sharp and accurate in the output images.",
-    },
-    {
-      question: "Can I convert all pages of a PDF into JPG images?",
-      answer:
-        "Yes, you can convert all pages of a PDF into individual JPG images or select specific pages only. Each page is converted into a high-quality JPG file for easy viewing and sharing.",
-    },
-    {
-      question: "Can I download PDF pages as separate JPG files?",
-      answer:
-        "Yes, each PDF page is converted into a separate JPG image. You can download them individually or as a ZIP file for convenience.",
-    },
-    {
-      question: "Are the converted JPG images watermarked?",
-      answer:
-        "No, pdfswift does not add any watermarks, logos, or branding to the converted JPG images. All output files are clean and fully owned by you.",
-    },
-    {
-      question: "How fast is the PDF to JPG conversion process?",
-      answer:
-        "The PDF to JPG conversion is very fast because it runs directly in your browser. Most PDFs are converted within seconds, depending on file size and the number of pages.",
-    },
-    {
-      question: "Do I need to install software or create an account to use pdfswift?",
-      answer:
-        "No installation or account creation is required. pdfswift works entirely online in your browser and is fully compatible with mobile, tablet, and desktop devices.",
-    },
+                  {
+                    question: "Is the PDF to JPG converter on pdfswift free to use?",
+                    answer: "Yes, the PDF to JPG converter on pdfswift is completely free to use. You can convert PDF files to JPG images online without any signup, subscription, or hidden charges.",
+                  },
+                  {
+                    question: "Is it safe to convert PDF files to JPG on pdfswift?",
+                    answer: "Yes, it is 100% safe and secure. All PDF to JPG conversions on pdfswift happen directly in your browser. Your PDF files are never uploaded, stored, or shared on any server, ensuring complete privacy and data security.",
+                  },
+                  {
+                    question: "Will converting PDF to JPG reduce image quality?",
+                    answer: "No, pdfswift preserves the original quality of your PDF pages while converting them to JPG images. Text clarity, colors, and resolution remain sharp and accurate in the output images.",
+                  },
+                  {
+                    question: "Can I convert all pages of a PDF into JPG images?",
+                    answer: "Yes, you can convert all pages of a PDF into individual JPG images or select specific pages only. Each page is converted into a high-quality JPG file for easy viewing and sharing.",
+                  },
+                  {
+                    question: "Can I download PDF pages as separate JPG files?",
+                    answer: "Yes, each PDF page is converted into a separate JPG image. You can download them individually or as a ZIP file for convenience.",
+                  },
+                  {
+                    question: "Are the converted JPG images watermarked?",
+                    answer: "No, pdfswift does not add any watermarks, logos, or branding to the converted JPG images. All output files are clean and fully owned by you.",
+                  },
+                  {
+                    question: "How fast is the PDF to JPG conversion process?",
+                    answer: "The PDF to JPG conversion is very fast because it runs directly in your browser. Most PDFs are converted within seconds, depending on file size and the number of pages.",
+                  },
+                  {
+                    question: "Do I need to install software or create an account to use pdfswift?",
+                    answer: "No installation or account creation is required. pdfswift works entirely online in your browser and is fully compatible with mobile, tablet, and desktop devices.",
+                  },
                   {
                     question: "What happens to text and fonts in the PDF?",
                     answer: `All text, fonts, and images from the PDF are rendered as images. The text will no longer be selectable or searchable after conversion, which is why this is called PDF to Image conversion.`
