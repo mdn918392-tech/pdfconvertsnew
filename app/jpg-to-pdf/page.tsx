@@ -318,45 +318,27 @@ const processImageForPdf = async (
         let qualityValue = 0.95;
         let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
         
-        // For mobile, we want to use a slightly lower max dimension and quality
-        // to reduce PDF size while keeping quality acceptable.
-        if (isMobile) {
-          // Override quality to use a more conservative value if custom not provided
-          if (quality === "custom" && customQualityValue > 0) {
+        switch (quality) {
+          case "none":
+            qualityValue = 1.0;
+            maxDimension = isMobile ? 3072 : 4096;
+            break;
+          case "custom":
             qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
-          } else if (quality === "high") {
-            qualityValue = 0.88; // Lower than desktop's 0.95
-          } else if (quality === "medium") {
-            qualityValue = 0.78;
-          } else if (quality === "low") {
-            qualityValue = 0.68;
-          } else {
-            qualityValue = 0.88; // default for mobile
-          }
-          // Keep maxDimension at 2048 (already set)
-        } else {
-          switch (quality) {
-            case "none":
-              qualityValue = 1.0;
-              maxDimension = 4096;
-              break;
-            case "custom":
-              qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
-              maxDimension = 4096;
-              break;
-            case "high":
-              qualityValue = 0.95;
-              maxDimension = 3072;
-              break;
-            case "medium":
-              qualityValue = 0.85;
-              maxDimension = 2048;
-              break;
-            case "low":
-              qualityValue = 0.75;
-              maxDimension = 1600;
-              break;
-          }
+            maxDimension = isMobile ? 2048 : 4096;
+            break;
+          case "high":
+            qualityValue = 0.95;
+            maxDimension = isMobile ? 2048 : 3072;
+            break;
+          case "medium":
+            qualityValue = 0.85;
+            maxDimension = isMobile ? 1600 : 2048;
+            break;
+          case "low":
+            qualityValue = 0.75;
+            maxDimension = isMobile ? 1200 : 1600;
+            break;
         }
         
         // On mobile, further reduce max dimension for PNG/WebP to avoid memory issues
@@ -1129,54 +1111,36 @@ const ReplaceImageModal = ({
   );
 };
 
-// ---------- NEW: Mobile Enhanced UI ----------
-const MobileEnhancedUI = ({
+// Mobile Simple UI
+const MobileSimpleUI = ({
   files,
-  onMoveUp,
-  onMoveDown,
-  onRotateFile,
-  onRotateAll,
-  onRemoveFile,
-  onReplaceFile,
-  pdfBlob,
-  onDownload,
-  onClear,
+  onFilesUpdate,
+  onConvert,
   converting,
   progress,
   orientation,
   onOrientationChange,
+  pdfBlob,
+  onDownload,
+  onClear,
   autoCompressionActive,
-  reverseOrder,
-  onToggleReverseOrder,
-  onFilesUpdate,   // ✅ added
-  onConvert,       // ✅ added
 }: {
   files: FileWithPreview[];
-  onMoveUp: (index: number) => void;
-  onMoveDown: (index: number) => void;
-  onRotateFile: (id: string, degrees: number) => void;
-  onRotateAll: (degrees: number) => void;
-  onRemoveFile: (file: FileWithPreview) => void;
-  onReplaceFile: (id: string) => void;
-  pdfBlob: Blob | null;
-  onDownload: () => void;
-  onClear: () => void;
+  onFilesUpdate: (files: File[]) => void;
+  onConvert: () => void;
   converting: boolean;
   progress: number;
   orientation: Orientation;
   onOrientationChange: (orient: Orientation) => void;
+  pdfBlob: Blob | null;
+  onDownload: () => void;
+  onClear: () => void;
   autoCompressionActive: boolean;
-  reverseOrder: boolean;
-  onToggleReverseOrder: () => void;
-  onFilesUpdate: (files: File[]) => void;   // ✅
-  onConvert: () => void;                    // ✅
 }) => {
-  const [swapMode, setSwapMode] = useState<{ sourceIndex: number } | null>(null);
   const isPdfGenerated = pdfBlob !== null;
 
   return (
     <div className="space-y-6">
-      {/* Upload section always visible */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
         <div className="text-center mb-6">
           <div className="inline-flex p-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl mb-4">
@@ -1193,7 +1157,7 @@ const MobileEnhancedUI = ({
         <FileUploader
           accept="image/jpeg,image/jpg,image/png,image/webp"
           multiple={true}
-          onFilesSelected={onFilesUpdate}   // ✅ now connected
+          onFilesSelected={onFilesUpdate}
           maxSize={10}
           maxFiles={MAX_FILES_MOBILE}
         />
@@ -1209,10 +1173,8 @@ const MobileEnhancedUI = ({
         </div>
       </div>
 
-      {/* Only show image list and controls if PDF not generated */}
-      {!isPdfGenerated && files.length > 0 && (
+      {files.length > 0 && (
         <>
-          {/* Orientation and controls */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1228,197 +1190,60 @@ const MobileEnhancedUI = ({
                 Clear All
               </button>
             </div>
-
-            {/* Rotate All & Reverse Order */}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                onClick={() => onRotateAll(-90)}
-                className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm flex items-center gap-1"
-              >
-                <RotateCcw className="w-4 h-4" />
-                All -90
-              </button>
-              <button
-                onClick={() => onRotateAll(90)}
-                className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm flex items-center gap-1"
-              >
-                <RotateCw className="w-4 h-4" />
-                All +90
-              </button>
-              <button
-                onClick={onToggleReverseOrder}
-                className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 ${
-                  reverseOrder
-                    ? "bg-purple-500 text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                <ArrowUpDown className="w-4 h-4" />
-                {reverseOrder ? "Normal" : "Reverse"}
-              </button>
-            </div>
-
-            {/* Page orientation (simple) */}
-            <div className="mt-3">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Page Orientation
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => onOrientationChange("Portrait")}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
-                    orientation === "Portrait"
-                      ? "bg-blue-500 text-white border-blue-500"
-                      : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                  }`}
-                >
-                  <div className="w-4 h-5 border-2 border-current rounded" />
-                  <span className="font-medium">Portrait</span>
-                </button>
-                <button
-                  onClick={() => onOrientationChange("Landscape")}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
-                    orientation === "Landscape"
-                      ? "bg-blue-500 text-white border-blue-500"
-                      : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                  }`}
-                >
-                  <div className="w-5 h-4 border-2 border-current rounded" />
-                  <span className="font-medium">Landscape</span>
-                </button>
-              </div>
-              <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
-                Page size: A4 (210 × 297 mm)
-              </p>
-            </div>
           </div>
 
-          {/* Image list with controls */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-            <div className="space-y-3">
-              {files.map((file, index) => (
-                <div
-                  key={file.id}
-                  className={`flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-xl ${
-                    swapMode?.sourceIndex === index ? "ring-2 ring-blue-500" : ""
-                  }`}
-                >
-                  {/* Thumbnail */}
-                  <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
-                    {file.previewUrl && !file.previewError ? (
-                      <img
-                        src={file.previewUrl}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        style={{ transform: `rotate(${file.rotation}deg)` }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <ImageIcon className="w-6 h-6" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* File info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {file.file.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {(file.file.size / 1024).toFixed(0)} KB
-                    </p>
-                    {file.rotation !== 0 && (
-                      <span className="text-xs text-blue-500">{file.rotation}°</span>
-                    )}
-                  </div>
-
-                  {/* Controls */}
-                  <div className="flex flex-col items-end gap-1">
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => onRotateFile(file.id, -90)}
-                        className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onRotateFile(file.id, 90)}
-                        className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300"
-                      >
-                        <RotateCw className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => {
-                          // Swap mode
-                          if (swapMode) {
-                            const sourceIndex = swapMode.sourceIndex;
-                            if (sourceIndex !== index) {
-                              // Perform swap: we don't have onSwap prop, so we'll use move up/down
-                              // But to keep it simple, we'll use a custom swap logic.
-                              // We'll implement a swap by moving source to target and target to source.
-                              // For now, we'll just call onMoveUp/Down repeatedly? Not ideal.
-                              // Better to add onSwap prop.
-                              // Since we already have onMoveUp and onMoveDown, we'll implement a simple swap:
-                              // If source < target, move source down to target, then move target up to source.
-                              // But that's messy. Let's add a direct swap function from parent.
-                              // We'll add onSwap prop.
-                              // We'll pass onSwap from parent.
-                              // For now, we'll use a temporary approach: call onMoveUp/Down.
-                              // We'll assume parent provides onSwap.
-                              // We'll add onSwap prop.
-                              // For simplicity, we'll use a workaround: we'll call onMoveUp/Down repeatedly.
-                              // But we can't because we don't have the full array.
-                              // Let's just setSwapMode(null) and ignore for now.
-                            }
-                            setSwapMode(null);
-                          } else {
-                            setSwapMode({ sourceIndex: index });
-                          }
-                        }}
-                        className={`p-1.5 rounded-lg ${
-                          swapMode?.sourceIndex === index
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                        }`}
-                      >
-                        <Move className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onMoveUp(index)}
-                        disabled={index === 0}
-                        className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg disabled:opacity-30"
-                      >
-                        <ChevronUp className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onMoveDown(index)}
-                        disabled={index === files.length - 1}
-                        className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg disabled:opacity-30"
-                      >
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onRemoveFile(file)}
-                        className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onReplaceFile(file.id)}
-                        className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg"
-                      >
-                        <Replace className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Page Orientation
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  if (!isPdfGenerated) {
+                    onOrientationChange("Portrait");
+                  }
+                }}
+                disabled={isPdfGenerated}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                  orientation === "Portrait"
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                } ${isPdfGenerated ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <div className="w-4 h-5 border-2 border-current rounded" />
+                <span className="font-medium">Portrait</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (!isPdfGenerated) {
+                    onOrientationChange("Landscape");
+                  }
+                }}
+                disabled={isPdfGenerated}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                  orientation === "Landscape"
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                } ${isPdfGenerated ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <div className="w-5 h-4 border-2 border-current rounded" />
+                <span className="font-medium">Landscape</span>
+              </button>
             </div>
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+              Page size: A4 (210 × 297 mm)
+            </p>
+            
+            {pdfBlob && (
+              <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  Orientation cannot be changed after PDF is generated
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Convert Button */}
           {converting ? (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
               <ProgressBar progress={progress} label="Creating PDF..." />
@@ -1432,45 +1257,45 @@ const MobileEnhancedUI = ({
                 </p>
               )}
             </div>
+          ) : pdfBlob ? (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
+              <div className="text-center mb-4">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                  PDF Ready!
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={onClear}
+                  className="py-3 px-4 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium"
+                >
+                  New
+                </button>
+                <button
+                  onClick={onDownload}
+                  className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
+              </div>
+              <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+                Orientation locked - Click "New" to create new PDF
+              </p>
+            </div>
           ) : (
             <button
-              onClick={onConvert}   // ✅ now connected
+              onClick={onConvert}
               className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
             >
               Convert {files.length} Image{files.length !== 1 ? 's' : ''} to PDF
             </button>
           )}
         </>
-      )}
-
-      {/* After PDF generation: only download and convert more */}
-      {isPdfGenerated && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
-          <div className="text-center mb-4">
-            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-              PDF Ready!
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={onClear}
-              className="py-3 px-4 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium"
-            >
-              Convert More
-            </button>
-            <button
-              onClick={onDownload}
-              className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Download PDF
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );
@@ -1567,7 +1392,7 @@ export default function JpgToPdf() {
     calculateStateHash,
   ]);
 
-  // Detect mobile and set optimized defaults
+  // Detect mobile
   useEffect(() => {
     setIsClient(true);
 
@@ -1578,15 +1403,9 @@ export default function JpgToPdf() {
       
       if (mobileCheck) {
         setPaperSize("A4");
-        // Use custom quality with 88% for mobile to reduce file size
-        setCompressionQuality("custom");
-        setCustomQualityValue(88);
+        setCompressionQuality("high");
         setMarginSize("small");
         setReverseOrder(false);
-      } else {
-        // Desktop defaults
-        setCompressionQuality("high");
-        setCustomQualityValue(95);
       }
     };
 
@@ -1682,17 +1501,7 @@ export default function JpgToPdf() {
 
   // Toggle reverse order
   const toggleReverseOrder = () => {
-    if (isMobile) {
-      // Allow toggling on mobile as well
-      setReverseOrder(!reverseOrder);
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-      return;
-    }
-    // Desktop version
+    if (isMobile) return;
     setReverseOrder(!reverseOrder);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -1775,7 +1584,7 @@ export default function JpgToPdf() {
     [files, rotatedUrls, isMobile]
   );
 
-  // Drag and Drop Handlers (desktop only)
+  // Drag and Drop Handlers
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
@@ -1807,10 +1616,10 @@ export default function JpgToPdf() {
     [files, draggedIndex, isMobile]
   );
 
-  // Move up (mobile and desktop)
+  // Move up
   const handleMoveUp = useCallback(
     (index: number) => {
-      if (index <= 0) return;
+      if (index <= 0 || isMobile) return;
 
       const newFiles = [...files];
       [newFiles[index], newFiles[index - 1]] = [
@@ -1824,13 +1633,13 @@ export default function JpgToPdf() {
       setProcessingError(null);
       setProgress(0);
     },
-    [files]
+    [files, isMobile]
   );
 
   // Move down
   const handleMoveDown = useCallback(
     (index: number) => {
-      if (index >= files.length - 1) return;
+      if (index >= files.length - 1 || isMobile) return;
 
       const newFiles = [...files];
       [newFiles[index], newFiles[index + 1]] = [
@@ -1844,23 +1653,7 @@ export default function JpgToPdf() {
       setProcessingError(null);
       setProgress(0);
     },
-    [files]
-  );
-
-  // Swap images (mobile)
-  const handleSwap = useCallback(
-    (indexA: number, indexB: number) => {
-      if (indexA === indexB) return;
-      const newFiles = [...files];
-      [newFiles[indexA], newFiles[indexB]] = [newFiles[indexB], newFiles[indexA]];
-      setFiles(newFiles);
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-    },
-    [files]
+    [files, isMobile]
   );
 
   // Handle rotate file
@@ -1904,30 +1697,8 @@ export default function JpgToPdf() {
   // Rotate all
   const handleRotateAll = useCallback(
     (degrees: number) => {
-      if (isMobile) {
-        // For mobile, also allow rotate all
-        setFiles((prev) =>
-          prev.map((file) => ({
-            ...file,
-            rotation: (file.rotation + degrees) % 360,
-          }))
-        );
-
-        setPdfBlob(null);
-        setOriginalStateHash("");
-        setShowChangesWarning(false);
-        setProcessingError(null);
-        setProgress(0);
-
-        Object.values(rotatedUrls).forEach((url) => {
-          if (url.startsWith("blob:")) {
-            URL.revokeObjectURL(url);
-          }
-        });
-        setRotatedUrls({});
-        return;
-      }
-      // Desktop version
+      if (isMobile) return;
+      
       setFiles((prev) =>
         prev.map((file) => ({
           ...file,
@@ -2178,7 +1949,7 @@ export default function JpgToPdf() {
     try {
       let filesToProcess = [...files];
 
-      if (reverseOrder) {
+      if (!isMobile && reverseOrder) {
         filesToProcess = [...files].reverse();
       }
 
@@ -2735,32 +2506,23 @@ export default function JpgToPdf() {
             </div>
 
             {isMobile ? (
-              // Mobile Enhanced UI
-              <MobileEnhancedUI
+              <MobileSimpleUI
                 files={files}
-                onMoveUp={handleMoveUp}
-                onMoveDown={handleMoveDown}
-                onRotateFile={handleRotateFile}
-                onRotateAll={handleRotateAll}
-                onRemoveFile={handleRemoveFile}
-                onReplaceFile={(id) => setReplacingImageId(id)}
-                pdfBlob={pdfBlob}
-                onDownload={handleDownload}
-                onClear={handleConvertMore}
+                onFilesUpdate={handleFilesUpdate}
+                onConvert={handleConvert}
                 converting={converting}
                 progress={progress}
                 orientation={orientation}
                 onOrientationChange={handleOrientationChange}
+                pdfBlob={pdfBlob}
+                onDownload={handleDownload}
+                onClear={handleConvertMore}
                 autoCompressionActive={autoCompressionActive}
-                reverseOrder={reverseOrder}
-                onToggleReverseOrder={toggleReverseOrder}
-                onFilesUpdate={handleFilesUpdate}   // ✅ pass
-                onConvert={handleConvert}           // ✅ pass
               />
             ) : (
-              /* Desktop Full UI - unchanged */
+              /* Desktop Full UI */
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
-                {/* Desktop UI - unchanged */}
+                {/* Desktop UI */}
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-4">
                     <Upload className="w-6 h-6 text-blue-500" />
