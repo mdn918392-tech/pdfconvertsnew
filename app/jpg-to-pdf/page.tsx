@@ -109,6 +109,28 @@ const PAPER_SIZES = {
   A3: { width: 297, height: 420 },
 } as const;
 
+// Get optimal image dimensions for paper size
+const getOptimalImageDimensions = (
+  paperSize: PaperSize,
+  orientation: Orientation,
+  dpi: number = 150 // Standard DPI for PDF images
+): { width: number; height: number } => {
+  const paper = PAPER_SIZES[paperSize];
+  const MM_TO_INCH = 25.4;
+  
+  let widthInch = paper.width / MM_TO_INCH;
+  let heightInch = paper.height / MM_TO_INCH;
+  
+  if (orientation === "Landscape") {
+    [widthInch, heightInch] = [heightInch, widthInch];
+  }
+  
+  return {
+    width: Math.round(widthInch * dpi),
+    height: Math.round(heightInch * dpi),
+  };
+};
+
 // Generate filename
 const generatePdfFilename = (
   files: FileWithPreview[],
@@ -265,30 +287,20 @@ const exploreTools: Tool[] = [
 ];
 
 /**
- * OPTIMIZED: Memory-efficient image processing with proper cleanup
+ * OPTIMIZED: Memory-efficient image processing with proper compression
  * Processes one image at a time with immediate resource release
  * Uses ArrayBuffer instead of Base64 to reduce memory usage by ~33%
+ * Now properly compresses images based on selected quality
  */
 const processImageForPdf = async (
   file: File,
   rotation: number = 0,
   quality: CompressionQuality = "high",
   customQualityValue: number = 95,
-  isMobile: boolean = false
+  isMobile: boolean = false,
+  paperSize: PaperSize = "A4",
+  orientation: Orientation = "Portrait"
 ): Promise<ArrayBuffer> => {
-  // If on mobile and the file is already JPEG and not too large, we can skip re-encoding
-  // to save memory and avoid canvas issues.
-  if (isMobile && file.type === "image/jpeg" && file.size < 5 * 1024 * 1024) {
-    try {
-      // Just return the raw buffer
-      const buffer = await file.arrayBuffer();
-      return buffer;
-    } catch (e) {
-      console.warn("Failed to read JPEG directly, falling back to canvas processing", e);
-    }
-  }
-
-  // Otherwise, process with canvas
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -317,28 +329,47 @@ const processImageForPdf = async (
         // Determine quality settings
         let qualityValue = 0.95;
         let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
+        let shouldCompress = true;
         
         switch (quality) {
           case "none":
             qualityValue = 1.0;
             maxDimension = isMobile ? 3072 : 4096;
+            shouldCompress = false;
             break;
           case "custom":
             qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
             maxDimension = isMobile ? 2048 : 4096;
+            shouldCompress = true;
             break;
           case "high":
             qualityValue = 0.95;
             maxDimension = isMobile ? 2048 : 3072;
+            shouldCompress = true;
             break;
           case "medium":
             qualityValue = 0.85;
             maxDimension = isMobile ? 1600 : 2048;
+            shouldCompress = true;
             break;
           case "low":
             qualityValue = 0.75;
             maxDimension = isMobile ? 1200 : 1600;
+            shouldCompress = true;
             break;
+        }
+        
+        // Get optimal dimensions for the paper size
+        const optimalDims = getOptimalImageDimensions(paperSize, orientation);
+        const paperWidth = optimalDims.width;
+        const paperHeight = optimalDims.height;
+        
+        // Calculate the max dimension based on paper size
+        const paperMaxDim = Math.max(paperWidth, paperHeight);
+        
+        // Use paper size to determine max dimension if it's smaller than the general limit
+        if (paperMaxDim < maxDimension && shouldCompress) {
+          maxDimension = paperMaxDim;
         }
         
         // On mobile, further reduce max dimension for PNG/WebP to avoid memory issues
@@ -350,8 +381,13 @@ const processImageForPdf = async (
         let scale = 1;
         const largerDimension = Math.max(img.width, img.height);
         
+        // Always scale down to maxDimension for compression
         if (largerDimension > maxDimension) {
           scale = maxDimension / largerDimension;
+        } else if (shouldCompress && quality !== "none") {
+          // Even if image is smaller than maxDimension, we still compress it
+          // but keep the original dimensions
+          scale = 1;
         }
         
         const needsSwap = rotation === 90 || rotation === 270;
@@ -402,10 +438,25 @@ const processImageForPdf = async (
           ctx.drawImage(img, 0, 0, newWidth, newHeight);
         }
         
-        // Convert to JPEG ArrayBuffer - MORE EFFICIENT than Base64
+        // Convert to JPEG ArrayBuffer with proper compression
+        // Even if quality is "none", we still re-encode to strip metadata
+        const jpegQuality = shouldCompress ? qualityValue : 1.0;
+        
         const blobData = await new Promise<Blob>((resolveBlob) => {
-          canvas!.toBlob((b) => resolveBlob(b!), "image/jpeg", qualityValue);
+          canvas!.toBlob((b) => resolveBlob(b!), "image/jpeg", jpegQuality);
         });
+        
+        // Log compression stats for debugging
+        const originalSize = file.size;
+        const compressedSize = blobData.size;
+        const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+        
+        console.log(`📊 Image Compression: ${file.name}`);
+        console.log(`   Original: ${(originalSize / 1024).toFixed(1)} KB`);
+        console.log(`   Compressed: ${(compressedSize / 1024).toFixed(1)} KB`);
+        console.log(`   Reduction: ${ratio}%`);
+        console.log(`   Quality: ${quality} (${Math.round(jpegQuality * 100)}%)`);
+        console.log(`   Dimensions: ${newWidth}x${newHeight}`);
         
         // Read as ArrayBuffer
         const buffer = await blobData.arrayBuffer();
@@ -435,6 +486,7 @@ const processImageForPdf = async (
         if (file.type === "image/jpeg") {
           try {
             const buffer = await file.arrayBuffer();
+            console.log(`⚠️ Fallback: Using original JPEG for ${file.name}`);
             resolve(buffer);
             return;
           } catch (e) {
@@ -468,13 +520,15 @@ const processSingleImageToPdf = async (
 ): Promise<ArrayBuffer> => {
   const { PDFDocument, rgb } = await import("pdf-lib");
   
-  // 1. Get image buffer (already compressed and rotated)
+  // 1. Get image buffer (properly compressed and rotated)
   const imageBuffer = await processImageForPdf(
     file,
     rotation,
     quality,
     customQualityValue,
-    true // mobile flag
+    true, // mobile flag
+    paperSize,
+    orientation
   );
   
   try {
@@ -714,15 +768,16 @@ const createPdfFromImages = async (
   }
 };
 
-// Estimate compressed size
+// Estimate compressed size with actual compression ratios
 const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQuality, customValue?: number): number => {
   if (files.length === 0) return 0;
   
+  // More accurate compression ratios based on actual testing
   let reductionFactor = 1.0;
   switch (quality) {
     case "none": reductionFactor = 1.0; break;
     case "custom": 
-      reductionFactor = customValue ? Math.min(1.0, Math.max(0.3, customValue / 100)) : 0.95; 
+      reductionFactor = customValue ? 0.3 + (customValue / 100) * 0.7 : 0.95; 
       break;
     case "high": reductionFactor = 0.85; break;
     case "medium": reductionFactor = 0.6; break;
@@ -1923,8 +1978,6 @@ export default function JpgToPdf() {
   };
 
   // ----- MAIN CONVERT FUNCTION -----
-  // Desktop uses the original pipeline (createPdfFromImages)
-  // Mobile uses the backup pipeline (single-page PDFs + merge)
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -1953,7 +2006,13 @@ export default function JpgToPdf() {
         filesToProcess = [...files].reverse();
       }
 
-      console.log(`Converting ${filesToProcess.length} images on ${isMobile ? 'mobile' : 'desktop'}`);
+      console.log(`\n📄 Converting ${filesToProcess.length} images on ${isMobile ? 'mobile' : 'desktop'}`);
+      console.log(`📐 Paper: ${paperSize} (${orientation})`);
+      console.log(`🎯 Quality: ${compressionQuality}${compressionQuality === 'custom' ? ` (${customQualityValue}%)` : ''}`);
+      console.log(`📏 Margin: ${marginSize}`);
+      console.log(`🔄 Reverse: ${reverseOrder}`);
+      console.log(`📱 Mobile: ${isMobile}`);
+      console.log('=' .repeat(50));
 
       // Step 1: Progress update
       setProgress(5);
@@ -2019,9 +2078,14 @@ export default function JpgToPdf() {
         // ========== DESKTOP PIPELINE ==========
         const imageBuffers: ArrayBuffer[] = [];
         const totalImages = filesToProcess.length;
+        
+        // Calculate total original size for comparison
+        let totalOriginalSize = 0;
 
         for (let i = 0; i < totalImages; i++) {
           const fileWithPreview = filesToProcess[i];
+          totalOriginalSize += fileWithPreview.file.size;
+          
           try {
             const processingProgress = 5 + ((i + 1) / totalImages) * 45;
             setProgress(Math.floor(processingProgress));
@@ -2032,7 +2096,9 @@ export default function JpgToPdf() {
               fileWithPreview.rotation,
               compressionQuality,
               customQualityValue,
-              false
+              false, // isMobile
+              paperSize,
+              orientation
             );
 
             imageBuffers.push(buffer);
@@ -2068,6 +2134,24 @@ export default function JpgToPdf() {
         throw new Error("Generated PDF is empty");
       }
 
+      // Calculate final compression ratio
+      const totalOriginalSize = filesToProcess.reduce(
+        (sum, f) => sum + f.file.size,
+        0
+      );
+      const finalSize = finalBlob.size;
+      const compressionRatio = ((1 - finalSize / totalOriginalSize) * 100).toFixed(1);
+
+      console.log('=' .repeat(50));
+      console.log(`📊 FINAL COMPRESSION SUMMARY:`);
+      console.log(`   Original Size: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`   PDF Size: ${(finalSize / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`   Compression Ratio: ${compressionRatio}%`);
+      console.log(`   Pages: ${filesToProcess.length}`);
+      console.log(`   Quality: ${compressionQuality}${compressionQuality === 'custom' ? ` (${customQualityValue}%)` : ''}`);
+      console.log(`   Device: ${isMobile ? 'Mobile (backup pipeline)' : 'Desktop'}`);
+      console.log('=' .repeat(50));
+
       setTimeout(() => {
         setPdfBlob(finalBlob);
         setOriginalStateHash(calculateStateHash());
@@ -2075,17 +2159,6 @@ export default function JpgToPdf() {
         setConverting(false);
         setSizeLimitExceeded(false);
         setShowCompressionInfo(false);
-
-        const totalOriginalSize = filesToProcess.reduce(
-          (sum, f) => sum + f.file.size,
-          0
-        );
-
-        console.log(`\n=== PDF Generation Complete ===`);
-        console.log(`Device: ${isMobile ? 'Mobile (backup pipeline)' : 'Desktop'}`);
-        console.log(`Original: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`PDF: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`Pages: ${filesToProcess.length}`);
       }, 300);
 
     } catch (err) {
@@ -3398,7 +3471,7 @@ export default function JpgToPdf() {
                             progress={progress}
                             label={
                               progress < 30
-                                ? "Processing images..."
+                                ? "Compressing images..."
                                 : progress < 60
                                 ? compressionQuality === "custom"
                                   ? `Applying ${customQualityValue}% quality...`
@@ -3412,7 +3485,7 @@ export default function JpgToPdf() {
                             <Loader2 className="w-5 h-5 animate-spin" />
                             <span className="text-base font-medium">
                               {progress < 30
-                                ? "Processing images..."
+                                ? "Compressing images..."
                                 : progress < 60
                                 ? compressionQuality === "custom"
                                   ? `Applying ${customQualityValue}% quality...`
