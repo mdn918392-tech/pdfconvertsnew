@@ -265,9 +265,10 @@ const exploreTools: Tool[] = [
 ];
 
 /**
- * OPTIMIZED: Memory-efficient image processing with proper cleanup
- * Processes one image at a time with immediate resource release
- * Uses ArrayBuffer instead of Base64 to reduce memory usage by ~33%
+ * Mobile‑optimized image processing: 
+ * - For JPEGs, we use the original buffer directly (no canvas, no re‑encoding).
+ * - For other formats, we convert to JPEG with a low resolution and quality.
+ * Rotation is handled later in the PDF (page rotation), so we don't rotate pixels here.
  */
 const processImageForPdf = async (
   file: File,
@@ -275,20 +276,22 @@ const processImageForPdf = async (
   quality: CompressionQuality = "high",
   customQualityValue: number = 95,
   isMobile: boolean = false
-): Promise<ArrayBuffer> => {
-  // If on mobile and the file is already JPEG and not too large, we can skip re-encoding
-  // to save memory and avoid canvas issues.
-  if (isMobile && file.type === "image/jpeg" && file.size < 5 * 1024 * 1024) {
+): Promise<{ buffer: ArrayBuffer; width: number; height: number }> => {
+  // If on mobile and file is JPEG, we can use the original buffer directly
+  // (we'll handle rotation at the PDF page level)
+  if (isMobile && file.type === "image/jpeg") {
     try {
-      // Just return the raw buffer
       const buffer = await file.arrayBuffer();
-      return buffer;
+      // We need dimensions for layout; we'll decode just the header or use a placeholder.
+      // Since we don't have dimensions, we'll embed without scaling (pdf-lib handles it).
+      // We'll return 0 for width/height to signal that we don't have dimensions.
+      return { buffer, width: 0, height: 0 };
     } catch (e) {
-      console.warn("Failed to read JPEG directly, falling back to canvas processing", e);
+      console.warn("Failed to read JPEG directly, falling back to canvas", e);
     }
   }
 
-  // Otherwise, process with canvas
+  // For non‑JPEG or fallback, use canvas
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -341,9 +344,10 @@ const processImageForPdf = async (
             break;
         }
         
-        // On mobile, further reduce max dimension for PNG/WebP to avoid memory issues
+        // On mobile, for non‑JPEG, reduce further
         if (isMobile && file.type !== "image/jpeg") {
-          maxDimension = Math.min(maxDimension, 1600);
+          maxDimension = Math.min(maxDimension, 1200);
+          qualityValue = Math.min(qualityValue, 0.80);
         }
         
         // Calculate dimensions
@@ -354,15 +358,10 @@ const processImageForPdf = async (
           scale = maxDimension / largerDimension;
         }
         
-        const needsSwap = rotation === 90 || rotation === 270;
-        const newWidth = needsSwap 
-          ? Math.floor(img.height * scale)
-          : Math.floor(img.width * scale);
-        const newHeight = needsSwap
-          ? Math.floor(img.width * scale)
-          : Math.floor(img.height * scale);
+        const newWidth = Math.floor(img.width * scale);
+        const newHeight = Math.floor(img.height * scale);
         
-        // Create canvas - this will be destroyed after use
+        // Create canvas
         canvas = document.createElement("canvas");
         canvas.width = newWidth;
         canvas.height = newHeight;
@@ -376,49 +375,29 @@ const processImageForPdf = async (
           throw new Error("Failed to get canvas context");
         }
         
-        // Draw with rotation
+        // Draw image (no rotation here; we'll rotate the PDF page)
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
         
-        if (rotation !== 0) {
-          ctx.save();
-          ctx.translate(canvas.width / 2, canvas.height / 2);
-          ctx.rotate((rotation * Math.PI) / 180);
-          
-          const rotatedWidth = needsSwap ? img.height : img.width;
-          const rotatedHeight = needsSwap ? img.width : img.height;
-          
-          ctx.drawImage(
-            img,
-            -(rotatedWidth * scale) / 2,
-            -(rotatedHeight * scale) / 2,
-            rotatedWidth * scale,
-            rotatedHeight * scale
-          );
-          ctx.restore();
-        } else {
-          ctx.drawImage(img, 0, 0, newWidth, newHeight);
-        }
-        
-        // Convert to JPEG ArrayBuffer - MORE EFFICIENT than Base64
+        // Convert to JPEG ArrayBuffer
         const blobData = await new Promise<Blob>((resolveBlob) => {
           canvas!.toBlob((b) => resolveBlob(b!), "image/jpeg", qualityValue);
         });
         
-        // Read as ArrayBuffer
         const buffer = await blobData.arrayBuffer();
         
-        // Cleanup immediately
+        // Cleanup
         URL.revokeObjectURL(objectUrl);
-        img.src = ""; // Clear image src to free memory
+        img.src = "";
         img = null;
         canvas.width = 0;
         canvas.height = 0;
         canvas = null;
         
-        resolve(buffer);
+        resolve({ buffer, width: newWidth, height: newHeight });
         
       } catch (error) {
         // Cleanup on error
@@ -431,11 +410,11 @@ const processImageForPdf = async (
           canvas.height = 0;
           canvas = null;
         }
-        // Fallback: try to read the original file as ArrayBuffer if it's a JPEG
+        // If we have a JPEG, try to fallback to original buffer
         if (file.type === "image/jpeg") {
           try {
             const buffer = await file.arrayBuffer();
-            resolve(buffer);
+            resolve({ buffer, width: 0, height: 0 });
             return;
           } catch (e) {
             reject(error);
@@ -449,13 +428,14 @@ const processImageForPdf = async (
       reject(new Error("Failed to read file"));
     };
     
-    // Read as ArrayBuffer directly - more efficient than DataURL
     reader.readAsArrayBuffer(file);
   });
 };
 
 /**
  * MOBILE BACKUP: Process a single image and create a one‑page PDF (ArrayBuffer)
+ * - For JPEGs, we embed directly and apply rotation to the page.
+ * - For others, we use the processed JPEG buffer.
  */
 const processSingleImageToPdf = async (
   file: File,
@@ -466,19 +446,18 @@ const processSingleImageToPdf = async (
   quality: CompressionQuality,
   customQualityValue: number
 ): Promise<ArrayBuffer> => {
-  const { PDFDocument, rgb } = await import("pdf-lib");
+  const { PDFDocument, rgb, degrees } = await import("pdf-lib");
   
-  // 1. Get image buffer (already compressed and rotated)
-  const imageBuffer = await processImageForPdf(
+  // Get image buffer and dimensions
+  const { buffer, width, height } = await processImageForPdf(
     file,
     rotation,
     quality,
     customQualityValue,
-    true // mobile flag
+    true
   );
   
   try {
-    // 2. Create a new PDF document (single page)
     const pdfDoc = await PDFDocument.create();
     
     // Paper dimensions
@@ -499,14 +478,24 @@ const processSingleImageToPdf = async (
     const availableHeightPt = pageHeightPt - (marginPt * 2);
     
     // Embed the image
-    const image = await pdfDoc.embedJpg(imageBuffer);
+    const image = await pdfDoc.embedJpg(buffer);
     
     // Add a page
     const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
     
-    // Calculate dimensions to fit within margins
-    const imgWidth = image.width;
-    const imgHeight = image.height;
+    // Apply rotation to the page (if any)
+    if (rotation !== 0) {
+      page.setRotation(degrees(rotation));
+    }
+    
+    // Determine image dimensions (if we have them from canvas, use them; else from embedded image)
+    let imgWidth = image.width;
+    let imgHeight = image.height;
+    if (width > 0 && height > 0) {
+      imgWidth = width;
+      imgHeight = height;
+    }
+    
     const imgAspectRatio = imgWidth / imgHeight;
     const availableAspectRatio = availableWidthPt / availableHeightPt;
     
@@ -529,12 +518,11 @@ const processSingleImageToPdf = async (
       height: finalHeightPt,
     });
     
-    // Save the PDF as bytes
     const pdfBytes = await pdfDoc.save();
-    
     return new Uint8Array(pdfBytes).buffer;
+    
   } catch (error) {
-    console.error("Error creating single-page PDF, creating blank page with error:", error);
+    console.error("Error creating single‑page PDF, creating blank page:", error);
     // Create a blank page with error text
     const pdfDoc = await PDFDocument.create();
     const paperDimensions = PAPER_SIZES[paperSize];
@@ -2027,7 +2015,7 @@ export default function JpgToPdf() {
             setProgress(Math.floor(processingProgress));
             setCurrentProcessingImage(i + 1);
 
-            const buffer = await processImageForPdf(
+            const { buffer } = await processImageForPdf(
               fileWithPreview.file,
               fileWithPreview.rotation,
               compressionQuality,
