@@ -109,11 +109,11 @@ const PAPER_SIZES = {
   A3: { width: 297, height: 420 },
 } as const;
 
-// Get optimal image dimensions for paper size
+// Get optimal image dimensions for paper size at 150 DPI
 const getOptimalImageDimensions = (
   paperSize: PaperSize,
   orientation: Orientation,
-  dpi: number = 150 // Standard DPI for PDF images
+  dpi: number = 150
 ): { width: number; height: number } => {
   const paper = PAPER_SIZES[paperSize];
   const MM_TO_INCH = 25.4;
@@ -287,10 +287,224 @@ const exploreTools: Tool[] = [
 ];
 
 /**
+ * Helper to validate JPEG blob
+ */
+const isValidJpeg = async (buffer: ArrayBuffer): Promise<boolean> => {
+  try {
+    // Check for JPEG SOI marker (FF D8)
+    const bytes = new Uint8Array(buffer);
+    if (bytes.length < 2) return false;
+    if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) return false;
+    
+    // Check for EOI marker (FF D9) at the end
+    if (bytes.length >= 2) {
+      const lastTwo = bytes.slice(-2);
+      if (lastTwo[0] === 0xFF && lastTwo[1] === 0xD9) {
+        return true;
+      }
+    }
+    
+    // If no EOI, try to find it
+    for (let i = bytes.length - 10; i < bytes.length - 1; i++) {
+      if (i >= 0 && bytes[i] === 0xFF && bytes[i + 1] === 0xD9) {
+        return true;
+      }
+    }
+    
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Optimized image compression - ONLY modifies the image buffer before embedding
+ * Everything else remains unchanged
+ */
+const compressImageForPdf = async (
+  imageBuffer: ArrayBuffer,
+  quality: CompressionQuality,
+  customQualityValue: number = 95,
+  maxDimension: number = 4096,
+  rotation: number = 0
+): Promise<ArrayBuffer> => {
+  // If quality is "none", return original with minimal processing
+  if (quality === "none") {
+    // Still strip metadata by re-encoding at 100% quality
+    try {
+      const blob = new Blob([imageBuffer], { type: "image/jpeg" });
+      const objectUrl = URL.createObjectURL(blob);
+      
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to decode image"));
+        img.src = objectUrl;
+      });
+      
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      const ctx = canvas.getContext("2d", { alpha: false });
+      if (!ctx) throw new Error("Failed to get canvas context");
+      
+      ctx.drawImage(img, 0, 0);
+      
+      const blobData = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((b) => resolve(b!), "image/jpeg", 1.0);
+      });
+      
+      URL.revokeObjectURL(objectUrl);
+      canvas.width = 0;
+      canvas.height = 0;
+      
+      const buffer = await blobData.arrayBuffer();
+      
+      // Validate the JPEG
+      if (await isValidJpeg(buffer)) {
+        return buffer;
+      }
+      
+      // If invalid, return original
+      return imageBuffer;
+    } catch {
+      // On any error, return original
+      return imageBuffer;
+    }
+  }
+  
+  // Determine quality value
+  let qualityValue = 0.95;
+  let targetMaxDim = maxDimension;
+  
+  switch (quality) {
+    case "custom":
+      qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
+      break;
+    case "high":
+      qualityValue = 0.95;
+      targetMaxDim = Math.min(maxDimension, 3072);
+      break;
+    case "medium":
+      qualityValue = 0.85;
+      targetMaxDim = Math.min(maxDimension, 2048);
+      break;
+    case "low":
+      qualityValue = 0.75;
+      targetMaxDim = Math.min(maxDimension, 1600);
+      break;
+    default:
+      qualityValue = 0.95;
+  }
+  
+  try {
+    // Decode the image
+    const blob = new Blob([imageBuffer], { type: "image/jpeg" });
+    const objectUrl = URL.createObjectURL(blob);
+    
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Failed to decode image"));
+      img.src = objectUrl;
+    });
+    
+    // Calculate new dimensions
+    let width = img.width;
+    let height = img.height;
+    const largerDim = Math.max(width, height);
+    
+    if (largerDim > targetMaxDim) {
+      const scale = targetMaxDim / largerDim;
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
+    
+    // Create canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    
+    const ctx = canvas.getContext("2d", {
+      alpha: false,
+      willReadFrequently: false,
+    });
+    
+    if (!ctx) {
+      URL.revokeObjectURL(objectUrl);
+      return imageBuffer; // Fallback to original
+    }
+    
+    // Draw with rotation if needed
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    
+    if (rotation !== 0) {
+      const needsSwap = rotation === 90 || rotation === 270;
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((rotation * Math.PI) / 180);
+      
+      const drawWidth = needsSwap ? img.height : img.width;
+      const drawHeight = needsSwap ? img.width : img.height;
+      const scaleX = width / drawWidth;
+      const scaleY = height / drawHeight;
+      
+      ctx.drawImage(
+        img,
+        -drawWidth / 2,
+        -drawHeight / 2,
+        drawWidth,
+        drawHeight
+      );
+      ctx.restore();
+    } else {
+      ctx.drawImage(img, 0, 0, width, height);
+    }
+    
+    // Compress to JPEG
+    const compressedBlob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((b) => resolve(b!), "image/jpeg", qualityValue);
+    });
+    
+    // Cleanup
+    URL.revokeObjectURL(objectUrl);
+    img.src = "";
+    canvas.width = 0;
+    canvas.height = 0;
+    
+    const compressedBuffer = await compressedBlob.arrayBuffer();
+    
+    // Validate the compressed JPEG
+    if (await isValidJpeg(compressedBuffer)) {
+      // Log compression stats
+      const originalSize = imageBuffer.byteLength;
+      const compressedSize = compressedBuffer.byteLength;
+      const reduction = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+      
+      console.log(`📊 Image Compression: ${(originalSize / 1024).toFixed(1)}KB → ${(compressedSize / 1024).toFixed(1)}KB (${reduction}% reduction)`);
+      
+      return compressedBuffer;
+    }
+    
+    // If compression produced invalid JPEG, return original
+    console.warn("Compression produced invalid JPEG, using original");
+    return imageBuffer;
+    
+  } catch (error) {
+    // On any error, return original image
+    console.warn("Compression failed, using original image:", error);
+    return imageBuffer;
+  }
+};
+
+/**
  * OPTIMIZED: Memory-efficient image processing with proper compression
  * Processes one image at a time with immediate resource release
  * Uses ArrayBuffer instead of Base64 to reduce memory usage by ~33%
- * Now properly compresses images based on selected quality
  */
 const processImageForPdf = async (
   file: File,
@@ -301,209 +515,75 @@ const processImageForPdf = async (
   paperSize: PaperSize = "A4",
   orientation: Orientation = "Portrait"
 ): Promise<ArrayBuffer> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+  // First, get the image as ArrayBuffer
+  let imageBuffer: ArrayBuffer;
+  try {
+    imageBuffer = await file.arrayBuffer();
+  } catch (error) {
+    console.warn("Failed to read file as ArrayBuffer, falling back to canvas:", error);
+    // Fallback to canvas-based loading
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const buffer = e.target?.result as ArrayBuffer;
+          resolve(buffer);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  
+  // Determine max dimension based on device and paper size
+  let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
+  const optimalDims = getOptimalImageDimensions(paperSize, orientation);
+  const paperMaxDim = Math.max(optimalDims.width, optimalDims.height);
+  
+  // Use paper size to determine max dimension if it's smaller
+  if (paperMaxDim < maxDimension) {
+    maxDimension = paperMaxDim;
+  }
+  
+  // Apply compression with validation
+  try {
+    const compressedBuffer = await compressImageForPdf(
+      imageBuffer,
+      quality,
+      customQualityValue,
+      maxDimension,
+      rotation
+    );
     
-    reader.onload = async (e) => {
-      let img: HTMLImageElement | null = null;
-      let canvas: HTMLCanvasElement | null = null;
-      
-      try {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        
-        // Create Image from ArrayBuffer
-        img = new Image();
-        const blob = new Blob([arrayBuffer], { type: file.type });
-        const objectUrl = URL.createObjectURL(blob);
-        
-        // Load image
-        await new Promise<void>((resolveImg, rejectImg) => {
-          img!.onload = () => resolveImg();
-          img!.onerror = () => rejectImg(new Error("Failed to decode image"));
-          img!.src = objectUrl;
-        });
-        
-        // Revoke object URL immediately after loading
-        URL.revokeObjectURL(objectUrl);
-        
-        // Determine quality settings
-        let qualityValue = 0.95;
-        let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
-        let shouldCompress = true;
-        
-        switch (quality) {
-          case "none":
-            qualityValue = 1.0;
-            maxDimension = isMobile ? 3072 : 4096;
-            shouldCompress = false;
-            break;
-          case "custom":
-            qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
-            maxDimension = isMobile ? 2048 : 4096;
-            shouldCompress = true;
-            break;
-          case "high":
-            qualityValue = 0.95;
-            maxDimension = isMobile ? 2048 : 3072;
-            shouldCompress = true;
-            break;
-          case "medium":
-            qualityValue = 0.85;
-            maxDimension = isMobile ? 1600 : 2048;
-            shouldCompress = true;
-            break;
-          case "low":
-            qualityValue = 0.75;
-            maxDimension = isMobile ? 1200 : 1600;
-            shouldCompress = true;
-            break;
-        }
-        
-        // Get optimal dimensions for the paper size
-        const optimalDims = getOptimalImageDimensions(paperSize, orientation);
-        const paperWidth = optimalDims.width;
-        const paperHeight = optimalDims.height;
-        
-        // Calculate the max dimension based on paper size
-        const paperMaxDim = Math.max(paperWidth, paperHeight);
-        
-        // Use paper size to determine max dimension if it's smaller than the general limit
-        if (paperMaxDim < maxDimension && shouldCompress) {
-          maxDimension = paperMaxDim;
-        }
-        
-        // On mobile, further reduce max dimension for PNG/WebP to avoid memory issues
-        if (isMobile && file.type !== "image/jpeg") {
-          maxDimension = Math.min(maxDimension, 1600);
-        }
-        
-        // Calculate dimensions
-        let scale = 1;
-        const largerDimension = Math.max(img.width, img.height);
-        
-        // Always scale down to maxDimension for compression
-        if (largerDimension > maxDimension) {
-          scale = maxDimension / largerDimension;
-        } else if (shouldCompress && quality !== "none") {
-          // Even if image is smaller than maxDimension, we still compress it
-          // but keep the original dimensions
-          scale = 1;
-        }
-        
-        const needsSwap = rotation === 90 || rotation === 270;
-        const newWidth = needsSwap 
-          ? Math.floor(img.height * scale)
-          : Math.floor(img.width * scale);
-        const newHeight = needsSwap
-          ? Math.floor(img.width * scale)
-          : Math.floor(img.height * scale);
-        
-        // Create canvas - this will be destroyed after use
-        canvas = document.createElement("canvas");
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        
-        const ctx = canvas.getContext("2d", {
-          alpha: false,
-          willReadFrequently: false,
-        });
-        
-        if (!ctx) {
-          throw new Error("Failed to get canvas context");
-        }
-        
-        // Draw with rotation
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        
-        if (rotation !== 0) {
-          ctx.save();
-          ctx.translate(canvas.width / 2, canvas.height / 2);
-          ctx.rotate((rotation * Math.PI) / 180);
-          
-          const rotatedWidth = needsSwap ? img.height : img.width;
-          const rotatedHeight = needsSwap ? img.width : img.height;
-          
-          ctx.drawImage(
-            img,
-            -(rotatedWidth * scale) / 2,
-            -(rotatedHeight * scale) / 2,
-            rotatedWidth * scale,
-            rotatedHeight * scale
-          );
-          ctx.restore();
-        } else {
-          ctx.drawImage(img, 0, 0, newWidth, newHeight);
-        }
-        
-        // Convert to JPEG ArrayBuffer with proper compression
-        // Even if quality is "none", we still re-encode to strip metadata
-        const jpegQuality = shouldCompress ? qualityValue : 1.0;
-        
-        const blobData = await new Promise<Blob>((resolveBlob) => {
-          canvas!.toBlob((b) => resolveBlob(b!), "image/jpeg", jpegQuality);
-        });
-        
-        // Log compression stats for debugging
-        const originalSize = file.size;
-        const compressedSize = blobData.size;
-        const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
-        
-        console.log(`📊 Image Compression: ${file.name}`);
-        console.log(`   Original: ${(originalSize / 1024).toFixed(1)} KB`);
-        console.log(`   Compressed: ${(compressedSize / 1024).toFixed(1)} KB`);
-        console.log(`   Reduction: ${ratio}%`);
-        console.log(`   Quality: ${quality} (${Math.round(jpegQuality * 100)}%)`);
-        console.log(`   Dimensions: ${newWidth}x${newHeight}`);
-        
-        // Read as ArrayBuffer
-        const buffer = await blobData.arrayBuffer();
-        
-        // Cleanup immediately
-        URL.revokeObjectURL(objectUrl);
-        img.src = ""; // Clear image src to free memory
-        img = null;
-        canvas.width = 0;
-        canvas.height = 0;
-        canvas = null;
-        
-        resolve(buffer);
-        
-      } catch (error) {
-        // Cleanup on error
-        if (img) {
-          img.src = "";
-          img = null;
-        }
-        if (canvas) {
-          canvas.width = 0;
-          canvas.height = 0;
-          canvas = null;
-        }
-        // Fallback: try to read the original file as ArrayBuffer if it's a JPEG
-        if (file.type === "image/jpeg") {
-          try {
-            const buffer = await file.arrayBuffer();
-            console.log(`⚠️ Fallback: Using original JPEG for ${file.name}`);
-            resolve(buffer);
-            return;
-          } catch (e) {
-            reject(error);
-          }
-        }
-        reject(error);
-      }
-    };
+    // Verify the compressed buffer is valid JPEG
+    if (await isValidJpeg(compressedBuffer)) {
+      return compressedBuffer;
+    }
     
-    reader.onerror = () => {
-      reject(new Error("Failed to read file"));
-    };
+    // If invalid, try one more time with original dimensions (no resize)
+    console.warn("Compressed image invalid, trying without resizing");
+    const retryBuffer = await compressImageForPdf(
+      imageBuffer,
+      quality,
+      customQualityValue,
+      99999, // No dimension limit
+      rotation
+    );
     
-    // Read as ArrayBuffer directly - more efficient than DataURL
-    reader.readAsArrayBuffer(file);
-  });
+    if (await isValidJpeg(retryBuffer)) {
+      return retryBuffer;
+    }
+    
+    // If still invalid, return original
+    console.warn("All compression attempts failed, using original image");
+    return imageBuffer;
+    
+  } catch (error) {
+    console.warn("Compression error, using original image:", error);
+    return imageBuffer;
+  }
 };
 
 /**
@@ -775,13 +855,13 @@ const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQu
   // More accurate compression ratios based on actual testing
   let reductionFactor = 1.0;
   switch (quality) {
-    case "none": reductionFactor = 1.0; break;
+    case "none": reductionFactor = 0.95; break; // Still some reduction from metadata stripping
     case "custom": 
       reductionFactor = customValue ? 0.3 + (customValue / 100) * 0.7 : 0.95; 
       break;
-    case "high": reductionFactor = 0.85; break;
-    case "medium": reductionFactor = 0.6; break;
-    case "low": reductionFactor = 0.4; break;
+    case "high": reductionFactor = 0.75; break;
+    case "medium": reductionFactor = 0.5; break;
+    case "low": reductionFactor = 0.35; break;
   }
   
   const totalOriginalSize = files.reduce((sum, f) => sum + f.file.size, 0);
@@ -3240,14 +3320,14 @@ export default function JpgToPdf() {
                               </div>
                               <div className="text-lg font-bold text-green-600 dark:text-green-400">
                                 {compressionQuality === "none"
-                                  ? "0%"
+                                  ? "5%"
                                   : compressionQuality === "custom"
                                   ? `${Math.round(100 - customQualityValue)}%`
                                   : compressionQuality === "high"
-                                  ? "5%"
+                                  ? "25%"
                                   : compressionQuality === "medium"
-                                  ? "15%"
-                                  : "25%"}
+                                  ? "50%"
+                                  : "65%"}
                               </div>
                             </div>
                             <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
@@ -3534,6 +3614,11 @@ export default function JpgToPdf() {
                               <span className="text-gray-600 dark:text-gray-400">
                                 Pages: {files.length}
                               </span>
+                              {pdfBlob.size > 0 && files.length > 0 && (
+                                <span className="text-gray-600 dark:text-gray-400">
+                                  Avg: {(pdfBlob.size / files.length / 1024).toFixed(1)} KB/page
+                                </span>
+                              )}
                             </div>
                           </div>
 
