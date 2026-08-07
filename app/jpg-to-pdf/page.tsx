@@ -109,30 +109,6 @@ const PAPER_SIZES = {
   A3: { width: 297, height: 420 },
 } as const;
 
-// Simple progress simulation
-const simulateProgress = (
-  callback: (p: number) => void,
-  initial: number,
-  final: number,
-  durationMs: number
-) => {
-  const startTime = Date.now();
-  const interval = 100;
-
-  const progressId = setInterval(() => {
-    const elapsed = Date.now() - startTime;
-    let newProgress = initial + ((final - initial) * elapsed) / durationMs;
-
-    if (newProgress >= final) {
-      newProgress = final;
-      clearInterval(progressId);
-    }
-    callback(Math.floor(newProgress));
-  }, interval);
-
-  return () => clearInterval(progressId);
-};
-
 // Generate filename
 const generatePdfFilename = (
   files: FileWithPreview[],
@@ -300,7 +276,19 @@ const processImageForPdf = async (
   customQualityValue: number = 95,
   isMobile: boolean = false
 ): Promise<ArrayBuffer> => {
-  // Use ArrayBuffer directly to avoid Base64 memory overhead
+  // If on mobile and the file is already JPEG and not too large, we can skip re-encoding
+  // to save memory and avoid canvas issues.
+  if (isMobile && file.type === "image/jpeg" && file.size < 5 * 1024 * 1024) {
+    try {
+      // Just return the raw buffer
+      const buffer = await file.arrayBuffer();
+      return buffer;
+    } catch (e) {
+      console.warn("Failed to read JPEG directly, falling back to canvas processing", e);
+    }
+  }
+
+  // Otherwise, process with canvas
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -351,6 +339,11 @@ const processImageForPdf = async (
             qualityValue = 0.75;
             maxDimension = isMobile ? 1200 : 1600;
             break;
+        }
+        
+        // On mobile, further reduce max dimension for PNG/WebP to avoid memory issues
+        if (isMobile && file.type !== "image/jpeg") {
+          maxDimension = Math.min(maxDimension, 1600);
         }
         
         // Calculate dimensions
@@ -438,6 +431,16 @@ const processImageForPdf = async (
           canvas.height = 0;
           canvas = null;
         }
+        // Fallback: try to read the original file as ArrayBuffer if it's a JPEG
+        if (file.type === "image/jpeg") {
+          try {
+            const buffer = await file.arrayBuffer();
+            resolve(buffer);
+            return;
+          } catch (e) {
+            reject(error);
+          }
+        }
         reject(error);
       }
     };
@@ -471,7 +474,7 @@ const processSingleImageToPdf = async (
     rotation,
     quality,
     customQualityValue,
-    true // mobile flag, but we use our own max dimension handling inside
+    true // mobile flag
   );
   
   try {
@@ -529,13 +532,10 @@ const processSingleImageToPdf = async (
     // Save the PDF as bytes
     const pdfBytes = await pdfDoc.save();
     
-    // Clean up the image buffer and PDF doc references
-    // (imageBuffer and pdfDoc will be garbage collected)
-    
-    // ✅ FIX: Return a new ArrayBuffer copy to avoid SharedArrayBuffer type issues
     return new Uint8Array(pdfBytes).buffer;
   } catch (error) {
-    // If image embedding fails, create a blank page with error text
+    console.error("Error creating single-page PDF, creating blank page with error:", error);
+    // Create a blank page with error text
     const pdfDoc = await PDFDocument.create();
     const paperDimensions = PAPER_SIZES[paperSize];
     const MM_TO_PT = 2.83465;
@@ -548,10 +548,10 @@ const processSingleImageToPdf = async (
       pageHeightPt = paperDimensions.height * MM_TO_PT;
     }
     const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-    page.drawText(`Image could not be loaded`, {
+    page.drawText(`Image could not be loaded: ${file.name}`, {
       x: marginPoints,
       y: pageHeightPt / 2,
-      size: 20,
+      size: 16,
       color: rgb(1, 0, 0),
     });
     const pdfBytes = await pdfDoc.save();
@@ -592,7 +592,6 @@ const mergePdfBuffers = async (pdfBuffers: ArrayBuffer[]): Promise<Blob> => {
   }
   
   const mergedBytes = await mergedPdf.save();
-  // ✅ Fix: copy to a new ArrayBuffer to avoid SharedArrayBuffer issues
   const arrayBuffer = new Uint8Array(mergedBytes).buffer;
   return new Blob([arrayBuffer], { type: "application/pdf" });
 };
@@ -635,8 +634,6 @@ const createPdfFromImages = async (
     // Process images one at a time to minimize memory
     const totalImages = imageBuffers.length;
     
-    // Use a temporary array to hold embedded images
-    // Only keep one image buffer at a time in memory
     for (let i = 0; i < totalImages; i++) {
       try {
         const buffer = imageBuffers[i];
@@ -707,14 +704,8 @@ const createPdfFromImages = async (
       throw new Error("Generated PDF is empty");
     }
     
-    // ✅ FIXED: Convert Uint8Array to ArrayBuffer properly for Blob
-    // pdfBytes is Uint8Array, we need to create a proper ArrayBuffer
-    const arrayBuffer = new ArrayBuffer(pdfBytes.length);
-    const view = new Uint8Array(arrayBuffer);
-    view.set(pdfBytes);
-    
+    const arrayBuffer = new Uint8Array(pdfBytes).buffer;
     const blob = new Blob([arrayBuffer], { type: "application/pdf" });
-    
     return blob;
     
   } catch (error) {
@@ -1977,14 +1968,11 @@ export default function JpgToPdf() {
 
       if (isMobile) {
         // ========== MOBILE BACKUP PIPELINE ==========
-        // Process each image sequentially, create a single‑page PDF,
-        // store its bytes, and release memory.
         const tempPdfBuffers: ArrayBuffer[] = [];
 
         for (let i = 0; i < filesToProcess.length; i++) {
           const fileWithPreview = filesToProcess[i];
           try {
-            // Update progress
             const processingProgress = 5 + ((i + 1) / filesToProcess.length) * 70;
             setProgress(Math.floor(processingProgress));
             setCurrentProcessingImage(i + 1);
@@ -2013,29 +2001,22 @@ export default function JpgToPdf() {
               const blankPdf = await createBlankPagePdf(paperSize, orientation, marginPoints);
               tempPdfBuffers.push(blankPdf);
             } catch (blankErr) {
-              // If even blank PDF fails, skip this page
               console.warn(`Skipping page ${i + 1} due to error`);
             }
           }
         }
 
-        // If no pages were generated, throw
         if (tempPdfBuffers.length === 0) {
           throw new Error("No pages could be generated.");
         }
 
-        // Merge all temporary PDFs into one final PDF
         setProgress(80);
         finalBlob = await mergePdfBuffers(tempPdfBuffers);
-
-        // Clean up temporary buffers
         tempPdfBuffers.length = 0;
-
         setProgress(100);
 
       } else {
-        // ========== DESKTOP PIPELINE (unchanged) ==========
-        // Process images to image buffers
+        // ========== DESKTOP PIPELINE ==========
         const imageBuffers: ArrayBuffer[] = [];
         const totalImages = filesToProcess.length;
 
@@ -2051,17 +2032,15 @@ export default function JpgToPdf() {
               fileWithPreview.rotation,
               compressionQuality,
               customQualityValue,
-              false // desktop
+              false
             );
 
             imageBuffers.push(buffer);
-
             if (i % 2 === 0) {
               await new Promise(resolve => setTimeout(resolve, 10));
             }
           } catch (error) {
             console.error(`Failed to process image ${i + 1}:`, error);
-            // Skip this image
           }
         }
 
@@ -2070,7 +2049,6 @@ export default function JpgToPdf() {
         }
 
         setProgress(50);
-
         finalBlob = await createPdfFromImages(
           imageBuffers,
           paperSize,
@@ -2082,18 +2060,14 @@ export default function JpgToPdf() {
             setProgress(Math.floor(pdfProgress));
           }
         );
-
-        // Clear image buffers
         imageBuffers.length = 0;
         setProgress(100);
       }
 
-      // Final validation
       if (!finalBlob || finalBlob.size === 0) {
         throw new Error("Generated PDF is empty");
       }
 
-      // Save the final PDF
       setTimeout(() => {
         setPdfBlob(finalBlob);
         setOriginalStateHash(calculateStateHash());
