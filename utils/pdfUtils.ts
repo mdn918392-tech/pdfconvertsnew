@@ -128,7 +128,7 @@ async function embedImageWithValidation(
     arrayBuffer: ArrayBuffer,
     paperWidth: number,
     paperHeight: number
-): Promise<any> {
+ ): Promise<any> {
     const fileName = file.name;
     const detectedFormat = detectImageFormat(arrayBuffer);
     
