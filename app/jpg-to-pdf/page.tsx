@@ -320,6 +320,36 @@ const isValidJpeg = async (buffer: ArrayBuffer): Promise<boolean> => {
 };
 
 /**
+ * Validate image dimensions using Image object
+ */
+const validateImageDimensions = async (buffer: ArrayBuffer): Promise<{ width: number; height: number } | null> => {
+  try {
+    const blob = new Blob([buffer], { type: "image/jpeg" });
+    const objectUrl = URL.createObjectURL(blob);
+    
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Failed to decode image"));
+      img.src = objectUrl;
+    });
+    
+    const width = img.naturalWidth;
+    const height = img.naturalHeight;
+    
+    URL.revokeObjectURL(objectUrl);
+    img.src = "";
+    
+    if (width > 0 && height > 0) {
+      return { width, height };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * Optimized image compression - ONLY modifies the image buffer before embedding
  * Everything else remains unchanged
  */
@@ -517,6 +547,11 @@ const processImageForPdf = async (
   paperSize: PaperSize = "A4",
   orientation: Orientation = "Portrait"
 ): Promise<ArrayBuffer> => {
+  // CRITICAL FIX: Verify file exists and has size > 0
+  if (!file || file.size === 0) {
+    throw new Error(`Invalid file: ${file?.name || 'unknown'} has size 0`);
+  }
+
   // First, get the image as ArrayBuffer
   let imageBuffer: ArrayBuffer;
   try {
@@ -539,6 +574,11 @@ const processImageForPdf = async (
     });
   }
   
+  // CRITICAL FIX: Verify buffer size
+  if (!imageBuffer || imageBuffer.byteLength === 0) {
+    throw new Error(`Failed to read image data from ${file.name}`);
+  }
+  
   // Determine max dimension based on device and paper size
   let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
   const optimalDims = getOptimalImageDimensions(paperSize, orientation);
@@ -559,6 +599,11 @@ const processImageForPdf = async (
       rotation
     );
     
+    // CRITICAL FIX: Verify compressed buffer is valid
+    if (!compressedBuffer || compressedBuffer.byteLength === 0) {
+      throw new Error(`Compression produced empty buffer for ${file.name}`);
+    }
+    
     // Verify the compressed buffer is valid JPEG
     if (await isValidJpeg(compressedBuffer)) {
       return compressedBuffer;
@@ -574,7 +619,7 @@ const processImageForPdf = async (
       rotation
     );
     
-    if (await isValidJpeg(retryBuffer)) {
+    if (retryBuffer && retryBuffer.byteLength > 0 && await isValidJpeg(retryBuffer)) {
       return retryBuffer;
     }
     
@@ -602,6 +647,11 @@ const processSingleImageToPdf = async (
 ): Promise<ArrayBuffer> => {
   const { PDFDocument, rgb } = await import("pdf-lib");
   
+  // CRITICAL FIX: Verify file exists
+  if (!file || file.size === 0) {
+    throw new Error(`Invalid file for PDF generation`);
+  }
+  
   // 1. Get image buffer (properly compressed and rotated)
   const imageBuffer = await processImageForPdf(
     file,
@@ -612,6 +662,23 @@ const processSingleImageToPdf = async (
     paperSize,
     orientation
   );
+  
+  // CRITICAL FIX: Verify buffer is valid before embedding
+  if (!imageBuffer || imageBuffer.byteLength === 0) {
+    throw new Error(`Failed to process image: ${file.name} (empty buffer)`);
+  }
+  
+  if (!await isValidJpeg(imageBuffer)) {
+    throw new Error(`Invalid JPEG data for: ${file.name}`);
+  }
+  
+  // Validate dimensions
+  const dimensions = await validateImageDimensions(imageBuffer);
+  if (!dimensions || dimensions.width === 0 || dimensions.height === 0) {
+    throw new Error(`Invalid image dimensions for: ${file.name}`);
+  }
+  
+  console.log(`✅ Processing: ${file.name} | ${(imageBuffer.byteLength / 1024).toFixed(1)}KB | ${dimensions.width}x${dimensions.height}`);
   
   try {
     // 2. Create a new PDF document (single page)
@@ -634,8 +701,18 @@ const processSingleImageToPdf = async (
     const availableWidthPt = pageWidthPt - (marginPt * 2);
     const availableHeightPt = pageHeightPt - (marginPt * 2);
     
-    // Embed the image
-    const image = await pdfDoc.embedJpg(imageBuffer);
+    // CRITICAL FIX: Ensure embedJpg receives valid data
+    let image;
+    try {
+      image = await pdfDoc.embedJpg(imageBuffer);
+    } catch (embedError) {
+      throw new Error(`Failed to embed image ${file.name}: ${embedError instanceof Error ? embedError.message : 'Unknown error'}`);
+    }
+    
+    // CRITICAL FIX: Verify image was embedded successfully
+    if (!image || !image.width || !image.height) {
+      throw new Error(`Failed to get image dimensions for ${file.name}`);
+    }
     
     // Add a page
     const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
@@ -668,30 +745,14 @@ const processSingleImageToPdf = async (
     // Save the PDF as bytes
     const pdfBytes = await pdfDoc.save();
     
+    if (!pdfBytes || pdfBytes.length === 0) {
+      throw new Error(`Generated PDF is empty for ${file.name}`);
+    }
+    
     return new Uint8Array(pdfBytes).buffer;
   } catch (error) {
-    console.error("Error creating single-page PDF, creating blank page with error:", error);
-    // Create a blank page with error text
-    const pdfDoc = await PDFDocument.create();
-    const paperDimensions = PAPER_SIZES[paperSize];
-    const MM_TO_PT = 2.83465;
-    let pageWidthPt: number, pageHeightPt: number;
-    if (orientation === "Landscape") {
-      pageWidthPt = paperDimensions.height * MM_TO_PT;
-      pageHeightPt = paperDimensions.width * MM_TO_PT;
-    } else {
-      pageWidthPt = paperDimensions.width * MM_TO_PT;
-      pageHeightPt = paperDimensions.height * MM_TO_PT;
-    }
-    const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-    page.drawText(`Image could not be loaded: ${file.name}`, {
-      x: marginPoints,
-      y: pageHeightPt / 2,
-      size: 16,
-      color: rgb(1, 0, 0),
-    });
-    const pdfBytes = await pdfDoc.save();
-    return new Uint8Array(pdfBytes).buffer;
+    console.error(`Error creating PDF for ${file.name}:`, error);
+    throw error;
   }
 };
 
@@ -709,6 +770,10 @@ const mergePdfBuffers = async (pdfBuffers: ArrayBuffer[]): Promise<Blob> => {
   
   for (let i = 0; i < pdfBuffers.length; i++) {
     const buffer = pdfBuffers[i];
+    if (!buffer || buffer.byteLength === 0) {
+      console.warn(`Skipping empty PDF buffer at index ${i}`);
+      continue;
+    }
     try {
       const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
       const indices = pdfDoc.getPageIndices();
@@ -769,13 +834,41 @@ const createPdfFromImages = async (
     
     // Process images one at a time to minimize memory
     const totalImages = imageBuffers.length;
+    const embeddedImages = [];
     
     for (let i = 0; i < totalImages; i++) {
       try {
         const buffer = imageBuffers[i];
         
+        // CRITICAL FIX: Verify buffer is valid before embedding
+        if (!buffer || buffer.byteLength === 0) {
+          throw new Error(`Empty buffer for image ${i + 1}`);
+        }
+        
+        if (!await isValidJpeg(buffer)) {
+          throw new Error(`Invalid JPEG data for image ${i + 1}`);
+        }
+        
+        // Validate dimensions
+        const dimensions = await validateImageDimensions(buffer);
+        if (!dimensions || dimensions.width === 0 || dimensions.height === 0) {
+          throw new Error(`Invalid dimensions for image ${i + 1}`);
+        }
+        
         // Embed image - this creates a copy in the PDF
-        const image = await pdfDoc.embedJpg(buffer);
+        let image;
+        try {
+          image = await pdfDoc.embedJpg(buffer);
+        } catch (embedError) {
+          throw new Error(`Failed to embed image ${i + 1}: ${embedError instanceof Error ? embedError.message : 'Unknown error'}`);
+        }
+        
+        // CRITICAL FIX: Verify image was embedded successfully
+        if (!image || !image.width || !image.height) {
+          throw new Error(`Failed to get valid image for page ${i + 1}`);
+        }
+        
+        embeddedImages.push(image);
         
         // Add page
         const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
@@ -818,16 +911,14 @@ const createPdfFromImages = async (
         }
         
       } catch (error) {
-        console.error(`Failed to embed image ${i + 1}:`, error);
-        // Add blank page with error text
-        const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-        page.drawText(`Failed to load image ${i + 1}`, {
-          x: marginPt,
-          y: pageHeightPt / 2,
-          size: 20,
-          color: rgb(1, 0, 0),
-        });
+        // CRITICAL FIX: Stop conversion on error instead of creating blank pages
+        throw new Error(`Failed to process image ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
+    }
+    
+    // CRITICAL FIX: Verify we embedded at least one image
+    if (embeddedImages.length === 0) {
+      throw new Error("No images were successfully embedded");
     }
     
     // Save PDF
@@ -2219,7 +2310,7 @@ export default function JpgToPdf() {
     }
   };
 
-  // Helper to create a blank PDF page (for fallback)
+  // Helper to create a blank PDF page (for fallback - only used if all images fail)
   const createBlankPagePdf = async (
     paperSize: PaperSize,
     orientation: Orientation,
@@ -2248,7 +2339,7 @@ export default function JpgToPdf() {
     return new Uint8Array(pdfBytes).buffer;
   };
 
-  // ----- MAIN CONVERT FUNCTION (UNCHANGED) -----
+  // ----- MAIN CONVERT FUNCTION -----
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -2299,6 +2390,7 @@ export default function JpgToPdf() {
       if (isMobile) {
         // ========== MOBILE BACKUP PIPELINE ==========
         const tempPdfBuffers: ArrayBuffer[] = [];
+        const failedImages: string[] = [];
 
         for (let i = 0; i < filesToProcess.length; i++) {
           const fileWithPreview = filesToProcess[i];
@@ -2306,6 +2398,12 @@ export default function JpgToPdf() {
             const processingProgress = 5 + ((i + 1) / filesToProcess.length) * 70;
             setProgress(Math.floor(processingProgress));
             setCurrentProcessingImage(i + 1);
+
+            // Validate file before processing
+            if (!fileWithPreview.file || fileWithPreview.file.size === 0) {
+              failedImages.push(`${fileWithPreview.file.name} (empty file)`);
+              continue;
+            }
 
             // Create a single‑page PDF for this image
             const pdfBuffer = await processSingleImageToPdf(
@@ -2325,15 +2423,16 @@ export default function JpgToPdf() {
               await new Promise(resolve => setTimeout(resolve, 20));
             }
           } catch (error) {
-            console.error(`Failed to process image ${i + 1} for PDF:`, error);
-            // Create a blank page PDF as fallback
-            try {
-              const blankPdf = await createBlankPagePdf(paperSize, orientation, marginPoints);
-              tempPdfBuffers.push(blankPdf);
-            } catch (blankErr) {
-              console.warn(`Skipping page ${i + 1} due to error`);
-            }
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`❌ Failed to process image ${i + 1}: ${fileWithPreview.file.name}`, error);
+            failedImages.push(`${fileWithPreview.file.name} (${errorMsg})`);
           }
+        }
+
+        // CRITICAL FIX: If any images failed, stop and show error
+        if (failedImages.length > 0) {
+          const errorMessage = `The following images could not be processed:\n${failedImages.join('\n')}\n\nPlease check these files and try again.`;
+          throw new Error(errorMessage);
         }
 
         if (tempPdfBuffers.length === 0) {
@@ -2349,6 +2448,7 @@ export default function JpgToPdf() {
         // ========== DESKTOP PIPELINE ==========
         const imageBuffers: ArrayBuffer[] = [];
         const totalImages = filesToProcess.length;
+        const failedImages: string[] = [];
         
         // Calculate total original size for comparison
         let totalOriginalSize = 0;
@@ -2361,6 +2461,12 @@ export default function JpgToPdf() {
             const processingProgress = 5 + ((i + 1) / totalImages) * 45;
             setProgress(Math.floor(processingProgress));
             setCurrentProcessingImage(i + 1);
+
+            // Validate file before processing
+            if (!fileWithPreview.file || fileWithPreview.file.size === 0) {
+              failedImages.push(`${fileWithPreview.file.name} (empty file)`);
+              continue;
+            }
 
             const buffer = await processImageForPdf(
               fileWithPreview.file,
@@ -2377,8 +2483,16 @@ export default function JpgToPdf() {
               await new Promise(resolve => setTimeout(resolve, 10));
             }
           } catch (error) {
-            console.error(`Failed to process image ${i + 1}:`, error);
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`❌ Failed to process image ${i + 1}: ${fileWithPreview.file.name}`, error);
+            failedImages.push(`${fileWithPreview.file.name} (${errorMsg})`);
           }
+        }
+
+        // CRITICAL FIX: If any images failed, stop and show error
+        if (failedImages.length > 0) {
+          const errorMessage = `The following images could not be processed:\n${failedImages.join('\n')}\n\nPlease check these files and try again.`;
+          throw new Error(errorMessage);
         }
 
         if (imageBuffers.length === 0) {
