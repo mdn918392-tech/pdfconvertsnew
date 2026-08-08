@@ -38,9 +38,8 @@ import {
   Expand,
   Replace,
   Info,
-  SortAsc,
-  SortDesc,
   Trash2,
+  Grip,
 } from "lucide-react";
 
 // Dynamically import heavy components only for desktop
@@ -1140,8 +1139,6 @@ const ReplaceImageModal = ({
   imageName: string;
   isMobile: boolean;
 }) => {
-  if (isMobile) return null;
-
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1160,6 +1157,8 @@ const ReplaceImageModal = ({
       onReplace(file);
     }
   };
+
+  if (isMobile) return null;
 
   return (
     <motion.div
@@ -1251,135 +1250,7 @@ const ReplaceImageModal = ({
   );
 };
 
-// Mobile Toast Component
-const Toast = ({ message, onClose }: { message: string; onClose: () => void }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 dark:bg-gray-800 text-white px-6 py-3 rounded-xl shadow-lg"
-    >
-      <span className="text-sm font-medium">{message}</span>
-    </motion.div>
-  );
-};
-
-// Mobile Image Item Component with REAL Drag & Drop
-const MobileImageItem = ({
-  file,
-  index,
-  totalFiles,
-  onRemove,
-  onPreview,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  isDragging,
-  showPageNumber,
-  isPdfGenerated,
-}: {
-  file: FileWithPreview;
-  index: number;
-  totalFiles: number;
-  onRemove: (id: string) => void;
-  onPreview: (file: FileWithPreview) => void;
-  onDragStart: (e: React.DragEvent, index: number) => void;
-  onDragOver: (e: React.DragEvent, index: number) => void;
-  onDrop: (e: React.DragEvent, fromIndex: number, toIndex: number) => void;
-  isDragging: boolean;
-  showPageNumber: boolean;
-  isPdfGenerated: boolean;
-}) => {
-  const imageUrl = file.previewUrl;
-
-  return (
-    <div
-      draggable={false}
-      className={`relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 ${
-        isDragging ? "opacity-50 scale-95" : ""
-      } ${isPdfGenerated ? "opacity-60 pointer-events-none" : ""}`}
-      onDragOver={(e) => onDragOver(e, index)}
-      onDrop={(e) => onDrop(e, index, index)}
-    >
-      <div className="flex items-center gap-3">
-        {/* Drag Handle - Only this triggers reordering */}
-        {!isPdfGenerated && (
-          <div
-            className="flex-shrink-0 touch-none"
-            draggable={true}
-            onDragStart={(e) => {
-              e.dataTransfer.effectAllowed = "move";
-              e.dataTransfer.setData("text/plain", index.toString());
-              onDragStart(e, index);
-            }}
-            onDragEnd={() => {}}
-          >
-            <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-grab active:cursor-grabbing touch-manipulation">
-              <GripVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            </div>
-          </div>
-        )}
-
-        {/* Thumbnail */}
-        <div 
-          className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer"
-          onClick={() => onPreview(file)}
-        >
-          {imageUrl && !file.previewError ? (
-            <img
-              src={imageUrl}
-              alt={file.file.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              draggable={false}
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ImageIcon className="w-6 h-6 text-gray-400" />
-            </div>
-          )}
-        </div>
-
-        {/* File Info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-            {file.file.name}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {(file.file.size / 1024 / 1024).toFixed(2)} MB
-          </p>
-          {showPageNumber && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-              Page {index + 1} of {totalFiles}
-            </p>
-          )}
-        </div>
-
-        {/* Remove Button - Direct and visible */}
-        {!isPdfGenerated && (
-          <button
-            onClick={() => onRemove(file.id)}
-            className="flex-shrink-0 p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-            aria-label="Remove image"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Mobile Simple UI - Improved Version with REAL Drag & Drop
+// Mobile Simple UI - IMPROVED VERSION
 const MobileSimpleUI = ({
   files,
   onFilesUpdate,
@@ -1392,20 +1263,10 @@ const MobileSimpleUI = ({
   onDownload,
   onClear,
   autoCompressionActive,
-  paperSize,
-  onPaperSizeChange,
-  marginSize,
-  onMarginChange,
-  compressionQuality,
-  onCompressionQualityChange,
-  customQualityValue,
-  onCustomQualityChange,
-  reverseOrder,
-  onReverseOrderToggle,
-  onSortAsc,
-  onSortDesc,
-  isPdfGenerated,
-  onConvertAgain,
+  onRemoveFile,
+  onReorderFiles,
+  sortOrder,
+  onSortChange,
 }: {
   files: FileWithPreview[];
   onFilesUpdate: (files: File[]) => void;
@@ -1418,110 +1279,57 @@ const MobileSimpleUI = ({
   onDownload: () => void;
   onClear: () => void;
   autoCompressionActive: boolean;
-  paperSize: PaperSize;
-  onPaperSizeChange: (size: PaperSize) => void;
-  marginSize: MarginSize;
-  onMarginChange: (margin: MarginSize) => void;
-  compressionQuality: CompressionQuality;
-  onCompressionQualityChange: (quality: CompressionQuality) => void;
-  customQualityValue: number;
-  onCustomQualityChange: (value: number) => void;
-  reverseOrder: boolean;
-  onReverseOrderToggle: () => void;
-  onSortAsc: () => void;
-  onSortDesc: () => void;
-  isPdfGenerated: boolean;
-  onConvertAgain: () => void;
+  onRemoveFile: (id: string) => void;
+  onReorderFiles: (fromIndex: number, toIndex: number) => void;
+  sortOrder: "none" | "asc" | "desc";
+  onSortChange: (order: "none" | "asc" | "desc") => void;
 }) => {
-  const [showSettings, setShowSettings] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [expandedImage, setExpandedImage] = useState<FileWithPreview | null>(null);
-  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  const isPdfGenerated = pdfBlob !== null;
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // Handle drag start for mobile
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    setDragIndex(index);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", index.toString());
-  };
-
-  // Handle drag over for mobile
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (dragIndex !== null && dragIndex !== index) {
-      setDropTargetIndex(index);
+  // Handle drag start
+  const handleDragStart = (e: React.TouchEvent | React.MouseEvent, index: number) => {
+    if (isPdfGenerated) return;
+    setDraggedIndex(index);
+    const touch = (e as React.TouchEvent).touches?.[0];
+    if (touch) {
+      // Store touch data
+      (e.currentTarget as HTMLElement).dataset.draggedIndex = String(index);
     }
   };
 
-  // Handle drop for mobile
-  const handleDrop = (e: React.DragEvent, fromIndex: number, toIndex: number) => {
+  // Handle drag over
+  const handleDragOver = (e: React.DragEvent | React.TouchEvent, index: number) => {
     e.preventDefault();
-    if (dragIndex === null || dragIndex === toIndex) {
-      setDragIndex(null);
-      setDropTargetIndex(null);
-      return;
-    }
-
-    const newFiles = [...files];
-    const [draggedItem] = newFiles.splice(dragIndex, 1);
-    newFiles.splice(toIndex, 0, draggedItem);
+    if (draggedIndex === null || isPdfGenerated) return;
     
-    // Update the actual files array
-    onFilesUpdate(newFiles.map(f => f.file));
-    setDragIndex(null);
-    setDropTargetIndex(null);
-  };
-
-  // Handle drag leave
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDropTargetIndex(null);
-  };
-
-  // Handle remove file - immediate, no confirmation
-  const handleRemoveFile = (id: string) => {
-    const updatedFiles = files.filter(f => f.id !== id);
-    onFilesUpdate(updatedFiles.map(f => f.file));
-  };
-
-  // Handle preview
-  const handlePreview = (file: FileWithPreview) => {
-    setExpandedImage(file);
-  };
-
-  // Handle sort
-  const handleSort = (direction: 'asc' | 'desc') => {
-    if (direction === 'asc') {
-      onSortAsc();
-      setToastMessage('Sorted A → Z');
-    } else {
-      onSortDesc();
-      setToastMessage('Sorted Z → A');
+    if (draggedIndex !== index) {
+      onReorderFiles(draggedIndex, index);
+      setDraggedIndex(index);
     }
-    setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const isPdfReady = pdfBlob !== null;
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
 
   return (
-    <div className="space-y-4 pb-20">
-      {/* Upload Section */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-        <div className="text-center mb-4">
-          <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl mb-3">
-            <ImageIcon className="w-6 h-6 text-white" />
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
+        <div className="text-center mb-6">
+          <div className="inline-flex p-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl mb-4">
+            <ImageIcon className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             JPG to PDF
           </h2>
-          <p className="text-xs text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Convert images to PDF on mobile
           </p>
         </div>
 
-        {!isPdfGenerated ? (
+        {!isPdfGenerated && (
           <FileUploader
             accept="image/jpeg,image/jpg,image/png,image/webp"
             multiple={true}
@@ -1529,18 +1337,12 @@ const MobileSimpleUI = ({
             maxSize={10}
             maxFiles={MAX_FILES_MOBILE}
           />
-        ) : (
-          <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              PDF already generated. Click "New" to start over.
-            </p>
-          </div>
         )}
 
-        <div className="mt-3 text-xs text-center text-gray-500 dark:text-gray-400">
-          <p>Max {MAX_FILES_MOBILE} images • 10MB per file</p>
-          {autoCompressionActive && (
-            <p className="mt-1 text-amber-600 dark:text-amber-400 font-medium flex items-center justify-center gap-1">
+        <div className="mt-4 text-xs text-center text-gray-500 dark:text-gray-400">
+          <p>Max {MAX_FILES_MOBILE} images • {MAX_SIZE_MOBILE/(1024*1024)}MB per file</p>
+          {autoCompressionActive && !isPdfGenerated && (
+            <p className="mt-2 text-amber-600 dark:text-amber-400 font-medium flex items-center justify-center gap-1">
               <Zap className="w-3 h-3" />
               Auto-compression active for files &gt;10MB
             </p>
@@ -1548,199 +1350,162 @@ const MobileSimpleUI = ({
         </div>
       </div>
 
-      {/* Image List */}
-      {files.length > 0 && (
-        <>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-blue-500" />
-                <span className="font-medium text-gray-900 dark:text-white text-sm">
-                  {files.length} Image{files.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              {!isPdfGenerated && (
-                <div className="flex items-center gap-2">
-                  {/* Sort Buttons */}
-                  <button
-                    onClick={() => handleSort('asc')}
-                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                    aria-label="Sort A to Z"
-                  >
-                    <SortAsc className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleSort('desc')}
-                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                    aria-label="Sort Z to A"
-                  >
-                    <SortDesc className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={onClear}
-                    className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 px-2 py-1"
-                  >
-                    Clear All
-                  </button>
-                </div>
-              )}
+      {files.length > 0 && !isPdfGenerated && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-blue-500" />
+              <span className="font-medium text-gray-900 dark:text-white">
+                {files.length} Image{files.length !== 1 ? 's' : ''}
+              </span>
             </div>
-
-            <div className="space-y-2">
-              {files.map((file, index) => {
-                const isDropTarget = dropTargetIndex === index && dragIndex !== index;
-                return (
-                  <div key={file.id}>
-                    {isDropTarget && dragIndex !== null && dragIndex < index && (
-                      <div className="h-1 bg-blue-500 rounded-full my-1 animate-pulse" />
-                    )}
-                    <MobileImageItem
-                      file={file}
-                      index={index}
-                      totalFiles={files.length}
-                      onRemove={handleRemoveFile}
-                      onPreview={handlePreview}
-                      onDragStart={handleDragStart}
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
-                      isDragging={dragIndex === index}
-                      showPageNumber={true}
-                      isPdfGenerated={isPdfGenerated}
-                    />
-                    {isDropTarget && dragIndex !== null && dragIndex > index && (
-                      <div className="h-1 bg-blue-500 rounded-full my-1 animate-pulse" />
-                    )}
-                  </div>
-                );
-              })}
+            <div className="flex items-center gap-2">
+              {/* Sort buttons */}
+              <button
+                onClick={() => onSortChange(sortOrder === "asc" ? "desc" : "asc")}
+                className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg flex items-center gap-1"
+              >
+                <ArrowUpDown className="w-4 h-4" />
+                {sortOrder === "asc" ? "A→Z" : sortOrder === "desc" ? "Z→A" : "Sort"}
+              </button>
+              <button
+                onClick={onClear}
+                className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 px-3 py-1.5 bg-red-50 dark:bg-red-950/30 rounded-lg"
+              >
+                Clear All
+              </button>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Settings Section - Hidden when PDF is generated */}
-          {!isPdfGenerated && (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="w-full flex items-center justify-between py-2"
+      {/* Image Thumbnails with Drag & Drop */}
+      {files.length > 0 && !isPdfGenerated && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
+          <div className="space-y-3">
+            {files.map((file, index) => (
+              <div
+                key={file.id}
+                draggable={!isPdfGenerated}
+                onDragStart={(e) => {
+                  if (isPdfGenerated) return;
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", String(index));
+                  handleDragStart(e, index);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (isPdfGenerated) return;
+                  handleDragOver(e, index);
+                }}
+                onDragEnd={handleDragEnd}
+                onTouchStart={(e) => handleDragStart(e, index)}
+                onTouchMove={(e) => {
+                  if (draggedIndex === null || isPdfGenerated) return;
+                  const touch = e.touches[0];
+                  const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                  const item = element?.closest('[data-index]');
+                  if (item) {
+                    const targetIndex = parseInt(item.getAttribute('data-index') || '0');
+                    if (targetIndex !== draggedIndex) {
+                      onReorderFiles(draggedIndex, targetIndex);
+                      setDraggedIndex(targetIndex);
+                    }
+                  }
+                }}
+                onTouchEnd={handleDragEnd}
+                data-index={index}
+                className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+                  draggedIndex === index
+                    ? "bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-400 dark:border-blue-600"
+                    : "bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                }`}
               >
-                <span className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  PDF Settings
-                </span>
-                <span className="text-gray-500">{showSettings ? '▲' : '▼'}</span>
-              </button>
-
-              {showSettings && (
-                <div className="mt-4 space-y-4">
-                  {/* Paper Size */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Paper Size
-                    </label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {(['A4', 'Letter', 'Legal', 'A3'] as PaperSize[]).map((size) => (
-                        <button
-                          key={size}
-                          onClick={() => onPaperSizeChange(size)}
-                          className={`px-2 py-2 rounded-lg border transition-all text-sm ${
-                            paperSize === size
-                              ? "bg-blue-500 text-white border-blue-500"
-                              : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                          }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Orientation */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Orientation
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => onOrientationChange("Portrait")}
-                        className={`flex items-center justify-center gap-2 p-2 rounded-lg border transition-all ${
-                          orientation === "Portrait"
-                            ? "bg-blue-500 text-white border-blue-500"
-                            : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                        }`}
-                      >
-                        <div className="w-3 h-4 border-2 border-current rounded" />
-                        <span className="text-sm">Portrait</span>
-                      </button>
-                      <button
-                        onClick={() => onOrientationChange("Landscape")}
-                        className={`flex items-center justify-center gap-2 p-2 rounded-lg border transition-all ${
-                          orientation === "Landscape"
-                            ? "bg-blue-500 text-white border-blue-500"
-                            : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                        }`}
-                      >
-                        <div className="w-4 h-3 border-2 border-current rounded" />
-                        <span className="text-sm">Landscape</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Margin */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Margin
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['no-margin', 'small', 'big'] as MarginSize[]).map((margin) => (
-                        <button
-                          key={margin}
-                          onClick={() => onMarginChange(margin)}
-                          className={`px-2 py-2 rounded-lg border transition-all text-sm ${
-                            marginSize === margin
-                              ? margin === 'no-margin'
-                                ? "bg-gray-500 text-white border-gray-500"
-                                : margin === 'small'
-                                ? "bg-blue-500 text-white border-blue-500"
-                                : "bg-purple-500 text-white border-purple-500"
-                              : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                          }`}
-                        >
-                          {margin === 'no-margin' ? 'None' : margin === 'small' ? 'Small' : 'Big'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Reverse Order */}
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <ArrowUpDown className="w-4 h-4" />
-                        Reverse Order
-                      </label>
-                      <button
-                        onClick={onReverseOrderToggle}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          reverseOrder ? "bg-purple-600" : "bg-gray-300 dark:bg-gray-700"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            reverseOrder ? "translate-x-6" : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {reverseOrder ? "Last image first" : "First image first"}
-                    </p>
-                  </div>
+                {/* Drag Handle */}
+                <div className="flex-shrink-0 text-gray-400">
+                  <Grip className="w-5 h-5" />
                 </div>
-              )}
-            </div>
-          )}
 
-          {/* Action Buttons */}
+                {/* Thumbnail */}
+                <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
+                  {file.previewUrl && !file.previewError ? (
+                    <img
+                      src={file.previewUrl}
+                      alt={file.file.name}
+                      className="w-full h-full object-cover"
+                      style={{
+                        transform: `rotate(${file.rotation}deg)`,
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <ImageIcon className="w-5 h-5 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+
+                {/* File Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {file.file.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {(file.file.size / 1024 / 1024).toFixed(2)} MB • {index + 1}
+                  </p>
+                </div>
+
+                {/* Remove Button */}
+                <button
+                  onClick={() => onRemoveFile(file.id)}
+                  className="flex-shrink-0 p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                  aria-label={`Remove ${file.file.name}`}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+            Drag the ☰ handle to reorder images
+          </p>
+        </div>
+      )}
+
+      {files.length > 0 && !isPdfGenerated && (
+        <>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Page Orientation
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => onOrientationChange("Portrait")}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                  orientation === "Portrait"
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                }`}
+              >
+                <div className="w-4 h-5 border-2 border-current rounded" />
+                <span className="font-medium">Portrait</span>
+              </button>
+              <button
+                onClick={() => onOrientationChange("Landscape")}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                  orientation === "Landscape"
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                }`}
+              >
+                <div className="w-5 h-4 border-2 border-current rounded" />
+                <span className="font-medium">Landscape</span>
+              </button>
+            </div>
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+              Page size: A4 (210 × 297 mm)
+            </p>
+          </div>
+
           {converting ? (
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
               <ProgressBar progress={progress} label="Creating PDF..." />
@@ -1754,25 +1519,6 @@ const MobileSimpleUI = ({
                 </p>
               )}
             </div>
-          ) : pdfBlob ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
-              <div className="text-center mb-4">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                  PDF Ready! 🎉
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages
-                </p>
-              </div>
-              <button
-                onClick={onDownload}
-                className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-              >
-                <Download className="w-5 h-5" />
-                Download PDF
-              </button>
-            </div>
           ) : (
             <button
               onClick={onConvert}
@@ -1784,49 +1530,38 @@ const MobileSimpleUI = ({
         </>
       )}
 
-      {/* Expanded Image Preview Modal */}
-      <AnimatePresence>
-        {expandedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setExpandedImage(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-full max-h-full"
-              onClick={(e) => e.stopPropagation()}
+      {/* PDF Ready State */}
+      {pdfBlob && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
+          <div className="text-center mb-4">
+            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+              PDF Ready! 🎉
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={onClear}
+              className="py-3 px-4 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              <img
-                src={expandedImage.previewUrl}
-                alt={expandedImage.file.name}
-                className="max-w-full max-h-[80vh] object-contain rounded-lg"
-                draggable={false}
-              />
-              <button
-                className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
-                onClick={() => setExpandedImage(null)}
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-lg text-sm">
-                {expandedImage.file.name}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {toastMessage && (
-          <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
-        )}
-      </AnimatePresence>
+              New
+            </button>
+            <button
+              onClick={onDownload}
+              className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:from-green-600 hover:to-emerald-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Download PDF
+            </button>
+          </div>
+          <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+            Click "New" to start a new conversion
+          </p>
+        </div>
+      )}
     </div>
   );
 };
@@ -1869,7 +1604,7 @@ export default function JpgToPdf() {
   const [autoCompressionActive, setAutoCompressionActive] = useState(false);
   const [currentProcessingImage, setCurrentProcessingImage] = useState(0);
   const [totalProcessingImages, setTotalProcessingImages] = useState(0);
-  const [isPdfGenerated, setIsPdfGenerated] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"none" | "asc" | "desc">("none");
 
   // Limits
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1909,7 +1644,6 @@ export default function JpgToPdf() {
       calculateStateHash() !== originalStateHash
     ) {
       setShowChangesWarning(true);
-      setIsPdfGenerated(false);
     }
   }, [
     files,
@@ -1963,100 +1697,15 @@ export default function JpgToPdf() {
     };
   }, [files, rotatedUrls]);
 
-  // Drag and Drop Handlers (Desktop)
-  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", index.toString());
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent, fromIndex: number, toIndex: number) => {
-      e.preventDefault();
-      if (draggedIndex === null || isMobile) return;
-
-      const newFiles = [...files];
-      const [draggedItem] = newFiles.splice(draggedIndex, 1);
-      newFiles.splice(toIndex, 0, draggedItem);
-
-      setFiles(newFiles);
-      setDraggedIndex(null);
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-      setIsPdfGenerated(false);
-    },
-    [files, draggedIndex, isMobile]
-  );
-
-  // Move up (Desktop)
-  const handleMoveUp = useCallback(
-    (index: number) => {
-      if (index <= 0 || isMobile) return;
-
-      const newFiles = [...files];
-      [newFiles[index], newFiles[index - 1]] = [
-        newFiles[index - 1],
-        newFiles[index],
-      ];
-      setFiles(newFiles);
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-      setIsPdfGenerated(false);
-    },
-    [files, isMobile]
-  );
-
-  // Move down (Desktop)
-  const handleMoveDown = useCallback(
-    (index: number) => {
-      if (index >= files.length - 1 || isMobile) return;
-
-      const newFiles = [...files];
-      [newFiles[index], newFiles[index + 1]] = [
-        newFiles[index + 1],
-        newFiles[index],
-      ];
-      setFiles(newFiles);
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-      setIsPdfGenerated(false);
-    },
-    [files, isMobile]
-  );
-
   // Handle margin change
   const handleMarginChange = (margin: MarginSize) => {
-    if (isMobile) {
-      setMarginSize(margin);
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-      setIsPdfGenerated(false);
-      return;
-    }
+    if (isMobile) return;
     setMarginSize(margin);
     setPdfBlob(null);
     setOriginalStateHash("");
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfGenerated(false);
   };
 
   // Handle quality change
@@ -2068,7 +1717,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfGenerated(false);
   };
 
   // Handle custom quality change
@@ -2080,29 +1728,17 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfGenerated(false);
   };
 
   // Handle paper size change
   const handlePaperSizeChange = (size: PaperSize) => {
-    if (isMobile) {
-      // Mobile paper size change - invalidate PDF
-      setPaperSize(size);
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-      setIsPdfGenerated(false);
-      return;
-    }
+    if (isMobile) return;
     setPaperSize(size);
     setPdfBlob(null);
     setOriginalStateHash("");
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfGenerated(false);
   };
 
   // Handle orientation change
@@ -2125,61 +1761,36 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfGenerated(false);
     
     console.log(`✅ Orientation changed to ${orient} - PDF invalidated`);
   };
 
   // Toggle reverse order
   const toggleReverseOrder = () => {
+    if (isMobile) return;
     setReverseOrder(!reverseOrder);
     setPdfBlob(null);
     setOriginalStateHash("");
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfGenerated(false);
   };
-
-  // Sort functions for mobile
-  const handleSortAsc = useCallback(() => {
-    const sortedFiles = [...files].sort((a, b) => 
-      a.file.name.localeCompare(b.file.name)
-    );
-    setFiles(sortedFiles);
-    setPdfBlob(null);
-    setOriginalStateHash("");
-    setShowChangesWarning(false);
-    setProcessingError(null);
-    setProgress(0);
-    setIsPdfGenerated(false);
-  }, [files]);
-
-  const handleSortDesc = useCallback(() => {
-    const sortedFiles = [...files].sort((a, b) => 
-      b.file.name.localeCompare(a.file.name)
-    );
-    setFiles(sortedFiles);
-    setPdfBlob(null);
-    setOriginalStateHash("");
-    setShowChangesWarning(false);
-    setProcessingError(null);
-    setProgress(0);
-    setIsPdfGenerated(false);
-  }, [files]);
 
   // Remove file
   const handleRemoveFile = useCallback(
-    (fileToRemove: FileWithPreview) => {
-      setFiles((prev) => prev.filter((f) => f.id !== fileToRemove.id));
+    (id: string) => {
+      const fileToRemove = files.find((f) => f.id === id);
+      if (!fileToRemove) return;
+      
+      setFiles((prev) => prev.filter((f) => f.id !== id));
       if (fileToRemove.previewUrl) URL.revokeObjectURL(fileToRemove.previewUrl);
-      if (rotatedUrls[fileToRemove.id]) {
-        if (rotatedUrls[fileToRemove.id].startsWith("blob:")) {
-          URL.revokeObjectURL(rotatedUrls[fileToRemove.id]);
+      if (rotatedUrls[id]) {
+        if (rotatedUrls[id].startsWith("blob:")) {
+          URL.revokeObjectURL(rotatedUrls[id]);
         }
         setRotatedUrls((prev) => {
           const newUrls = { ...prev };
-          delete newUrls[fileToRemove.id];
+          delete newUrls[id];
           return newUrls;
         });
       }
@@ -2188,18 +1799,76 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
-      setIsPdfGenerated(false);
     },
-    [rotatedUrls]
+    [files, rotatedUrls]
   );
 
-  // Handle Replace Image (Desktop only)
+  // Handle reorder files (mobile)
+  const handleReorderFiles = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      if (isMobile && pdfBlob) return;
+      
+      const newFiles = [...files];
+      const [movedItem] = newFiles.splice(fromIndex, 1);
+      newFiles.splice(toIndex, 0, movedItem);
+      
+      setFiles(newFiles);
+      setPdfBlob(null);
+      setOriginalStateHash("");
+      setShowChangesWarning(false);
+      setProcessingError(null);
+      setProgress(0);
+    },
+    [files, isMobile, pdfBlob]
+  );
+
+  // Handle sort change (mobile)
+  const handleSortChange = useCallback(
+    (order: "none" | "asc" | "desc") => {
+      if (isMobile && pdfBlob) return;
+      
+      if (order === "none" || sortOrder === order) {
+        setSortOrder(order === "none" ? "asc" : order === "asc" ? "desc" : "none");
+        // If sorting is turned off, restore original order
+        if (order === "none") {
+          setFiles((prev) => [...prev].sort((a, b) => (a.originalOrder || 0) - (b.originalOrder || 0)));
+          return;
+        }
+      }
+      
+      const newOrder = sortOrder === "asc" ? "desc" : "asc";
+      setSortOrder(newOrder);
+      
+      const sortedFiles = [...files].sort((a, b) => {
+        const nameA = a.file.name.toLowerCase();
+        const nameB = b.file.name.toLowerCase();
+        if (newOrder === "asc") {
+          return nameA.localeCompare(nameB);
+        } else {
+          return nameB.localeCompare(nameA);
+        }
+      });
+      
+      setFiles(sortedFiles);
+      setPdfBlob(null);
+      setOriginalStateHash("");
+      setShowChangesWarning(false);
+      setProcessingError(null);
+      setProgress(0);
+    },
+    [files, isMobile, pdfBlob, sortOrder]
+  );
+
+  // Handle Replace Image
   const handleReplaceImage = useCallback(
     async (id: string, newFile: File) => {
-      if (isMobile) return;
-      
       const fileIndex = files.findIndex((f) => f.id === id);
       if (fileIndex === -1) return;
+
+      if (isMobile && newFile.size > MAX_SIZE_MOBILE) {
+        alert(`File size exceeds ${MAX_SIZE_MOBILE / (1024 * 1024)}MB limit.`);
+        return;
+      }
 
       const newFileWithPreview: FileWithPreview = {
         file: newFile,
@@ -2236,22 +1905,152 @@ export default function JpgToPdf() {
       setProgress(0);
       setReplacingImageId(null);
       setShowReplaceOptions(null);
-      setIsPdfGenerated(false);
     },
     [files, rotatedUrls, isMobile]
+  );
+
+  // Drag and Drop Handlers (Desktop)
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index.toString());
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, fromIndex: number, toIndex: number) => {
+      e.preventDefault();
+      if (draggedIndex === null || isMobile) return;
+
+      const newFiles = [...files];
+      const [draggedItem] = newFiles.splice(draggedIndex, 1);
+      newFiles.splice(toIndex, 0, draggedItem);
+
+      setFiles(newFiles);
+      setDraggedIndex(null);
+      setPdfBlob(null);
+      setOriginalStateHash("");
+      setShowChangesWarning(false);
+      setProcessingError(null);
+      setProgress(0);
+    },
+    [files, draggedIndex, isMobile]
+  );
+
+  // Move up (Desktop)
+  const handleMoveUp = useCallback(
+    (index: number) => {
+      if (index <= 0 || isMobile) return;
+
+      const newFiles = [...files];
+      [newFiles[index], newFiles[index - 1]] = [
+        newFiles[index - 1],
+        newFiles[index],
+      ];
+      setFiles(newFiles);
+      setPdfBlob(null);
+      setOriginalStateHash("");
+      setShowChangesWarning(false);
+      setProcessingError(null);
+      setProgress(0);
+    },
+    [files, isMobile]
+  );
+
+  // Move down (Desktop)
+  const handleMoveDown = useCallback(
+    (index: number) => {
+      if (index >= files.length - 1 || isMobile) return;
+
+      const newFiles = [...files];
+      [newFiles[index], newFiles[index + 1]] = [
+        newFiles[index + 1],
+        newFiles[index],
+      ];
+      setFiles(newFiles);
+      setPdfBlob(null);
+      setOriginalStateHash("");
+      setShowChangesWarning(false);
+      setProcessingError(null);
+      setProgress(0);
+    },
+    [files, isMobile]
+  );
+
+  // Handle rotate file
+  const handleRotateFile = useCallback(
+    async (id: string, degrees: number) => {
+      const file = files.find((f) => f.id === id);
+      if (!file || !file.previewUrl) return;
+
+      const newRotation = (file.rotation + degrees) % 360;
+
+      setFiles((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, rotation: newRotation } : f))
+      );
+
+      if (rotatedUrls[id]) {
+        if (rotatedUrls[id].startsWith("blob:")) {
+          URL.revokeObjectURL(rotatedUrls[id]);
+        }
+        setRotatedUrls((prev) => {
+          const newUrls = { ...prev };
+          delete newUrls[id];
+          return newUrls;
+        });
+      } 
+
+      setPdfBlob(null);
+      setOriginalStateHash("");
+      setShowChangesWarning(false);
+      setProcessingError(null);
+      setProgress(0);
+
+      if (expandedImage?.id === id) {
+        setExpandedImage((prev) =>
+          prev ? { ...prev, rotation: newRotation } : null
+        );
+      }
+    },
+    [files, rotatedUrls, expandedImage]
+  );
+
+  // Rotate all (Desktop)
+  const handleRotateAll = useCallback(
+    (degrees: number) => {
+      if (isMobile) return;
+      
+      setFiles((prev) =>
+        prev.map((file) => ({
+          ...file,
+          rotation: (file.rotation + degrees) % 360,
+        }))
+      );
+
+      setPdfBlob(null);
+      setOriginalStateHash("");
+      setShowChangesWarning(false);
+      setProcessingError(null);
+      setProgress(0);
+
+      Object.values(rotatedUrls).forEach((url) => {
+        if (url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
+      });
+      setRotatedUrls({});
+    },
+    [rotatedUrls, isMobile]
   );
 
   // Handle files update
   const handleFilesUpdate = useCallback(
     async (newFiles: File[]) => {
       if (newFiles.length === 0) return;
-
-      // If PDF is generated, clear it when adding new files
-      if (isPdfGenerated) {
-        setPdfBlob(null);
-        setOriginalStateHash("");
-        setIsPdfGenerated(false);
-      }
 
       setCompressing(true);
       setProcessingError(null);
@@ -2301,6 +2100,7 @@ export default function JpgToPdf() {
         setShowChangesWarning(false);
         setProcessingError(null);
         setProgress(0);
+        setSortOrder("none");
       } catch (error) {
         console.error("File processing error:", error);
         setProcessingError("Error processing files. Please try again.");
@@ -2308,7 +2108,7 @@ export default function JpgToPdf() {
         setCompressing(false);
       }
     },
-    [files, isMobile, isPdfGenerated]
+    [files, isMobile]
   );
 
   // Handle expand image
@@ -2448,7 +2248,7 @@ export default function JpgToPdf() {
     return new Uint8Array(pdfBytes).buffer;
   };
 
-  // ----- MAIN CONVERT FUNCTION -----
+  // ----- MAIN CONVERT FUNCTION (UNCHANGED) -----
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -2630,7 +2430,6 @@ export default function JpgToPdf() {
         setConverting(false);
         setSizeLimitExceeded(false);
         setShowCompressionInfo(false);
-        setIsPdfGenerated(true);
       }, 300);
 
     } catch (err) {
@@ -2650,7 +2449,6 @@ export default function JpgToPdf() {
       setShowCompressionInfo(false);
       setPdfBlob(null);
       setOriginalStateHash("");
-      setIsPdfGenerated(false);
     }
   };
 
@@ -2712,19 +2510,11 @@ export default function JpgToPdf() {
     setAutoCompressionActive(false);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(0);
-    setIsPdfGenerated(false);
+    setSortOrder("none");
   };
 
-  // Handle convert again
-  const handleConvertAgain = () => {
-    if (showChangesWarning && pdfBlob) {
-      handleConvert();
-    }
-  };
-
-  // Handle rotate in fullscreen (desktop only)
+  // Handle rotate in fullscreen
   const handleRotateInFullScreen = (degrees: number) => {
-    if (isMobile) return;
     if (!expandedImage) return;
 
     const newRotation = (expandedImage.rotation + degrees) % 360;
@@ -2754,77 +2544,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfGenerated(false);
   };
-
-  // Handle rotate file (desktop only)
-  const handleRotateFile = useCallback(
-    async (id: string, degrees: number) => {
-      if (isMobile) return;
-      const file = files.find((f) => f.id === id);
-      if (!file || !file.previewUrl) return;
-
-      const newRotation = (file.rotation + degrees) % 360;
-
-      setFiles((prev) =>
-        prev.map((f) => (f.id === id ? { ...f, rotation: newRotation } : f))
-      );
-
-      if (rotatedUrls[id]) {
-        if (rotatedUrls[id].startsWith("blob:")) {
-          URL.revokeObjectURL(rotatedUrls[id]);
-        }
-        setRotatedUrls((prev) => {
-          const newUrls = { ...prev };
-          delete newUrls[id];
-          return newUrls;
-        });
-      } 
-
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-      setIsPdfGenerated(false);
-
-      if (expandedImage?.id === id) {
-        setExpandedImage((prev) =>
-          prev ? { ...prev, rotation: newRotation } : null
-        );
-      }
-    },
-    [files, rotatedUrls, expandedImage, isMobile]
-  );
-
-  // Rotate all (desktop only)
-  const handleRotateAll = useCallback(
-    (degrees: number) => {
-      if (isMobile) return;
-      
-      setFiles((prev) =>
-        prev.map((file) => ({
-          ...file,
-          rotation: (file.rotation + degrees) % 360,
-        }))
-      );
-
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-      setIsPdfGenerated(false);
-
-      Object.values(rotatedUrls).forEach((url) => {
-        if (url.startsWith("blob:")) {
-          URL.revokeObjectURL(url);
-        }
-      });
-      setRotatedUrls({});
-    },
-    [rotatedUrls, isMobile]
-  );
 
   const displayFiles = !isMobile && reverseOrder ? [...files].reverse() : files;
   const getPageNumber = (displayIndex: number) => {
@@ -2846,7 +2566,7 @@ export default function JpgToPdf() {
       <ArticleSchema />
 
       <AnimatePresence>
-        {replacingImageId && !isMobile && (
+        {replacingImageId && (
           <ReplaceImageModal
             imageName={
               files.find((f) => f.id === replacingImageId)?.file.name || ""
@@ -2892,7 +2612,7 @@ export default function JpgToPdf() {
       )}
 
       <AnimatePresence>
-        {expandedImage && !isMobile && (
+        {expandedImage && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -3143,25 +2863,15 @@ export default function JpgToPdf() {
                 onDownload={handleDownload}
                 onClear={handleConvertMore}
                 autoCompressionActive={autoCompressionActive}
-                paperSize={paperSize}
-                onPaperSizeChange={handlePaperSizeChange}
-                marginSize={marginSize}
-                onMarginChange={handleMarginChange}
-                compressionQuality={compressionQuality}
-                onCompressionQualityChange={handleCompressionQualityChange}
-                customQualityValue={customQualityValue}
-                onCustomQualityChange={handleCustomQualityChange}
-                reverseOrder={reverseOrder}
-                onReverseOrderToggle={toggleReverseOrder}
-                onSortAsc={handleSortAsc}
-                onSortDesc={handleSortDesc}
-                isPdfGenerated={isPdfGenerated}
-                onConvertAgain={handleConvertAgain}
+                onRemoveFile={handleRemoveFile}
+                onReorderFiles={handleReorderFiles}
+                sortOrder={sortOrder}
+                onSortChange={handleSortChange}
               />
             ) : (
               /* Desktop Full UI - UNCHANGED */
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
-                {/* Desktop UI */}
+                {/* Desktop UI remains exactly as before */}
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-4">
                     <Upload className="w-6 h-6 text-blue-500" />
@@ -3428,7 +3138,7 @@ export default function JpgToPdf() {
                                             <button
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleRemoveFile(item);
+                                                handleRemoveFile(item.id);
                                                 setShowReplaceOptions(null);
                                               }}
                                               className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-2"
@@ -3449,7 +3159,7 @@ export default function JpgToPdf() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleRemoveFile(item);
+                                      handleRemoveFile(item.id);
                                     }}
                                     className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
                                     aria-label={`Remove ${item.file.name}`}
