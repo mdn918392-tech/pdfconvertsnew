@@ -95,7 +95,8 @@ type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 const MAX_SIZE_MOBILE = 10 * 1024 * 1024; // 10MB per file
 const MAX_FILES_MOBILE = 25; // 25 images max on mobile
 const AUTO_COMPRESS_THRESHOLD = 10 * 1024 * 1024; // 10MB threshold for auto-compression
-const MAX_IMAGE_DIMENSION_MOBILE = 2048; // Max dimension for mobile to reduce memory
+// REDUCED max dimension for mobile to avoid memory crashes
+const MAX_IMAGE_DIMENSION_MOBILE = 1024; // was 2048
 
 // Desktop - no limits
 const MAX_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER;
@@ -265,9 +266,8 @@ const exploreTools: Tool[] = [
 ];
 
 /**
- * FIXED: Memory-efficient image processing with proper cleanup
- * Now ALWAYS processes rotation – no skip if rotation != 0
- * Also handles canvas.toBlob returning null
+ * FIXED FOR MOBILE: Always process via canvas (no skip) to guarantee rotation applied.
+ * Reduced max dimension and quality for mobile memory safety.
  */
 const processImageForPdf = async (
   file: File,
@@ -276,21 +276,21 @@ const processImageForPdf = async (
   customQualityValue: number = 95,
   isMobile: boolean = false
 ): Promise<ArrayBuffer> => {
-  // On mobile, we can skip canvas only if:
-  // - it's a JPEG,
-  // - file size < 5MB,
-  // - AND rotation is 0 (no need to rotate).
-  // If rotation != 0, we MUST process through canvas.
-  if (isMobile && file.type === "image/jpeg" && file.size < 5 * 1024 * 1024 && rotation === 0) {
+  // On mobile, we always use canvas to ensure rotation is applied,
+  // even for small JPEGs. The quick path is removed for reliability.
+  // For desktop, we keep the quick path when rotation=0, but on mobile we always process.
+  // Actually, let's process all images through canvas on mobile to be 100% safe.
+  // We'll skip canvas only for desktop with rotation=0 and JPEG.
+  if (!isMobile && file.type === "image/jpeg" && rotation === 0 && file.size < 5 * 1024 * 1024) {
     try {
       const buffer = await file.arrayBuffer();
       return buffer;
     } catch (e) {
-      console.warn("Failed to read JPEG directly, falling back to canvas processing", e);
+      console.warn("Failed to read JPEG directly, falling back to canvas", e);
     }
   }
 
-  // Otherwise, process with canvas (including rotation)
+  // Otherwise, process with canvas (always on mobile)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -314,6 +314,7 @@ const processImageForPdf = async (
         URL.revokeObjectURL(objectUrl);
         
         let qualityValue = 0.95;
+        // Use lower max dimension on mobile to avoid memory crashes
         let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
         
         switch (quality) {
@@ -323,24 +324,25 @@ const processImageForPdf = async (
             break;
           case "custom":
             qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
-            maxDimension = isMobile ? 2048 : 4096;
+            maxDimension = isMobile ? 1024 : 4096;
             break;
           case "high":
             qualityValue = 0.95;
-            maxDimension = isMobile ? 2048 : 3072;
+            maxDimension = isMobile ? 1024 : 3072;
             break;
           case "medium":
             qualityValue = 0.85;
-            maxDimension = isMobile ? 1600 : 2048;
+            maxDimension = isMobile ? 1024 : 2048;
             break;
           case "low":
             qualityValue = 0.75;
-            maxDimension = isMobile ? 1200 : 1600;
+            maxDimension = isMobile ? 1024 : 1600;
             break;
         }
         
+        // On mobile, further reduce for non-JPEG
         if (isMobile && file.type !== "image/jpeg") {
-          maxDimension = Math.min(maxDimension, 1600);
+          maxDimension = Math.min(maxDimension, 1024);
         }
         
         let scale = 1;
@@ -429,8 +431,10 @@ const processImageForPdf = async (
           canvas.height = 0;
           canvas = null;
         }
-        // Fallback: try to read original file if it's JPEG
-        if (file.type === "image/jpeg") {
+        // Fallback: try to read original file if it's JPEG (but rotation will be lost)
+        // We'll still throw to trigger error page, because losing rotation is not acceptable.
+        // However, if rotation is 0, we can use the original.
+        if (rotation === 0 && file.type === "image/jpeg") {
           try {
             const buffer = await file.arrayBuffer();
             resolve(buffer);
