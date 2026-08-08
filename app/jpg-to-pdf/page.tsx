@@ -911,7 +911,7 @@ const DraggableItem = ({
   );
 };
 
-// Image Container Component
+// Image Container Component (desktop only)
 const ImageContainer = ({ 
   file, 
   imageUrl, 
@@ -1087,7 +1087,7 @@ const ReplaceImageModal = ({
   );
 };
 
-// -------------------- MOBILE SIMPLE UI (UPDATED) --------------------
+// -------------------- MOBILE SIMPLE UI (NO DRAG, NO PREVIEW, NO ROTATION) --------------------
 interface MobileSimpleUIProps {
   files: FileWithPreview[];
   onFilesUpdate: (files: File[]) => void;
@@ -1104,10 +1104,7 @@ interface MobileSimpleUIProps {
   onSortByNameDesc: () => void;
   onMoveUp: (index: number) => void;
   onMoveDown: (index: number) => void;
-  onRotateFile: (id: string, degrees: number) => void;
   onRemoveFile: (file: FileWithPreview) => void;
-  onExpandImage: (file: FileWithPreview) => void;
-  onReorder: (fromIndex: number, toIndex: number) => void;
 }
 
 const MobileSimpleUI = ({
@@ -1126,93 +1123,46 @@ const MobileSimpleUI = ({
   onSortByNameDesc,
   onMoveUp,
   onMoveDown,
-  onRotateFile,
   onRemoveFile,
-  onExpandImage,
-  onReorder,
 }: MobileSimpleUIProps) => {
-  // Touch drag state
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragStartY, setDragStartY] = useState<number>(0);
-  const [dragOffsetY, setDragOffsetY] = useState<number>(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const DRAG_THRESHOLD = 15;
+  // ----- If PDF is ready, show ONLY the success card -----
+  if (pdfBlob) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
+          <div className="text-center mb-4">
+            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+              PDF Ready! 🎉
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={onClear}
+              className="py-3 px-4 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium"
+            >
+              Convert New
+            </button>
+            <button
+              onClick={onDownload}
+              className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Download PDF
+            </button>
+          </div>
+          <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+            Your PDF is ready – download it or start a new conversion
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleTouchStart = useCallback((e: React.TouchEvent, index: number) => {
-    const touch = e.touches[0];
-    touchStartX.current = touch.clientX;
-    touchStartY.current = touch.clientY;
-    setDragIndex(index);
-    setDragStartY(touch.clientY);
-    setDragOffsetY(0);
-    setIsDragging(false);
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (dragIndex === null) return;
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - touchStartX.current;
-    const deltaY = touch.clientY - touchStartY.current;
-    
-    if (!isDragging) {
-      if (Math.abs(deltaX) < DRAG_THRESHOLD && Math.abs(deltaY) < DRAG_THRESHOLD) {
-        return;
-      }
-      setIsDragging(true);
-      e.preventDefault();
-    } else {
-      e.preventDefault();
-    }
-
-    const deltaYFromStart = touch.clientY - dragStartY;
-    setDragOffsetY(deltaYFromStart);
-
-    const draggedElement = itemRefs.current[dragIndex];
-    if (!draggedElement) return;
-
-    for (let i = 0; i < itemRefs.current.length; i++) {
-      if (i === dragIndex) continue;
-      const otherEl = itemRefs.current[i];
-      if (!otherEl) continue;
-      const otherRect = otherEl.getBoundingClientRect();
-      const otherMiddle = otherRect.top + otherRect.height / 2;
-      const draggedRect = draggedElement.getBoundingClientRect();
-      const draggedMiddle = draggedRect.top + draggedRect.height / 2 + deltaYFromStart;
-
-      if (draggedMiddle < otherMiddle && dragIndex > i) {
-        onReorder(dragIndex, i);
-        setDragIndex(i);
-        setDragOffsetY(0);
-        setDragStartY(touch.clientY);
-        break;
-      }
-      if (draggedMiddle > otherMiddle && dragIndex < i) {
-        onReorder(dragIndex, i);
-        setDragIndex(i);
-        setDragOffsetY(0);
-        setDragStartY(touch.clientY);
-        break;
-      }
-    }
-  }, [dragIndex, dragStartY, onReorder, isDragging]);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!isDragging && dragIndex !== null) {
-      const file = files[dragIndex];
-      if (file) {
-        onExpandImage(file);
-      }
-    }
-    setDragIndex(null);
-    setDragOffsetY(0);
-    setIsDragging(false);
-  }, [isDragging, dragIndex, files, onExpandImage]);
-
-  // ----- RENDER: Always show upload area + list, plus PDF banner if exists -----
+  // ----- Otherwise, show the full UI (uploader, list, settings) -----
   return (
     <div className="space-y-6">
       {/* Upload section */}
@@ -1250,45 +1200,6 @@ const MobileSimpleUI = ({
 
       {files.length > 0 && (
         <>
-          {/* PDF Ready Banner (if PDF exists) */}
-          {pdfBlob && (
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4 shadow-md">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="w-8 h-8 text-green-500 flex-shrink-0 mt-1" />
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                    PDF Ready! 🎉
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
-                  </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <button
-                      onClick={onDownload}
-                      className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download PDF
-                    </button>
-                    <button
-                      onClick={onConvert}
-                      className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-medium text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Convert Again
-                    </button>
-                    <button
-                      onClick={onClear}
-                      className="px-4 py-2 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      New
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Image list with sorting and reorder controls */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
             <div className="flex items-center justify-between mb-3">
@@ -1317,95 +1228,65 @@ const MobileSimpleUI = ({
               </div>
             </div>
 
-            <div
-              ref={containerRef}
-              className="max-h-[60vh] overflow-y-auto space-y-3"
-            >
-              {files.map((file, index) => {
-                const isDraggingItem = dragIndex === index;
-                const translateY = isDraggingItem ? dragOffsetY : 0;
-                return (
-                  <div
-                    key={file.id}
-                    ref={(el) => { itemRefs.current[index] = el; }}
-                    className={`flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl transition-shadow ${
-                      isDraggingItem ? 'shadow-2xl z-10' : ''
-                    }`}
-                    style={{
-                      transform: `translateY(${translateY}px)`,
-                      transition: isDraggingItem ? 'none' : 'transform 0.2s',
-                    }}
-                    onTouchStart={(e) => handleTouchStart(e, index)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                  >
-                    <div
-                      className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer"
-                      onClick={() => onExpandImage(file)}
-                    >
-                      {file.previewUrl && !file.previewError ? (
-                        <img
-                          src={file.previewUrl}
-                          alt={file.file.name}
-                          className="w-full h-full object-cover"
-                          style={{ transform: `rotate(${file.rotation}deg)` }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="w-6 h-6 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {file.file.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {(file.file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => onRotateFile(file.id, -90)}
-                        className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onRotateFile(file.id, 90)}
-                        className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg"
-                      >
-                        <RotateCw className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onMoveUp(index)}
-                        disabled={index === 0}
-                        className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg disabled:opacity-30"
-                      >
-                        <ChevronUp className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onMoveDown(index)}
-                        disabled={index === files.length - 1}
-                        className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg disabled:opacity-30"
-                      >
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => onRemoveFile(file)}
-                        className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
+            <div className="max-h-[60vh] overflow-y-auto space-y-3">
+              {files.map((file, index) => (
+                <div
+                  key={file.id}
+                  className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl"
+                >
+                  {/* Thumbnail (no click preview) */}
+                  <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
+                    {file.previewUrl && !file.previewError ? (
+                      <img
+                        src={file.previewUrl}
+                        alt={file.file.name}
+                        className="w-full h-full object-cover"
+                        style={{ transform: `rotate(${file.rotation}deg)` }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="w-6 h-6 text-gray-400" />
+                      </div>
+                    )}
                   </div>
-                );
-              })}
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {file.file.name}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {(file.file.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+
+                  {/* Action buttons: only move up/down and remove (no rotation) */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => onMoveUp(index)}
+                      disabled={index === 0}
+                      className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg disabled:opacity-30"
+                    >
+                      <ChevronUp className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => onMoveDown(index)}
+                      disabled={index === files.length - 1}
+                      className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg disabled:opacity-30"
+                    >
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => onRemoveFile(file)}
+                      className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-              👆 Tap to preview • Drag to reorder
+              Use ↑↓ buttons to reorder
             </p>
           </div>
 
@@ -1443,24 +1324,22 @@ const MobileSimpleUI = ({
             </p>
           </div>
 
-          {/* Convert / Progress (only if no PDF or converting) */}
-          {!pdfBlob && (
-            converting ? (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
-                <ProgressBar progress={progress} label="Creating PDF..." />
-                <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 dark:text-blue-400">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="text-sm">Processing {files.length} images...</span>
-                </div>
+          {/* Convert / Progress */}
+          {converting ? (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
+              <ProgressBar progress={progress} label="Creating PDF..." />
+              <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 dark:text-blue-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Processing {files.length} images...</span>
               </div>
-            ) : (
-              <button
-                onClick={onConvert}
-                className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
-              >
-                Convert {files.length} Image{files.length !== 1 ? 's' : ''} to PDF
-              </button>
-            )
+            </div>
+          ) : (
+            <button
+              onClick={onConvert}
+              className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+            >
+              Convert {files.length} Image{files.length !== 1 ? 's' : ''} to PDF
+            </button>
           )}
         </>
       )}
@@ -1599,7 +1478,7 @@ export default function JpgToPdf() {
     };
   }, [files, rotatedUrls]);
 
-  // 🔥 NEW: Scroll to top when PDF is generated
+  // Scroll to top when PDF is generated
   useEffect(() => {
     if (pdfBlob) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1845,20 +1724,6 @@ export default function JpgToPdf() {
   const sortByNameDesc = useCallback(() => {
     const sorted = [...files].sort((a, b) => b.file.name.localeCompare(a.file.name));
     setFiles(sorted);
-    setPdfBlob(null);
-    setOriginalStateHash("");
-    setShowChangesWarning(false);
-    setProcessingError(null);
-    setProgress(0);
-  }, [files]);
-
-  // Reorder handler for mobile touch drag
-  const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
-    if (fromIndex === toIndex) return;
-    const newFiles = [...files];
-    const [moved] = newFiles.splice(fromIndex, 1);
-    newFiles.splice(toIndex, 0, moved);
-    setFiles(newFiles);
     setPdfBlob(null);
     setOriginalStateHash("");
     setShowChangesWarning(false);
@@ -2723,15 +2588,12 @@ export default function JpgToPdf() {
                 onSortByNameDesc={sortByNameDesc}
                 onMoveUp={handleMoveUp}
                 onMoveDown={handleMoveDown}
-                onRotateFile={handleRotateFile}
                 onRemoveFile={handleRemoveFile}
-                onExpandImage={handleExpandImage}
-                onReorder={handleReorder}
               />
             ) : (
               /* Desktop Full UI */
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
-                {/* Desktop UI */}
+                {/* Desktop UI - unchanged */}
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-4">
                     <Upload className="w-6 h-6 text-blue-500" />
