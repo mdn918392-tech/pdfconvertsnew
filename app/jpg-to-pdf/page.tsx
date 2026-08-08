@@ -450,7 +450,6 @@ const processImageForPdf = async (
 
 /**
  * MOBILE BACKUP: Process a single image and create a one‑page PDF (ArrayBuffer)
- * FIXED: Added proper delays and error handling for mobile
  */
 const processSingleImageToPdf = async (
   file: File,
@@ -459,16 +458,9 @@ const processSingleImageToPdf = async (
   orientation: Orientation,
   marginPoints: number,
   quality: CompressionQuality,
-  customQualityValue: number,
-  index: number,
-  total: number
+  customQualityValue: number
 ): Promise<ArrayBuffer> => {
   const { PDFDocument, rgb } = await import("pdf-lib");
-  
-  // Add delay between images to prevent memory issues on mobile
-  if (index > 0) {
-    await new Promise(resolve => setTimeout(resolve, 300));
-  }
   
   const imageBuffer = await processImageForPdf(
     file,
@@ -561,7 +553,6 @@ const processSingleImageToPdf = async (
 
 /**
  * MOBILE BACKUP: Merge multiple PDF byte arrays into one final PDF
- * FIXED: Added proper error handling and delays
  */
 const mergePdfBuffers = async (pdfBuffers: ArrayBuffer[]): Promise<Blob> => {
   const { PDFDocument } = await import("pdf-lib");
@@ -589,11 +580,6 @@ const mergePdfBuffers = async (pdfBuffers: ArrayBuffer[]): Promise<Blob> => {
         size: 20,
         color: rgb(1, 0, 0),
       });
-    }
-    
-    // Small delay between merges for mobile stability
-    if (i % 3 === 0) {
-      await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
   
@@ -671,9 +657,8 @@ const createPdfFromImages = async (
           onProgress(i + 1, totalImages);
         }
         
-        // Small delay for memory management
         if (i % 3 === 0 && isMobile) {
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise(resolve => setTimeout(resolve, 10));
         }
         
       } catch (error) {
@@ -1102,7 +1087,7 @@ const ReplaceImageModal = ({
   );
 };
 
-// -------------------- MOBILE SIMPLE UI (UPDATED TOUCH HANDLING) --------------------
+// -------------------- MOBILE SIMPLE UI (UPDATED) --------------------
 interface MobileSimpleUIProps {
   files: FileWithPreview[];
   onFilesUpdate: (files: File[]) => void;
@@ -1146,8 +1131,6 @@ const MobileSimpleUI = ({
   onExpandImage,
   onReorder,
 }: MobileSimpleUIProps) => {
-  const isPdfGenerated = pdfBlob !== null;
-
   // Touch drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragStartY, setDragStartY] = useState<number>(0);
@@ -1157,7 +1140,7 @@ const MobileSimpleUI = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
-  const DRAG_THRESHOLD = 15; // increased for better scroll/drag differentiation
+  const DRAG_THRESHOLD = 15;
 
   const handleTouchStart = useCallback((e: React.TouchEvent, index: number) => {
     const touch = e.touches[0];
@@ -1167,7 +1150,6 @@ const MobileSimpleUI = ({
     setDragStartY(touch.clientY);
     setDragOffsetY(0);
     setIsDragging(false);
-    // Do not prevent default – allows scroll if needed
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
@@ -1176,16 +1158,14 @@ const MobileSimpleUI = ({
     const deltaX = touch.clientX - touchStartX.current;
     const deltaY = touch.clientY - touchStartY.current;
     
-    // If we haven't started dragging yet, check if movement exceeds threshold
     if (!isDragging) {
       if (Math.abs(deltaX) < DRAG_THRESHOLD && Math.abs(deltaY) < DRAG_THRESHOLD) {
-        return; // Still within threshold, do nothing
+        return;
       }
-      // We are now dragging
       setIsDragging(true);
-      e.preventDefault(); // Prevent scroll once we start dragging
+      e.preventDefault();
     } else {
-      e.preventDefault(); // Keep preventing scroll
+      e.preventDefault();
     }
 
     const deltaYFromStart = touch.clientY - dragStartY;
@@ -1194,7 +1174,6 @@ const MobileSimpleUI = ({
     const draggedElement = itemRefs.current[dragIndex];
     if (!draggedElement) return;
 
-    // Check for swaps
     for (let i = 0; i < itemRefs.current.length; i++) {
       if (i === dragIndex) continue;
       const otherEl = itemRefs.current[i];
@@ -1222,7 +1201,6 @@ const MobileSimpleUI = ({
   }, [dragIndex, dragStartY, onReorder, isDragging]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    // If we were not dragging (i.e., just a tap), treat as expand preview
     if (!isDragging && dragIndex !== null) {
       const file = files[dragIndex];
       if (file) {
@@ -1234,44 +1212,7 @@ const MobileSimpleUI = ({
     setIsDragging(false);
   }, [isDragging, dragIndex, files, onExpandImage]);
 
-  // ----- RENDER: PDF Ready state (only Download + Convert New) -----
-  if (pdfBlob) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
-          <div className="text-center mb-4">
-            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-              PDF Ready!
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={onClear}
-              className="py-3 px-4 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium"
-            >
-              Convert New
-            </button>
-            <button
-              onClick={onDownload}
-              className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Download PDF
-            </button>
-          </div>
-          <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
-            Your PDF is ready – download it or start a new conversion
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ----- RENDER: Upload / Edit UI (when no PDF) -----
+  // ----- RENDER: Always show upload area + list, plus PDF banner if exists -----
   return (
     <div className="space-y-6">
       {/* Upload section */}
@@ -1309,6 +1250,45 @@ const MobileSimpleUI = ({
 
       {files.length > 0 && (
         <>
+          {/* PDF Ready Banner (if PDF exists) */}
+          {pdfBlob && (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4 shadow-md">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="w-8 h-8 text-green-500 flex-shrink-0 mt-1" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    PDF Ready! 🎉
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <button
+                      onClick={onDownload}
+                      className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download PDF
+                    </button>
+                    <button
+                      onClick={onConvert}
+                      className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-medium text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Convert Again
+                    </button>
+                    <button
+                      onClick={onClear}
+                      className="px-4 py-2 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      New
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Image list with sorting and reorder controls */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
             <div className="flex items-center justify-between mb-3">
@@ -1463,22 +1443,24 @@ const MobileSimpleUI = ({
             </p>
           </div>
 
-          {/* Convert / Progress */}
-          {converting ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
-              <ProgressBar progress={progress} label="Creating PDF..." />
-              <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 dark:text-blue-400">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">Processing {files.length} images...</span>
+          {/* Convert / Progress (only if no PDF or converting) */}
+          {!pdfBlob && (
+            converting ? (
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
+                <ProgressBar progress={progress} label="Creating PDF..." />
+                <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 dark:text-blue-400">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">Processing {files.length} images...</span>
+                </div>
               </div>
-            </div>
-          ) : (
-            <button
-              onClick={onConvert}
-              className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
-            >
-              Convert {files.length} Image{files.length !== 1 ? 's' : ''} to PDF
-            </button>
+            ) : (
+              <button
+                onClick={onConvert}
+                className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+              >
+                Convert {files.length} Image{files.length !== 1 ? 's' : ''} to PDF
+              </button>
+            )
           )}
         </>
       )}
@@ -1525,7 +1507,6 @@ export default function JpgToPdf() {
   const [autoCompressionActive, setAutoCompressionActive] = useState(false);
   const [currentProcessingImage, setCurrentProcessingImage] = useState(0);
   const [totalProcessingImages, setTotalProcessingImages] = useState(0);
-  const [isPdfReady, setIsPdfReady] = useState(false);
 
   // Limits
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1618,6 +1599,13 @@ export default function JpgToPdf() {
     };
   }, [files, rotatedUrls]);
 
+  // 🔥 NEW: Scroll to top when PDF is generated
+  useEffect(() => {
+    if (pdfBlob) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [pdfBlob]);
+
   // Handle margin change
   const handleMarginChange = (margin: MarginSize) => {
     if (isMobile) return;
@@ -1627,7 +1615,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
   };
 
   // Handle quality change
@@ -1639,7 +1626,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
   };
 
   // Handle custom quality change
@@ -1651,7 +1637,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
   };
 
   // Handle paper size change
@@ -1663,7 +1648,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
   };
 
   // Handle orientation change
@@ -1686,7 +1670,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
     
     console.log(`✅ Orientation changed to ${orient} - PDF invalidated`);
   };
@@ -1700,7 +1683,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
   };
 
   // Remove file
@@ -1723,7 +1705,6 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
-      setIsPdfReady(false);
     },
     [rotatedUrls]
   );
@@ -1772,7 +1753,6 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
-      setIsPdfReady(false);
       setReplacingImageId(null);
       setShowReplaceOptions(null);
     },
@@ -1807,7 +1787,6 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
-      setIsPdfReady(false);
     },
     [files, draggedIndex, isMobile]
   );
@@ -1828,7 +1807,6 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
-      setIsPdfReady(false);
     },
     [files, isMobile]
   );
@@ -1849,7 +1827,6 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
-      setIsPdfReady(false);
     },
     [files, isMobile]
   );
@@ -1863,7 +1840,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
   }, [files]);
 
   const sortByNameDesc = useCallback(() => {
@@ -1874,7 +1850,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
   }, [files]);
 
   // Reorder handler for mobile touch drag
@@ -1889,7 +1864,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
   }, [files]);
 
   // Handle rotate file
@@ -1920,7 +1894,6 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
-      setIsPdfReady(false);
 
       if (expandedImage?.id === id) {
         setExpandedImage((prev) =>
@@ -1948,7 +1921,6 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
-      setIsPdfReady(false);
 
       Object.values(rotatedUrls).forEach((url) => {
         if (url.startsWith("blob:")) {
@@ -2013,7 +1985,6 @@ export default function JpgToPdf() {
         setShowChangesWarning(false);
         setProcessingError(null);
         setProgress(0);
-        setIsPdfReady(false);
       } catch (error) {
         console.error("File processing error:", error);
         setProcessingError("Error processing files. Please try again.");
@@ -2161,7 +2132,7 @@ export default function JpgToPdf() {
     return new Uint8Array(pdfBytes).buffer;
   };
 
-  // ----- MAIN CONVERT FUNCTION (FIXED FOR MOBILE - SLOW AND STEADY) -----
+  // ----- MAIN CONVERT FUNCTION -----
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -2172,7 +2143,6 @@ export default function JpgToPdf() {
       return;
     }
 
-    // Reset states
     setConverting(true);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -2182,7 +2152,6 @@ export default function JpgToPdf() {
     setProgress(0);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(files.length);
-    setIsPdfReady(false);
 
     try {
       let filesToProcess = [...files];
@@ -2193,8 +2162,6 @@ export default function JpgToPdf() {
 
       console.log(`Converting ${filesToProcess.length} images on ${isMobile ? 'mobile' : 'desktop'}`);
 
-      // Initial delay to allow UI to update
-      await new Promise(resolve => setTimeout(resolve, 100));
       setProgress(5);
 
       const marginPoints = isMobile ? 18 : {
@@ -2206,23 +2173,15 @@ export default function JpgToPdf() {
       let finalBlob: Blob;
 
       if (isMobile) {
-        // MOBILE: Process one image at a time with delays
         const tempPdfBuffers: ArrayBuffer[] = [];
 
         for (let i = 0; i < filesToProcess.length; i++) {
           const fileWithPreview = filesToProcess[i];
-          
-          // Update progress BEFORE processing
-          const processingProgress = 5 + ((i + 1) / filesToProcess.length) * 70;
-          setProgress(Math.min(processingProgress, 75));
-          setCurrentProcessingImage(i + 1);
-          
-          // Small delay to prevent UI freezing
-          await new Promise(resolve => setTimeout(resolve, 50));
-
           try {
-            console.log(`Processing image ${i + 1}/${filesToProcess.length}: ${fileWithPreview.file.name}`);
-            
+            const processingProgress = 5 + ((i + 1) / filesToProcess.length) * 70;
+            setProgress(Math.floor(processingProgress));
+            setCurrentProcessingImage(i + 1);
+
             const pdfBuffer = await processSingleImageToPdf(
               fileWithPreview.file,
               fileWithPreview.rotation,
@@ -2230,49 +2189,35 @@ export default function JpgToPdf() {
               orientation,
               marginPoints,
               compressionQuality,
-              customQualityValue,
-              i,
-              filesToProcess.length
+              customQualityValue
             );
 
             tempPdfBuffers.push(pdfBuffer);
-            console.log(`✅ Image ${i + 1} processed successfully`);
 
+            if (i % 2 === 0) {
+              await new Promise(resolve => setTimeout(resolve, 20));
+            }
           } catch (error) {
             console.error(`Failed to process image ${i + 1} for PDF:`, error);
             try {
               const blankPdf = await createBlankPagePdf(paperSize, orientation, marginPoints);
               tempPdfBuffers.push(blankPdf);
-              console.log(`⚠️ Blank page created for image ${i + 1}`);
             } catch (blankErr) {
               console.warn(`Skipping page ${i + 1} due to error`);
             }
           }
-          
-          // CRITICAL: Delay between images to prevent memory issues and blank pages
-          // This ensures each image is fully processed before moving to the next
-          await new Promise(resolve => setTimeout(resolve, 350));
         }
 
         if (tempPdfBuffers.length === 0) {
           throw new Error("No pages could be generated.");
         }
 
-        console.log(`Merging ${tempPdfBuffers.length} PDF pages...`);
         setProgress(80);
-        
-        // Small delay before merge
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
         finalBlob = await mergePdfBuffers(tempPdfBuffers);
-        
-        // Clear buffer to free memory
         tempPdfBuffers.length = 0;
-        
-        console.log("PDF merged successfully");
+        setProgress(100);
 
       } else {
-        // DESKTOP: Process images with canvas
         const imageBuffers: ArrayBuffer[] = [];
         const totalImages = filesToProcess.length;
 
@@ -2280,7 +2225,7 @@ export default function JpgToPdf() {
           const fileWithPreview = filesToProcess[i];
           try {
             const processingProgress = 5 + ((i + 1) / totalImages) * 45;
-            setProgress(Math.min(processingProgress, 50));
+            setProgress(Math.floor(processingProgress));
             setCurrentProcessingImage(i + 1);
 
             const buffer = await processImageForPdf(
@@ -2292,10 +2237,8 @@ export default function JpgToPdf() {
             );
 
             imageBuffers.push(buffer);
-            
-            // Small delay for memory management
-            if (i % 3 === 0) {
-              await new Promise(resolve => setTimeout(resolve, 20));
+            if (i % 2 === 0) {
+              await new Promise(resolve => setTimeout(resolve, 10));
             }
           } catch (error) {
             console.error(`Failed to process image ${i + 1}:`, error);
@@ -2315,43 +2258,36 @@ export default function JpgToPdf() {
           false,
           (current, total) => {
             const pdfProgress = 50 + ((current / total) * 45);
-            setProgress(Math.min(pdfProgress, 95));
+            setProgress(Math.floor(pdfProgress));
           }
         );
         imageBuffers.length = 0;
+        setProgress(100);
       }
 
-      // Validate final blob
       if (!finalBlob || finalBlob.size === 0) {
         throw new Error("Generated PDF is empty");
       }
 
-      console.log(`✅ PDF generated: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
-      
-      // Final delay before showing PDF
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Set PDF and mark as ready
-      setPdfBlob(finalBlob);
-      setOriginalStateHash(calculateStateHash());
-      setShowChangesWarning(false);
-      setConverting(false);
-      setSizeLimitExceeded(false);
-      setShowCompressionInfo(false);
-      setIsPdfReady(true);
-      setProgress(100);
+      setTimeout(() => {
+        setPdfBlob(finalBlob);
+        setOriginalStateHash(calculateStateHash());
+        setShowChangesWarning(false);
+        setConverting(false);
+        setSizeLimitExceeded(false);
+        setShowCompressionInfo(false);
 
-      const totalOriginalSize = filesToProcess.reduce(
-        (sum, f) => sum + f.file.size,
-        0
-      );
+        const totalOriginalSize = filesToProcess.reduce(
+          (sum, f) => sum + f.file.size,
+          0
+        );
 
-      console.log(`\n=== PDF Generation Complete ===`);
-      console.log(`Device: ${isMobile ? 'Mobile (backup pipeline)' : 'Desktop'}`);
-      console.log(`Original: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`PDF: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`Pages: ${filesToProcess.length}`);
-      console.log(`Status: READY`);
+        console.log(`\n=== PDF Generation Complete ===`);
+        console.log(`Device: ${isMobile ? 'Mobile (backup pipeline)' : 'Desktop'}`);
+        console.log(`Original: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
+        console.log(`PDF: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
+        console.log(`Pages: ${filesToProcess.length}`);
+      }, 300);
 
     } catch (err) {
       console.error("Conversion error:", err);
@@ -2370,7 +2306,6 @@ export default function JpgToPdf() {
       setShowCompressionInfo(false);
       setPdfBlob(null);
       setOriginalStateHash("");
-      setIsPdfReady(false);
     }
   };
 
@@ -2432,7 +2367,6 @@ export default function JpgToPdf() {
     setAutoCompressionActive(false);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(0);
-    setIsPdfReady(false);
   };
 
   // Handle rotate in fullscreen
@@ -2466,7 +2400,6 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-    setIsPdfReady(false);
   };
 
   const displayFiles = !isMobile && reverseOrder ? [...files].reverse() : files;
@@ -3704,7 +3637,7 @@ export default function JpgToPdf() {
                         </motion.div>
                       )}
 
-                      {pdfBlob && !converting && isPdfReady && (
+                      {pdfBlob && !converting && (
                         <motion.div
                           key="download"
                           initial={{ opacity: 0, y: 20 }}
