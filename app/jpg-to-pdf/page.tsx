@@ -81,7 +81,7 @@ interface FileWithPreview {
   previewError?: boolean;
   compressedSize?: number;
   originalOrder?: number;
-  imageData?: ArrayBuffer; // Cached image data for Android performance
+  imageData?: ArrayBuffer;
 }
 
 interface DownloadNotification {
@@ -290,57 +290,16 @@ const exploreTools: Tool[] = [
 ];
 
 /**
- * Helper to validate JPEG blob - FIXED for Android Chrome
- */
-const isValidJpeg = async (buffer: ArrayBuffer): Promise<boolean> => {
-  try {
-    const bytes = new Uint8Array(buffer);
-    if (bytes.length < 4) return false;
-    
-    // Check for JPEG SOI marker (FF D8)
-    if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) return false;
-    
-    // Check for EOI marker (FF D9) at the end
-    const lastTwo = bytes.slice(-2);
-    if (lastTwo[0] === 0xFF && lastTwo[1] === 0xD9) {
-      return true;
-    }
-    
-    // If no EOI at end, try to find it (Android Chrome sometimes truncates)
-    for (let i = bytes.length - 20; i < bytes.length - 1; i++) {
-      if (i >= 0 && bytes[i] === 0xFF && bytes[i + 1] === 0xD9) {
-        return true;
-      }
-    }
-    
-    return true; // Allow valid JPEG without EOI marker
-  } catch {
-    return false;
-  }
-};
-
-/**
  * FIXED: Robust image loading for Android Chrome
  * Uses multiple strategies to ensure images load correctly
  */
 const loadImageBuffer = async (file: File): Promise<ArrayBuffer> => {
-  // Strategy 1: Direct arrayBuffer
+  // Strategy 1: Use createImageBitmap (MOST RELIABLE on Android Chrome)
   try {
-    const buffer = await file.arrayBuffer();
-    if (buffer && buffer.byteLength > 0) {
-      // Verify it's a valid JPEG
-      const isValid = await isValidJpeg(buffer);
-      if (isValid) {
-        return buffer;
-      }
-    }
-  } catch (e) {
-    console.warn("ArrayBuffer failed, trying fallback:", e);
-  }
-
-  // Strategy 2: createImageBitmap (better for Android)
-  try {
-    const blob = file.slice(0, file.size, "image/jpeg");
+    // Create a blob from the file
+    const blob = file.slice(0, file.size, file.type || "image/jpeg");
+    
+    // Try to create an ImageBitmap
     const imageBitmap = await createImageBitmap(blob);
     
     // Create canvas to extract JPEG data
@@ -348,34 +307,55 @@ const loadImageBuffer = async (file: File): Promise<ArrayBuffer> => {
     canvas.width = imageBitmap.width;
     canvas.height = imageBitmap.height;
     
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Failed to get canvas context");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) {
+      imageBitmap.close();
+      throw new Error("Failed to get canvas context");
+    }
     
+    // Draw image to canvas
     ctx.drawImage(imageBitmap, 0, 0);
+    imageBitmap.close();
     
+    // Convert to JPEG blob
     const blobData = await new Promise<Blob>((resolve) => {
       canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.95);
     });
     
-    const buffer = await blobData.arrayBuffer();
-    imageBitmap.close();
+    // Clean up
     canvas.width = 0;
     canvas.height = 0;
     
+    // Convert to ArrayBuffer
+    const buffer = await blobData.arrayBuffer();
+    
     if (buffer && buffer.byteLength > 0) {
+      console.log(`✅ Image loaded via createImageBitmap: ${file.name} (${(buffer.byteLength / 1024).toFixed(1)}KB)`);
       return buffer;
     }
   } catch (e) {
-    console.warn("createImageBitmap failed, trying FileReader:", e);
+    console.warn(`createImageBitmap failed for ${file.name}:`, e);
   }
 
-  // Strategy 3: FileReader with Object URL (legacy fallback)
+  // Strategy 2: Direct arrayBuffer (fallback)
+  try {
+    const buffer = await file.arrayBuffer();
+    if (buffer && buffer.byteLength > 0) {
+      console.log(`✅ Image loaded via arrayBuffer: ${file.name}`);
+      return buffer;
+    }
+  } catch (e) {
+    console.warn(`arrayBuffer failed for ${file.name}:`, e);
+  }
+
+  // Strategy 3: FileReader (legacy fallback)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const buffer = e.target?.result as ArrayBuffer;
         if (buffer && buffer.byteLength > 0) {
+          console.log(`✅ Image loaded via FileReader: ${file.name}`);
           resolve(buffer);
         } else {
           reject(new Error("FileReader returned empty buffer"));
@@ -387,6 +367,23 @@ const loadImageBuffer = async (file: File): Promise<ArrayBuffer> => {
     reader.onerror = () => reject(new Error("FileReader failed"));
     reader.readAsArrayBuffer(file);
   });
+};
+
+/**
+ * Helper to validate JPEG blob
+ */
+const isValidJpeg = async (buffer: ArrayBuffer): Promise<boolean> => {
+  try {
+    const bytes = new Uint8Array(buffer);
+    if (bytes.length < 2) return false;
+    
+    // Check for JPEG SOI marker (FF D8)
+    if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) return false;
+    
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 /**
@@ -429,12 +426,11 @@ const compressImageForPdf = async (
   maxDimension: number = 4096,
   rotation: number = 0
 ): Promise<ArrayBuffer> => {
-  // Validate input buffer
   if (!imageBuffer || imageBuffer.byteLength === 0) {
     throw new Error("Empty image buffer");
   }
 
-  // If quality is "none", return original with minimal processing
+  // If quality is "none", return original
   if (quality === "none") {
     try {
       const blob = new Blob([imageBuffer], { type: "image/jpeg" });
@@ -466,7 +462,7 @@ const compressImageForPdf = async (
       
       const buffer = await blobData.arrayBuffer();
       
-      if (buffer && buffer.byteLength > 0 && await isValidJpeg(buffer)) {
+      if (buffer && buffer.byteLength > 0) {
         return buffer;
       }
       
@@ -552,8 +548,6 @@ const compressImageForPdf = async (
       
       const drawWidth = needsSwap ? img.height : img.width;
       const drawHeight = needsSwap ? img.width : img.height;
-      const scaleX = width / drawWidth;
-      const scaleY = height / drawHeight;
       
       ctx.drawImage(
         img,
@@ -580,7 +574,7 @@ const compressImageForPdf = async (
     
     const compressedBuffer = await compressedBlob.arrayBuffer();
     
-    if (compressedBuffer && compressedBuffer.byteLength > 0 && await isValidJpeg(compressedBuffer)) {
+    if (compressedBuffer && compressedBuffer.byteLength > 0) {
       const originalSize = imageBuffer.byteLength;
       const compressedSize = compressedBuffer.byteLength;
       const reduction = ((1 - compressedSize / originalSize) * 100).toFixed(1);
@@ -600,7 +594,7 @@ const compressImageForPdf = async (
 };
 
 /**
- * FIXED: Memory-efficient image processing with proper compression for Android Chrome
+ * FIXED: Process image for PDF with Android Chrome compatibility
  */
 const processImageForPdf = async (
   file: File,
@@ -611,12 +605,12 @@ const processImageForPdf = async (
   paperSize: PaperSize = "A4",
   orientation: Orientation = "Portrait"
 ): Promise<ArrayBuffer> => {
-  // CRITICAL FIX: Verify file exists and has size > 0
+  // Verify file exists and has size > 0
   if (!file || file.size === 0) {
     throw new Error(`Invalid file: ${file?.name || 'unknown'} has size 0`);
   }
 
-  // CRITICAL FIX: Use robust image loading for Android Chrome
+  // Load image buffer using robust method
   let imageBuffer: ArrayBuffer;
   try {
     imageBuffer = await loadImageBuffer(file);
@@ -625,7 +619,6 @@ const processImageForPdf = async (
     throw new Error(`Failed to read file: ${file.name}`);
   }
   
-  // CRITICAL FIX: Verify buffer size
   if (!imageBuffer || imageBuffer.byteLength === 0) {
     throw new Error(`Failed to read image data from ${file.name}`);
   }
@@ -634,7 +627,6 @@ const processImageForPdf = async (
   const isValid = await isValidJpeg(imageBuffer);
   if (!isValid) {
     console.warn(`Invalid JPEG signature for ${file.name}, attempting to repair...`);
-    // Try to re-encode via canvas
     try {
       const blob = new Blob([imageBuffer], { type: "image/jpeg" });
       const objectUrl = URL.createObjectURL(blob);
@@ -676,7 +668,7 @@ const processImageForPdf = async (
     throw new Error(`Invalid image dimensions for: ${file.name}`);
   }
   
-  // Determine max dimension based on device and paper size
+  // Determine max dimension
   let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
   const optimalDims = getOptimalImageDimensions(paperSize, orientation);
   const paperMaxDim = Math.max(optimalDims.width, optimalDims.height);
@@ -685,7 +677,7 @@ const processImageForPdf = async (
     maxDimension = paperMaxDim;
   }
   
-  // Apply compression with validation
+  // Apply compression
   try {
     const compressedBuffer = await compressImageForPdf(
       imageBuffer,
@@ -699,28 +691,7 @@ const processImageForPdf = async (
       throw new Error(`Compression produced empty buffer for ${file.name}`);
     }
     
-    if (await isValidJpeg(compressedBuffer)) {
-      return compressedBuffer;
-    }
-    
-    // If invalid, try one more time with original dimensions (no resize)
-    console.warn("Compressed image invalid, trying without resizing");
-    const retryBuffer = await compressImageForPdf(
-      imageBuffer,
-      quality,
-      customQualityValue,
-      99999,
-      rotation
-    );
-    
-    if (retryBuffer && retryBuffer.byteLength > 0 && await isValidJpeg(retryBuffer)) {
-      return retryBuffer;
-    }
-    
-    // If still invalid, return original
-    console.warn("All compression attempts failed, using original image");
-    return imageBuffer;
-    
+    return compressedBuffer;
   } catch (error) {
     console.warn("Compression error, using original image:", error);
     return imageBuffer;
@@ -728,7 +699,7 @@ const processImageForPdf = async (
 };
 
 /**
- * MOBILE BACKUP: Process a single image and create a one‑page PDF (ArrayBuffer)
+ * MOBILE BACKUP: Process a single image and create a one‑page PDF
  */
 const processSingleImageToPdf = async (
   file: File,
@@ -741,29 +712,23 @@ const processSingleImageToPdf = async (
 ): Promise<ArrayBuffer> => {
   const { PDFDocument, rgb } = await import("pdf-lib");
   
-  // CRITICAL FIX: Verify file exists
   if (!file || file.size === 0) {
     throw new Error(`Invalid file for PDF generation`);
   }
   
-  // 1. Get image buffer (properly compressed and rotated)
+  // Get image buffer
   const imageBuffer = await processImageForPdf(
     file,
     rotation,
     quality,
     customQualityValue,
-    true, // mobile flag
+    true,
     paperSize,
     orientation
   );
   
-  // CRITICAL FIX: Verify buffer is valid before embedding
   if (!imageBuffer || imageBuffer.byteLength === 0) {
-    throw new Error(`Failed to process image: ${file.name} (empty buffer)`);
-  }
-  
-  if (!await isValidJpeg(imageBuffer)) {
-    throw new Error(`Invalid JPEG data for: ${file.name}`);
+    throw new Error(`Failed to process image: ${file.name}`);
   }
   
   // Validate dimensions
@@ -775,10 +740,8 @@ const processSingleImageToPdf = async (
   console.log(`✅ Processing: ${file.name} | ${(imageBuffer.byteLength / 1024).toFixed(1)}KB | ${dimensions.width}x${dimensions.height}`);
   
   try {
-    // 2. Create a new PDF document (single page)
     const pdfDoc = await PDFDocument.create();
     
-    // Paper dimensions
     const paperDimensions = PAPER_SIZES[paperSize];
     const MM_TO_PT = 2.83465;
     
@@ -795,7 +758,6 @@ const processSingleImageToPdf = async (
     const availableWidthPt = pageWidthPt - (marginPt * 2);
     const availableHeightPt = pageHeightPt - (marginPt * 2);
     
-    // CRITICAL FIX: Ensure embedJpg receives valid data
     let image;
     try {
       image = await pdfDoc.embedJpg(imageBuffer);
@@ -803,15 +765,12 @@ const processSingleImageToPdf = async (
       throw new Error(`Failed to embed image ${file.name}: ${embedError instanceof Error ? embedError.message : 'Unknown error'}`);
     }
     
-    // CRITICAL FIX: Verify image was embedded successfully
     if (!image || !image.width || !image.height) {
       throw new Error(`Failed to get image dimensions for ${file.name}`);
     }
     
-    // Add a page
     const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
     
-    // Calculate dimensions to fit within margins
     const imgWidth = image.width;
     const imgHeight = image.height;
     const imgAspectRatio = imgWidth / imgHeight;
@@ -836,7 +795,6 @@ const processSingleImageToPdf = async (
       height: finalHeightPt,
     });
     
-    // Save the PDF as bytes
     const pdfBytes = await pdfDoc.save();
     
     if (!pdfBytes || pdfBytes.length === 0) {
@@ -851,7 +809,7 @@ const processSingleImageToPdf = async (
 };
 
 /**
- * MOBILE BACKUP: Merge multiple PDF byte arrays into one final PDF
+ * Merge multiple PDF byte arrays into one final PDF
  */
 const mergePdfBuffers = async (pdfBuffers: ArrayBuffer[]): Promise<Blob> => {
   const { PDFDocument } = await import("pdf-lib");
@@ -907,7 +865,6 @@ const createPdfFromImages = async (
     
     const pdfDoc = await PDFDocument.create();
     
-    // Get paper dimensions in points
     const paperDimensions = PAPER_SIZES[paperSize];
     const MM_TO_PT = 2.83465;
     
@@ -925,7 +882,6 @@ const createPdfFromImages = async (
     const availableWidthPt = pageWidthPt - (marginPt * 2);
     const availableHeightPt = pageHeightPt - (marginPt * 2);
     
-    // Process images one at a time to minimize memory
     const totalImages = imageBuffers.length;
     const embeddedImages = [];
     
@@ -933,22 +889,15 @@ const createPdfFromImages = async (
       try {
         const buffer = imageBuffers[i];
         
-        // CRITICAL FIX: Verify buffer is valid before embedding
         if (!buffer || buffer.byteLength === 0) {
           throw new Error(`Empty buffer for image ${i + 1}`);
         }
         
-        if (!await isValidJpeg(buffer)) {
-          throw new Error(`Invalid JPEG data for image ${i + 1}`);
-        }
-        
-        // Validate dimensions
         const dimensions = await validateImageDimensions(buffer);
         if (!dimensions || dimensions.width === 0 || dimensions.height === 0) {
           throw new Error(`Invalid dimensions for image ${i + 1}`);
         }
         
-        // Embed image
         let image;
         try {
           image = await pdfDoc.embedJpg(buffer);
@@ -962,10 +911,8 @@ const createPdfFromImages = async (
         
         embeddedImages.push(image);
         
-        // Add page
         const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
         
-        // Calculate dimensions
         const imgWidth = image.width;
         const imgHeight = image.height;
         const imgAspectRatio = imgWidth / imgHeight;
@@ -1025,7 +972,7 @@ const createPdfFromImages = async (
   }
 };
 
-// Estimate compressed size with actual compression ratios
+// Estimate compressed size
 const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQuality, customValue?: number): number => {
   if (files.length === 0) return 0;
   
@@ -2215,7 +2162,7 @@ export default function JpgToPdf() {
     [rotatedUrls, isMobile]
   );
 
-  // Handle files update - FIXED for Android Chrome
+  // FIXED: Handle files update for Android Chrome
   const handleFilesUpdate = useCallback(
     async (newFiles: File[]) => {
       if (newFiles.length === 0) return;
@@ -2262,15 +2209,15 @@ export default function JpgToPdf() {
           let previewError = false;
           
           try {
-            // Test if the file can be displayed
+            // Create object URL for preview
             const objectUrl = URL.createObjectURL(file);
             
-            // Verify the image can be loaded
+            // Verify the image can be loaded (with timeout)
             const img = new Image();
             await new Promise<void>((resolve, reject) => {
               const timeoutId = setTimeout(() => {
                 reject(new Error("Image load timeout"));
-              }, 5000);
+              }, 3000);
               
               img.onload = () => {
                 clearTimeout(timeoutId);
@@ -2433,35 +2380,6 @@ export default function JpgToPdf() {
     }
   };
 
-  // Helper to create a blank PDF page (for fallback - only used if all images fail)
-  const createBlankPagePdf = async (
-    paperSize: PaperSize,
-    orientation: Orientation,
-    marginPoints: number
-  ): Promise<ArrayBuffer> => {
-    const { PDFDocument, rgb } = await import("pdf-lib");
-    const pdfDoc = await PDFDocument.create();
-    const paperDimensions = PAPER_SIZES[paperSize];
-    const MM_TO_PT = 2.83465;
-    let pageWidthPt: number, pageHeightPt: number;
-    if (orientation === "Landscape") {
-      pageWidthPt = paperDimensions.height * MM_TO_PT;
-      pageHeightPt = paperDimensions.width * MM_TO_PT;
-    } else {
-      pageWidthPt = paperDimensions.width * MM_TO_PT;
-      pageHeightPt = paperDimensions.height * MM_TO_PT;
-    }
-    const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-    page.drawText(`Blank page`, {
-      x: marginPoints,
-      y: pageHeightPt / 2,
-      size: 20,
-      color: rgb(0.5, 0.5, 0.5),
-    });
-    const pdfBytes = await pdfDoc.save();
-    return new Uint8Array(pdfBytes).buffer;
-  };
-
   // ----- MAIN CONVERT FUNCTION - FIXED for Android Chrome -----
   const handleConvert = async () => {
     if (files.length === 0) return;
@@ -2552,7 +2470,7 @@ export default function JpgToPdf() {
           }
         }
 
-        // CRITICAL FIX: If any images failed, stop and show error
+        // If any images failed, stop and show error
         if (failedImages.length > 0) {
           const errorMessage = `The following images could not be processed:\n${failedImages.join('\n')}\n\nPlease check these files and try again.`;
           throw new Error(errorMessage);
@@ -2573,7 +2491,6 @@ export default function JpgToPdf() {
         const totalImages = filesToProcess.length;
         const failedImages: string[] = [];
         
-        // Calculate total original size for comparison
         let totalOriginalSize = 0;
 
         for (let i = 0; i < totalImages; i++) {
@@ -2585,7 +2502,6 @@ export default function JpgToPdf() {
             setProgress(Math.floor(processingProgress));
             setCurrentProcessingImage(i + 1);
 
-            // Validate file before processing
             if (!fileWithPreview.file || fileWithPreview.file.size === 0) {
               failedImages.push(`${fileWithPreview.file.name} (empty file)`);
               continue;
@@ -2596,7 +2512,7 @@ export default function JpgToPdf() {
               fileWithPreview.rotation,
               compressionQuality,
               customQualityValue,
-              false, // isMobile
+              false,
               paperSize,
               orientation
             );
@@ -2612,7 +2528,6 @@ export default function JpgToPdf() {
           }
         }
 
-        // CRITICAL FIX: If any images failed, stop and show error
         if (failedImages.length > 0) {
           const errorMessage = `The following images could not be processed:\n${failedImages.join('\n')}\n\nPlease check these files and try again.`;
           throw new Error(errorMessage);
@@ -3106,9 +3021,9 @@ export default function JpgToPdf() {
                 onSortChange={handleSortChange}
               />
             ) : (
-              /* Desktop Full UI - UNCHANGED */
+              /* Desktop Full UI - unchanged */
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
-                {/* Desktop UI remains exactly as before */}
+                {/* Desktop UI - Same as before */}
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-4">
                     <Upload className="w-6 h-6 text-blue-500" />
