@@ -38,8 +38,6 @@ import {
   Expand,
   Replace,
   Info,
-  Trash2,
-  Grip,
 } from "lucide-react";
 
 // Dynamically import heavy components only for desktop
@@ -110,28 +108,6 @@ const PAPER_SIZES = {
   Legal: { width: 215.9, height: 355.6 },
   A3: { width: 297, height: 420 },
 } as const;
-
-// Get optimal image dimensions for paper size at 150 DPI
-const getOptimalImageDimensions = (
-  paperSize: PaperSize,
-  orientation: Orientation,
-  dpi: number = 150
-): { width: number; height: number } => {
-  const paper = PAPER_SIZES[paperSize];
-  const MM_TO_INCH = 25.4;
-  
-  let widthInch = paper.width / MM_TO_INCH;
-  let heightInch = paper.height / MM_TO_INCH;
-  
-  if (orientation === "Landscape") {
-    [widthInch, heightInch] = [heightInch, widthInch];
-  }
-  
-  return {
-    width: Math.round(widthInch * dpi),
-    height: Math.round(heightInch * dpi),
-  };
-};
 
 // Generate filename
 const generatePdfFilename = (
@@ -289,252 +265,7 @@ const exploreTools: Tool[] = [
 ];
 
 /**
- * Helper to validate JPEG blob
- */
-const isValidJpeg = async (buffer: ArrayBuffer): Promise<boolean> => {
-  try {
-    // Check for JPEG SOI marker (FF D8)
-    const bytes = new Uint8Array(buffer);
-    if (bytes.length < 2) return false;
-    if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) return false;
-    
-    // Check for EOI marker (FF D9) at the end
-    if (bytes.length >= 2) {
-      const lastTwo = bytes.slice(-2);
-      if (lastTwo[0] === 0xFF && lastTwo[1] === 0xD9) {
-        return true;
-      }
-    }
-    
-    // If no EOI, try to find it
-    for (let i = bytes.length - 10; i < bytes.length - 1; i++) {
-      if (i >= 0 && bytes[i] === 0xFF && bytes[i + 1] === 0xD9) {
-        return true;
-      }
-    }
-    
-    return false;
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Validate image dimensions using Image object
- */
-const validateImageDimensions = async (buffer: ArrayBuffer): Promise<{ width: number; height: number } | null> => {
-  try {
-    const blob = new Blob([buffer], { type: "image/jpeg" });
-    const objectUrl = URL.createObjectURL(blob);
-    
-    const img = new Image();
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("Failed to decode image"));
-      img.src = objectUrl;
-    });
-    
-    const width = img.naturalWidth;
-    const height = img.naturalHeight;
-    
-    URL.revokeObjectURL(objectUrl);
-    img.src = "";
-    
-    if (width > 0 && height > 0) {
-      return { width, height };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-};
-
-/**
- * Optimized image compression - ONLY modifies the image buffer before embedding
- * Everything else remains unchanged
- */
-const compressImageForPdf = async (
-  imageBuffer: ArrayBuffer,
-  quality: CompressionQuality,
-  customQualityValue: number = 95,
-  maxDimension: number = 4096,
-  rotation: number = 0
-): Promise<ArrayBuffer> => {
-  // If quality is "none", return original with minimal processing
-  if (quality === "none") {
-    // Still strip metadata by re-encoding at 100% quality
-    try {
-      const blob = new Blob([imageBuffer], { type: "image/jpeg" });
-      const objectUrl = URL.createObjectURL(blob);
-      
-      const img = new Image();
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error("Failed to decode image"));
-        img.src = objectUrl;
-      });
-      
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      const ctx = canvas.getContext("2d", { alpha: false });
-      if (!ctx) throw new Error("Failed to get canvas context");
-      
-      ctx.drawImage(img, 0, 0);
-      
-      const blobData = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((b) => resolve(b!), "image/jpeg", 1.0);
-      });
-      
-      URL.revokeObjectURL(objectUrl);
-      canvas.width = 0;
-      canvas.height = 0;
-      
-      const buffer = await blobData.arrayBuffer();
-      
-      // Validate the JPEG
-      if (await isValidJpeg(buffer)) {
-        return buffer;
-      }
-      
-      // If invalid, return original
-      return imageBuffer;
-    } catch {
-      // On any error, return original
-      return imageBuffer;
-    }
-  }
-  
-  // Determine quality value
-  let qualityValue = 0.95;
-  let targetMaxDim = maxDimension;
-  
-  switch (quality) {
-    case "custom":
-      qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
-      break;
-    case "high":
-      qualityValue = 0.95;
-      targetMaxDim = Math.min(maxDimension, 3072);
-      break;
-    case "medium":
-      qualityValue = 0.85;
-      targetMaxDim = Math.min(maxDimension, 2048);
-      break;
-    case "low":
-      qualityValue = 0.75;
-      targetMaxDim = Math.min(maxDimension, 1600);
-      break;
-    default:
-      qualityValue = 0.95;
-  }
-  
-  try {
-    // Decode the image
-    const blob = new Blob([imageBuffer], { type: "image/jpeg" });
-    const objectUrl = URL.createObjectURL(blob);
-    
-    const img = new Image();
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("Failed to decode image"));
-      img.src = objectUrl;
-    });
-    
-    // Calculate new dimensions
-    let width = img.width;
-    let height = img.height;
-    const largerDim = Math.max(width, height);
-    
-    if (largerDim > targetMaxDim) {
-      const scale = targetMaxDim / largerDim;
-      width = Math.round(width * scale);
-      height = Math.round(height * scale);
-    }
-    
-    // Create canvas
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    
-    const ctx = canvas.getContext("2d", {
-      alpha: false,
-      willReadFrequently: false,
-    });
-    
-    if (!ctx) {
-      URL.revokeObjectURL(objectUrl);
-      return imageBuffer; // Fallback to original
-    }
-    
-    // Draw with rotation if needed
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    
-    if (rotation !== 0) {
-      const needsSwap = rotation === 90 || rotation === 270;
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((rotation * Math.PI) / 180);
-      
-      const drawWidth = needsSwap ? img.height : img.width;
-      const drawHeight = needsSwap ? img.width : img.height;
-      const scaleX = width / drawWidth;
-      const scaleY = height / drawHeight;
-      
-      ctx.drawImage(
-        img,
-        -drawWidth / 2,
-        -drawHeight / 2,
-        drawWidth,
-        drawHeight
-      );
-      ctx.restore();
-    } else {
-      ctx.drawImage(img, 0, 0, width, height);
-    }
-    
-    // Compress to JPEG
-    const compressedBlob = await new Promise<Blob>((resolve) => {
-      canvas.toBlob((b) => resolve(b!), "image/jpeg", qualityValue);
-    });
-    
-    // Cleanup
-    URL.revokeObjectURL(objectUrl);
-    img.src = "";
-    canvas.width = 0;
-    canvas.height = 0;
-    
-    const compressedBuffer = await compressedBlob.arrayBuffer();
-    
-    // Validate the compressed JPEG
-    if (await isValidJpeg(compressedBuffer)) {
-      // Log compression stats
-      const originalSize = imageBuffer.byteLength;
-      const compressedSize = compressedBuffer.byteLength;
-      const reduction = ((1 - compressedSize / originalSize) * 100).toFixed(1);
-      
-      console.log(`📊 Image Compression: ${(originalSize / 1024).toFixed(1)}KB → ${(compressedSize / 1024).toFixed(1)}KB (${reduction}% reduction)`);
-      
-      return compressedBuffer;
-    }
-    
-    // If compression produced invalid JPEG, return original
-    console.warn("Compression produced invalid JPEG, using original");
-    return imageBuffer;
-    
-  } catch (error) {
-    // On any error, return original image
-    console.warn("Compression failed, using original image:", error);
-    return imageBuffer;
-  }
-};
-
-/**
- * OPTIMIZED: Memory-efficient image processing with proper compression
+ * OPTIMIZED: Memory-efficient image processing with proper cleanup
  * Processes one image at a time with immediate resource release
  * Uses ArrayBuffer instead of Base64 to reduce memory usage by ~33%
  */
@@ -543,182 +274,237 @@ const processImageForPdf = async (
   rotation: number = 0,
   quality: CompressionQuality = "high",
   customQualityValue: number = 95,
-  isMobile: boolean = false,
-  paperSize: PaperSize = "A4",
-  orientation: Orientation = "Portrait"
+  isMobile: boolean = false
 ): Promise<ArrayBuffer> => {
-  // CRITICAL FIX: Verify file exists and has size > 0
-  if (!file || file.size === 0) {
-    throw new Error(`Invalid file: ${file?.name || 'unknown'} has size 0`);
+  // If on mobile and the file is already JPEG and not too large, we can skip re-encoding
+  // to save memory and avoid canvas issues.
+  if (isMobile && file.type === "image/jpeg" && file.size < 5 * 1024 * 1024) {
+    try {
+      // Just return the raw buffer
+      const buffer = await file.arrayBuffer();
+      return buffer;
+    } catch (e) {
+      console.warn("Failed to read JPEG directly, falling back to canvas processing", e);
+    }
   }
 
-  // First, get the image as ArrayBuffer
-  let imageBuffer: ArrayBuffer;
-  try {
-    imageBuffer = await file.arrayBuffer();
-  } catch (error) {
-    console.warn("Failed to read file as ArrayBuffer, falling back to canvas:", error);
-    // Fallback to canvas-based loading
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const buffer = e.target?.result as ArrayBuffer;
-          resolve(buffer);
-        } catch (err) {
-          reject(err);
+  // Otherwise, process with canvas
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      let img: HTMLImageElement | null = null;
+      let canvas: HTMLCanvasElement | null = null;
+      
+      try {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        
+        // Create Image from ArrayBuffer
+        img = new Image();
+        const blob = new Blob([arrayBuffer], { type: file.type });
+        const objectUrl = URL.createObjectURL(blob);
+        
+        // Load image
+        await new Promise<void>((resolveImg, rejectImg) => {
+          img!.onload = () => resolveImg();
+          img!.onerror = () => rejectImg(new Error("Failed to decode image"));
+          img!.src = objectUrl;
+        });
+        
+        // Revoke object URL immediately after loading
+        URL.revokeObjectURL(objectUrl);
+        
+        // Determine quality settings
+        let qualityValue = 0.95;
+        let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
+        
+        switch (quality) {
+          case "none":
+            qualityValue = 1.0;
+            maxDimension = isMobile ? 3072 : 4096;
+            break;
+          case "custom":
+            qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
+            maxDimension = isMobile ? 2048 : 4096;
+            break;
+          case "high":
+            qualityValue = 0.95;
+            maxDimension = isMobile ? 2048 : 3072;
+            break;
+          case "medium":
+            qualityValue = 0.85;
+            maxDimension = isMobile ? 1600 : 2048;
+            break;
+          case "low":
+            qualityValue = 0.75;
+            maxDimension = isMobile ? 1200 : 1600;
+            break;
         }
-      };
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsArrayBuffer(file);
-    });
-  }
-  
-  // CRITICAL FIX: Verify buffer size
-  if (!imageBuffer || imageBuffer.byteLength === 0) {
-    throw new Error(`Failed to read image data from ${file.name}`);
-  }
-  
-  // Determine max dimension based on device and paper size
-  let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
-  const optimalDims = getOptimalImageDimensions(paperSize, orientation);
-  const paperMaxDim = Math.max(optimalDims.width, optimalDims.height);
-  
-  // Use paper size to determine max dimension if it's smaller
-  if (paperMaxDim < maxDimension) {
-    maxDimension = paperMaxDim;
-  }
-  
-  // Apply compression with validation
-  try {
-    const compressedBuffer = await compressImageForPdf(
-      imageBuffer,
-      quality,
-      customQualityValue,
-      maxDimension,
-      rotation
-    );
+        
+        // On mobile, further reduce max dimension for PNG/WebP to avoid memory issues
+        if (isMobile && file.type !== "image/jpeg") {
+          maxDimension = Math.min(maxDimension, 1600);
+        }
+        
+        // Calculate dimensions
+        let scale = 1;
+        const largerDimension = Math.max(img.width, img.height);
+        
+        if (largerDimension > maxDimension) {
+          scale = maxDimension / largerDimension;
+        }
+        
+        const needsSwap = rotation === 90 || rotation === 270;
+        const newWidth = needsSwap 
+          ? Math.floor(img.height * scale)
+          : Math.floor(img.width * scale);
+        const newHeight = needsSwap
+          ? Math.floor(img.width * scale)
+          : Math.floor(img.height * scale);
+        
+        // Create canvas - this will be destroyed after use
+        canvas = document.createElement("canvas");
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        const ctx = canvas.getContext("2d", {
+          alpha: false,
+          willReadFrequently: false,
+        });
+        
+        if (!ctx) {
+          throw new Error("Failed to get canvas context");
+        }
+        
+        // Draw with rotation
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        
+        if (rotation !== 0) {
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate((rotation * Math.PI) / 180);
+          
+          const rotatedWidth = needsSwap ? img.height : img.width;
+          const rotatedHeight = needsSwap ? img.width : img.height;
+          
+          ctx.drawImage(
+            img,
+            -(rotatedWidth * scale) / 2,
+            -(rotatedHeight * scale) / 2,
+            rotatedWidth * scale,
+            rotatedHeight * scale
+          );
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        }
+        
+        // Convert to JPEG ArrayBuffer - MORE EFFICIENT than Base64
+        const blobData = await new Promise<Blob>((resolveBlob) => {
+          canvas!.toBlob((b) => resolveBlob(b!), "image/jpeg", qualityValue);
+        });
+        
+        // Read as ArrayBuffer
+        const buffer = await blobData.arrayBuffer();
+        
+        // Cleanup immediately
+        URL.revokeObjectURL(objectUrl);
+        img.src = ""; // Clear image src to free memory
+        img = null;
+        canvas.width = 0;
+        canvas.height = 0;
+        canvas = null;
+        
+        resolve(buffer);
+        
+      } catch (error) {
+        // Cleanup on error
+        if (img) {
+          img.src = "";
+          img = null;
+        }
+        if (canvas) {
+          canvas.width = 0;
+          canvas.height = 0;
+          canvas = null;
+        }
+        // Fallback: try to read the original file as ArrayBuffer if it's a JPEG
+        if (file.type === "image/jpeg") {
+          try {
+            const buffer = await file.arrayBuffer();
+            resolve(buffer);
+            return;
+          } catch (e) {
+            reject(error);
+          }
+        }
+        reject(error);
+      }
+    };
     
-    // CRITICAL FIX: Verify compressed buffer is valid
-    if (!compressedBuffer || compressedBuffer.byteLength === 0) {
-      throw new Error(`Compression produced empty buffer for ${file.name}`);
-    }
+    reader.onerror = () => {
+      reject(new Error("Failed to read file"));
+    };
     
-    // Verify the compressed buffer is valid JPEG
-    if (await isValidJpeg(compressedBuffer)) {
-      return compressedBuffer;
-    }
-    
-    // If invalid, try one more time with original dimensions (no resize)
-    console.warn("Compressed image invalid, trying without resizing");
-    const retryBuffer = await compressImageForPdf(
-      imageBuffer,
-      quality,
-      customQualityValue,
-      99999, // No dimension limit
-      rotation
-    );
-    
-    if (retryBuffer && retryBuffer.byteLength > 0 && await isValidJpeg(retryBuffer)) {
-      return retryBuffer;
-    }
-    
-    // If still invalid, return original
-    console.warn("All compression attempts failed, using original image");
-    return imageBuffer;
-    
-  } catch (error) {
-    console.warn("Compression error, using original image:", error);
-    return imageBuffer;
-  }
+    // Read as ArrayBuffer directly - more efficient than DataURL
+    reader.readAsArrayBuffer(file);
+  });
 };
 
 /**
- * MOBILE FIX: Process images into a single PDF document sequentially
- * No intermediate PDF buffers are stored – each image is embedded and released.
+ * MOBILE BACKUP: Process a single image and create a one‑page PDF (ArrayBuffer)
  */
-const createPdfFromImagesMobile = async (
-  files: FileWithPreview[],
+const processSingleImageToPdf = async (
+  file: File,
+  rotation: number,
   paperSize: PaperSize,
   orientation: Orientation,
   marginPoints: number,
-  compressionQuality: CompressionQuality,
-  customQualityValue: number,
-  onProgress?: (current: number, total: number) => void
-): Promise<Blob> => {
+  quality: CompressionQuality,
+  customQualityValue: number
+): Promise<ArrayBuffer> => {
   const { PDFDocument, rgb } = await import("pdf-lib");
   
-  // Create a single PDF document
-  const pdfDoc = await PDFDocument.create();
+  // 1. Get image buffer (already compressed and rotated)
+  const imageBuffer = await processImageForPdf(
+    file,
+    rotation,
+    quality,
+    customQualityValue,
+    true // mobile flag
+  );
   
-  // Paper dimensions in points
-  const paperDimensions = PAPER_SIZES[paperSize];
-  const MM_TO_PT = 2.83465;
-  
-  let pageWidthPt: number, pageHeightPt: number;
-  if (orientation === "Landscape") {
-    pageWidthPt = paperDimensions.height * MM_TO_PT;
-    pageHeightPt = paperDimensions.width * MM_TO_PT;
-  } else {
-    pageWidthPt = paperDimensions.width * MM_TO_PT;
-    pageHeightPt = paperDimensions.height * MM_TO_PT;
-  }
-  
-  const marginPt = marginPoints;
-  const availableWidthPt = pageWidthPt - (marginPt * 2);
-  const availableHeightPt = pageHeightPt - (marginPt * 2);
-  
-  // Process images one by one
-  const total = files.length;
-  for (let i = 0; i < total; i++) {
-    const fileWithPreview = files[i];
+  try {
+    // 2. Create a new PDF document (single page)
+    const pdfDoc = await PDFDocument.create();
     
-    // Validate file
-    if (!fileWithPreview.file || fileWithPreview.file.size === 0) {
-      throw new Error(`File ${fileWithPreview.file.name} is empty or invalid`);
+    // Paper dimensions
+    const paperDimensions = PAPER_SIZES[paperSize];
+    const MM_TO_PT = 2.83465;
+    
+    let pageWidthPt: number, pageHeightPt: number;
+    if (orientation === "Landscape") {
+      pageWidthPt = paperDimensions.height * MM_TO_PT;
+      pageHeightPt = paperDimensions.width * MM_TO_PT;
+    } else {
+      pageWidthPt = paperDimensions.width * MM_TO_PT;
+      pageHeightPt = paperDimensions.height * MM_TO_PT;
     }
     
-    // Get compressed image buffer
-    const imageBuffer = await processImageForPdf(
-      fileWithPreview.file,
-      fileWithPreview.rotation,
-      compressionQuality,
-      customQualityValue,
-      true, // mobile flag
-      paperSize,
-      orientation
-    );
-    
-    if (!imageBuffer || imageBuffer.byteLength === 0) {
-      throw new Error(`Failed to process image ${fileWithPreview.file.name}`);
-    }
-    
-    if (!await isValidJpeg(imageBuffer)) {
-      throw new Error(`Invalid JPEG data for ${fileWithPreview.file.name}`);
-    }
-    
-    // Validate dimensions
-    const dimensions = await validateImageDimensions(imageBuffer);
-    if (!dimensions || dimensions.width === 0 || dimensions.height === 0) {
-      throw new Error(`Invalid dimensions for ${fileWithPreview.file.name}`);
-    }
+    const marginPt = marginPoints;
+    const availableWidthPt = pageWidthPt - (marginPt * 2);
+    const availableHeightPt = pageHeightPt - (marginPt * 2);
     
     // Embed the image
-    let image;
-    try {
-      image = await pdfDoc.embedJpg(imageBuffer);
-    } catch (embedError) {
-      throw new Error(`Failed to embed ${fileWithPreview.file.name}: ${embedError instanceof Error ? embedError.message : 'Unknown error'}`);
-    }
-    
-    if (!image || !image.width || !image.height) {
-      throw new Error(`Invalid embedded image for ${fileWithPreview.file.name}`);
-    }
+    const image = await pdfDoc.embedJpg(imageBuffer);
     
     // Add a page
     const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
     
-    // Calculate fit dimensions
+    // Calculate dimensions to fit within margins
     const imgWidth = image.width;
     const imgHeight = image.height;
     const imgAspectRatio = imgWidth / imgHeight;
@@ -743,28 +529,71 @@ const createPdfFromImagesMobile = async (
       height: finalHeightPt,
     });
     
-    // Release the image buffer to free memory
-    // (imageBuffer will be garbage collected when out of scope)
+    // Save the PDF as bytes
+    const pdfBytes = await pdfDoc.save();
     
-    // Progress update
-    if (onProgress) {
-      onProgress(i + 1, total);
+    return new Uint8Array(pdfBytes).buffer;
+  } catch (error) {
+    console.error("Error creating single-page PDF, creating blank page with error:", error);
+    // Create a blank page with error text
+    const pdfDoc = await PDFDocument.create();
+    const paperDimensions = PAPER_SIZES[paperSize];
+    const MM_TO_PT = 2.83465;
+    let pageWidthPt: number, pageHeightPt: number;
+    if (orientation === "Landscape") {
+      pageWidthPt = paperDimensions.height * MM_TO_PT;
+      pageHeightPt = paperDimensions.width * MM_TO_PT;
+    } else {
+      pageWidthPt = paperDimensions.width * MM_TO_PT;
+      pageHeightPt = paperDimensions.height * MM_TO_PT;
     }
-    
-    // Allow the event loop to breathe between images
-    if (i % 2 === 0) {
-      await new Promise(resolve => setTimeout(resolve, 10));
+    const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
+    page.drawText(`Image could not be loaded: ${file.name}`, {
+      x: marginPoints,
+      y: pageHeightPt / 2,
+      size: 16,
+      color: rgb(1, 0, 0),
+    });
+    const pdfBytes = await pdfDoc.save();
+    return new Uint8Array(pdfBytes).buffer;
+  }
+};
+
+/**
+ * MOBILE BACKUP: Merge multiple PDF byte arrays into one final PDF
+ */
+const mergePdfBuffers = async (pdfBuffers: ArrayBuffer[]): Promise<Blob> => {
+  const { PDFDocument } = await import("pdf-lib");
+  
+  if (pdfBuffers.length === 0) {
+    throw new Error("No PDFs to merge");
+  }
+  
+  const mergedPdf = await PDFDocument.create();
+  
+  for (let i = 0; i < pdfBuffers.length; i++) {
+    const buffer = pdfBuffers[i];
+    try {
+      const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+      const indices = pdfDoc.getPageIndices();
+      const copiedPages = await mergedPdf.copyPages(pdfDoc, indices);
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
+    } catch (err) {
+      console.warn(`Failed to merge PDF page ${i + 1}, skipping.`, err);
+      const page = mergedPdf.addPage([595, 842]);
+      const { rgb } = await import("pdf-lib");
+      page.drawText(`Page ${i + 1} could not be merged`, {
+        x: 50,
+        y: 400,
+        size: 20,
+        color: rgb(1, 0, 0),
+      });
     }
   }
   
-  // Save the final PDF
-  const pdfBytes = await pdfDoc.save();
-  if (!pdfBytes || pdfBytes.length === 0) {
-    throw new Error("Generated PDF is empty");
-  }
-  
-  // Create a new Uint8Array copy to avoid type issues with ArrayBufferLike
-  return new Blob([pdfBytes.slice()], { type: "application/pdf" });
+  const mergedBytes = await mergedPdf.save();
+  const arrayBuffer = new Uint8Array(mergedBytes).buffer;
+  return new Blob([arrayBuffer], { type: "application/pdf" });
 };
 
 /**
@@ -804,41 +633,13 @@ const createPdfFromImages = async (
     
     // Process images one at a time to minimize memory
     const totalImages = imageBuffers.length;
-    const embeddedImages = [];
     
     for (let i = 0; i < totalImages; i++) {
       try {
         const buffer = imageBuffers[i];
         
-        // CRITICAL FIX: Verify buffer is valid before embedding
-        if (!buffer || buffer.byteLength === 0) {
-          throw new Error(`Empty buffer for image ${i + 1}`);
-        }
-        
-        if (!await isValidJpeg(buffer)) {
-          throw new Error(`Invalid JPEG data for image ${i + 1}`);
-        }
-        
-        // Validate dimensions
-        const dimensions = await validateImageDimensions(buffer);
-        if (!dimensions || dimensions.width === 0 || dimensions.height === 0) {
-          throw new Error(`Invalid dimensions for image ${i + 1}`);
-        }
-        
         // Embed image - this creates a copy in the PDF
-        let image;
-        try {
-          image = await pdfDoc.embedJpg(buffer);
-        } catch (embedError) {
-          throw new Error(`Failed to embed image ${i + 1}: ${embedError instanceof Error ? embedError.message : 'Unknown error'}`);
-        }
-        
-        // CRITICAL FIX: Verify image was embedded successfully
-        if (!image || !image.width || !image.height) {
-          throw new Error(`Failed to get valid image for page ${i + 1}`);
-        }
-        
-        embeddedImages.push(image);
+        const image = await pdfDoc.embedJpg(buffer);
         
         // Add page
         const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
@@ -881,14 +682,16 @@ const createPdfFromImages = async (
         }
         
       } catch (error) {
-        // CRITICAL FIX: Stop conversion on error instead of creating blank pages
-        throw new Error(`Failed to process image ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error(`Failed to embed image ${i + 1}:`, error);
+        // Add blank page with error text
+        const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
+        page.drawText(`Failed to load image ${i + 1}`, {
+          x: marginPt,
+          y: pageHeightPt / 2,
+          size: 20,
+          color: rgb(1, 0, 0),
+        });
       }
-    }
-    
-    // CRITICAL FIX: Verify we embedded at least one image
-    if (embeddedImages.length === 0) {
-      throw new Error("No images were successfully embedded");
     }
     
     // Save PDF
@@ -911,20 +714,19 @@ const createPdfFromImages = async (
   }
 };
 
-// Estimate compressed size with actual compression ratios
+// Estimate compressed size
 const estimateCompressedSize = (files: FileWithPreview[], quality: CompressionQuality, customValue?: number): number => {
   if (files.length === 0) return 0;
   
-  // More accurate compression ratios based on actual testing
   let reductionFactor = 1.0;
   switch (quality) {
-    case "none": reductionFactor = 0.95; break; // Still some reduction from metadata stripping
+    case "none": reductionFactor = 1.0; break;
     case "custom": 
-      reductionFactor = customValue ? 0.3 + (customValue / 100) * 0.7 : 0.95; 
+      reductionFactor = customValue ? Math.min(1.0, Math.max(0.3, customValue / 100)) : 0.95; 
       break;
-    case "high": reductionFactor = 0.75; break;
-    case "medium": reductionFactor = 0.5; break;
-    case "low": reductionFactor = 0.35; break;
+    case "high": reductionFactor = 0.85; break;
+    case "medium": reductionFactor = 0.6; break;
+    case "low": reductionFactor = 0.4; break;
   }
   
   const totalOriginalSize = files.reduce((sum, f) => sum + f.file.size, 0);
@@ -1188,7 +990,7 @@ const ImageContainer = ({
   );
 };
 
-// Replace Image Modal Component (Desktop only)
+// Replace Image Modal Component
 const ReplaceImageModal = ({
   onReplace,
   onCancel,
@@ -1218,8 +1020,6 @@ const ReplaceImageModal = ({
       onReplace(file);
     }
   };
-
-  if (isMobile) return null;
 
   return (
     <motion.div
@@ -1311,7 +1111,7 @@ const ReplaceImageModal = ({
   );
 };
 
-// Mobile Simple UI - IMPROVED VERSION
+// Mobile Simple UI
 const MobileSimpleUI = ({
   files,
   onFilesUpdate,
@@ -1324,10 +1124,6 @@ const MobileSimpleUI = ({
   onDownload,
   onClear,
   autoCompressionActive,
-  onRemoveFile,
-  onReorderFiles,
-  sortOrder,
-  onSortChange,
 }: {
   files: FileWithPreview[];
   onFilesUpdate: (files: File[]) => void;
@@ -1340,40 +1136,8 @@ const MobileSimpleUI = ({
   onDownload: () => void;
   onClear: () => void;
   autoCompressionActive: boolean;
-  onRemoveFile: (id: string) => void;
-  onReorderFiles: (fromIndex: number, toIndex: number) => void;
-  sortOrder: "none" | "asc" | "desc";
-  onSortChange: (order: "none" | "asc" | "desc") => void;
 }) => {
   const isPdfGenerated = pdfBlob !== null;
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-
-  // Handle drag start
-  const handleDragStart = (e: React.TouchEvent | React.MouseEvent, index: number) => {
-    if (isPdfGenerated) return;
-    setDraggedIndex(index);
-    const touch = (e as React.TouchEvent).touches?.[0];
-    if (touch) {
-      // Store touch data
-      (e.currentTarget as HTMLElement).dataset.draggedIndex = String(index);
-    }
-  };
-
-  // Handle drag over
-  const handleDragOver = (e: React.DragEvent | React.TouchEvent, index: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || isPdfGenerated) return;
-    
-    if (draggedIndex !== index) {
-      onReorderFiles(draggedIndex, index);
-      setDraggedIndex(index);
-    }
-  };
-
-  // Handle drag end
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-  };
 
   return (
     <div className="space-y-6">
@@ -1390,19 +1154,17 @@ const MobileSimpleUI = ({
           </p>
         </div>
 
-        {!isPdfGenerated && (
-          <FileUploader
-            accept="image/jpeg,image/jpg,image/png,image/webp"
-            multiple={true}
-            onFilesSelected={onFilesUpdate}
-            maxSize={10}
-            maxFiles={MAX_FILES_MOBILE}
-          />
-        )}
+        <FileUploader
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          multiple={true}
+          onFilesSelected={onFilesUpdate}
+          maxSize={10}
+          maxFiles={MAX_FILES_MOBILE}
+        />
 
         <div className="mt-4 text-xs text-center text-gray-500 dark:text-gray-400">
           <p>Max {MAX_FILES_MOBILE} images • {MAX_SIZE_MOBILE/(1024*1024)}MB per file</p>
-          {autoCompressionActive && !isPdfGenerated && (
+          {autoCompressionActive && (
             <p className="mt-2 text-amber-600 dark:text-amber-400 font-medium flex items-center justify-center gap-1">
               <Zap className="w-3 h-3" />
               Auto-compression active for files &gt;10MB
@@ -1411,152 +1173,58 @@ const MobileSimpleUI = ({
         </div>
       </div>
 
-      {files.length > 0 && !isPdfGenerated && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-blue-500" />
-              <span className="font-medium text-gray-900 dark:text-white">
-                {files.length} Image{files.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Sort buttons */}
-              <button
-                onClick={() => onSortChange(sortOrder === "asc" ? "desc" : "asc")}
-                className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg flex items-center gap-1"
-              >
-                <ArrowUpDown className="w-4 h-4" />
-                {sortOrder === "asc" ? "A→Z" : sortOrder === "desc" ? "Z→A" : "Sort"}
-              </button>
+      {files.length > 0 && (
+        <>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-blue-500" />
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {files.length} Image{files.length !== 1 ? 's' : ''} Selected
+                </span>
+              </div>
               <button
                 onClick={onClear}
-                className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 px-3 py-1.5 bg-red-50 dark:bg-red-950/30 rounded-lg"
+                className="text-sm text-red-600 hover:text-red-700 dark:text-red-400"
               >
                 Clear All
               </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Image Thumbnails with Drag & Drop */}
-      {files.length > 0 && !isPdfGenerated && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-          <div className="space-y-3">
-            {files.map((file, index) => (
-              <div
-                key={file.id}
-                draggable={!isPdfGenerated}
-                onDragStart={(e) => {
-                  if (isPdfGenerated) return;
-                  e.dataTransfer.effectAllowed = "move";
-                  e.dataTransfer.setData("text/plain", String(index));
-                  handleDragStart(e, index);
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (isPdfGenerated) return;
-                  handleDragOver(e, index);
-                }}
-                onDragEnd={handleDragEnd}
-                onTouchStart={(e) => handleDragStart(e, index)}
-                onTouchMove={(e) => {
-                  if (draggedIndex === null || isPdfGenerated) return;
-                  const touch = e.touches[0];
-                  const element = document.elementFromPoint(touch.clientX, touch.clientY);
-                  const item = element?.closest('[data-index]');
-                  if (item) {
-                    const targetIndex = parseInt(item.getAttribute('data-index') || '0');
-                    if (targetIndex !== draggedIndex) {
-                      onReorderFiles(draggedIndex, targetIndex);
-                      setDraggedIndex(targetIndex);
-                    }
-                  }
-                }}
-                onTouchEnd={handleDragEnd}
-                data-index={index}
-                className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                  draggedIndex === index
-                    ? "bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-400 dark:border-blue-600"
-                    : "bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-                }`}
-              >
-                {/* Drag Handle */}
-                <div className="flex-shrink-0 text-gray-400">
-                  <Grip className="w-5 h-5" />
-                </div>
-
-                {/* Thumbnail */}
-                <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
-                  {file.previewUrl && !file.previewError ? (
-                    <img
-                      src={file.previewUrl}
-                      alt={file.file.name}
-                      className="w-full h-full object-cover"
-                      style={{
-                        transform: `rotate(${file.rotation}deg)`,
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ImageIcon className="w-5 h-5 text-gray-400" />
-                    </div>
-                  )}
-                </div>
-
-                {/* File Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                    {file.file.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {(file.file.size / 1024 / 1024).toFixed(2)} MB • {index + 1}
-                  </p>
-                </div>
-
-                {/* Remove Button */}
-                <button
-                  onClick={() => onRemoveFile(file.id)}
-                  className="flex-shrink-0 p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
-                  aria-label={`Remove ${file.file.name}`}
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
-            Drag the ☰ handle to reorder images
-          </p>
-        </div>
-      )}
-
-      {files.length > 0 && !isPdfGenerated && (
-        <>
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               Page Orientation
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => onOrientationChange("Portrait")}
+                onClick={() => {
+                  if (!isPdfGenerated) {
+                    onOrientationChange("Portrait");
+                  }
+                }}
+                disabled={isPdfGenerated}
                 className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
                   orientation === "Portrait"
                     ? "bg-blue-500 text-white border-blue-500"
                     : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                }`}
+                } ${isPdfGenerated ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="w-4 h-5 border-2 border-current rounded" />
                 <span className="font-medium">Portrait</span>
               </button>
               <button
-                onClick={() => onOrientationChange("Landscape")}
+                onClick={() => {
+                  if (!isPdfGenerated) {
+                    onOrientationChange("Landscape");
+                  }
+                }}
+                disabled={isPdfGenerated}
                 className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
                   orientation === "Landscape"
                     ? "bg-blue-500 text-white border-blue-500"
                     : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                }`}
+                } ${isPdfGenerated ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="w-5 h-4 border-2 border-current rounded" />
                 <span className="font-medium">Landscape</span>
@@ -1565,6 +1233,15 @@ const MobileSimpleUI = ({
             <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
               Page size: A4 (210 × 297 mm)
             </p>
+            
+            {pdfBlob && (
+              <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  Orientation cannot be changed after PDF is generated
+                </p>
+              </div>
+            )}
           </div>
 
           {converting ? (
@@ -1580,6 +1257,36 @@ const MobileSimpleUI = ({
                 </p>
               )}
             </div>
+          ) : pdfBlob ? (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
+              <div className="text-center mb-4">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                  PDF Ready!
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={onClear}
+                  className="py-3 px-4 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium"
+                >
+                  New
+                </button>
+                <button
+                  onClick={onDownload}
+                  className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
+              </div>
+              <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+                Orientation locked - Click "New" to create new PDF
+              </p>
+            </div>
           ) : (
             <button
               onClick={onConvert}
@@ -1589,39 +1296,6 @@ const MobileSimpleUI = ({
             </button>
           )}
         </>
-      )}
-
-      {/* PDF Ready State */}
-      {pdfBlob && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 shadow-xl p-6">
-          <div className="text-center mb-4">
-            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-              PDF Ready! 🎉
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {(pdfBlob.size / 1024 / 1024).toFixed(2)} MB • {files.length} pages • {orientation}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={onClear}
-              className="py-3 px-4 border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              New
-            </button>
-            <button
-              onClick={onDownload}
-              className="py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:from-green-600 hover:to-emerald-700 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              Download PDF
-            </button>
-          </div>
-          <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
-            Click "New" to start a new conversion
-          </p>
-        </div>
       )}
     </div>
   );
@@ -1665,7 +1339,6 @@ export default function JpgToPdf() {
   const [autoCompressionActive, setAutoCompressionActive] = useState(false);
   const [currentProcessingImage, setCurrentProcessingImage] = useState(0);
   const [totalProcessingImages, setTotalProcessingImages] = useState(0);
-  const [sortOrder, setSortOrder] = useState<"none" | "asc" | "desc">("none");
 
   // Limits
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1839,19 +1512,16 @@ export default function JpgToPdf() {
 
   // Remove file
   const handleRemoveFile = useCallback(
-    (id: string) => {
-      const fileToRemove = files.find((f) => f.id === id);
-      if (!fileToRemove) return;
-      
-      setFiles((prev) => prev.filter((f) => f.id !== id));
+    (fileToRemove: FileWithPreview) => {
+      setFiles((prev) => prev.filter((f) => f.id !== fileToRemove.id));
       if (fileToRemove.previewUrl) URL.revokeObjectURL(fileToRemove.previewUrl);
-      if (rotatedUrls[id]) {
-        if (rotatedUrls[id].startsWith("blob:")) {
-          URL.revokeObjectURL(rotatedUrls[id]);
+      if (rotatedUrls[fileToRemove.id]) {
+        if (rotatedUrls[fileToRemove.id].startsWith("blob:")) {
+          URL.revokeObjectURL(rotatedUrls[fileToRemove.id]);
         }
         setRotatedUrls((prev) => {
           const newUrls = { ...prev };
-          delete newUrls[id];
+          delete newUrls[fileToRemove.id];
           return newUrls;
         });
       }
@@ -1861,63 +1531,7 @@ export default function JpgToPdf() {
       setProcessingError(null);
       setProgress(0);
     },
-    [files, rotatedUrls]
-  );
-
-  // Handle reorder files (mobile)
-  const handleReorderFiles = useCallback(
-    (fromIndex: number, toIndex: number) => {
-      if (isMobile && pdfBlob) return;
-      
-      const newFiles = [...files];
-      const [movedItem] = newFiles.splice(fromIndex, 1);
-      newFiles.splice(toIndex, 0, movedItem);
-      
-      setFiles(newFiles);
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-    },
-    [files, isMobile, pdfBlob]
-  );
-
-  // Handle sort change (mobile)
-  const handleSortChange = useCallback(
-    (order: "none" | "asc" | "desc") => {
-      if (isMobile && pdfBlob) return;
-      
-      if (order === "none" || sortOrder === order) {
-        setSortOrder(order === "none" ? "asc" : order === "asc" ? "desc" : "none");
-        // If sorting is turned off, restore original order
-        if (order === "none") {
-          setFiles((prev) => [...prev].sort((a, b) => (a.originalOrder || 0) - (b.originalOrder || 0)));
-          return;
-        }
-      }
-      
-      const newOrder = sortOrder === "asc" ? "desc" : "asc";
-      setSortOrder(newOrder);
-      
-      const sortedFiles = [...files].sort((a, b) => {
-        const nameA = a.file.name.toLowerCase();
-        const nameB = b.file.name.toLowerCase();
-        if (newOrder === "asc") {
-          return nameA.localeCompare(nameB);
-        } else {
-          return nameB.localeCompare(nameA);
-        }
-      });
-      
-      setFiles(sortedFiles);
-      setPdfBlob(null);
-      setOriginalStateHash("");
-      setShowChangesWarning(false);
-      setProcessingError(null);
-      setProgress(0);
-    },
-    [files, isMobile, pdfBlob, sortOrder]
+    [rotatedUrls]
   );
 
   // Handle Replace Image
@@ -1970,7 +1584,7 @@ export default function JpgToPdf() {
     [files, rotatedUrls, isMobile]
   );
 
-  // Drag and Drop Handlers (Desktop)
+  // Drag and Drop Handlers
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
@@ -2002,7 +1616,7 @@ export default function JpgToPdf() {
     [files, draggedIndex, isMobile]
   );
 
-  // Move up (Desktop)
+  // Move up
   const handleMoveUp = useCallback(
     (index: number) => {
       if (index <= 0 || isMobile) return;
@@ -2022,7 +1636,7 @@ export default function JpgToPdf() {
     [files, isMobile]
   );
 
-  // Move down (Desktop)
+  // Move down
   const handleMoveDown = useCallback(
     (index: number) => {
       if (index >= files.length - 1 || isMobile) return;
@@ -2080,7 +1694,7 @@ export default function JpgToPdf() {
     [files, rotatedUrls, expandedImage]
   );
 
-  // Rotate all (Desktop)
+  // Rotate all
   const handleRotateAll = useCallback(
     (degrees: number) => {
       if (isMobile) return;
@@ -2161,7 +1775,6 @@ export default function JpgToPdf() {
         setShowChangesWarning(false);
         setProcessingError(null);
         setProgress(0);
-        setSortOrder("none");
       } catch (error) {
         console.error("File processing error:", error);
         setProcessingError("Error processing files. Please try again.");
@@ -2280,7 +1893,7 @@ export default function JpgToPdf() {
     }
   };
 
-  // Helper to create a blank PDF page (for fallback - only used if all images fail)
+  // Helper to create a blank PDF page (for fallback)
   const createBlankPagePdf = async (
     paperSize: PaperSize,
     orientation: Orientation,
@@ -2310,6 +1923,8 @@ export default function JpgToPdf() {
   };
 
   // ----- MAIN CONVERT FUNCTION -----
+  // Desktop uses the original pipeline (createPdfFromImages)
+  // Mobile uses the backup pipeline (single-page PDFs + merge)
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -2338,13 +1953,7 @@ export default function JpgToPdf() {
         filesToProcess = [...files].reverse();
       }
 
-      console.log(`\n📄 Converting ${filesToProcess.length} images on ${isMobile ? 'mobile' : 'desktop'}`);
-      console.log(`📐 Paper: ${paperSize} (${orientation})`);
-      console.log(`🎯 Quality: ${compressionQuality}${compressionQuality === 'custom' ? ` (${customQualityValue}%)` : ''}`);
-      console.log(`📏 Margin: ${marginSize}`);
-      console.log(`🔄 Reverse: ${reverseOrder}`);
-      console.log(`📱 Mobile: ${isMobile}`);
-      console.log('=' .repeat(50));
+      console.log(`Converting ${filesToProcess.length} images on ${isMobile ? 'mobile' : 'desktop'}`);
 
       // Step 1: Progress update
       setProgress(5);
@@ -2358,57 +1967,72 @@ export default function JpgToPdf() {
       let finalBlob: Blob;
 
       if (isMobile) {
-        // ========== MOBILE: SINGLE-PDF PIPELINE (FIX) ==========
-        // Process images sequentially into one PDF document – no intermediate buffers.
-        finalBlob = await createPdfFromImagesMobile(
-          filesToProcess,
-          paperSize,
-          orientation,
-          marginPoints,
-          compressionQuality,
-          customQualityValue,
-          (current, total) => {
-            const progressPercent = 5 + ((current / total) * 90);
-            setProgress(Math.floor(progressPercent));
-            setCurrentProcessingImage(current);
-          }
-        );
+        // ========== MOBILE BACKUP PIPELINE ==========
+        const tempPdfBuffers: ArrayBuffer[] = [];
 
-        // Final progress
+        for (let i = 0; i < filesToProcess.length; i++) {
+          const fileWithPreview = filesToProcess[i];
+          try {
+            const processingProgress = 5 + ((i + 1) / filesToProcess.length) * 70;
+            setProgress(Math.floor(processingProgress));
+            setCurrentProcessingImage(i + 1);
+
+            // Create a single‑page PDF for this image
+            const pdfBuffer = await processSingleImageToPdf(
+              fileWithPreview.file,
+              fileWithPreview.rotation,
+              paperSize,
+              orientation,
+              marginPoints,
+              compressionQuality,
+              customQualityValue
+            );
+
+            tempPdfBuffers.push(pdfBuffer);
+
+            // Allow garbage collection between images
+            if (i % 2 === 0) {
+              await new Promise(resolve => setTimeout(resolve, 20));
+            }
+          } catch (error) {
+            console.error(`Failed to process image ${i + 1} for PDF:`, error);
+            // Create a blank page PDF as fallback
+            try {
+              const blankPdf = await createBlankPagePdf(paperSize, orientation, marginPoints);
+              tempPdfBuffers.push(blankPdf);
+            } catch (blankErr) {
+              console.warn(`Skipping page ${i + 1} due to error`);
+            }
+          }
+        }
+
+        if (tempPdfBuffers.length === 0) {
+          throw new Error("No pages could be generated.");
+        }
+
+        setProgress(80);
+        finalBlob = await mergePdfBuffers(tempPdfBuffers);
+        tempPdfBuffers.length = 0;
         setProgress(100);
 
       } else {
-        // ========== DESKTOP PIPELINE (unchanged) ==========
+        // ========== DESKTOP PIPELINE ==========
         const imageBuffers: ArrayBuffer[] = [];
         const totalImages = filesToProcess.length;
-        const failedImages: string[] = [];
-        
-        // Calculate total original size for comparison
-        let totalOriginalSize = 0;
 
         for (let i = 0; i < totalImages; i++) {
           const fileWithPreview = filesToProcess[i];
-          totalOriginalSize += fileWithPreview.file.size;
-          
           try {
             const processingProgress = 5 + ((i + 1) / totalImages) * 45;
             setProgress(Math.floor(processingProgress));
             setCurrentProcessingImage(i + 1);
-
-            // Validate file before processing
-            if (!fileWithPreview.file || fileWithPreview.file.size === 0) {
-              failedImages.push(`${fileWithPreview.file.name} (empty file)`);
-              continue;
-            }
 
             const buffer = await processImageForPdf(
               fileWithPreview.file,
               fileWithPreview.rotation,
               compressionQuality,
               customQualityValue,
-              false, // isMobile
-              paperSize,
-              orientation
+              false
             );
 
             imageBuffers.push(buffer);
@@ -2416,16 +2040,8 @@ export default function JpgToPdf() {
               await new Promise(resolve => setTimeout(resolve, 10));
             }
           } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            console.error(`❌ Failed to process image ${i + 1}: ${fileWithPreview.file.name}`, error);
-            failedImages.push(`${fileWithPreview.file.name} (${errorMsg})`);
+            console.error(`Failed to process image ${i + 1}:`, error);
           }
-        }
-
-        // CRITICAL FIX: If any images failed, stop and show error
-        if (failedImages.length > 0) {
-          const errorMessage = `The following images could not be processed:\n${failedImages.join('\n')}\n\nPlease check these files and try again.`;
-          throw new Error(errorMessage);
         }
 
         if (imageBuffers.length === 0) {
@@ -2452,24 +2068,6 @@ export default function JpgToPdf() {
         throw new Error("Generated PDF is empty");
       }
 
-      // Calculate final compression ratio
-      const totalOriginalSize = filesToProcess.reduce(
-        (sum, f) => sum + f.file.size,
-        0
-      );
-      const finalSize = finalBlob.size;
-      const compressionRatio = ((1 - finalSize / totalOriginalSize) * 100).toFixed(1);
-
-      console.log('=' .repeat(50));
-      console.log(`📊 FINAL COMPRESSION SUMMARY:`);
-      console.log(`   Original Size: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`   PDF Size: ${(finalSize / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`   Compression Ratio: ${compressionRatio}%`);
-      console.log(`   Pages: ${filesToProcess.length}`);
-      console.log(`   Quality: ${compressionQuality}${compressionQuality === 'custom' ? ` (${customQualityValue}%)` : ''}`);
-      console.log(`   Device: ${isMobile ? 'Mobile (single-PDF pipeline)' : 'Desktop'}`);
-      console.log('=' .repeat(50));
-
       setTimeout(() => {
         setPdfBlob(finalBlob);
         setOriginalStateHash(calculateStateHash());
@@ -2477,6 +2075,17 @@ export default function JpgToPdf() {
         setConverting(false);
         setSizeLimitExceeded(false);
         setShowCompressionInfo(false);
+
+        const totalOriginalSize = filesToProcess.reduce(
+          (sum, f) => sum + f.file.size,
+          0
+        );
+
+        console.log(`\n=== PDF Generation Complete ===`);
+        console.log(`Device: ${isMobile ? 'Mobile (backup pipeline)' : 'Desktop'}`);
+        console.log(`Original: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
+        console.log(`PDF: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
+        console.log(`Pages: ${filesToProcess.length}`);
       }, 300);
 
     } catch (err) {
@@ -2557,7 +2166,6 @@ export default function JpgToPdf() {
     setAutoCompressionActive(false);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(0);
-    setSortOrder("none");
   };
 
   // Handle rotate in fullscreen
@@ -2910,15 +2518,11 @@ export default function JpgToPdf() {
                 onDownload={handleDownload}
                 onClear={handleConvertMore}
                 autoCompressionActive={autoCompressionActive}
-                onRemoveFile={handleRemoveFile}
-                onReorderFiles={handleReorderFiles}
-                sortOrder={sortOrder}
-                onSortChange={handleSortChange}
               />
             ) : (
-              /* Desktop Full UI - UNCHANGED */
+              /* Desktop Full UI */
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
-                {/* Desktop UI remains exactly as before */}
+                {/* Desktop UI */}
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-4">
                     <Upload className="w-6 h-6 text-blue-500" />
@@ -3185,7 +2789,7 @@ export default function JpgToPdf() {
                                             <button
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleRemoveFile(item.id);
+                                                handleRemoveFile(item);
                                                 setShowReplaceOptions(null);
                                               }}
                                               className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-2"
@@ -3206,7 +2810,7 @@ export default function JpgToPdf() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleRemoveFile(item.id);
+                                      handleRemoveFile(item);
                                     }}
                                     className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10"
                                     aria-label={`Remove ${item.file.name}`}
@@ -3563,14 +3167,14 @@ export default function JpgToPdf() {
                               </div>
                               <div className="text-lg font-bold text-green-600 dark:text-green-400">
                                 {compressionQuality === "none"
-                                  ? "5%"
+                                  ? "0%"
                                   : compressionQuality === "custom"
                                   ? `${Math.round(100 - customQualityValue)}%`
                                   : compressionQuality === "high"
-                                  ? "25%"
+                                  ? "5%"
                                   : compressionQuality === "medium"
-                                  ? "50%"
-                                  : "65%"}
+                                  ? "15%"
+                                  : "25%"}
                               </div>
                             </div>
                             <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
@@ -3794,7 +3398,7 @@ export default function JpgToPdf() {
                             progress={progress}
                             label={
                               progress < 30
-                                ? "Compressing images..."
+                                ? "Processing images..."
                                 : progress < 60
                                 ? compressionQuality === "custom"
                                   ? `Applying ${customQualityValue}% quality...`
@@ -3808,7 +3412,7 @@ export default function JpgToPdf() {
                             <Loader2 className="w-5 h-5 animate-spin" />
                             <span className="text-base font-medium">
                               {progress < 30
-                                ? "Compressing images..."
+                                ? "Processing images..."
                                 : progress < 60
                                 ? compressionQuality === "custom"
                                   ? `Applying ${customQualityValue}% quality...`
@@ -3857,11 +3461,6 @@ export default function JpgToPdf() {
                               <span className="text-gray-600 dark:text-gray-400">
                                 Pages: {files.length}
                               </span>
-                              {pdfBlob.size > 0 && files.length > 0 && (
-                                <span className="text-gray-600 dark:text-gray-400">
-                                  Avg: {(pdfBlob.size / files.length / 1024).toFixed(1)} KB/page
-                                </span>
-                              )}
                             </div>
                           </div>
 
