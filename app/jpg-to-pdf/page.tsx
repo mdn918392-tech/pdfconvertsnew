@@ -265,9 +265,9 @@ const exploreTools: Tool[] = [
 ];
 
 /**
- * OPTIMIZED: Memory-efficient image processing with proper cleanup
- * Processes one image at a time with immediate resource release
- * Uses ArrayBuffer instead of Base64 to reduce memory usage by ~33%
+ * FIXED: Memory-efficient image processing with proper cleanup
+ * Now ALWAYS processes rotation – no skip if rotation != 0
+ * Also handles canvas.toBlob returning null
  */
 const processImageForPdf = async (
   file: File,
@@ -276,11 +276,13 @@ const processImageForPdf = async (
   customQualityValue: number = 95,
   isMobile: boolean = false
 ): Promise<ArrayBuffer> => {
-  // If on mobile and the file is already JPEG and not too large, we can skip re-encoding
-  // to save memory and avoid canvas issues.
-  if (isMobile && file.type === "image/jpeg" && file.size < 5 * 1024 * 1024) {
+  // On mobile, we can skip canvas only if:
+  // - it's a JPEG,
+  // - file size < 5MB,
+  // - AND rotation is 0 (no need to rotate).
+  // If rotation != 0, we MUST process through canvas.
+  if (isMobile && file.type === "image/jpeg" && file.size < 5 * 1024 * 1024 && rotation === 0) {
     try {
-      // Just return the raw buffer
       const buffer = await file.arrayBuffer();
       return buffer;
     } catch (e) {
@@ -288,7 +290,7 @@ const processImageForPdf = async (
     }
   }
 
-  // Otherwise, process with canvas
+  // Otherwise, process with canvas (including rotation)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -299,22 +301,18 @@ const processImageForPdf = async (
       try {
         const arrayBuffer = e.target?.result as ArrayBuffer;
         
-        // Create Image from ArrayBuffer
         img = new Image();
         const blob = new Blob([arrayBuffer], { type: file.type });
         const objectUrl = URL.createObjectURL(blob);
         
-        // Load image
         await new Promise<void>((resolveImg, rejectImg) => {
           img!.onload = () => resolveImg();
           img!.onerror = () => rejectImg(new Error("Failed to decode image"));
           img!.src = objectUrl;
         });
         
-        // Revoke object URL immediately after loading
         URL.revokeObjectURL(objectUrl);
         
-        // Determine quality settings
         let qualityValue = 0.95;
         let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
         
@@ -341,15 +339,12 @@ const processImageForPdf = async (
             break;
         }
         
-        // On mobile, further reduce max dimension for PNG/WebP to avoid memory issues
         if (isMobile && file.type !== "image/jpeg") {
           maxDimension = Math.min(maxDimension, 1600);
         }
         
-        // Calculate dimensions
         let scale = 1;
         const largerDimension = Math.max(img.width, img.height);
-        
         if (largerDimension > maxDimension) {
           scale = maxDimension / largerDimension;
         }
@@ -362,7 +357,6 @@ const processImageForPdf = async (
           ? Math.floor(img.width * scale)
           : Math.floor(img.height * scale);
         
-        // Create canvas - this will be destroyed after use
         canvas = document.createElement("canvas");
         canvas.width = newWidth;
         canvas.height = newHeight;
@@ -376,7 +370,6 @@ const processImageForPdf = async (
           throw new Error("Failed to get canvas context");
         }
         
-        // Draw with rotation
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.imageSmoothingEnabled = true;
@@ -402,17 +395,22 @@ const processImageForPdf = async (
           ctx.drawImage(img, 0, 0, newWidth, newHeight);
         }
         
-        // Convert to JPEG ArrayBuffer - MORE EFFICIENT than Base64
-        const blobData = await new Promise<Blob>((resolveBlob) => {
-          canvas!.toBlob((b) => resolveBlob(b!), "image/jpeg", qualityValue);
+        // Convert to JPEG – if toBlob returns null, throw
+        const blobData = await new Promise<Blob>((resolveBlob, rejectBlob) => {
+          canvas!.toBlob((b) => {
+            if (b) {
+              resolveBlob(b);
+            } else {
+              rejectBlob(new Error("Canvas toBlob returned null"));
+            }
+          }, "image/jpeg", qualityValue);
         });
         
-        // Read as ArrayBuffer
         const buffer = await blobData.arrayBuffer();
         
-        // Cleanup immediately
+        // Cleanup
         URL.revokeObjectURL(objectUrl);
-        img.src = ""; // Clear image src to free memory
+        img.src = "";
         img = null;
         canvas.width = 0;
         canvas.height = 0;
@@ -421,7 +419,7 @@ const processImageForPdf = async (
         resolve(buffer);
         
       } catch (error) {
-        // Cleanup on error
+        // Cleanup
         if (img) {
           img.src = "";
           img = null;
@@ -431,7 +429,7 @@ const processImageForPdf = async (
           canvas.height = 0;
           canvas = null;
         }
-        // Fallback: try to read the original file as ArrayBuffer if it's a JPEG
+        // Fallback: try to read original file if it's JPEG
         if (file.type === "image/jpeg") {
           try {
             const buffer = await file.arrayBuffer();
@@ -449,13 +447,13 @@ const processImageForPdf = async (
       reject(new Error("Failed to read file"));
     };
     
-    // Read as ArrayBuffer directly - more efficient than DataURL
     reader.readAsArrayBuffer(file);
   });
 };
 
 /**
  * MOBILE BACKUP: Process a single image and create a one‑page PDF (ArrayBuffer)
+ * FIXED: Check image dimensions and draw error page if embedding fails
  */
 const processSingleImageToPdf = async (
   file: File,
@@ -468,7 +466,6 @@ const processSingleImageToPdf = async (
 ): Promise<ArrayBuffer> => {
   const { PDFDocument, rgb } = await import("pdf-lib");
   
-  // 1. Get image buffer (already compressed and rotated)
   const imageBuffer = await processImageForPdf(
     file,
     rotation,
@@ -478,10 +475,7 @@ const processSingleImageToPdf = async (
   );
   
   try {
-    // 2. Create a new PDF document (single page)
     const pdfDoc = await PDFDocument.create();
-    
-    // Paper dimensions
     const paperDimensions = PAPER_SIZES[paperSize];
     const MM_TO_PT = 2.83465;
     
@@ -501,10 +495,13 @@ const processSingleImageToPdf = async (
     // Embed the image
     const image = await pdfDoc.embedJpg(imageBuffer);
     
-    // Add a page
+    // If the image has zero dimensions, throw an error
+    if (image.width === 0 || image.height === 0) {
+      throw new Error("Embedded image has zero dimensions");
+    }
+    
     const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
     
-    // Calculate dimensions to fit within margins
     const imgWidth = image.width;
     const imgHeight = image.height;
     const imgAspectRatio = imgWidth / imgHeight;
@@ -529,13 +526,12 @@ const processSingleImageToPdf = async (
       height: finalHeightPt,
     });
     
-    // Save the PDF as bytes
     const pdfBytes = await pdfDoc.save();
-    
     return new Uint8Array(pdfBytes).buffer;
+    
   } catch (error) {
-    console.error("Error creating single-page PDF, creating blank page with error:", error);
-    // Create a blank page with error text
+    console.error("Error creating single-page PDF, creating page with error message:", error);
+    // Create a visible error page
     const pdfDoc = await PDFDocument.create();
     const paperDimensions = PAPER_SIZES[paperSize];
     const MM_TO_PT = 2.83465;
@@ -548,10 +544,12 @@ const processSingleImageToPdf = async (
       pageHeightPt = paperDimensions.height * MM_TO_PT;
     }
     const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-    page.drawText(`Image could not be loaded: ${file.name}`, {
+    // Draw error message in the center
+    const errorText = `Image "${file.name}" could not be loaded. Please try again.`;
+    page.drawText(errorText, {
       x: marginPoints,
       y: pageHeightPt / 2,
-      size: 16,
+      size: 18,
       color: rgb(1, 0, 0),
     });
     const pdfBytes = await pdfDoc.save();
@@ -1327,7 +1325,6 @@ const MobileSimpleUI = ({
                 return (
                   <div
                     key={file.id}
-                    // FIXED: use a block, not an expression
                     ref={(el) => { itemRefs.current[index] = el; }}
                     className={`flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl transition-shadow ${
                       isDragging ? 'shadow-2xl z-10' : ''
