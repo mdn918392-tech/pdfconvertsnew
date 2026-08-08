@@ -95,8 +95,7 @@ type CompressionQuality = "custom" | "high" | "medium" | "low" | "none";
 const MAX_SIZE_MOBILE = 10 * 1024 * 1024; // 10MB per file
 const MAX_FILES_MOBILE = 25; // 25 images max on mobile
 const AUTO_COMPRESS_THRESHOLD = 10 * 1024 * 1024; // 10MB threshold for auto-compression
-// REDUCED max dimension for mobile to avoid memory crashes
-const MAX_IMAGE_DIMENSION_MOBILE = 1024; // was 2048
+const MAX_IMAGE_DIMENSION_MOBILE = 1024; // Reduced to avoid memory crashes
 
 // Desktop - no limits
 const MAX_SIZE_DESKTOP = Number.MAX_SAFE_INTEGER;
@@ -276,11 +275,8 @@ const processImageForPdf = async (
   customQualityValue: number = 95,
   isMobile: boolean = false
 ): Promise<ArrayBuffer> => {
-  // On mobile, we always use canvas to ensure rotation is applied,
-  // even for small JPEGs. The quick path is removed for reliability.
-  // For desktop, we keep the quick path when rotation=0, but on mobile we always process.
-  // Actually, let's process all images through canvas on mobile to be 100% safe.
-  // We'll skip canvas only for desktop with rotation=0 and JPEG.
+  // On mobile, we always use canvas to ensure rotation is applied.
+  // Skip canvas only for desktop with rotation=0 and small JPEG.
   if (!isMobile && file.type === "image/jpeg" && rotation === 0 && file.size < 5 * 1024 * 1024) {
     try {
       const buffer = await file.arrayBuffer();
@@ -314,7 +310,6 @@ const processImageForPdf = async (
         URL.revokeObjectURL(objectUrl);
         
         let qualityValue = 0.95;
-        // Use lower max dimension on mobile to avoid memory crashes
         let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
         
         switch (quality) {
@@ -431,9 +426,7 @@ const processImageForPdf = async (
           canvas.height = 0;
           canvas = null;
         }
-        // Fallback: try to read original file if it's JPEG (but rotation will be lost)
-        // We'll still throw to trigger error page, because losing rotation is not acceptable.
-        // However, if rotation is 0, we can use the original.
+        // Fallback: try to read original file if it's JPEG and rotation is 0
         if (rotation === 0 && file.type === "image/jpeg") {
           try {
             const buffer = await file.arrayBuffer();
@@ -457,7 +450,7 @@ const processImageForPdf = async (
 
 /**
  * MOBILE BACKUP: Process a single image and create a one‑page PDF (ArrayBuffer)
- * FIXED: Check image dimensions and draw error page if embedding fails
+ * FIXED: Added proper delays and error handling for mobile
  */
 const processSingleImageToPdf = async (
   file: File,
@@ -466,9 +459,16 @@ const processSingleImageToPdf = async (
   orientation: Orientation,
   marginPoints: number,
   quality: CompressionQuality,
-  customQualityValue: number
+  customQualityValue: number,
+  index: number,
+  total: number
 ): Promise<ArrayBuffer> => {
   const { PDFDocument, rgb } = await import("pdf-lib");
+  
+  // Add delay between images to prevent memory issues on mobile
+  if (index > 0) {
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
   
   const imageBuffer = await processImageForPdf(
     file,
@@ -499,7 +499,6 @@ const processSingleImageToPdf = async (
     // Embed the image
     const image = await pdfDoc.embedJpg(imageBuffer);
     
-    // If the image has zero dimensions, throw an error
     if (image.width === 0 || image.height === 0) {
       throw new Error("Embedded image has zero dimensions");
     }
@@ -548,7 +547,6 @@ const processSingleImageToPdf = async (
       pageHeightPt = paperDimensions.height * MM_TO_PT;
     }
     const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
-    // Draw error message in the center
     const errorText = `Image "${file.name}" could not be loaded. Please try again.`;
     page.drawText(errorText, {
       x: marginPoints,
@@ -563,6 +561,7 @@ const processSingleImageToPdf = async (
 
 /**
  * MOBILE BACKUP: Merge multiple PDF byte arrays into one final PDF
+ * FIXED: Added proper error handling and delays
  */
 const mergePdfBuffers = async (pdfBuffers: ArrayBuffer[]): Promise<Blob> => {
   const { PDFDocument } = await import("pdf-lib");
@@ -591,6 +590,11 @@ const mergePdfBuffers = async (pdfBuffers: ArrayBuffer[]): Promise<Blob> => {
         color: rgb(1, 0, 0),
       });
     }
+    
+    // Small delay between merges for mobile stability
+    if (i % 3 === 0) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
   }
   
   const mergedBytes = await mergedPdf.save();
@@ -600,7 +604,6 @@ const mergePdfBuffers = async (pdfBuffers: ArrayBuffer[]): Promise<Blob> => {
 
 /**
  * OPTIMIZED: Memory-efficient PDF creation (desktop pipeline)
- * Processes and embeds one image at a time to minimize memory usage
  */
 const createPdfFromImages = async (
   imageBuffers: ArrayBuffer[],
@@ -615,7 +618,6 @@ const createPdfFromImages = async (
     
     const pdfDoc = await PDFDocument.create();
     
-    // Get paper dimensions in points
     const paperDimensions = PAPER_SIZES[paperSize];
     const MM_TO_PT = 2.83465;
     
@@ -633,27 +635,20 @@ const createPdfFromImages = async (
     const availableWidthPt = pageWidthPt - (marginPt * 2);
     const availableHeightPt = pageHeightPt - (marginPt * 2);
     
-    // Process images one at a time to minimize memory
     const totalImages = imageBuffers.length;
     
     for (let i = 0; i < totalImages; i++) {
       try {
         const buffer = imageBuffers[i];
-        
-        // Embed image - this creates a copy in the PDF
         const image = await pdfDoc.embedJpg(buffer);
-        
-        // Add page
         const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
         
-        // Calculate dimensions
         const imgWidth = image.width;
         const imgHeight = image.height;
         const imgAspectRatio = imgWidth / imgHeight;
         const availableAspectRatio = availableWidthPt / availableHeightPt;
         
         let finalWidthPt: number, finalHeightPt: number;
-        
         if (imgAspectRatio > availableAspectRatio) {
           finalWidthPt = availableWidthPt;
           finalHeightPt = availableWidthPt / imgAspectRatio;
@@ -665,7 +660,6 @@ const createPdfFromImages = async (
         const xPt = marginPt + (availableWidthPt - finalWidthPt) / 2;
         const yPt = marginPt + (availableHeightPt - finalHeightPt) / 2;
         
-        // Draw image
         page.drawImage(image, {
           x: xPt,
           y: yPt,
@@ -673,19 +667,17 @@ const createPdfFromImages = async (
           height: finalHeightPt,
         });
         
-        // Report progress
         if (onProgress) {
           onProgress(i + 1, totalImages);
         }
         
-        // Allow garbage collection between images
+        // Small delay for memory management
         if (i % 3 === 0 && isMobile) {
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
         
       } catch (error) {
         console.error(`Failed to embed image ${i + 1}:`, error);
-        // Add blank page with error text
         const page = pdfDoc.addPage([pageWidthPt, pageHeightPt]);
         page.drawText(`Failed to load image ${i + 1}`, {
           x: marginPt,
@@ -696,10 +688,7 @@ const createPdfFromImages = async (
       }
     }
     
-    // Save PDF
     const pdfBytes = await pdfDoc.save();
-    
-    // Cleanup - release image buffers
     imageBuffers.length = 0;
     
     if (!pdfBytes || pdfBytes.length === 0) {
@@ -1113,7 +1102,7 @@ const ReplaceImageModal = ({
   );
 };
 
-// -------------------- MOBILE SIMPLE UI (UPDATED - FIXED REF) --------------------
+// -------------------- MOBILE SIMPLE UI (UPDATED TOUCH HANDLING) --------------------
 interface MobileSimpleUIProps {
   files: FileWithPreview[];
   onFilesUpdate: (files: File[]) => void;
@@ -1163,28 +1152,49 @@ const MobileSimpleUI = ({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragStartY, setDragStartY] = useState<number>(0);
   const [dragOffsetY, setDragOffsetY] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState(false);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const DRAG_THRESHOLD = 15; // increased for better scroll/drag differentiation
 
   const handleTouchStart = useCallback((e: React.TouchEvent, index: number) => {
     const touch = e.touches[0];
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
     setDragIndex(index);
     setDragStartY(touch.clientY);
     setDragOffsetY(0);
-    e.preventDefault();
+    setIsDragging(false);
+    // Do not prevent default – allows scroll if needed
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (dragIndex === null) return;
-    e.preventDefault();
-
     const touch = e.touches[0];
-    const deltaY = touch.clientY - dragStartY;
-    setDragOffsetY(deltaY);
+    const deltaX = touch.clientX - touchStartX.current;
+    const deltaY = touch.clientY - touchStartY.current;
+    
+    // If we haven't started dragging yet, check if movement exceeds threshold
+    if (!isDragging) {
+      if (Math.abs(deltaX) < DRAG_THRESHOLD && Math.abs(deltaY) < DRAG_THRESHOLD) {
+        return; // Still within threshold, do nothing
+      }
+      // We are now dragging
+      setIsDragging(true);
+      e.preventDefault(); // Prevent scroll once we start dragging
+    } else {
+      e.preventDefault(); // Keep preventing scroll
+    }
+
+    const deltaYFromStart = touch.clientY - dragStartY;
+    setDragOffsetY(deltaYFromStart);
 
     const draggedElement = itemRefs.current[dragIndex];
     if (!draggedElement) return;
 
+    // Check for swaps
     for (let i = 0; i < itemRefs.current.length; i++) {
       if (i === dragIndex) continue;
       const otherEl = itemRefs.current[i];
@@ -1192,7 +1202,7 @@ const MobileSimpleUI = ({
       const otherRect = otherEl.getBoundingClientRect();
       const otherMiddle = otherRect.top + otherRect.height / 2;
       const draggedRect = draggedElement.getBoundingClientRect();
-      const draggedMiddle = draggedRect.top + draggedRect.height / 2 + deltaY;
+      const draggedMiddle = draggedRect.top + draggedRect.height / 2 + deltaYFromStart;
 
       if (draggedMiddle < otherMiddle && dragIndex > i) {
         onReorder(dragIndex, i);
@@ -1209,12 +1219,20 @@ const MobileSimpleUI = ({
         break;
       }
     }
-  }, [dragIndex, dragStartY, onReorder]);
+  }, [dragIndex, dragStartY, onReorder, isDragging]);
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    // If we were not dragging (i.e., just a tap), treat as expand preview
+    if (!isDragging && dragIndex !== null) {
+      const file = files[dragIndex];
+      if (file) {
+        onExpandImage(file);
+      }
+    }
     setDragIndex(null);
     setDragOffsetY(0);
-  }, []);
+    setIsDragging(false);
+  }, [isDragging, dragIndex, files, onExpandImage]);
 
   // ----- RENDER: PDF Ready state (only Download + Convert New) -----
   if (pdfBlob) {
@@ -1321,21 +1339,21 @@ const MobileSimpleUI = ({
 
             <div
               ref={containerRef}
-              className="max-h-96 overflow-y-auto space-y-3 touch-none"
+              className="max-h-[60vh] overflow-y-auto space-y-3"
             >
               {files.map((file, index) => {
-                const isDragging = dragIndex === index;
-                const translateY = isDragging ? dragOffsetY : 0;
+                const isDraggingItem = dragIndex === index;
+                const translateY = isDraggingItem ? dragOffsetY : 0;
                 return (
                   <div
                     key={file.id}
                     ref={(el) => { itemRefs.current[index] = el; }}
                     className={`flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl transition-shadow ${
-                      isDragging ? 'shadow-2xl z-10' : ''
+                      isDraggingItem ? 'shadow-2xl z-10' : ''
                     }`}
                     style={{
                       transform: `translateY(${translateY}px)`,
-                      transition: isDragging ? 'none' : 'transform 0.2s',
+                      transition: isDraggingItem ? 'none' : 'transform 0.2s',
                     }}
                     onTouchStart={(e) => handleTouchStart(e, index)}
                     onTouchMove={handleTouchMove}
@@ -1407,7 +1425,7 @@ const MobileSimpleUI = ({
               })}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-              👆 Hold any image and drag to reorder
+              👆 Tap to preview • Drag to reorder
             </p>
           </div>
 
@@ -1507,6 +1525,7 @@ export default function JpgToPdf() {
   const [autoCompressionActive, setAutoCompressionActive] = useState(false);
   const [currentProcessingImage, setCurrentProcessingImage] = useState(0);
   const [totalProcessingImages, setTotalProcessingImages] = useState(0);
+  const [isPdfReady, setIsPdfReady] = useState(false);
 
   // Limits
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1608,6 +1627,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
   };
 
   // Handle quality change
@@ -1619,6 +1639,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
   };
 
   // Handle custom quality change
@@ -1630,6 +1651,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
   };
 
   // Handle paper size change
@@ -1641,6 +1663,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
   };
 
   // Handle orientation change
@@ -1663,6 +1686,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
     
     console.log(`✅ Orientation changed to ${orient} - PDF invalidated`);
   };
@@ -1676,6 +1700,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
   };
 
   // Remove file
@@ -1698,6 +1723,7 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
+      setIsPdfReady(false);
     },
     [rotatedUrls]
   );
@@ -1746,6 +1772,7 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
+      setIsPdfReady(false);
       setReplacingImageId(null);
       setShowReplaceOptions(null);
     },
@@ -1780,6 +1807,7 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
+      setIsPdfReady(false);
     },
     [files, draggedIndex, isMobile]
   );
@@ -1800,6 +1828,7 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
+      setIsPdfReady(false);
     },
     [files, isMobile]
   );
@@ -1820,6 +1849,7 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
+      setIsPdfReady(false);
     },
     [files, isMobile]
   );
@@ -1833,6 +1863,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
   }, [files]);
 
   const sortByNameDesc = useCallback(() => {
@@ -1843,6 +1874,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
   }, [files]);
 
   // Reorder handler for mobile touch drag
@@ -1857,6 +1889,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
   }, [files]);
 
   // Handle rotate file
@@ -1887,6 +1920,7 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
+      setIsPdfReady(false);
 
       if (expandedImage?.id === id) {
         setExpandedImage((prev) =>
@@ -1914,6 +1948,7 @@ export default function JpgToPdf() {
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
+      setIsPdfReady(false);
 
       Object.values(rotatedUrls).forEach((url) => {
         if (url.startsWith("blob:")) {
@@ -1978,6 +2013,7 @@ export default function JpgToPdf() {
         setShowChangesWarning(false);
         setProcessingError(null);
         setProgress(0);
+        setIsPdfReady(false);
       } catch (error) {
         console.error("File processing error:", error);
         setProcessingError("Error processing files. Please try again.");
@@ -2125,13 +2161,10 @@ export default function JpgToPdf() {
     return new Uint8Array(pdfBytes).buffer;
   };
 
-  // ----- MAIN CONVERT FUNCTION -----
-  // Desktop uses the original pipeline (createPdfFromImages)
-  // Mobile uses the backup pipeline (single-page PDFs + merge)
+  // ----- MAIN CONVERT FUNCTION (FIXED FOR MOBILE - SLOW AND STEADY) -----
   const handleConvert = async () => {
     if (files.length === 0) return;
 
-    // Mobile limit check
     if (isMobile && files.length > MAX_FILES_MOBILE) {
       setProcessingError(
         `Mobile conversion limited to ${MAX_FILES_MOBILE} images. Please use desktop for more.`
@@ -2139,6 +2172,7 @@ export default function JpgToPdf() {
       return;
     }
 
+    // Reset states
     setConverting(true);
     setPdfBlob(null);
     setOriginalStateHash("");
@@ -2148,6 +2182,7 @@ export default function JpgToPdf() {
     setProgress(0);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(files.length);
+    setIsPdfReady(false);
 
     try {
       let filesToProcess = [...files];
@@ -2158,7 +2193,8 @@ export default function JpgToPdf() {
 
       console.log(`Converting ${filesToProcess.length} images on ${isMobile ? 'mobile' : 'desktop'}`);
 
-      // Step 1: Progress update
+      // Initial delay to allow UI to update
+      await new Promise(resolve => setTimeout(resolve, 100));
       setProgress(5);
 
       const marginPoints = isMobile ? 18 : {
@@ -2170,17 +2206,23 @@ export default function JpgToPdf() {
       let finalBlob: Blob;
 
       if (isMobile) {
-        // ========== MOBILE BACKUP PIPELINE ==========
+        // MOBILE: Process one image at a time with delays
         const tempPdfBuffers: ArrayBuffer[] = [];
 
         for (let i = 0; i < filesToProcess.length; i++) {
           const fileWithPreview = filesToProcess[i];
-          try {
-            const processingProgress = 5 + ((i + 1) / filesToProcess.length) * 70;
-            setProgress(Math.floor(processingProgress));
-            setCurrentProcessingImage(i + 1);
+          
+          // Update progress BEFORE processing
+          const processingProgress = 5 + ((i + 1) / filesToProcess.length) * 70;
+          setProgress(Math.min(processingProgress, 75));
+          setCurrentProcessingImage(i + 1);
+          
+          // Small delay to prevent UI freezing
+          await new Promise(resolve => setTimeout(resolve, 50));
 
-            // Create a single‑page PDF for this image
+          try {
+            console.log(`Processing image ${i + 1}/${filesToProcess.length}: ${fileWithPreview.file.name}`);
+            
             const pdfBuffer = await processSingleImageToPdf(
               fileWithPreview.file,
               fileWithPreview.rotation,
@@ -2188,38 +2230,49 @@ export default function JpgToPdf() {
               orientation,
               marginPoints,
               compressionQuality,
-              customQualityValue
+              customQualityValue,
+              i,
+              filesToProcess.length
             );
 
             tempPdfBuffers.push(pdfBuffer);
+            console.log(`✅ Image ${i + 1} processed successfully`);
 
-            // Allow garbage collection between images
-            if (i % 2 === 0) {
-              await new Promise(resolve => setTimeout(resolve, 20));
-            }
           } catch (error) {
             console.error(`Failed to process image ${i + 1} for PDF:`, error);
-            // Create a blank page PDF as fallback
             try {
               const blankPdf = await createBlankPagePdf(paperSize, orientation, marginPoints);
               tempPdfBuffers.push(blankPdf);
+              console.log(`⚠️ Blank page created for image ${i + 1}`);
             } catch (blankErr) {
               console.warn(`Skipping page ${i + 1} due to error`);
             }
           }
+          
+          // CRITICAL: Delay between images to prevent memory issues and blank pages
+          // This ensures each image is fully processed before moving to the next
+          await new Promise(resolve => setTimeout(resolve, 350));
         }
 
         if (tempPdfBuffers.length === 0) {
           throw new Error("No pages could be generated.");
         }
 
+        console.log(`Merging ${tempPdfBuffers.length} PDF pages...`);
         setProgress(80);
+        
+        // Small delay before merge
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         finalBlob = await mergePdfBuffers(tempPdfBuffers);
+        
+        // Clear buffer to free memory
         tempPdfBuffers.length = 0;
-        setProgress(100);
+        
+        console.log("PDF merged successfully");
 
       } else {
-        // ========== DESKTOP PIPELINE ==========
+        // DESKTOP: Process images with canvas
         const imageBuffers: ArrayBuffer[] = [];
         const totalImages = filesToProcess.length;
 
@@ -2227,7 +2280,7 @@ export default function JpgToPdf() {
           const fileWithPreview = filesToProcess[i];
           try {
             const processingProgress = 5 + ((i + 1) / totalImages) * 45;
-            setProgress(Math.floor(processingProgress));
+            setProgress(Math.min(processingProgress, 50));
             setCurrentProcessingImage(i + 1);
 
             const buffer = await processImageForPdf(
@@ -2239,8 +2292,10 @@ export default function JpgToPdf() {
             );
 
             imageBuffers.push(buffer);
-            if (i % 2 === 0) {
-              await new Promise(resolve => setTimeout(resolve, 10));
+            
+            // Small delay for memory management
+            if (i % 3 === 0) {
+              await new Promise(resolve => setTimeout(resolve, 20));
             }
           } catch (error) {
             console.error(`Failed to process image ${i + 1}:`, error);
@@ -2260,36 +2315,43 @@ export default function JpgToPdf() {
           false,
           (current, total) => {
             const pdfProgress = 50 + ((current / total) * 45);
-            setProgress(Math.floor(pdfProgress));
+            setProgress(Math.min(pdfProgress, 95));
           }
         );
         imageBuffers.length = 0;
-        setProgress(100);
       }
 
+      // Validate final blob
       if (!finalBlob || finalBlob.size === 0) {
         throw new Error("Generated PDF is empty");
       }
 
-      setTimeout(() => {
-        setPdfBlob(finalBlob);
-        setOriginalStateHash(calculateStateHash());
-        setShowChangesWarning(false);
-        setConverting(false);
-        setSizeLimitExceeded(false);
-        setShowCompressionInfo(false);
+      console.log(`✅ PDF generated: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
+      
+      // Final delay before showing PDF
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Set PDF and mark as ready
+      setPdfBlob(finalBlob);
+      setOriginalStateHash(calculateStateHash());
+      setShowChangesWarning(false);
+      setConverting(false);
+      setSizeLimitExceeded(false);
+      setShowCompressionInfo(false);
+      setIsPdfReady(true);
+      setProgress(100);
 
-        const totalOriginalSize = filesToProcess.reduce(
-          (sum, f) => sum + f.file.size,
-          0
-        );
+      const totalOriginalSize = filesToProcess.reduce(
+        (sum, f) => sum + f.file.size,
+        0
+      );
 
-        console.log(`\n=== PDF Generation Complete ===`);
-        console.log(`Device: ${isMobile ? 'Mobile (backup pipeline)' : 'Desktop'}`);
-        console.log(`Original: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`PDF: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`Pages: ${filesToProcess.length}`);
-      }, 300);
+      console.log(`\n=== PDF Generation Complete ===`);
+      console.log(`Device: ${isMobile ? 'Mobile (backup pipeline)' : 'Desktop'}`);
+      console.log(`Original: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`PDF: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`Pages: ${filesToProcess.length}`);
+      console.log(`Status: READY`);
 
     } catch (err) {
       console.error("Conversion error:", err);
@@ -2308,6 +2370,7 @@ export default function JpgToPdf() {
       setShowCompressionInfo(false);
       setPdfBlob(null);
       setOriginalStateHash("");
+      setIsPdfReady(false);
     }
   };
 
@@ -2369,6 +2432,7 @@ export default function JpgToPdf() {
     setAutoCompressionActive(false);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(0);
+    setIsPdfReady(false);
   };
 
   // Handle rotate in fullscreen
@@ -2402,6 +2466,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
+    setIsPdfReady(false);
   };
 
   const displayFiles = !isMobile && reverseOrder ? [...files].reverse() : files;
@@ -3639,7 +3704,7 @@ export default function JpgToPdf() {
                         </motion.div>
                       )}
 
-                      {pdfBlob && !converting && (
+                      {pdfBlob && !converting && isPdfReady && (
                         <motion.div
                           key="download"
                           initial={{ opacity: 0, y: 20 }}
