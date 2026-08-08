@@ -911,7 +911,7 @@ const DraggableItem = ({
   );
 };
 
-// Image Container Component (desktop only)
+// Image Container Component
 const ImageContainer = ({ 
   file, 
   imageUrl, 
@@ -1087,7 +1087,7 @@ const ReplaceImageModal = ({
   );
 };
 
-// -------------------- MOBILE SIMPLE UI (NO DRAG, NO PREVIEW, NO ROTATION) --------------------
+// -------------------- MOBILE SIMPLE UI (MINIMAL: only upload, orientation, convert) --------------------
 interface MobileSimpleUIProps {
   files: FileWithPreview[];
   onFilesUpdate: (files: File[]) => void;
@@ -1100,11 +1100,6 @@ interface MobileSimpleUIProps {
   onDownload: () => void;
   onClear: () => void;
   autoCompressionActive: boolean;
-  onSortByNameAsc: () => void;
-  onSortByNameDesc: () => void;
-  onMoveUp: (index: number) => void;
-  onMoveDown: (index: number) => void;
-  onRemoveFile: (file: FileWithPreview) => void;
 }
 
 const MobileSimpleUI = ({
@@ -1119,11 +1114,6 @@ const MobileSimpleUI = ({
   onDownload,
   onClear,
   autoCompressionActive,
-  onSortByNameAsc,
-  onSortByNameDesc,
-  onMoveUp,
-  onMoveDown,
-  onRemoveFile,
 }: MobileSimpleUIProps) => {
   // ----- If PDF is ready, show ONLY the success card -----
   if (pdfBlob) {
@@ -1162,7 +1152,7 @@ const MobileSimpleUI = ({
     );
   }
 
-  // ----- Otherwise, show the full UI (uploader, list, settings) -----
+  // ----- Otherwise, show minimal UI (uploader, orientation, convert) -----
   return (
     <div className="space-y-6">
       {/* Upload section */}
@@ -1200,96 +1190,6 @@ const MobileSimpleUI = ({
 
       {files.length > 0 && (
         <>
-          {/* Image list with sorting and reorder controls */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-medium text-gray-900 dark:text-white">
-                {files.length} Image{files.length !== 1 ? 's' : ''}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={onSortByNameAsc}
-                  className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg"
-                >
-                  A→Z
-                </button>
-                <button
-                  onClick={onSortByNameDesc}
-                  className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg"
-                >
-                  Z→A
-                </button>
-                <button
-                  onClick={onClear}
-                  className="px-3 py-1 text-xs text-red-600 dark:text-red-400"
-                >
-                  Clear All
-                </button>
-              </div>
-            </div>
-
-            <div className="max-h-[60vh] overflow-y-auto space-y-3">
-              {files.map((file, index) => (
-                <div
-                  key={file.id}
-                  className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-xl"
-                >
-                  {/* Thumbnail (no click preview) */}
-                  <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
-                    {file.previewUrl && !file.previewError ? (
-                      <img
-                        src={file.previewUrl}
-                        alt={file.file.name}
-                        className="w-full h-full object-cover"
-                        style={{ transform: `rotate(${file.rotation}deg)` }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="w-6 h-6 text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {file.file.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {(file.file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-
-                  {/* Action buttons: only move up/down and remove (no rotation) */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      onClick={() => onMoveUp(index)}
-                      disabled={index === 0}
-                      className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg disabled:opacity-30"
-                    >
-                      <ChevronUp className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => onMoveDown(index)}
-                      disabled={index === files.length - 1}
-                      className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg disabled:opacity-30"
-                    >
-                      <ChevronDown className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => onRemoveFile(file)}
-                      className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-              Use ↑↓ buttons to reorder
-            </p>
-          </div>
-
           {/* Orientation selector */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -1724,6 +1624,20 @@ export default function JpgToPdf() {
   const sortByNameDesc = useCallback(() => {
     const sorted = [...files].sort((a, b) => b.file.name.localeCompare(a.file.name));
     setFiles(sorted);
+    setPdfBlob(null);
+    setOriginalStateHash("");
+    setShowChangesWarning(false);
+    setProcessingError(null);
+    setProgress(0);
+  }, [files]);
+
+  // Reorder handler for mobile touch drag
+  const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    const newFiles = [...files];
+    const [moved] = newFiles.splice(fromIndex, 1);
+    newFiles.splice(toIndex, 0, moved);
+    setFiles(newFiles);
     setPdfBlob(null);
     setOriginalStateHash("");
     setShowChangesWarning(false);
@@ -2584,16 +2498,11 @@ export default function JpgToPdf() {
                 onDownload={handleDownload}
                 onClear={handleConvertMore}
                 autoCompressionActive={autoCompressionActive}
-                onSortByNameAsc={sortByNameAsc}
-                onSortByNameDesc={sortByNameDesc}
-                onMoveUp={handleMoveUp}
-                onMoveDown={handleMoveDown}
-                onRemoveFile={handleRemoveFile}
               />
             ) : (
-              /* Desktop Full UI */
+              /* Desktop Full UI (unchanged) */
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
-                {/* Desktop UI - unchanged */}
+                {/* Desktop UI - copy from earlier, unchanged */}
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-4">
                     <Upload className="w-6 h-6 text-blue-500" />
