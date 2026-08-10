@@ -72,6 +72,17 @@ export default function Home() {
       href: "/extract-pages",
       path: "/tools/extract-pages",
     },
+
+    {
+  id: "organize-pdf",
+  name: "Organize PDF",
+  description: "Reorder, rotate, delete, and reverse PDF pages",
+  category: "pdf",
+  icon: "🗂️",
+  color: "from-blue-500 to-cyan-500",
+  href: "/organize-pdf",
+  path: "/organize-pdf",
+},
     {
       id: "remove-pages",
       name: "Remove Pages",

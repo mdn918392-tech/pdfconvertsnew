@@ -1380,10 +1380,10 @@ export default function JpgToPdf() {
 
   // Scroll to top when PDF is generated
   useEffect(() => {
-    if (pdfBlob) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [pdfBlob]);
+  if (pdfBlob && isMobile) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}, [pdfBlob, isMobile]);
 
   // Handle margin change
   const handleMarginChange = (margin: MarginSize) => {

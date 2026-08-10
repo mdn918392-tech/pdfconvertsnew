@@ -141,6 +141,15 @@
 
   <priority>0.90</priority>
 </url>
+
+<url>
+  <loc>https://www.pdfswift.online/organize-pdf</loc>
+  <lastmod>2026-08-10T00:00:00+00:00</lastmod>
+  <changefreq>monthly</changefreq>
+
+  <priority>0.90</priority>
+</url>
+
 <url>
   <loc>https://www.pdfswift.online/compress-image</loc>
  <lastmod>2026-01-21T00:00:00+00:00</lastmod>
