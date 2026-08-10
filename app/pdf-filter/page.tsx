@@ -84,6 +84,18 @@ import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
 
+// --- Import pdfjs-dist with proper configuration ---
+import * as pdfjsLib from "pdfjs-dist";
+
+// --- Set PDF.js worker to local file ---
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+  } catch (error) {
+    console.warn("Failed to set PDF.js worker source:", error);
+  }
+}
+
 // --- Types ---
 interface FilterEffect {
   id: string;
@@ -1352,9 +1364,6 @@ export default function ImageFilterTool() {
       
       try {
         const arrayBuffer = await pdfFile.arrayBuffer();
-        const pdfjsLib = await import("pdfjs-dist");
-        const workerUrl = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
         const { getDocument } = pdfjsLib;
         const pdf = await getDocument({ data: arrayBuffer }).promise;
 

@@ -620,12 +620,17 @@ export default function PdfToImage() {
   const [pdfWorkerLoaded, setPdfWorkerLoaded] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Initialize pdf.js worker - SIMPLIFIED APPROACH
+  // Initialize pdf.js worker - use local worker
   useEffect(() => {
-    const version = '3.11.174';
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
-    setPdfWorkerLoaded(true);
-    console.log('PDF worker initialized with CDN');
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+        setPdfWorkerLoaded(true);
+        console.log('PDF worker initialized with local worker');
+      } catch (error) {
+        console.warn("Failed to set PDF.js worker source:", error);
+      }
+    }
   }, []);
 
   // Detect device type

@@ -468,11 +468,16 @@ export default function OrganizePdf() {
     setIsConverted(false);
   }, []);
 
-  // Initialize pdf.js worker
+  // Initialize pdf.js worker - use local worker
   useEffect(() => {
-    const version = '3.11.174';
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
-    setPdfWorkerLoaded(true);
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+        setPdfWorkerLoaded(true);
+      } catch (error) {
+        console.warn("Failed to set PDF.js worker source:", error);
+      }
+    }
   }, []);
 
   // Detect device type

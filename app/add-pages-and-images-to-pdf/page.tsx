@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -64,10 +62,10 @@ import FAQSchema from "./FAQSchema";
 // Import pdfjs-dist with proper configuration
 import * as pdfjsLib from "pdfjs-dist";
 
-// Check if we're in browser before setting worker
+// Check if we're in browser before setting worker - use local worker
 if (typeof window !== "undefined" && typeof document !== "undefined") {
   try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
   } catch (error) {
     console.warn("Failed to set PDF.js worker source:", error);
   }

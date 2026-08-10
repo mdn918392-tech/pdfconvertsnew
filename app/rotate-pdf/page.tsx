@@ -55,7 +55,8 @@ import * as pdfjsLib from "pdfjs-dist";
 // Check if we're in browser before setting worker
 if (typeof window !== "undefined" && typeof document !== "undefined") {
   try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // Use local worker instead of CDN
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
   } catch (error) {
     console.warn("Failed to set PDF.js worker source:", error);
   }

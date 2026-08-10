@@ -242,7 +242,6 @@ const ImagePreview = ({
         clearTimeout(timeoutId);
         setError(true);
         setLoading(false);
-        // Mobile पर console error न दिखाएं
         if (process.env.NODE_ENV === 'development') {
           console.warn('Failed to load image:', filename);
         }
@@ -306,6 +305,12 @@ const ImagePreview = ({
     setError(true);
   };
 
+  // 🔥 FIX: Prevent default drag behavior on the entire image container
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Allow scrolling within the container but prevent dragging the image away
+    e.preventDefault();
+  };
+
   return (
     <>
       <AnimatePresence>
@@ -346,6 +351,8 @@ const ImagePreview = ({
                     alt={filename}
                     className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
                     onError={handleImageError}
+                    draggable={false} // 🔥 FIX
+                    onDragStart={(e) => e.preventDefault()} // 🔥 FIX
                   />
                 )}
               </div>
@@ -361,6 +368,8 @@ const ImagePreview = ({
         transition={{ delay: index * 0.05 }}
         whileHover={{ y: -5, scale: 1.02 }}
         className="relative group"
+        // 🔥 FIX: prevent touchmove from dragging the image away
+        onTouchMove={handleTouchMove}
       >
         <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
           {/* Image Number Badge */}
@@ -372,6 +381,8 @@ const ImagePreview = ({
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
             onClick={() => previewUrl && !error && setPreviewOpen(true)}
+            // 🔥 FIX: prevent native drag on the container as well
+            onDragStart={(e) => e.preventDefault()}
           >
             {loading ? (
               <div className="w-full h-full flex items-center justify-center">
@@ -394,6 +405,8 @@ const ImagePreview = ({
                   alt={filename}
                   className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
                   onError={handleImageError}
+                  draggable={false} // 🔥 FIX
+                  onDragStart={(e) => e.preventDefault()} // 🔥 FIX
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                   <Eye className="w-8 h-8 text-white" />
@@ -1259,8 +1272,6 @@ export default function CompressImage() {
               )}
             </div>
 
-         
-
             {/* --- Results and Download Area --- */}
             {hasResults && (
               <motion.div
@@ -1272,7 +1283,7 @@ export default function CompressImage() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
                   <div className="flex items-center justify-center sm:justify-start">
                     <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg sm:rounded-xl shadow-lg">
-                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md-h-8 text-white" />
+                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
                     </div>
                   </div>
                   <div className="flex-1 text-center sm:text-left">
@@ -1458,7 +1469,8 @@ export default function CompressImage() {
                 </div>
               </div>
             </div>
-   <section className="mt-20">
+
+            <section className="mt-20">
               <h2 className="text-3xl font-bold text-center mb-10">
                 How to Compress Images Online
               </h2>
@@ -1504,6 +1516,7 @@ export default function CompressImage() {
                 </div>
               </div>
             </section>
+
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-6 md:mb-8">
