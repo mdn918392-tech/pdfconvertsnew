@@ -22,14 +22,14 @@ export default function Home() {
   const extendedTools: Tool[] = [
     // PDF Tools
     {
-      id: "jpg-to-pdf",
-      name: "JPG to PDF",
-      description: "Convert JPG images to PDF documents",
+      id: "merge-pdf",
+      name: "Merge PDF",
+      description: "Combine multiple PDF files into one",
       category: "pdf",
-      icon: "📄",
-      color: "from-blue-500 to-cyan-500",
-      href: "/jpg-to-pdf",
-      path: "/tools/jpg-to-pdf",
+      icon: "🔗",
+      color: "from-purple-500 to-pink-500",
+      href: "/merge-pdf",
+      path: "/tools/merge-pdf",
     },
     {
       id: "pdf-to-jpg",
@@ -41,16 +41,7 @@ export default function Home() {
       href: "/pdf-to-jpg",
       path: "/tools/pdf-to-jpg",
     },
-    {
-      id: "merge-pdf",
-      name: "Merge PDF",
-      description: "Combine multiple PDF files into one",
-      category: "pdf",
-      icon: "🔗",
-      color: "from-purple-500 to-pink-500",
-      href: "/merge-pdf",
-      path: "/tools/merge-pdf",
-    },
+    
     {
       id: "split-pdf",
       name: "Split PDF",
