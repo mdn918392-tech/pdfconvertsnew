@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Contact PDFSwift | Get in Touch & Send Feedback',
     description: 'Have questions or feedback? Reach out to PDFSwift.',
-    images: ['https://pdfswift.online/images/og-image-contact.jpg'],
+    
     creator: '@PDFSwift',
   },
 };
@@ -53,7 +53,7 @@ export default function ContactPage() {
 
         <div className="mt-8 text-center text-sm text-gray-600">
           <p>You can also reach us directly at:</p>
-          <a href="mailto:support@pdfswift.online" className="text-blue-600 hover:underline font-medium">
+          <a href="mailto:pdfswift94@gmail.com" className="text-blue-600 hover:underline font-medium">
             pdfswift94@gmail.com
           </a>
         </div>
