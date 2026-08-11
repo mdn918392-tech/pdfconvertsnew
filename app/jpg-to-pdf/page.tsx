@@ -1087,6 +1087,74 @@ const ReplaceImageModal = ({
   );
 };
 
+// -------------------- NEW: Conversion Error Modal --------------------
+const ConversionErrorModal = ({
+  failedImages,
+  onOk,
+}: {
+  failedImages: { id: string; name: string; error: string }[];
+  onOk: () => void;
+}) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      onClick={onOk}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6 border-b border-red-200 dark:border-red-800">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-8 h-8 text-red-500 flex-shrink-0" />
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                Some Images Failed to Render
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                The following images could not be processed and will appear as blank pages in the PDF.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 max-h-60 overflow-y-auto">
+          <ul className="space-y-2">
+            {failedImages.map((img) => (
+              <li key={img.id} className="flex items-start gap-2 text-sm">
+                <X className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="font-medium text-gray-800 dark:text-gray-200">{img.name}</span>
+                  <span className="text-gray-500 dark:text-gray-400 block text-xs">{img.error}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-sm text-gray-600 dark:text-gray-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+            <span className="font-semibold">💡 Tip:</span> Try re-uploading these images or use a different format (JPEG/PNG). You can also convert again after fixing them.
+          </p>
+        </div>
+
+        <div className="p-6 border-t border-gray-200 dark:border-gray-800 flex justify-end">
+          <button
+            onClick={onOk}
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 font-medium transition-all shadow-md"
+          >
+            OK, Got it
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+// ----------------------------------------------------------------
+
 // -------------------- MOBILE SIMPLE UI (MINIMAL: only upload, orientation, convert) --------------------
 interface MobileSimpleUIProps {
   files: FileWithPreview[];
@@ -1286,6 +1354,9 @@ export default function JpgToPdf() {
   const [autoCompressionActive, setAutoCompressionActive] = useState(false);
   const [currentProcessingImage, setCurrentProcessingImage] = useState(0);
   const [totalProcessingImages, setTotalProcessingImages] = useState(0);
+
+  // NEW: State for failed images during conversion
+  const [failedImages, setFailedImages] = useState<{ id: string; name: string; error: string }[]>([]);
 
   // Limits
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1719,6 +1790,8 @@ export default function JpgToPdf() {
       setCompressing(true);
       setProcessingError(null);
       setSizeLimitExceeded(false);
+      // Reset failed images when new files are uploaded
+      setFailedImages([]);
 
       try {
         const needsAutoCompression = checkAutoCompressionNeeded(newFiles);
@@ -1911,7 +1984,7 @@ export default function JpgToPdf() {
     return new Uint8Array(pdfBytes).buffer;
   };
 
-  // ----- MAIN CONVERT FUNCTION -----
+  // ----- MAIN CONVERT FUNCTION (UPDATED) -----
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -1931,6 +2004,8 @@ export default function JpgToPdf() {
     setProgress(0);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(files.length);
+    // Reset failed images before conversion
+    setFailedImages([]);
 
     try {
       let filesToProcess = [...files];
@@ -1950,6 +2025,7 @@ export default function JpgToPdf() {
       }[marginSize];
 
       let finalBlob: Blob;
+      const localFailedImages: { id: string; name: string; error: string }[] = [];
 
       if (isMobile) {
         const tempPdfBuffers: ArrayBuffer[] = [];
@@ -1977,7 +2053,14 @@ export default function JpgToPdf() {
               await new Promise(resolve => setTimeout(resolve, 20));
             }
           } catch (error) {
-            console.error(`Failed to process image ${i + 1} for PDF:`, error);
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`Failed to process image ${i + 1} (${fileWithPreview.file.name}):`, error);
+            localFailedImages.push({
+              id: fileWithPreview.id,
+              name: fileWithPreview.file.name,
+              error: errorMsg,
+            });
+            // Still add a blank page so PDF isn't missing pages
             try {
               const blankPdf = await createBlankPagePdf(paperSize, orientation, marginPoints);
               tempPdfBuffers.push(blankPdf);
@@ -2020,7 +2103,14 @@ export default function JpgToPdf() {
               await new Promise(resolve => setTimeout(resolve, 10));
             }
           } catch (error) {
-            console.error(`Failed to process image ${i + 1}:`, error);
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`Failed to process image ${i + 1} (${fileWithPreview.file.name}):`, error);
+            localFailedImages.push({
+              id: fileWithPreview.id,
+              name: fileWithPreview.file.name,
+              error: errorMsg,
+            });
+            // We don't add a blank buffer here; the PDF creation will handle missing images by adding an error page.
           }
         }
 
@@ -2048,6 +2138,12 @@ export default function JpgToPdf() {
         throw new Error("Generated PDF is empty");
       }
 
+      // --- After successful PDF generation, check for failures ---
+      if (localFailedImages.length > 0) {
+        setFailedImages(localFailedImages);
+        // Show the error modal automatically
+      }
+
       setTimeout(() => {
         setPdfBlob(finalBlob);
         setOriginalStateHash(calculateStateHash());
@@ -2066,6 +2162,9 @@ export default function JpgToPdf() {
         console.log(`Original: ${(totalOriginalSize / 1024 / 1024).toFixed(2)} MB`);
         console.log(`PDF: ${(finalBlob.size / 1024 / 1024).toFixed(2)} MB`);
         console.log(`Pages: ${filesToProcess.length}`);
+        if (localFailedImages.length > 0) {
+          console.log(`⚠️ ${localFailedImages.length} image(s) failed to render. See the error modal for details.`);
+        }
       }, 300);
 
     } catch (err) {
@@ -2146,6 +2245,7 @@ export default function JpgToPdf() {
     setAutoCompressionActive(false);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(0);
+    setFailedImages([]); // clear failed images
   };
 
   // Handle rotate in fullscreen
@@ -2209,6 +2309,16 @@ export default function JpgToPdf() {
             onReplace={(file) => handleReplaceImage(replacingImageId, file)}
             onCancel={() => setReplacingImageId(null)}
             isMobile={isMobile}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* NEW: Conversion Error Modal */}
+      <AnimatePresence>
+        {failedImages.length > 0 && (
+          <ConversionErrorModal
+            failedImages={failedImages}
+            onOk={() => setFailedImages([])}
           />
         )}
       </AnimatePresence>

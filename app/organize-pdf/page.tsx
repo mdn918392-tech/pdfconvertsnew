@@ -283,7 +283,8 @@ const PageThumbnail = ({
         onTouchEnd={(e) => {
           if (onTouchEnd) onTouchEnd(e, index);
         }}
-        className="touch-none select-none cursor-grab active:cursor-grabbing"
+        // Removed "touch-none" to allow scrolling; we control scrolling via JS
+        className="select-none cursor-grab active:cursor-grabbing"
       >
         <div
           className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden 
@@ -447,15 +448,16 @@ export default function OrganizePdf() {
   const [showPageNumbers, setShowPageNumbers] = useState(true);
   const [isReversed, setIsReversed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);   // <--- FIXED: added missing ref
 
-  // Touch drag state
-  const [touchDragIndex, setTouchDragIndex] = useState<number | null>(null);
-  const [touchOverIndex, setTouchOverIndex] = useState<number | null>(null);
-  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number } | null>(null);
-  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null); // for visual feedback
-  const gridRef = useRef<HTMLDivElement>(null);
-  // Ghost element ref
-  const ghostRef = useRef<HTMLDivElement>(null);
+  // ----- NEW MOBILE DRAG STATE -----
+  const [isDragMode, setIsDragMode] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  const [lastTapTime, setLastTapTime] = useState(0);
+  const [lastTapPos, setLastTapPos] = useState<{ x: number; y: number } | null>(null);
+  const ghostRef = useRef<HTMLDivElement | null>(null);
+  // ----------------------------------
 
   // Conversion state
   const [convertedPdfBlob, setConvertedPdfBlob] = useState<Blob | null>(null);
@@ -744,30 +746,22 @@ export default function OrganizePdf() {
     resetConversionState();
   };
 
-  // --- Mobile Touch Drag Handlers ---
-  const handleTouchStart = (e: React.TouchEvent, index: number) => {
-    // Ignore if target is a button, input, etc.
-    const target = e.target as HTMLElement;
-    if (target.closest('button, input, a, .no-drag')) return;
-
-    const touch = e.touches[0];
-    if (!touch) return;
-
-    // Prevent default to avoid scrolling or other gestures
-    e.preventDefault();
-
-    setTouchDragIndex(index);
-    setTouchOverIndex(index);
-    setTouchStartPos({ x: touch.clientX, y: touch.clientY });
-    setDropTargetIndex(index); // highlight itself initially
-
-    // Create ghost element
+  // ----- NEW MOBILE TOUCH HANDLERS (Double‑tap to drag) -----
+  const createGhost = (e: React.TouchEvent, index: number) => {
+    // Remove any existing ghost
+    if (ghostRef.current) {
+      ghostRef.current.remove();
+      ghostRef.current = null;
+    }
     const ghost = document.createElement('div');
     ghost.className = 'fixed z-50 pointer-events-none w-48 h-64 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 opacity-80';
-    ghost.style.left = `${touch.clientX - 80}px`;
-    ghost.style.top = `${touch.clientY - 100}px`;
+    const touch = e.touches[0];
+    if (touch) {
+      ghost.style.left = `${touch.clientX - 80}px`;
+      ghost.style.top = `${touch.clientY - 100}px`;
+    }
     ghost.style.transform = 'scale(1.05)';
-    // Copy thumbnail content
+    // Copy thumbnail content from the page element
     const pageEl = (e.target as HTMLElement).closest('[data-page-index]');
     if (pageEl) {
       const thumbnail = pageEl.querySelector('.aspect-\\[3\\/4\\]');
@@ -779,71 +773,102 @@ export default function OrganizePdf() {
     ghostRef.current = ghost;
   };
 
-  // Global touch move and end are attached via useEffect
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    e.preventDefault(); // Prevent scrolling while dragging
+  const handleTouchStart = (e: React.TouchEvent, index: number) => {
+    // Ignore if target is a button, input, etc.
+    const target = e.target as HTMLElement;
+    if (target.closest('button, input, a, .no-drag')) return;
 
     const touch = e.touches[0];
-    if (!touch || touchDragIndex === null) return;
+    if (!touch) return;
 
-    // Update ghost position
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTime;
+    const pos = { x: touch.clientX, y: touch.clientY };
+
+    if (timeSinceLastTap < 300 && lastTapPos && 
+        Math.hypot(pos.x - lastTapPos.x, pos.y - lastTapPos.y) < 30) {
+      // Double tap detected → start drag mode
+      e.preventDefault(); // prevent scrolling when we start drag
+      setDragIndex(index);
+      setIsDragMode(true);
+      setDropTargetIndex(index);
+      createGhost(e, index);
+      // Reset tap info to avoid immediate re-trigger
+      setLastTapTime(0);
+      setLastTapPos(null);
+    } else {
+      // Single tap – store tap info, allow default (scrolling)
+      setLastTapTime(now);
+      setLastTapPos(pos);
+    }
+  };
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDragMode || dragIndex === null) return;
+    e.preventDefault(); // prevent scrolling while dragging
+
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    // Move ghost
     if (ghostRef.current) {
       ghostRef.current.style.left = `${touch.clientX - 80}px`;
       ghostRef.current.style.top = `${touch.clientY - 100}px`;
     }
 
-    // Find element under finger
+    // Find drop target
     const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
     if (elementUnder) {
       const pageContainer = elementUnder.closest('[data-page-index]');
       if (pageContainer) {
         const idx = parseInt(pageContainer.getAttribute('data-page-index') || '-1');
-        if (idx >= 0 && idx < allPages.length && idx !== touchDragIndex) {
-          setTouchOverIndex(idx);
+        if (idx >= 0 && idx < allPages.length && idx !== dragIndex) {
           setDropTargetIndex(idx);
-        } else if (idx === touchDragIndex) {
-          setTouchOverIndex(idx);
+        } else if (idx === dragIndex) {
           setDropTargetIndex(null);
         } else {
-          setTouchOverIndex(null);
           setDropTargetIndex(null);
         }
       } else {
-        setTouchOverIndex(null);
         setDropTargetIndex(null);
       }
     } else {
-      setTouchOverIndex(null);
       setDropTargetIndex(null);
     }
-  }, [touchDragIndex, allPages]);
+  }, [isDragMode, dragIndex, allPages]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
+    if (!isDragMode || dragIndex === null) {
+      return; // not dragging, allow default behavior
+    }
+    e.preventDefault(); // we handle the drop
+
     // Remove ghost
     if (ghostRef.current) {
       ghostRef.current.remove();
       ghostRef.current = null;
     }
 
-    // Finalize reorder if valid
-    if (touchDragIndex !== null && touchOverIndex !== null && touchDragIndex !== touchOverIndex) {
+    // Finalize reorder if dropped on a different index
+    if (dropTargetIndex !== null && dropTargetIndex !== dragIndex) {
       const newPages = [...allPages];
-      const [removed] = newPages.splice(touchDragIndex, 1);
-      newPages.splice(touchOverIndex, 0, removed);
+      const [removed] = newPages.splice(dragIndex, 1);
+      newPages.splice(dropTargetIndex, 0, removed);
       setAllPages(newPages);
       resetConversionState();
     }
 
-    // Reset touch states
-    setTouchDragIndex(null);
-    setTouchOverIndex(null);
-    setTouchStartPos(null);
+    // Reset drag state
+    setIsDragMode(false);
+    setDragIndex(null);
     setDropTargetIndex(null);
-  }, [touchDragIndex, touchOverIndex, allPages, resetConversionState]);
+    setLastTapTime(0);
+    setLastTapPos(null);
+  }, [isDragMode, dragIndex, dropTargetIndex, allPages, resetConversionState]);
 
-  // Attach global touchmove/touchend when dragging
+  // Attach/remove global touch listeners based on drag mode
   useEffect(() => {
-    if (touchDragIndex !== null) {
+    if (isDragMode) {
       document.addEventListener('touchmove', handleTouchMove, { passive: false });
       document.addEventListener('touchend', handleTouchEnd);
       document.addEventListener('touchcancel', handleTouchEnd);
@@ -858,10 +883,10 @@ export default function OrganizePdf() {
         }
       };
     }
-  }, [touchDragIndex, handleTouchMove, handleTouchEnd]);
+  }, [isDragMode, handleTouchMove, handleTouchEnd]);
+  // ------------------------------------------------
 
-  // ========== FIXED CONVERT FUNCTION ==========
-  // Combines original rotation + user rotation so exported PDF matches preview
+  // ========== CONVERT FUNCTION ==========
   const handleConvert = async () => {
     if (allPages.length === 0) {
       alert('No pages to convert. Please add some PDF files first.');
@@ -874,10 +899,8 @@ export default function OrganizePdf() {
     try {
       const newPdf = await PDFDocument.create();
       
-      // Cache loaded source PDFs by fileIndex
       const sourcePdfCache: { [key: number]: PDFDocument } = {};
 
-      // Iterate over allPages in the exact order (user's arranged order)
       for (const pageData of allPages) {
         const fileIndex = pageData.fileIndex;
         let sourcePdf = sourcePdfCache[fileIndex];
@@ -889,25 +912,18 @@ export default function OrganizePdf() {
           sourcePdfCache[fileIndex] = sourcePdf;
         }
 
-        // Get the source page to retrieve its original rotation
         const sourcePageIndex = pageData.pageNumber - 1;
         const sourcePage = sourcePdf.getPage(sourcePageIndex);
-        const originalRotation = sourcePage.getRotation().angle; // 0, 90, 180, 270
+        const originalRotation = sourcePage.getRotation().angle;
 
-        // Combine original rotation with user rotation
         const totalRotation = (originalRotation + pageData.rotation) % 360;
 
-        // Copy the page from source
         const [copiedPage] = await newPdf.copyPages(sourcePdf, [sourcePageIndex]);
-        
-        // Apply total rotation (original + user)
         copiedPage.setRotation(degrees(totalRotation));
-        
         newPdf.addPage(copiedPage);
       }
 
       const pdfBytes = await newPdf.save();
-      // Ensure we have a plain ArrayBuffer (not SharedArrayBuffer) for the Blob
       const buffer = new Uint8Array(pdfBytes).buffer;
       const blob = new Blob([buffer], { type: 'application/pdf' });
       
@@ -922,7 +938,6 @@ export default function OrganizePdf() {
       setDownloadLoading(false);
     }
   };
-  // ==========================================
 
   // Download the already converted PDF
   const handleDownload = () => {
@@ -944,7 +959,7 @@ export default function OrganizePdf() {
   const selectedCount = selectedPages.size;
 
   // Determine if touch dragging is active
-  const isTouchDragging = touchDragIndex !== null;
+  const isTouchDragging = isDragMode && dragIndex !== null;
 
   return (
     <>
@@ -1259,36 +1274,36 @@ export default function OrganizePdf() {
                     </div>
                   </div>
 
-                 {/* Page Grid */}
-<div
-  ref={gridRef}
-  className={`grid ${
-    isMobile
-      ? 'grid-cols-2'
-      : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
-  } gap-3 sm:gap-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl`}
->
-  {filteredPages.map((page, index) => (
-    <PageThumbnail
-      key={page.id}
-      page={page}
-      index={index}
-      isSelected={selectedPages.has(page.id)}
-      onSelect={() => handlePageSelect(page.id)}
-      onDelete={() => handleDeletePage(page.id)}
-      onRotateLeft={() => handleRotatePage(page.id, 'left')}
-      onRotateRight={() => handleRotatePage(page.id, 'right')}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDrop={handleDrop}
-      isDragging={draggingIndex === index}
-      isMobile={isMobile}
-      onTouchStart={handleTouchStart}
-      isTouchDragging={touchDragIndex === index}
-      isDropTarget={dropTargetIndex === index}
-    />
-  ))}
-</div>
+                  {/* Page Grid */}
+                  <div
+                    ref={gridRef}
+                    className={`grid ${
+                      isMobile
+                        ? 'grid-cols-2'
+                        : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+                    } gap-3 sm:gap-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl`}
+                  >
+                    {filteredPages.map((page, index) => (
+                      <PageThumbnail
+                        key={page.id}
+                        page={page}
+                        index={index}
+                        isSelected={selectedPages.has(page.id)}
+                        onSelect={() => handlePageSelect(page.id)}
+                        onDelete={() => handleDeletePage(page.id)}
+                        onRotateLeft={() => handleRotatePage(page.id, 'left')}
+                        onRotateRight={() => handleRotatePage(page.id, 'right')}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onDrop={handleDrop}
+                        isDragging={draggingIndex === index}
+                        isMobile={isMobile}
+                        onTouchStart={handleTouchStart}
+                        isTouchDragging={isDragMode && dragIndex === index}
+                        isDropTarget={dropTargetIndex === index}
+                      />
+                    ))}
+                  </div>
 
                   {/* Convert & Download Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">

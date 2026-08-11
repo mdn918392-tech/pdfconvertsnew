@@ -82,7 +82,17 @@ export default function Home() {
   color: "from-blue-500 to-cyan-500",
   href: "/organize-pdf",
   path: "/organize-pdf",
-},
+ },
+ {
+      id: "jpg-to-pdf",
+      name: "JPG to PDF",
+      description: "Convert JPG images to PDF documents",
+      category: "pdf",
+      icon: "📄",
+      color: "from-blue-500 to-cyan-500",
+      href: "/jpg-to-pdf",
+      path: "/tools/jpg-to-pdf",
+    },
     {
       id: "remove-pages",
       name: "Remove Pages",
