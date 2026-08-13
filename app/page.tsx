@@ -85,6 +85,16 @@ export default function Home() {
       path: "/tools/jpg-to-pdf",
     },
     {
+  id: "compress-pdf",
+  name: "Compress PDF",
+  description: "Compress PDF files and reduce file size",
+  category: "pdf",
+  icon: "📦",
+  color: "from-blue-500 to-cyan-500",
+  href: "/compress-pdf",
+  path: "/tools/compress-pdf",
+},
+    {
       id: "remove-pages",
       name: "Remove Pages",
       description: "Delete specific pages from PDF",

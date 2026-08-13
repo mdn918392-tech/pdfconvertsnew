@@ -41,8 +41,9 @@ export default function Header() {
     { name: "PDF to JPG", href: "/pdf-to-jpg" },
     { name: "Merge PDF", href: "/merge-pdf" },
     { name: "Split PDF", href: "/split-pdf" },
-    { name: "Compress PDF", href: "/compress-pdf" },
+    { name: "Organize PDF", href: "/organize-pdf" },
     { name: "Extract Pages", href: "/extract-pages" },
+     { name: "compress pdf", href: "/compress-pdf" },
     { name: "Remove Pages", href: "/remove-pages" },
     { name: "Rotate PDF", href: "/rotate-pdf" },
     {
