@@ -265,8 +265,10 @@ const exploreTools: Tool[] = [
 ];
 
 /**
- * FIXED FOR MOBILE: Always process via canvas (no skip) to guarantee rotation applied.
- * Reduced max dimension and quality for mobile memory safety.
+ * FIXED: Correctly rotate image using canvas.
+ * - Canvas dimensions are swapped only when rotation is 90/270.
+ * - Image is drawn with its original width/height (scaled) so rotation applies cleanly.
+ * - No double‑swapping, so the image fits perfectly without clipping.
  */
 const processImageForPdf = async (
   file: File,
@@ -347,16 +349,17 @@ const processImageForPdf = async (
         }
         
         const needsSwap = rotation === 90 || rotation === 270;
-        const newWidth = needsSwap 
-          ? Math.floor(img.height * scale)
-          : Math.floor(img.width * scale);
-        const newHeight = needsSwap
-          ? Math.floor(img.width * scale)
-          : Math.floor(img.height * scale);
+        
+        // Canvas dimensions: swap if rotation is 90/270
+        let canvasWidth = Math.floor(img.width * scale);
+        let canvasHeight = Math.floor(img.height * scale);
+        if (needsSwap) {
+          [canvasWidth, canvasHeight] = [canvasHeight, canvasWidth];
+        }
         
         canvas = document.createElement("canvas");
-        canvas.width = newWidth;
-        canvas.height = newHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
         
         const ctx = canvas.getContext("2d", {
           alpha: false,
@@ -377,22 +380,22 @@ const processImageForPdf = async (
           ctx.translate(canvas.width / 2, canvas.height / 2);
           ctx.rotate((rotation * Math.PI) / 180);
           
-          const rotatedWidth = needsSwap ? img.height : img.width;
-          const rotatedHeight = needsSwap ? img.width : img.height;
-          
+          // Draw image with its original dimensions (scaled) – NOT swapped
+          const drawWidth = img.width * scale;
+          const drawHeight = img.height * scale;
           ctx.drawImage(
             img,
-            -(rotatedWidth * scale) / 2,
-            -(rotatedHeight * scale) / 2,
-            rotatedWidth * scale,
-            rotatedHeight * scale
+            -drawWidth / 2,
+            -drawHeight / 2,
+            drawWidth,
+            drawHeight
           );
           ctx.restore();
         } else {
-          ctx.drawImage(img, 0, 0, newWidth, newHeight);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         }
         
-        // Convert to JPEG – if toBlob returns null, throw
+        // Convert to JPEG
         const blobData = await new Promise<Blob>((resolveBlob, rejectBlob) => {
           canvas!.toBlob((b) => {
             if (b) {
