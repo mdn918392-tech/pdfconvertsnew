@@ -6,388 +6,322 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 
 export default function Header() {
-  const [open, setOpen] = useState(false);
-  const [toolsOpen, setToolsOpen] = useState(false);
-  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [toolsOpen, setToolsOpen] = useState(false);
+    const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
+
+    const handleMouseEnter = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        setToolsOpen(true);
     };
-  }, []);
 
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    const handleMouseLeave = () => {
+        timeoutRef.current = setTimeout(() => {
+            setToolsOpen(false);
+        }, 300);
+    };
 
-    setToolsOpen(true);
-  };
+    const pdfTools = [
+        { name: "JPG to PDF", href: "/jpg-to-pdf" },
+        { name: "PDF to JPG", href: "/pdf-to-jpg" },
+        { name: "Merge PDF", href: "/merge-pdf" },
+        { name: "Split PDF", href: "/split-pdf" },
+        { name: "Organize PDF", href: "/organize-pdf" },
+        { name: "Extract Pages", href: "/extract-pages" },
+        { name: "Compress PDF", href: "/compress-pdf" },
+        { name: "Remove Pages", href: "/remove-pages" },
+        { name: "Rotate PDF", href: "/rotate-pdf" },
+        { name: "Add Pages & Images to PDF", href: "/add-pages-and-images-to-pdf" },
+        { name: "PDF Filter", href: "/pdf-filter" },
+    ];
 
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      setToolsOpen(false);
-    }, 300);
-  };
+    const imageTools = [
+        { name: "PNG to JPG", href: "/png-to-jpg" },
+        { name: "Compress Image", href: "/compress-image" },
+        { name: "Resize Image", href: "/resize-image" },
+        { name: "Passport Photo Maker", href: "/passport-photo" },
+        { name: "Webpage to JPG", href: "/webpage-to-jpg" },
+        { name: "Rotate Image", href: "/rotate-image" },
+    ];
 
-  // PDF Tools
-  const pdfTools = [
-    { name: "JPG to PDF", href: "/jpg-to-pdf" },
-    { name: "PDF to JPG", href: "/pdf-to-jpg" },
-    { name: "Merge PDF", href: "/merge-pdf" },
-    { name: "Split PDF", href: "/split-pdf" },
-    { name: "Organize PDF", href: "/organize-pdf" },
-    { name: "Extract Pages", href: "/extract-pages" },
-     { name: "compress pdf", href: "/compress-pdf" },
-    { name: "Remove Pages", href: "/remove-pages" },
-    { name: "Rotate PDF", href: "/rotate-pdf" },
-    {
-      name: "Add Pages & Images to PDF",
-      href: "/add-pages-and-images-to-pdf",
-    },
-    { name: "PDF Filter", href: "/pdf-filter" },
-  ];
+    return (
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm dark:bg-gray-900/80 dark:border-gray-700/50">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-16 md:h-20">
 
-  // Image Tools
-  const imageTools = [
-    { name: "PNG to JPG", href: "/png-to-jpg" },
-    { name: "Compress Image", href: "/compress-image" },
-    { name: "Resize Image", href: "/resize-image" },
-    { name: "Passport Photo Maker", href: "/passport-photo" },
-    { name: "Webpage to JPG", href: "/webpage-to-jpg" },
-    { name: "Rotate Image", href: "/rotate-image" },
-  ];
+                    {/* LOGO */}
+                    <a href="/" className="flex items-center gap-3 group flex-shrink-0">
+                        <div className="relative w-10 h-10 md:w-12 md:h-12 flex-shrink-0">
+                            <Image
+                                src="/favicon.png"
+                                alt="PDFSwift Logo"
+                                fill
+                                className="object-contain transition-transform duration-200 group-hover:scale-105"
+                                priority
+                            />
+                        </div>
+                        <div className="flex flex-col leading-tight">
+                            <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                                PDFSwift
+                            </span>
+                            <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">
+                                Fast & Smart PDF Tools
+                            </span>
+                        </div>
+                    </a>
 
-  return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        {/* LOGO */}
-        <a href="/" className="flex items-center gap-3">
-          <div className="relative z-50 w-12 h-12">
-            <div className="w-15 h-15 mb-5">
-              <Image
-                src="/favicon.png"
-                alt="PDFSwift Logo"
-                width={100}
-                height={100}
-                className="object-contain"
-                priority
-              />
-            </div>
-          </div>
+                    {/* DESKTOP NAVIGATION - CENTERED */}
+                    <nav className="hidden md:flex items-center justify-center flex-1 px-6">
+                        <div className="flex items-center gap-1 lg:gap-2 xl:gap-3">
 
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">PDFSwift</h2>
-            <p className="text-xs text-gray-600">
-              Fast & Smart PDF Tools
-            </p>
-          </div>
-        </a>
+                            <a
+                                href="/"
+                                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all duration-200 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800/50"
+                            >
+                                Home
+                            </a>
 
-        {/* DESKTOP NAVIGATION */}
-        <nav className="hidden md:flex gap-8 items-center">
-          {/* HOME */}
-          <a
-            href="/"
-            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
-          >
-            Home
-          </a>
+                            {/* Tools Dropdown */}
+                            <div
+                                className="relative"
+                                ref={dropdownRef}
+                                onMouseEnter={handleMouseEnter}
+                                onMouseLeave={handleMouseLeave}
+                            >
+                                <button
+                                    type="button"
+                                    className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${toolsOpen
+                                        ? "text-blue-600 bg-blue-50/50 dark:text-blue-400 dark:bg-gray-800/50"
+                                        : "text-gray-700 hover:text-blue-600 hover:bg-blue-50/50 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800/50"
+                                        }`}
+                                >
+                                    Tools
+                                    <ChevronDown
+                                        className={`w-4 h-4 transition-transform duration-200 ${toolsOpen ? "rotate-180" : ""
+                                            }`}
+                                    />
+                                </button>
 
-          {/* TOOLS DROPDOWN */}
-          <div
-            className="relative"
-            ref={dropdownRef}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            <button
-              type="button"
-              className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition-colors duration-200"
-            >
-              Tools
+                                {toolsOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                        transition={{ duration: 0.2, ease: "easeOut" }}
+                                        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[580px] bg-white/95 backdrop-blur-sm border border-gray-200/80 rounded-xl shadow-2xl dark:bg-gray-800/95 dark:border-gray-700/80"
+                                        onMouseEnter={handleMouseEnter}
+                                        onMouseLeave={handleMouseLeave}
+                                    >
+                                        <div className="p-5 grid grid-cols-2 gap-8">
+                                            <div>
+                                                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
+                                                    PDF Tools
+                                                </h3>
+                                                <div className="space-y-0.5">
+                                                    {pdfTools.map((tool, idx) => (
+                                                        <motion.a
+                                                            key={tool.href}
+                                                            href={tool.href}
+                                                            initial={{ opacity: 0, x: -6 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: idx * 0.015 }}
+                                                            className="block px-3 py-1.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-blue-400"
+                                                            onClick={() => setToolsOpen(false)}
+                                                        >
+                                                            {tool.name}
+                                                        </motion.a>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
+                                                    Image Tools
+                                                </h3>
+                                                <div className="space-y-0.5">
+                                                    {imageTools.map((tool, idx) => (
+                                                        <motion.a
+                                                            key={tool.href}
+                                                            href={tool.href}
+                                                            initial={{ opacity: 0, x: 6 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: idx * 0.015 }}
+                                                            className="block px-3 py-1.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-blue-400"
+                                                            onClick={() => setToolsOpen(false)}
+                                                        >
+                                                            {tool.name}
+                                                        </motion.a>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </div>
 
-              <ChevronDown
-                className={`w-4 h-4 transition-transform duration-200 ${
-                  toolsOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
+                            <a
+                                href="/about"
+                                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all duration-200 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800/50"
+                            >
+                                About
+                            </a>
+                            <a
+                                href="/contact"
+                                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all duration-200 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800/50"
+                            >
+                                Contact
+                            </a>
+                            {/* Blog link added after Contact */}
+                            <a
+                                href="/blog"
+                                className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all duration-200 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800/50"
+                            >
+                                Blog
+                            </a>
+                        </div>
+                    </nav>
 
-            {toolsOpen && (
-              <motion.div
-                initial={{
-                  opacity: 0,
-                  y: 10,
-                  scale: 0.95,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  scale: 1,
-                }}
-                exit={{
-                  opacity: 0,
-                  y: 10,
-                  scale: 0.95,
-                }}
-                transition={{
-                  duration: 0.2,
-                  ease: "easeOut",
-                }}
-                className="absolute top-full left-0 mt-2 w-[520px] bg-white border border-gray-200 rounded-lg shadow-xl z-50"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                <div className="p-4 grid grid-cols-2 gap-6">
-                  {/* PDF TOOLS */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                      PDF Tools
-                    </h3>
-
-                    <div className="space-y-1">
-                      {pdfTools.map((tool, index) => (
-                        <motion.a
-                          key={tool.href}
-                          href={tool.href}
-                          initial={{
-                            opacity: 0,
-                            x: -10,
-                          }}
-                          animate={{
-                            opacity: 1,
-                            x: 0,
-                          }}
-                          transition={{
-                            delay: index * 0.03,
-                          }}
-                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors duration-150"
-                          onClick={() => setToolsOpen(false)}
+                    {/* RIGHT SIDE - Only Mobile Menu Button */}
+                    <div className="flex items-center flex-shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setOpen(!open);
+                                if (open) setMobileToolsOpen(false);
+                            }}
+                            className="md:hidden p-2 rounded-lg bg-gray-100/80 hover:bg-gray-200/80 transition-colors dark:bg-gray-800/80 dark:hover:bg-gray-700/80"
+                            aria-label={open ? "Close menu" : "Open menu"}
                         >
-                          {tool.name}
-                        </motion.a>
-                      ))}
+                            {open ? (
+                                <X className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                            ) : (
+                                <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                            )}
+                        </button>
                     </div>
-                  </div>
-
-                  {/* IMAGE TOOLS */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                      Image Tools
-                    </h3>
-
-                    <div className="space-y-1">
-                      {imageTools.map((tool, index) => (
-                        <motion.a
-                          key={tool.href}
-                          href={tool.href}
-                          initial={{
-                            opacity: 0,
-                            x: 10,
-                          }}
-                          animate={{
-                            opacity: 1,
-                            x: 0,
-                          }}
-                          transition={{
-                            delay: index * 0.03,
-                          }}
-                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors duration-150"
-                          onClick={() => setToolsOpen(false)}
-                        >
-                          {tool.name}
-                        </motion.a>
-                      ))}
-                    </div>
-                  </div>
                 </div>
-              </motion.div>
-            )}
-          </div>
-
-          {/* ABOUT */}
-          <a
-            href="/about"
-            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
-          >
-            About
-          </a>
-
-          {/* CONTACT */}
-          <a
-            href="/contact"
-            className="text-gray-700 hover:text-blue-600 transition-colors duration-200"
-          >
-            Contact
-          </a>
-        </nav>
-
-        {/* RIGHT BUTTONS */}
-        <div className="flex items-center gap-4">
-          {/* MOBILE MENU TOGGLE */}
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(!open);
-
-              if (open) {
-                setMobileToolsOpen(false);
-              }
-            }}
-            className="md:hidden p-2 bg-gray-100 rounded-lg transition-colors duration-200"
-            aria-label={open ? "Close menu" : "Open menu"}
-          >
-            {open ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* MOBILE NAVIGATION */}
-      {open && (
-        <motion.div
-          initial={{
-            opacity: 0,
-            y: -10,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          exit={{
-            opacity: 0,
-            y: -10,
-          }}
-          transition={{
-            duration: 0.2,
-          }}
-          className="md:hidden bg-white border-t border-gray-200 shadow-sm"
-        >
-          <nav className="flex flex-col p-4 space-y-3 text-gray-700">
-            {/* HOME */}
-            <a
-              href="/"
-              className="py-2 hover:text-blue-600 transition-colors duration-200"
-              onClick={() => setOpen(false)}
-            >
-              Home
-            </a>
-
-            {/* MOBILE TOOLS */}
-            <div className="border-b border-gray-100 pb-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setMobileToolsOpen(!mobileToolsOpen)
-                }
-                className="flex items-center justify-between w-full py-2 hover:text-blue-600 transition-colors duration-200"
-              >
-                <span>Tools</span>
-
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-200 ${
-                    mobileToolsOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {mobileToolsOpen && (
-                <motion.div
-                  initial={{
-                    opacity: 0,
-                    height: 0,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    height: "auto",
-                  }}
-                  exit={{
-                    opacity: 0,
-                    height: 0,
-                  }}
-                  transition={{
-                    duration: 0.2,
-                  }}
-                  className="mt-3 grid grid-cols-2 gap-6"
-                >
-                  {/* PDF TOOLS */}
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 mb-2">
-                      PDF Tools
-                    </p>
-
-                    <div className="space-y-2">
-                      {pdfTools.map((tool) => (
-                        <a
-                          key={tool.href}
-                          href={tool.href}
-                          className="block text-sm text-gray-700 hover:text-blue-600 transition-colors duration-200"
-                          onClick={() => {
-                            setOpen(false);
-                            setMobileToolsOpen(false);
-                          }}
-                        >
-                          {tool.name}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* IMAGE TOOLS */}
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 mb-2">
-                      Image Tools
-                    </p>
-
-                    <div className="space-y-2">
-                      {imageTools.map((tool) => (
-                        <a
-                          key={tool.href}
-                          href={tool.href}
-                          className="block text-sm text-gray-700 hover:text-blue-600 transition-colors duration-200"
-                          onClick={() => {
-                            setOpen(false);
-                            setMobileToolsOpen(false);
-                          }}
-                        >
-                          {tool.name}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
             </div>
 
-            {/* ABOUT */}
-            <a
-              href="/about"
-              className="py-2 hover:text-blue-600 transition-colors duration-200"
-              onClick={() => setOpen(false)}
-            >
-              About
-            </a>
+            {/* MOBILE NAVIGATION */}
+            {open && (
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200/60 dark:bg-gray-900/95 dark:border-gray-700/60"
+                >
+                    <nav className="container mx-auto px-4 py-5 space-y-4 text-gray-700 dark:text-gray-300">
+                        <a
+                            href="/"
+                            className="block text-base font-medium hover:text-blue-600 transition-colors dark:hover:text-blue-400"
+                            onClick={() => setOpen(false)}
+                        >
+                            Home
+                        </a>
 
-            {/* CONTACT */}
-            <a
-              href="/contact"
-              className="py-2 hover:text-blue-600 transition-colors duration-200"
-              onClick={() => setOpen(false)}
-            >
-              Contact
-            </a>
-          </nav>
-        </motion.div>
-      )}
-    </header>
-  );
+                        <div className="border-b border-gray-200/60 pb-3 dark:border-gray-700/60">
+                            <button
+                                type="button"
+                                onClick={() => setMobileToolsOpen(!mobileToolsOpen)}
+                                className="flex items-center justify-between w-full text-base font-medium hover:text-blue-600 transition-colors dark:hover:text-blue-400"
+                            >
+                                <span>Tools</span>
+                                <ChevronDown
+                                    className={`w-4 h-4 transition-transform duration-200 ${mobileToolsOpen ? "rotate-180" : ""
+                                        }`}
+                                />
+                            </button>
+
+                            {mobileToolsOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="mt-4 grid grid-cols-2 gap-6"
+                                >
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                                            PDF Tools
+                                        </p>
+                                        <div className="space-y-2">
+                                            {pdfTools.map((tool) => (
+                                                <a
+                                                    key={tool.href}
+                                                    href={tool.href}
+                                                    className="block text-sm hover:text-blue-600 transition-colors dark:hover:text-blue-400"
+                                                    onClick={() => {
+                                                        setOpen(false);
+                                                        setMobileToolsOpen(false);
+                                                    }}
+                                                >
+                                                    {tool.name}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                                            Image Tools
+                                        </p>
+                                        <div className="space-y-2">
+                                            {imageTools.map((tool) => (
+                                                <a
+                                                    key={tool.href}
+                                                    href={tool.href}
+                                                    className="block text-sm hover:text-blue-600 transition-colors dark:hover:text-blue-400"
+                                                    onClick={() => {
+                                                        setOpen(false);
+                                                        setMobileToolsOpen(false);
+                                                    }}
+                                                >
+                                                    {tool.name}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </div>
+
+                        <a
+                            href="/about"
+                            className="block text-base font-medium hover:text-blue-600 transition-colors dark:hover:text-blue-400"
+                            onClick={() => setOpen(false)}
+                        >
+                            About
+                        </a>
+                        <a
+                            href="/contact"
+                            className="block text-base font-medium hover:text-blue-600 transition-colors dark:hover:text-blue-400"
+                            onClick={() => setOpen(false)}
+                        >
+                            Contact
+                        </a>
+                        {/* Blog link added after Contact in mobile */}
+                        <a
+                            href="/blog"
+                            className="block text-base font-medium hover:text-blue-600 transition-colors dark:hover:text-blue-400"
+                            onClick={() => setOpen(false)}
+                        >
+                            Blog
+                        </a>
+                    </nav>
+                </motion.div>
+            )}
+        </header>
+    );
 }
