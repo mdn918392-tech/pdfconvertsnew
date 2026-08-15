@@ -1103,6 +1103,8 @@ interface MobileSimpleUIProps {
   onDownload: () => void;
   onClear: () => void;
   autoCompressionActive: boolean;
+  compressing: boolean;           // NEW: loading state while preparing images
+  mobileLimitMessage: string | null; // NEW: limit message
 }
 
 const MobileSimpleUI = ({
@@ -1117,6 +1119,8 @@ const MobileSimpleUI = ({
   onDownload,
   onClear,
   autoCompressionActive,
+  compressing,
+  mobileLimitMessage,
 }: MobileSimpleUIProps) => {
   // ----- If PDF is ready, show ONLY the success card -----
   if (pdfBlob) {
@@ -1191,56 +1195,79 @@ const MobileSimpleUI = ({
 
       {files.length > 0 && (
         <>
-          {/* Orientation selector */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Page Orientation
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => onOrientationChange("Portrait")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
-                  orientation === "Portrait"
-                    ? "bg-blue-500 text-white border-blue-500"
-                    : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                }`}
-              >
-                <div className="w-4 h-5 border-2 border-current rounded" />
-                <span className="font-medium">Portrait</span>
-              </button>
-              <button
-                onClick={() => onOrientationChange("Landscape")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
-                  orientation === "Landscape"
-                    ? "bg-blue-500 text-white border-blue-500"
-                    : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
-                }`}
-              >
-                <div className="w-5 h-4 border-2 border-current rounded" />
-                <span className="font-medium">Landscape</span>
-              </button>
+          {/* Show limit message if any */}
+          {mobileLimitMessage && (
+            <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+              <Info className="w-5 h-5 flex-shrink-0" />
+              <span>{mobileLimitMessage}</span>
             </div>
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
-              Page size: A4 (210 × 297 mm)
-            </p>
-          </div>
+          )}
 
-          {/* Convert / Progress */}
-          {converting ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
-              <ProgressBar progress={progress} label="Creating PDF..." />
-              <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 dark:text-blue-400">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">Processing {files.length} images...</span>
-              </div>
+          {/* If compressing (processing images), show loading message */}
+          {compressing ? (
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 text-center">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
+              <p className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                Please wait, preparing your images…
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                This may take a few seconds for large images.
+              </p>
             </div>
           ) : (
-            <button
-              onClick={onConvert}
-              className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
-            >
-              Convert {files.length} Image{files.length !== 1 ? 's' : ''} to PDF
-            </button>
+            <>
+              {/* Orientation selector */}
+              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Page Orientation
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => onOrientationChange("Portrait")}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                      orientation === "Portrait"
+                        ? "bg-blue-500 text-white border-blue-500"
+                        : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                    }`}
+                  >
+                    <div className="w-4 h-5 border-2 border-current rounded" />
+                    <span className="font-medium">Portrait</span>
+                  </button>
+                  <button
+                    onClick={() => onOrientationChange("Landscape")}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
+                      orientation === "Landscape"
+                        ? "bg-blue-500 text-white border-blue-500"
+                        : "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700"
+                    }`}
+                  >
+                    <div className="w-5 h-4 border-2 border-current rounded" />
+                    <span className="font-medium">Landscape</span>
+                  </button>
+                </div>
+                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-3">
+                  Page size: A4 (210 × 297 mm)
+                </p>
+              </div>
+
+              {/* Convert / Progress */}
+              {converting ? (
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6">
+                  <ProgressBar progress={progress} label="Creating PDF..." />
+                  <div className="flex items-center justify-center gap-2 mt-4 text-blue-600 dark:text-blue-400">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span className="text-sm">Processing {files.length} images...</span>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={onConvert}
+                  className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+                >
+                  Convert {files.length} Image{files.length !== 1 ? 's' : ''} to PDF
+                </button>
+              )}
+            </>
           )}
         </>
       )}
@@ -1287,6 +1314,7 @@ export default function JpgToPdf() {
   const [autoCompressionActive, setAutoCompressionActive] = useState(false);
   const [currentProcessingImage, setCurrentProcessingImage] = useState(0);
   const [totalProcessingImages, setTotalProcessingImages] = useState(0);
+  const [mobileLimitMessage, setMobileLimitMessage] = useState<string | null>(null); // NEW: limit message
 
   // Limits
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1726,24 +1754,32 @@ export default function JpgToPdf() {
         setAutoCompressionActive(needsAutoCompression);
 
         if (isMobile) {
+          // --- Mobile: enforce max file count (25) ---
           const totalFilesAfterAdd = files.length + newFiles.length;
           if (totalFilesAfterAdd > MAX_FILES_MOBILE) {
-            alert(
-              `Maximum ${MAX_FILES_MOBILE} images allowed on mobile. You already have ${files.length} images.`
+            const allowedNewCount = MAX_FILES_MOBILE - files.length;
+            // Keep only the first 'allowedNewCount' new files
+            const filesToAdd = newFiles.slice(0, allowedNewCount);
+            setMobileLimitMessage(
+              `Maximum ${MAX_FILES_MOBILE} images allowed. First ${allowedNewCount} images selected.`
             );
-            setCompressing(false);
-            return;
+            newFiles = filesToAdd;
+          } else {
+            setMobileLimitMessage(null);
           }
 
+          // Per-file size limit check (mobile only)
           const oversizedFiles = newFiles.filter(file => file.size > MAX_SIZE_MOBILE);
           if (oversizedFiles.length > 0) {
-            alert(
-              `${oversizedFiles.length} file(s) exceed maximum ${MAX_SIZE_MOBILE / (1024 * 1024)}MB size limit on mobile.`
-            );
+            // Filter out oversized files and show a message (we'll just drop them)
             newFiles = newFiles.filter(file => file.size <= MAX_SIZE_MOBILE);
+            // Optionally show a message via alert or banner (we'll use alert for simplicity)
             if (newFiles.length === 0) {
+              alert(`Some files exceed the ${MAX_SIZE_MOBILE / (1024 * 1024)}MB limit and were not added.`);
               setCompressing(false);
               return;
+            } else {
+              alert(`${oversizedFiles.length} file(s) exceeded the ${MAX_SIZE_MOBILE / (1024 * 1024)}MB limit and were not added.`);
             }
           }
         }
@@ -2147,6 +2183,7 @@ export default function JpgToPdf() {
     setAutoCompressionActive(false);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(0);
+    setMobileLimitMessage(null); // clear limit message
   };
 
   // Handle rotate in fullscreen
@@ -2499,6 +2536,8 @@ export default function JpgToPdf() {
                 onDownload={handleDownload}
                 onClear={handleConvertMore}
                 autoCompressionActive={autoCompressionActive}
+                compressing={compressing}
+                mobileLimitMessage={mobileLimitMessage}
               />
             ) : (
               /* Desktop Full UI (unchanged) */
