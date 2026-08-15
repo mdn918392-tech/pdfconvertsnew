@@ -351,8 +351,8 @@ const ImagePreview = ({
                     alt={filename}
                     className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
                     onError={handleImageError}
-                    draggable={false} // 🔥 FIX
-                    onDragStart={(e) => e.preventDefault()} // 🔥 FIX
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
                   />
                 )}
               </div>
@@ -368,7 +368,6 @@ const ImagePreview = ({
         transition={{ delay: index * 0.05 }}
         whileHover={{ y: -5, scale: 1.02 }}
         className="relative group"
-        // 🔥 FIX: prevent touchmove from dragging the image away
         onTouchMove={handleTouchMove}
       >
         <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
@@ -381,7 +380,6 @@ const ImagePreview = ({
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
             onClick={() => previewUrl && !error && setPreviewOpen(true)}
-            // 🔥 FIX: prevent native drag on the container as well
             onDragStart={(e) => e.preventDefault()}
           >
             {loading ? (
@@ -405,8 +403,8 @@ const ImagePreview = ({
                   alt={filename}
                   className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
                   onError={handleImageError}
-                  draggable={false} // 🔥 FIX
-                  onDragStart={(e) => e.preventDefault()} // 🔥 FIX
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                   <Eye className="w-8 h-8 text-white" />
@@ -578,7 +576,7 @@ export default function CompressImage() {
   const [isMobile, setIsMobile] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  // Detect device type
+  // Detect device type (only for UI hints, no limits)
   useEffect(() => {
     const checkMobile = () => {
       const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -626,25 +624,11 @@ export default function CompressImage() {
       let successCount = 0;
       let failedFiles: string[] = [];
 
-      // Mobile के लिए memory check
-      if (isMobile) {
-        const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-        if (totalSize > 100 * 1024 * 1024) { // 100MB limit for mobile
-          throw new Error(`Total file size (${(totalSize/1024/1024).toFixed(1)}MB) exceeds mobile limit of 100MB. Please use fewer or smaller files, or use a desktop browser.`);
-        }
-      }
-      
       for (let i = 0; i < files.length; i++) {
         try {
           const file = files[i];
           
-          // Mobile पर size check
-          if (isMobile && file.size > 30 * 1024 * 1024) {
-            failedFiles.push(`${file.name} (${(file.size/1024/1024).toFixed(1)}MB exceeds 30MB mobile limit)`);
-            continue;
-          }
-          
-          // Corrupted file check
+          // Check if file is empty/corrupted
           if (file.size === 0) {
             failedFiles.push(`${file.name} (corrupted or empty file)`);
             continue;
@@ -658,14 +642,11 @@ export default function CompressImage() {
           try {
             // Check file type and compress accordingly
             if (file.type === 'image/png') {
-              // Mobile पर PNG conversion में lower quality use करें
-              const quality = isMobile ? 0.7 : 0.85;
-              const jpgBlob = await convertPngToJpg(file, quality);
+              // Convert PNG to JPG with 85% quality (good balance)
+              const jpgBlob = await convertPngToJpg(file, 0.85);
               compressedBlob = await compressImage(jpgBlob, compressionQuality);
             } else if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
-              // Mobile पर JPG compression में थोड़ा low quality
-              const quality = isMobile ? Math.min(compressionQuality, 70) : compressionQuality;
-              compressedBlob = await compressImage(file, quality);
+              compressedBlob = await compressImage(file, compressionQuality);
             } else {
               // For other image types
               compressedBlob = await compressImage(file, compressionQuality);
@@ -695,8 +676,8 @@ export default function CompressImage() {
           // Animate progress smoothly
           setProgress(((i + 1) / files.length) * 100);
 
-          // Mobile पर delay कम करें
-          await new Promise((resolve) => setTimeout(resolve, isMobile ? 100 : 200));
+          // Small delay for UI update
+          await new Promise((resolve) => setTimeout(resolve, 100));
           
         } catch (error: any) {
           console.error(`Error processing file ${i}:`, error);
@@ -717,15 +698,11 @@ export default function CompressImage() {
           failureMessage = `Failed files (${failedFiles.length}):\n${failedFiles.slice(0, 3).join('\n')}\n...and ${failedFiles.length - 3} more`;
         }
         
-        const reasonMessage = isMobile 
-          ? "\n\nReason: Files may be too large for mobile devices. Try using:\n• Desktop browser\n• Smaller files (<30MB each)\n• Fewer files at once"
-          : "\n\nReason: Files may be corrupted or too large. Try using smaller files.";
-          
-        setErrorMessage(successMessage + failureMessage + reasonMessage);
+        setErrorMessage(successMessage + failureMessage);
       }
     } catch (error: any) {
       console.error("Compression error:", error);
-      setErrorMessage(error.message || "Failed to compress images. Please try with smaller files or use a desktop browser.");
+      setErrorMessage(error.message || "Failed to compress images. Please try again.");
     } finally {
       setCompressing(false);
     }
@@ -844,70 +821,17 @@ export default function CompressImage() {
   };
 
   const handleAddMoreFiles = (newFiles: File[]) => {
-    // Mobile के लिए size check
-    if (isMobile) {
-      const maxSize = 30 * 1024 * 1024; // 30MB mobile limit
-      const maxFiles = 10; // Mobile पर maximum files
-      
-      const filteredFiles = newFiles.filter(file => {
-        if (file.size > maxSize) {
-          alert(`"${file.name}" is too large (${(file.size/1024/1024).toFixed(1)}MB). Maximum size for mobile is 30MB per file.`);
-          return false;
-        }
-        return true;
-      });
-      
-      const totalFiles = files.length + filteredFiles.length;
-      if (totalFiles > maxFiles) {
-        alert(`Maximum ${maxFiles} files allowed on mobile. You have ${files.length} files already.`);
-        return;
-      }
-      
-      if (filteredFiles.length > 0) {
-        setFiles((prevFiles) => [...prevFiles, ...filteredFiles]);
-        setCompressedBlobs([]);
-        setShowFeatures(false);
-        setErrorMessage("");
-      }
-    } else {
-      setFiles((prevFiles) => [...prevFiles, ...newFiles]);
-      setCompressedBlobs([]);
-      setShowFeatures(false);
-      setErrorMessage("");
-    }
+    setFiles((prevFiles) => [...prevFiles, ...newFiles]);
+    setCompressedBlobs([]);
+    setShowFeatures(false);
+    setErrorMessage("");
   };
 
   const handleFilesSelected = (newFiles: File[]) => {
-    // Mobile के लिए size और count check
-    if (isMobile) {
-      const maxSize = 30 * 1024 * 1024; // 30MB mobile limit
-      const maxFiles = 10; // Mobile पर maximum files
-      
-      const filteredFiles = newFiles.filter(file => {
-        if (file.size > maxSize) {
-          alert(`"${file.name}" is too large (${(file.size/1024/1024).toFixed(1)}MB). Maximum size for mobile is 30MB per file.`);
-          return false;
-        }
-        return true;
-      });
-      
-      if (filteredFiles.length > maxFiles) {
-        alert(`Maximum ${maxFiles} files allowed on mobile. Please select fewer files.`);
-        return;
-      }
-      
-      if (filteredFiles.length > 0) {
-        setFiles(filteredFiles);
-        setCompressedBlobs([]);
-        setShowFeatures(false);
-        setErrorMessage("");
-      }
-    } else {
-      setFiles(newFiles);
-      setCompressedBlobs([]);
-      setShowFeatures(false);
-      setErrorMessage("");
-    }
+    setFiles(newFiles);
+    setCompressedBlobs([]);
+    setShowFeatures(false);
+    setErrorMessage("");
   };
 
   const handleReset = () => {
@@ -1011,10 +935,7 @@ export default function CompressImage() {
                   quality. Fast, secure, browser-based image compressor for JPG
                   & PNG. No signup required.
                   <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    {isMobile 
-                      ? "Mobile: Up to 30MB per file, 10 files max"
-                      : "Desktop: Up to 200MB per file, 50 files max"
-                    }
+                    Unlimited files • No size limits
                   </span>
                 </p>
               </div>
@@ -1033,9 +954,7 @@ export default function CompressImage() {
                     {
                       icon: Zap,
                       title: "Fast Compression",
-                      desc: isMobile 
-                        ? "Compress images quickly on mobile devices with optimized processing"
-                        : "Compress multiple images quickly with our optimized compression engine",
+                      desc: "Compress images quickly with our optimized compression engine",
                       gradient: "from-orange-500 to-pink-600",
                       bg: "from-orange-50 to-pink-50",
                       border: "border-orange-200",
@@ -1043,9 +962,7 @@ export default function CompressImage() {
                     {
                       icon: Palette,
                       title: "Quality Preserved",
-                      desc: isMobile
-                        ? "Maintain good image quality while reducing file size for mobile viewing"
-                        : "Maintain image quality while significantly reducing file size with intelligent compression",
+                      desc: "Maintain image quality while significantly reducing file size with intelligent compression",
                       gradient: "from-blue-500 to-purple-600",
                       bg: "from-blue-50 to-purple-50",
                       border: "border-blue-200",
@@ -1096,18 +1013,12 @@ export default function CompressImage() {
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       Upload JPG or PNG images to compress and reduce file size
-                      without losing quality.
-                     {isMobile && (
-  <span className="block text-orange-600 dark:text-orange-400 mt-1">
-    Max 30MB per file • 10 files max
-  </span>
-)}
-
+                      without losing quality. No limits on number or size of files.
                     </p>
                   </div>
                 </div>
 
-                {/* FileUploader always visible */}
+                {/* ─── 🔥 FIX: Removed `unlimited={true}` ─── */}
                 <FileUploader
                   accept="image/png,image/jpeg,image/jpg"
                   multiple={true}
@@ -1115,8 +1026,6 @@ export default function CompressImage() {
                     hasFiles ? handleAddMoreFiles : handleFilesSelected
                   }
                   key={files.length}
-                  maxSize={isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024}
-                  maxFiles={isMobile ? 10 : 50}
                 />
 
                 {/* Compression Quality Slider */}
@@ -1127,9 +1036,7 @@ export default function CompressImage() {
                         Compression Quality: {compressionQuality}%
                       </label>
                       <span className="text-xs text-blue-600 dark:text-blue-400">
-                        {isMobile && compressionQuality > 70 ? (
-                          <span className="text-orange-600">Mobile: Using {Math.min(compressionQuality, 70)}%</span>
-                        ) : compressionQuality >= 80 ? "High Quality" : 
+                        {compressionQuality >= 80 ? "High Quality" : 
                          compressionQuality >= 60 ? "Good Balance" : 
                          compressionQuality >= 40 ? "Medium" : "High Compression"}
                       </span>
@@ -1147,11 +1054,6 @@ export default function CompressImage() {
                       <span>Smaller Size</span>
                       <span>Better Quality</span>
                     </div>
-                    {isMobile && (
-                      <p className="text-xs text-orange-600 dark:text-orange-400 mt-2">
-                        Note: On mobile, quality is limited to 70% max for better performance
-                      </p>
-                    )}
                   </div>
                 )}
 
@@ -1171,9 +1073,6 @@ export default function CompressImage() {
                             Total size: {(totalSize / 1024 / 1024).toFixed(2)} MB • 
                             {files.filter(f => f.type === 'image/png').length} PNG • 
                             {files.filter(f => f.type.includes('jpeg')).length} JPG
-                            {isMobile && totalSize > 50 * 1024 * 1024 && (
-                              <span className="text-red-600 block">Large files may cause issues on mobile</span>
-                            )}
                           </p>
                         </div>
                       </div>
@@ -1241,14 +1140,9 @@ export default function CompressImage() {
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            {isMobile ? "Compressing on mobile..." : "Compressing your images..."}
+                            Compressing your images...
                           </span>
                         </div>
-                        {isMobile && totalSize > 50 * 1024 * 1024 && (
-                          <div className="text-center text-xs text-orange-600 dark:text-orange-400">
-                            Large files may take longer on mobile devices
-                          </div>
-                        )}
                       </div>
                     )}
 
@@ -1295,10 +1189,7 @@ export default function CompressImage() {
                       {sizeReduction !== "0" && ` • ${sizeReduction}% average size reduction`}
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      {isMobile 
-                        ? "Mobile optimized compression complete"
-                        : "All PNGs converted to JPG format • Files are ready for download"
-                      }
+                      All PNGs converted to JPG format • Files are ready for download
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
@@ -1481,10 +1372,7 @@ export default function CompressImage() {
                   <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
                   <h3 className="font-semibold text-lg">Upload Images</h3>
                   <p className="text-gray-600 text-sm mt-2">
-                    {isMobile 
-                      ? "Upload images (max 30MB each) using mobile upload button"
-                      : "Upload one or multiple images using drag & drop or the upload button"
-                    }
+                    Upload one or multiple images using drag & drop or the upload button
                   </p>
                 </div>
 
@@ -1589,36 +1477,32 @@ export default function CompressImage() {
             <div className="space-y-3 sm:space-y-4">
               {[
                 {
-                  question: "What is the maximum file size for mobile compression?",
-                  answer: `On mobile devices: Maximum 30MB per image file. For desktop browsers: Up to 200MB per image file. We recommend using desktop browsers for files larger than 30MB.`
-                },
-                {
-                  question: "How many files can I compress at once on mobile?",
-                  answer: `Mobile: Up to 10 files at once. Desktop: Up to 50 files at once. For best performance on mobile, compress fewer files (3-5) if they're large (>10MB each).`
+                  question: "Is there any limit on file size or number of files?",
+                  answer: "No, there are no limits. You can upload any number of images of any size. However, very large files may take longer to process depending on your device's performance."
                 },
                 {
                   question: "Will the image quality be preserved during compression?",
-                  answer: `Yes, we use intelligent compression algorithms that reduce file size while maintaining visual quality. You can adjust the compression quality using the slider. On mobile, quality is limited to 70% max for better performance.`
+                  answer: "Yes, we use intelligent compression algorithms that reduce file size while maintaining visual quality. You can adjust the compression quality using the slider to find the perfect balance between size and quality."
                 },
                 {
                   question: "Can I compress PNG files with transparency?",
-                  answer: `Yes, PNG files with transparency (alpha channel) are supported. During compression to JPG, transparent areas will be converted to white background as JPG format does not support transparency.`
+                  answer: "Yes, PNG files with transparency (alpha channel) are supported. During compression to JPG, transparent areas will be converted to white background as JPG format does not support transparency."
                 },
                 {
                   question: "How do I download compressed files?",
-                  answer: `You can download files individually by clicking the download button on each image, or download all files at once as a ZIP archive using the "Download as ZIP" button.`
+                  answer: "You can download files individually by clicking the download button on each image, or download all files at once as a ZIP archive using the 'Download as ZIP' button."
                 },
                 {
                   question: "Is the compression secure? Are my files uploaded to your servers?",
-                  answer: `All compression happens directly in your browser (client-side). Your images are never uploaded to any server, ensuring complete privacy and security.`
-                },
-                {
-                  question: "Why does compression fail on mobile for large files?",
-                  answer: `Mobile devices have limited memory and processing power. Files larger than 30MB may exceed the available memory. Use desktop browsers for large files or compress your images in smaller batches.`
+                  answer: "All compression happens directly in your browser (client-side). Your images are never uploaded to any server, ensuring complete privacy and security."
                 },
                 {
                   question: "What image formats are supported?",
-                  answer: `We support JPG, JPEG, and PNG formats. Other image formats like WebP, BMP, or TIFF are not supported. PNG files are automatically converted to JPG during compression for better size reduction.`
+                  answer: "We support JPG, JPEG, and PNG formats. Other image formats like WebP, BMP, or TIFF are not supported. PNG files are automatically converted to JPG during compression for better size reduction."
+                },
+                {
+                  question: "Why does my browser become slow during compression?",
+                  answer: "Compressing very large images can be memory-intensive. For best performance on any device, consider compressing files in smaller batches if you notice performance issues."
                 }
               ].map((faq, index) => (
                 <details

@@ -90,30 +90,8 @@ const tool = {
   path: "/tools/rotate-image",
 };
 
-// --- DEVICE PERFORMANCE LIMITS ---
-const DEVICE_LIMITS = {
-  MOBILE: {
-    maxFiles: 15,
-    maxFileSize: 10 * 1024 * 1024, // 10MB per file
-    maxTotalSize: 50 * 1024 * 1024, // 50MB total
-    batchSize: 2, // Process 2 at a time on mobile
-    maxPreviewDisplay: 12, // Show only 12 previews on mobile
-  },
-  TABLET: {
-    maxFiles: 25,
-    maxFileSize: 15 * 1024 * 1024, // 15MB per file
-    maxTotalSize: 100 * 1024 * 1024, // 100MB total
-    batchSize: 3,
-    maxPreviewDisplay: 20,
-  },
-  DESKTOP: {
-    maxFiles: 100, // Desktop पर कोई limit नहीं (practically)
-    maxFileSize: 50 * 1024 * 1024, // 50MB per file
-    maxTotalSize: 1024 * 1024 * 1024, // 1GB total (practically unlimited)
-    batchSize: 5, // Desktop पर 5 files एक साथ process कर सकते हैं
-    maxPreviewDisplay: 40,
-  },
-};
+// ─── 🔥 ALL LIMITS REMOVED ──────────────────────────────────────────
+// No limits – unlimited files, unlimited size
 
 // Explore All Tools Data
 const exploreTools: Tool[] = [
@@ -241,78 +219,6 @@ const rotationOptions = [
   { degrees: 270, label: "90° Counter-clockwise", icon: RotateCcw },
 ];
 
-// --- Performance Warning Component (Only for Mobile) ---
-const PerformanceWarning = ({ deviceType, limits }: { deviceType: string, limits: any }) => {
-  const [dismissed, setDismissed] = useState(false);
-
-  if (dismissed || deviceType === 'desktop') return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
-    >
-      <div className="flex items-start gap-2 sm:gap-3">
-        <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <h3 className="font-bold text-yellow-800 dark:text-yellow-300 text-sm sm:text-base mb-1">
-            ⚠️ {deviceType === 'mobile' ? 'Mobile Device' : 'Tablet Device'}
-          </h3>
-          <p className="text-yellow-700 dark:text-yellow-400 text-xs sm:text-sm">
-            {deviceType === 'mobile' 
-              ? `You're using a mobile device. For best performance: Max ${limits.maxFiles} files, ${limits.maxFileSize/1024/1024}MB per file.`
-              : `Tablet device detected. Max ${limits.maxFiles} files, ${limits.maxFileSize/1024/1024}MB per file.`
-            }
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <Smartphone className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="text-xs text-yellow-600 dark:text-yellow-500">
-              {deviceType === 'mobile' ? 'Mobile optimized' : 'Tablet optimized'} • Batch processing enabled
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={() => setDismissed(true)}
-          className="p-1 hover:bg-yellow-100 dark:hover:bg-yellow-800/30 rounded-full transition-colors"
-        >
-          <X className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-        </button>
-      </div>
-    </motion.div>
-  );
-};
-
-// --- Desktop Power Indicator ---
-const DesktopPowerIndicator = () => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6"
-    >
-      <div className="flex items-start gap-2 sm:gap-3">
-        <Monitor className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <h3 className="font-bold text-blue-800 dark:text-blue-300 text-sm sm:text-base mb-1">
-            🚀 Desktop Mode Activated
-          </h3>
-          <p className="text-blue-700 dark:text-blue-400 text-xs sm:text-sm">
-            You're using desktop browser. Enjoy unlimited processing power!
-            Upload as many files as you want, no restrictions.
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="text-xs text-blue-600 dark:text-blue-500">
-              Full power • No limits • Fast batch processing
-            </span>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
 // --- Image Preview Component (Optimized) ---
 const ImagePreview = ({
   file,
@@ -328,7 +234,6 @@ const ImagePreview = ({
   isRotating = false,
   onApplyRotation,
   showApplyButton = false,
-  deviceType = 'desktop',
 }: {
   file: Blob | File;
   onRemove?: () => void;
@@ -343,7 +248,6 @@ const ImagePreview = ({
   isRotating?: boolean;
   onApplyRotation?: () => void;
   showApplyButton?: boolean;
-  deviceType?: string;
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [rotationDegrees, setRotationDegrees] = useState(currentRotation);
@@ -415,18 +319,6 @@ const ImagePreview = ({
       onRotateChange(0);
     }
   };
-
-  const getVisibleFilename = () => {
-    if (deviceType === 'mobile' && filename.length > 20) {
-      return filename.substring(0, 15) + '...' + filename.split('.').pop();
-    }
-    if (deviceType === 'tablet' && filename.length > 30) {
-      return filename.substring(0, 25) + '...' + filename.split('.').pop();
-    }
-    return filename;
-  };
-
-  const isMobile = deviceType === 'mobile';
 
   return (
     <>
@@ -536,7 +428,7 @@ const ImagePreview = ({
               className="text-sm font-semibold truncate text-gray-900 dark:text-white"
               title={filename}
             >
-              {getVisibleFilename()}
+              {filename}
             </p>
 
             <div className="flex items-center justify-between">
@@ -545,7 +437,7 @@ const ImagePreview = ({
                   status.includes("Rotated") ? "bg-green-500" : "bg-blue-500"
                 }`}
               >
-                {isMobile ? status.replace('Rotated', 'R') : status}
+                {status}
               </span>
 
               {rotationDegrees !== 0 && (
@@ -558,15 +450,12 @@ const ImagePreview = ({
             {'size' in file && file.size && (
               <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span>{(file.size / 1024).toFixed(0)} KB</span>
-                {isMobile && rotationDegrees !== 0 && (
-                  <span className="text-blue-600">{rotationDegrees}°</span>
-                )}
               </div>
             )}
           </div>
 
           {/* Rotation Controls for Converted Images */}
-          {isDownloadable && onRotateChange && deviceType === 'desktop' && (
+          {isDownloadable && onRotateChange && (
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-600 dark:text-gray-400">Adjust Rotation:</span>
@@ -647,35 +536,6 @@ const ImagePreview = ({
               </motion.button>
             )}
           </div>
-
-          {/* Mobile rotation controls */}
-          {isMobile && isDownloadable && onRotateChange && (
-            <div className="mt-3 flex items-center justify-center gap-1">
-              <button
-                onClick={() => handleRotate(-90)}
-                disabled={isRotating}
-                className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => handleRotate(90)}
-                disabled={isRotating}
-                className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg"
-              >
-                <RotateCw className="w-3.5 h-3.5" />
-              </button>
-              {rotationDegrees !== rotation && onApplyRotation && (
-                <button
-                  onClick={onApplyRotation}
-                  disabled={isRotating}
-                  className="p-1.5 bg-green-500 text-white rounded-lg ml-1"
-                >
-                  <CheckCircle className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </motion.div>
     </>
@@ -810,75 +670,7 @@ export default function RotateImage() {
   const notificationsRef = useRef<HTMLDivElement>(null);
   const [selectedRotation, setSelectedRotation] = useState<number>(90);
   const [currentRotations, setCurrentRotations] = useState<number[]>([]);
-  const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [processingError, setProcessingError] = useState<string | null>(null);
-
-  // Detect device type
-  useEffect(() => {
-    const checkDeviceType = () => {
-      const width = window.innerWidth;
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isMobile = /mobile|android|iphone|ipad|ipod/.test(userAgent);
-      
-      if (isMobile || width < 768) {
-        setDeviceType('mobile');
-      } else if (width < 1024) {
-        setDeviceType('tablet');
-      } else {
-        setDeviceType('desktop');
-      }
-    };
-
-    checkDeviceType();
-    window.addEventListener('resize', checkDeviceType);
-    return () => window.removeEventListener('resize', checkDeviceType);
-  }, []);
-
-  const currentLimits = DEVICE_LIMITS[deviceType.toUpperCase() as keyof typeof DEVICE_LIMITS];
-
-  // Validate files only for mobile/tablet, not for desktop
-  const validateFiles = (newFiles: File[]): { valid: File[], errors: string[] } => {
-    const validFiles: File[] = [];
-    const errors: string[] = [];
-    
-    // Desktop पर कोई validation नहीं
-    if (deviceType === 'desktop') {
-      return { valid: newFiles, errors: [] };
-    }
-
-    let totalSize = files.reduce((acc, f) => acc + f.size, 0);
-
-    for (const file of newFiles) {
-      // Check file type
-      if (!file.type.startsWith('image/')) {
-        errors.push(`"${file.name}" is not a valid image file`);
-        continue;
-      }
-
-      // Check individual file size
-      if (file.size > currentLimits.maxFileSize) {
-        errors.push(`"${file.name}" exceeds ${currentLimits.maxFileSize/1024/1024}MB limit`);
-        continue;
-      }
-
-      // Check total file count
-      if (files.length + validFiles.length >= currentLimits.maxFiles) {
-        errors.push(`Maximum ${currentLimits.maxFiles} files allowed on ${deviceType}`);
-        break;
-      }
-
-      // Check total size
-      if (totalSize + file.size > currentLimits.maxTotalSize) {
-        errors.push(`Total size exceeds ${currentLimits.maxTotalSize/1024/1024}MB limit on ${deviceType}`);
-        continue;
-      }
-
-      validFiles.push(file);
-      totalSize += file.size;
-    }
-
-    return { valid: validFiles, errors };
-  };
 
   // Generate unique filename
   const generateUniqueFileName = (baseName: string, index: number, rotation: number) => {
@@ -903,7 +695,29 @@ export default function RotateImage() {
     }
   }, [rotatedBlobs]);
 
-  // Handle rotation with batch processing
+  // ─── 🔥 UPDATED: handleFilesSelected – NO LIMITS ───
+  const handleFilesSelected = (newFiles: File[]) => {
+    const filteredFiles = newFiles.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        alert(`"${file.name}" is not a valid image file`);
+        return false;
+      }
+      
+      if (file.size === 0) {
+        alert(`"${file.name}" appears to be empty or corrupted`);
+        return false;
+      }
+      return true;
+    });
+
+    if (filteredFiles.length > 0) {
+      setFiles((prev) => [...prev, ...filteredFiles]);
+      setRotatedBlobs([]);
+      setShowFeatures(false);
+    }
+  };
+
+  // Handle rotation - FIXED: using files[i].name instead of file.name
   const handleRotate = async () => {
     if (files.length === 0) return;
 
@@ -917,46 +731,34 @@ export default function RotateImage() {
     const errors: ErrorNotification[] = [];
 
     try {
-      // Process in batches (batch size depends on device)
-      const batchSize = currentLimits.batchSize;
-      
-      for (let batchStart = 0; batchStart < files.length; batchStart += batchSize) {
-        const batch = files.slice(batchStart, batchStart + batchSize);
-        
-        await Promise.all(batch.map(async (file, batchIndex) => {
-          try {
-            const globalIndex = batchStart + batchIndex;
-            const uniqueFilename = generateUniqueFileName(file.name, globalIndex, selectedRotation);
-            const blob = await rotateImage(file, selectedRotation);
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const file = files[i];
+          const uniqueFilename = generateUniqueFileName(file.name, i, selectedRotation);
+          const blob = await rotateImage(file, selectedRotation);
 
-            if (!blob || blob.size === 0) {
-              throw new Error("Empty blob returned");
-            }
-
-            blobs.push({
-              blob: blob,
-              name: uniqueFilename,
-              originalFile: file,
-              timestamp: Date.now(),
-              rotation: selectedRotation,
-              currentRotation: selectedRotation,
-            });
-
-            setProgress(((globalIndex + 1) / files.length) * 100);
-
-          } catch (error) {
-            console.error(`Error rotating file ${file.name}:`, error);
-            errors.push({
-              id: Math.random().toString(36).substring(7),
-              message: "Failed to rotate image",
-              fileName: file.name,
-            });
+          if (!blob || blob.size === 0) {
+            throw new Error("Empty blob returned");
           }
-        }));
 
-        // Add delay between batches only for mobile
-        if (batchStart + batchSize < files.length && deviceType === 'mobile') {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          blobs.push({
+            blob: blob,
+            name: uniqueFilename,
+            originalFile: file,
+            timestamp: Date.now(),
+            rotation: selectedRotation,
+            currentRotation: selectedRotation,
+          });
+
+          setProgress(((i + 1) / files.length) * 100);
+
+        } catch (error) {
+          console.error(`Error rotating file ${files[i].name}:`, error);
+          errors.push({
+            id: Math.random().toString(36).substring(7),
+            message: "Failed to rotate image",
+            fileName: files[i].name,
+          });
         }
       }
 
@@ -979,9 +781,7 @@ export default function RotateImage() {
       const errorId = Math.random().toString(36).substring(7);
       setErrorNotifications([{
         id: errorId,
-        message: deviceType === 'mobile' 
-          ? "Failed to rotate images. Try with fewer files on mobile."
-          : "Failed to rotate images. Please try again.",
+        message: "Failed to rotate images. Please try again.",
       }]);
       setTimeout(() => {
         setErrorNotifications(prev => prev.filter(e => e.id !== errorId));
@@ -1178,27 +978,6 @@ export default function RotateImage() {
     setRotatedBlobs([]);
   };
 
-  const handleFilesSelected = (newFiles: File[]) => {
-    const { valid, errors } = validateFiles(newFiles);
-    
-    if (errors.length > 0) {
-      const errorNotifications = errors.map(error => ({
-        id: Math.random().toString(36).substring(7),
-        message: error,
-      }));
-      setErrorNotifications(errorNotifications);
-      setTimeout(() => {
-        setErrorNotifications([]);
-      }, 8000);
-    }
-
-    if (valid.length > 0) {
-      setFiles((prev) => [...prev, ...valid]);
-      setRotatedBlobs([]);
-      setShowFeatures(false);
-    }
-  };
-
   const handleReset = () => {
     setFiles([]);
     setRotatedBlobs([]);
@@ -1213,19 +992,6 @@ export default function RotateImage() {
   const hasResults = rotatedBlobs.length > 0;
   const isReadyToRotate = hasFiles && !hasResults && !rotating;
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-
-  // Get visible previews (limited for mobile/tablet)
-  const visiblePreviews = deviceType === 'mobile' 
-    ? files.slice(0, currentLimits.maxPreviewDisplay)
-    : deviceType === 'tablet'
-    ? files.slice(0, currentLimits.maxPreviewDisplay)
-    : files; // Desktop पर सारे previews
-
-  const visibleRotatedPreviews = deviceType === 'mobile'
-    ? rotatedBlobs.slice(0, currentLimits.maxPreviewDisplay)
-    : deviceType === 'tablet'
-    ? rotatedBlobs.slice(0, currentLimits.maxPreviewDisplay)
-    : rotatedBlobs; // Desktop पर सारे previews
 
   return (
     <>
@@ -1307,26 +1073,11 @@ export default function RotateImage() {
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
                   Rotate images online for free. Easily rotate JPG, PNG, and WebP images clockwise or counter-clockwise using PDFSwift. No signup required.
                   <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    {deviceType === 'desktop' 
-                      ? "🚀 Desktop Mode: Unlimited files, full processing power!"
-                      : deviceType === 'mobile'
-                      ? `📱 Mobile: Max ${currentLimits.maxFiles} files, ${currentLimits.maxFileSize/1024/1024}MB each`
-                      : `📱 Tablet: Max ${currentLimits.maxFiles} files, ${currentLimits.maxFileSize/1024/1024}MB each`
-                    }
+                    No limits • Unlimited files • Any size
                   </span>
                 </p>
               </div>
             </div>
-
-            {/* --- Performance Warning (Only for Mobile/Tablet) --- */}
-            {hasFiles && deviceType !== 'desktop' && (
-              <PerformanceWarning deviceType={deviceType} limits={currentLimits} />
-            )}
-
-            {/* --- Desktop Power Indicator --- */}
-            {deviceType === 'desktop' && hasFiles && (
-              <DesktopPowerIndicator />
-            )}
 
             {/* --- Features Grid --- */}
             <AnimatePresence>
@@ -1340,30 +1091,24 @@ export default function RotateImage() {
                   {[
                     {
                       icon: RotateCw,
-                      title: deviceType === 'desktop' ? "Unlimited Rotation" : "Multiple Rotations",
-                      desc: deviceType === 'desktop'
-                        ? "Rotate unlimited images 90°, 180°, or 270° with desktop power"
-                        : deviceType === 'mobile' 
-                          ? "Rotate images 90°, 180°, or 270° with mobile-friendly interface"
-                          : "Rotate images 90°, 180°, or 270° in either direction",
+                      title: "Multiple Rotations",
+                      desc: "Rotate images 90°, 180°, or 270° in either direction",
                       gradient: "from-blue-500 to-cyan-600",
                       bg: "from-blue-50 to-cyan-50",
                       border: "border-blue-200",
                     },
                     {
-                      icon: deviceType === 'desktop' ? Monitor : Cpu,
-                      title: deviceType === 'desktop' ? "Full Desktop Power" : "Smart Processing",
-                      desc: deviceType === 'desktop'
-                        ? "No limits! Process hundreds of images with full browser power"
-                        : `Batch processing with ${currentLimits.batchSize} files at a time for optimal performance`,
+                      icon: Archive,
+                      title: "Batch Processing",
+                      desc: "Rotate multiple images at once and download as ZIP archive",
                       gradient: "from-green-500 to-emerald-600",
                       bg: "from-green-50 to-emerald-50",
                       border: "border-green-200",
                     },
                     {
-                      icon: Archive,
-                      title: "Batch Processing",
-                      desc: "Rotate multiple images at once and download as ZIP archive",
+                      icon: Shield,
+                      title: "Secure Processing",
+                      desc: "All rotation happens locally in your browser. Your images never leave your device",
                       gradient: "from-purple-500 to-indigo-600",
                       bg: "from-purple-50 to-indigo-50",
                       border: "border-purple-200",
@@ -1405,24 +1150,20 @@ export default function RotateImage() {
                       Upload Images to Rotate
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Select JPG, PNG, or WebP files to rotate • 
+                      Select JPG, PNG, or WebP files to rotate
                       <span className="ml-1 text-blue-600 dark:text-blue-400">
-                        {deviceType === 'desktop' 
-                          ? "No limits on desktop!" 
-                          : `${deviceType} limits apply`
-                        }
+                        No limits • Unlimited files
                       </span>
                     </p>
                   </div>
                 </div>
 
+                {/* ─── 🔥 UPDATED: FileUploader – unlimited ─── */}
                 <div className="mb-6">
                   <FileUploader
                     accept="image/*"
                     multiple={true}
                     onFilesSelected={handleFilesSelected}
-                    maxFiles={deviceType === 'desktop' ? undefined : currentLimits.maxFiles}
-                    maxSize={deviceType === 'desktop' ? undefined : currentLimits.maxFileSize}
                   />
                 </div>
 
@@ -1433,28 +1174,12 @@ export default function RotateImage() {
                         <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
                         <span className="font-medium text-blue-700 dark:text-blue-300">
                           {files.length} images selected
-                          {deviceType !== 'desktop' && ` (${files.length}/${currentLimits.maxFiles})`}
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                         <span>
                           • {(totalSize / 1024 / 1024).toFixed(1)} MB total
                         </span>
-                        {deviceType === 'mobile' && (
-                          <span className="flex items-center gap-1">
-                            • <Smartphone className="w-3 h-3" /> Mobile
-                          </span>
-                        )}
-                        {deviceType === 'tablet' && (
-                          <span className="flex items-center gap-1">
-                            • 📱 Tablet
-                          </span>
-                        )}
-                        {deviceType === 'desktop' && (
-                          <span className="flex items-center gap-1">
-                            • <Monitor className="w-3 h-3" /> Desktop
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1469,12 +1194,7 @@ export default function RotateImage() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                        Uploaded Images
-                        {deviceType !== 'desktop' && files.length > currentLimits.maxPreviewDisplay && (
-                          <span className="text-xs text-gray-500">
-                            (Showing {currentLimits.maxPreviewDisplay} of {files.length})
-                          </span>
-                        )}
+                        Uploaded Images ({files.length})
                       </h3>
                       <button
                         onClick={handleReset}
@@ -1485,7 +1205,7 @@ export default function RotateImage() {
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700">
-                      {visiblePreviews.map((file, index) => (
+                      {files.map((file, index) => (
                         <ImagePreview
                           key={index}
                           file={file}
@@ -1493,7 +1213,6 @@ export default function RotateImage() {
                           onRemove={() => handleRemoveFile(index)}
                           status="Ready to Rotate"
                           index={index}
-                          deviceType={deviceType}
                         />
                       ))}
                     </div>
@@ -1518,18 +1237,13 @@ export default function RotateImage() {
                       <div className="space-y-3 sm:space-y-4">
                         <ProgressBar
                           progress={progress}
-                          label={`Rotating ${files.length} files (${currentLimits.batchSize} files/batch)...`}
+                          label={`Rotating ${files.length} files...`}
                         />
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-blue-600 dark:text-blue-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing on {deviceType}...
+                            Processing your images...
                           </span>
-                          {deviceType === 'mobile' && (
-                            <span className="text-xs text-gray-500">
-                              (Keep screen on)
-                            </span>
-                          )}
                         </div>
                       </div>
                     )}
@@ -1576,7 +1290,7 @@ export default function RotateImage() {
                                 </div>
 
                                 <div className="text-[10px] text-gray-500 dark:text-gray-400 text-center">
-                                  {deviceType === 'mobile' ? option.label.split(' ')[0] : option.label}
+                                  {option.label}
                                 </div>
 
                                 {active && (
@@ -1589,15 +1303,11 @@ export default function RotateImage() {
 
                         <div className="mt-4 flex items-center gap-3 p-3 rounded-lg bg-white/70 dark:bg-gray-900/70 border border-blue-200 dark:border-blue-700">
                           <div className="p-2 rounded-md bg-blue-100 dark:bg-blue-900/30">
-                            {deviceType === 'desktop' ? (
-                              <Monitor className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            ) : (
-                              <Cpu className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            )}
+                            <RotateCw className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           </div>
                           <div>
                             <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                              Selected: {selectedRotation}° • {deviceType === 'desktop' ? 'Full Power' : 'Processing'}: {currentLimits.batchSize} files/batch
+                              Selected: {selectedRotation}°
                             </p>
                             <p className="text-xs text-blue-600 dark:text-blue-400">
                               {files.length} image{files.length > 1 ? "s" : ""} will be rotated
@@ -1614,22 +1324,10 @@ export default function RotateImage() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleRotate}
-                        disabled={deviceType !== 'desktop' && files.length > currentLimits.maxFiles}
-                        className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
-                          (deviceType !== 'desktop' && files.length > currentLimits.maxFiles) ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                       >
                         <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                         Rotate {files.length} Images by {selectedRotation}°
-                        {deviceType === 'mobile' && (
-                          <Smartphone className="w-3.5 h-3.5" />
-                        )}
-                        {deviceType === 'tablet' && (
-                          <span className="text-sm">📱</span>
-                        )}
-                        {deviceType === 'desktop' && (
-                          <Monitor className="w-3.5 h-3.5" />
-                        )}
                       </motion.button>
                     )}
                   </div>
@@ -1659,7 +1357,7 @@ export default function RotateImage() {
                       Successfully rotated {files.length} images by {selectedRotation}°
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      Processed on {deviceType} • {currentLimits.batchSize} files/batch • Choose download option
+                      Choose your download option below
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
@@ -1669,40 +1367,33 @@ export default function RotateImage() {
                   </div>
                 </div>
 
-                {/* --- Dynamic Rotation Instructions (Desktop only) --- */}
-                {deviceType === 'desktop' && (
-                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                        <Rotate3D className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-1">
-                          Desktop Feature: Fine-tune Rotations
-                        </h3>
-                        <p className="text-sm text-blue-700 dark:text-blue-400">
-                          Adjust individual image rotations using the controls below each preview.
-                          Click "Apply Rotation" to save changes.
-                        </p>
-                      </div>
+                {/* --- Rotation Instructions --- */}
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <Rotate3D className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                        Fine-tune Rotations
+                      </h3>
+                      <p className="text-sm text-blue-700 dark:text-blue-400">
+                        Adjust individual image rotations using the controls below each preview.
+                        Click "Apply Rotation" to save changes.
+                      </p>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* --- Output Rotated Previews --- */}
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                   <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                     Rotated Images
-                    {deviceType !== 'desktop' && rotatedBlobs.length > currentLimits.maxPreviewDisplay && (
-                      <span className="text-xs text-gray-500">
-                        (Showing {currentLimits.maxPreviewDisplay} of {rotatedBlobs.length})
-                      </span>
-                    )}
                   </h3>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-green-100 dark:border-green-800/30">
-                    {visibleRotatedPreviews.map((item, index) => (
+                    {rotatedBlobs.map((item, index) => (
                       <ImagePreview
                         key={index}
                         file={item.blob}
@@ -1716,8 +1407,7 @@ export default function RotateImage() {
                         onRotateChange={(newRotation) => handleRotationChange(index, newRotation)}
                         onApplyRotation={() => applyIndividualRotation(index)}
                         isRotating={individualRotating === index}
-                        showApplyButton={deviceType === 'desktop' && currentRotations[index] !== item.rotation}
-                        deviceType={deviceType}
+                        showApplyButton={currentRotations[index] !== item.rotation}
                       />
                     ))}
                   </div>
@@ -1801,7 +1491,7 @@ export default function RotateImage() {
                         bg: "bg-green-50 dark:bg-green-900/10",
                       },
                       {
-                        value: deviceType === 'mobile' ? "📱 Mobile" : deviceType === 'tablet' ? "📱 Tablet" : "🚀 Desktop",
+                        value: "Unlimited",
                         label: "Device Mode",
                         color: "text-purple-600",
                         bg: "bg-purple-50 dark:bg-purple-900/10",

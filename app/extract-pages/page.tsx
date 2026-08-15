@@ -1649,11 +1649,12 @@ export default function PdfPageExtractorTool() {
                       Upload PDF
                     </h2>
                     <p className="text-xs sm:text-sm md:text-base text-gray-500 dark:text-gray-400">
-                      Select your PDF file to extract pages
+                      Select your PDF file to extract pages (No size limit)
                     </p>
                   </div>
                 </div>
 
+                {/* ─── 🔥 FileUploader – unlimited (no size limit) ─── */}
                 <FileUploader
                   accept="application/pdf"
                   multiple={false}
@@ -1798,9 +1799,8 @@ export default function PdfPageExtractorTool() {
                     )}
 
                    
-
-                    {/* Results */}
-                    {processed && (
+{/* Results */}
+{processed && (
                       <motion.div
                         key="results"
                         initial={{ opacity: 0, y: 20 }}

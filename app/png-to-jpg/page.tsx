@@ -529,7 +529,7 @@ export default function PngToJpg() {
   const [isMobile, setIsMobile] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Detect device type
+  // Detect device type (only for UI hints, no limits)
   useEffect(() => {
     const checkMobile = () => {
       const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -579,15 +579,15 @@ export default function PngToJpg() {
         try {
           const file = files[i];
           
-          // Skip files that are too large or corrupted
-          if (file.size === 0 || file.size > (isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024)) {
-            failedFiles.push(`${file.name} (invalid size)`);
+          // Skip corrupted files (size 0)
+          if (file.size === 0) {
+            failedFiles.push(`${file.name} (empty file)`);
             continue;
           }
           
           const uniqueFilename = generateUniqueFileName(file.name, i);
           
-          // Adjust quality based on device
+          // Quality adjustment: 0.9 for desktop, 0.85 for mobile (still good)
           const quality = isMobile ? 0.85 : 0.9;
           const blob = await convertPngToJpg(file, quality);
 
@@ -620,20 +620,12 @@ export default function PngToJpg() {
       setJpgBlobs(blobs);
       
       if (failedFiles.length > 0) {
-        const message = `Successfully converted ${successCount} out of ${files.length} files.\n\nFailed files (${failedFiles.length}):\n${failedFiles.slice(0, 3).join('\n')}${failedFiles.length > 3 ? `\n...and ${failedFiles.length - 3} more` : ''}\n\nReason: File may be too large, corrupted, or unsupported.`;
+        const message = `Successfully converted ${successCount} out of ${files.length} files.\n\nFailed files (${failedFiles.length}):\n${failedFiles.slice(0, 3).join('\n')}${failedFiles.length > 3 ? `\n...and ${failedFiles.length - 3} more` : ''}\n\nReason: File may be corrupted or unsupported.`;
         alert(message);
       }
     } catch (error: any) {
       console.error("Conversion error:", error);
-      
-      let errorMessage = "Failed to convert PNG to JPG.\n\n";
-      if (error.message && error.message.includes("too large")) {
-        errorMessage += error.message;
-      } else {
-        errorMessage += "Please try with smaller files or use a desktop browser for larger files.";
-      }
-      
-      alert(errorMessage);
+      alert("Failed to convert PNG to JPG. Please try again.");
     } finally {
       setConverting(false);
     }
@@ -744,37 +736,28 @@ export default function PngToJpg() {
     setJpgBlobs([]);
   };
 
+  // ─── 🔥 UPDATED: handleFilesSelected – NO LIMITS ───
   const handleFilesSelected = (newFiles: File[]) => {
-    // Filter files based on device type
-    const maxSize = isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024;
-    const maxFiles = isMobile ? 10 : 50;
-    
+    // Filter valid PNG files – NO SIZE LIMIT, NO COUNT LIMIT
     const filteredFiles = newFiles.filter(file => {
-      // Check if file is PNG
       if (!file.type.includes('png') && !file.name.toLowerCase().endsWith('.png')) {
         alert(`File "${file.name}" is not a PNG image.`);
         return false;
       }
       
-      if (file.size === 0 || file.size > maxSize) {
-        alert(`File "${file.name}" is too large (${(file.size/1024/1024).toFixed(1)}MB) or corrupted. Maximum size is ${isMobile ? '30MB' : '200MB'} for ${isMobile ? 'mobile' : 'desktop'}.`);
+      if (file.size === 0) {
+        alert(`File "${file.name}" appears to be empty or corrupted.`);
         return false;
       }
       return true;
     });
     
-    // Check total file count
-    const totalFiles = files.length + filteredFiles.length;
-    if (totalFiles > maxFiles) {
-      alert(`Maximum ${maxFiles} files allowed for ${isMobile ? 'mobile' : 'desktop'} devices.`);
-      return;
-    }
+    if (filteredFiles.length === 0) return;
     
-    if (filteredFiles.length > 0) {
-      setFiles((prev) => [...prev, ...filteredFiles]);
-      setJpgBlobs([]);
-      setShowFeatures(false);
-    }
+    // Add all files – NO MAX FILES LIMIT
+    setFiles((prev) => [...prev, ...filteredFiles]);
+    setJpgBlobs([]);
+    setShowFeatures(false);
   };
 
   const handleReset = () => {
@@ -869,7 +852,7 @@ export default function PngToJpg() {
                   Convert your PNG images to high-quality JPG format with
                   superior compression
                   <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    {isMobile ? "Mobile: Up to 30MB per file" : "Desktop: Up to 200MB per file"}
+                    No limits • Unlimited files • Any size
                   </span>
                 </p>
               </div>
@@ -888,9 +871,7 @@ export default function PngToJpg() {
                     {
                       icon: Zap,
                       title: "Fast Conversion",
-                      desc: isMobile 
-                        ? "Convert PNG files to JPG quickly on mobile devices"
-                        : "Convert large PNG files (up to 200MB) to JPG format in seconds",
+                      desc: "Convert PNG files to JPG format instantly on any device",
                       gradient: "from-orange-500 to-pink-600",
                       bg: "from-orange-50 to-pink-50",
                       border: "border-orange-200",
@@ -898,9 +879,7 @@ export default function PngToJpg() {
                     {
                       icon: Palette,
                       title: "Quality Preserved",
-                      desc: isMobile
-                        ? "Maintain good image quality while reducing file size for mobile"
-                        : "Preserve image quality while significantly reducing file size",
+                      desc: "Maintain image quality while significantly reducing file size",
                       gradient: "from-blue-500 to-purple-600",
                       bg: "from-blue-50 to-purple-50",
                       border: "border-blue-200",
@@ -950,31 +929,23 @@ export default function PngToJpg() {
                       Upload PNG Images
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Select PNG files to convert to JPG format
-                     {isMobile && (
-  <span className="block text-orange-600 dark:text-orange-400 mt-1">
-    Max 30MB per file • 10 files max
-  </span>
-)}
-
+                      Select PNG files to convert to JPG format – no limits
+                      <span className="block text-orange-600 dark:text-orange-400 mt-1">
+                        Unlimited files • Any size
+                      </span>
                     </p>
                   </div>
                 </div>
 
-                {/* FileUploader हमेशा दिखेगा */}
+                {/* ─── 🔥 UPDATED: FileUploader – no maxSize, no maxFiles ─── */}
                 <div className="mb-6">
                   <FileUploader
                     accept="image/png"
                     multiple={true}
                     onFilesSelected={handleFilesSelected}
-                    maxFiles={isMobile ? 10 : 50}
-                    maxSize={isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                    {isMobile 
-                      ? "For best results on mobile, use files under 30MB"
-                      : "Desktop browser recommended for files above 30MB"
-                    }
+                    No file limits – upload as many PNGs as you want
                   </p>
                 </div>
 
@@ -991,9 +962,6 @@ export default function PngToJpg() {
                         <span>
                           • {(totalSize / 1024 / 1024).toFixed(2)} MB total
                         </span>
-                        {isMobile && totalSize > 100 * 1024 * 1024 && (
-                          <span className="text-red-600"> • Large files may cause issues on mobile</span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1043,14 +1011,9 @@ export default function PngToJpg() {
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            {isMobile ? "Processing on mobile..." : "Processing your images..."}
+                            Processing your images...
                           </span>
                         </div>
-                        {isMobile && totalSize > 50 * 1024 * 1024 && (
-                          <div className="text-center text-xs text-orange-600 dark:text-orange-400">
-                            Large files may take longer on mobile devices
-                          </div>
-                        )}
                       </div>
                     )}
 
@@ -1073,8 +1036,6 @@ export default function PngToJpg() {
               )}
             </div>
             
-           
-              
             {/* --- Results and Download Area --- */}
             {hasResults && (
               <motion.div
@@ -1239,7 +1200,8 @@ export default function PngToJpg() {
                 </div>
               </div>
             )}
- <section
+            
+            <section
               id="how-to-png-to-jpg"
               className="mt-20 scroll-mt-24"
              >
@@ -1252,7 +1214,7 @@ export default function PngToJpg() {
                   <div className="text-4xl font-bold text-pink-600 mb-2">1</div>
                   <h3 className="font-semibold text-lg">Upload PNG Images</h3>
                   <p className="text-gray-600 text-sm mt-2">
-                    Upload PNG images ({isMobile ? "max 30MB" : "up to 200MB"}) using drag & drop or file picker.
+                    Upload PNG images using drag & drop or file picker.
                   </p>
                 </div>
 
@@ -1363,36 +1325,32 @@ export default function PngToJpg() {
               <div className="space-y-4">
                 {[
                   {
-                    question: "What is the maximum file size for conversion?",
-                    answer: `For mobile devices: Maximum 30MB per PNG file. For desktop browsers: Up to 200MB per PNG file. We recommend using desktop browsers for files larger than 30MB.`
-                  },
-                  {
-                    question: "Is there any limit on the number of files I can convert at once?",
-                    answer: `Mobile: Up to 10 files at once. Desktop: Up to 50 files at once. For best performance, convert files in batches if you have many large files.`
+                    question: "Is there any limit on file size or number of files?",
+                    answer: "No! There are no limits. You can upload any number of PNG files of any size. All processing happens in your browser."
                   },
                   {
                     question: "Will the image quality be preserved during conversion?",
-                    answer: `Yes, we preserve image quality while converting PNG to JPG. The converter automatically optimizes the JPG quality based on your device (85% quality on mobile, 90% on desktop) to balance quality and file size.`
+                    answer: "Yes, we preserve image quality while converting PNG to JPG. The converter automatically optimizes the JPG quality based on your device (85% quality on mobile, 90% on desktop) to balance quality and file size."
                   },
                   {
                     question: "Can I convert PNG files with transparency?",
-                    answer: `Yes, PNG files with transparency (alpha channel) are supported. During conversion to JPG, transparent areas will be converted to white background as JPG format does not support transparency.`
+                    answer: "Yes, PNG files with transparency (alpha channel) are supported. During conversion to JPG, transparent areas will be converted to white background as JPG format does not support transparency."
                   },
                   {
                     question: "How do I download converted files?",
-                    answer: `You can download files individually by clicking the download button on each image, or download all files at once as a ZIP archive using the "Download as ZIP Archive" button.`
+                    answer: "You can download files individually by clicking the download button on each image, or download all files at once as a ZIP archive using the 'Download as ZIP Archive' button."
                   },
                   {
                     question: "Is the conversion secure? Are my files uploaded to your servers?",
-                    answer: `All conversion happens directly in your browser (client-side). Your PNG files are never uploaded to any server, ensuring complete privacy and security.`
-                  },
-                  {
-                    question: "Why does conversion fail on mobile for large files?",
-                    answer: `Mobile devices have limited memory and processing power. Files larger than 30MB may exceed the available memory. Use desktop browsers for large files or compress your PNG files before conversion.`
+                    answer: "All conversion happens directly in your browser (client-side). Your PNG files are never uploaded to any server, ensuring complete privacy and security."
                   },
                   {
                     question: "What image formats are supported?",
-                    answer: `Currently, we only support PNG to JPG conversion. Make sure your files have .png extension. Other image formats like WebP, BMP, or TIFF are not supported.`
+                    answer: "Currently, we only support PNG to JPG conversion. Make sure your files have .png extension. Other image formats like WebP, BMP, or TIFF are not supported."
+                  },
+                  {
+                    question: "Will the JPG file be smaller than the PNG?",
+                    answer: "Generally, yes. JPG uses lossy compression and is typically much smaller than PNG for photographs and complex images. For simple graphics with few colors, the difference may be minimal."
                   }
                 ].map((faq, index) => (
                   <details

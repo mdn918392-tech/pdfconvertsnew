@@ -557,7 +557,6 @@ const convertImageToPdf = async (imageBlob: Blob, filename: string): Promise<Blo
   });
 
   const pdfBytes = await pdfDoc.save();
-  // Fix: Use type assertion to handle ArrayBufferLike
   return new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
 };
 
@@ -590,11 +589,10 @@ const convertImagesToPdf = async (images: ProcessedImage[]): Promise<Blob> => {
   }
 
   const pdfBytes = await pdfDoc.save();
-  // Fix: Use type assertion to handle ArrayBufferLike
   return new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
 };
 
-// --- PDF Preview Component (Mobile Disabled) ---
+// --- PDF Preview Component (Mobile Disabled - Kept as requested) ---
 const PdfPreview = ({
   file,
   filename,
@@ -608,7 +606,7 @@ const PdfPreview = ({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Detect mobile device
+  // Detect mobile device - KEPT for mobile preview disabled
   useEffect(() => {
     const checkMobile = () => {
       const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -638,7 +636,7 @@ const PdfPreview = ({
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Handle click to open preview - DISABLED ON MOBILE
+  // Handle click to open preview - DISABLED ON MOBILE (KEPT)
   const handlePreviewClick = () => {
     if (isMobile) {
       alert("PDF preview is not available on mobile devices. Please download the file to view it.");
@@ -794,7 +792,7 @@ const FilteredImagePreview = ({
   const [isPdfFile, setIsPdfFile] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
 
-  // Detect mobile device
+  // Detect mobile device - KEPT for mobile preview disabled
   useEffect(() => {
     const checkMobile = () => {
       const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -833,11 +831,8 @@ const FilteredImagePreview = ({
       url = URL.createObjectURL(file);
       setPreviewUrl(url);
 
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      ) || window.innerWidth < 768;
-
-      const timeoutDuration = isMobile ? 3000 : 5000;
+      // REMOVED mobile timeout - now same for all devices
+      const timeoutDuration = 5000;
 
       img = new Image();
       img.onload = () => {
@@ -908,7 +903,7 @@ const FilteredImagePreview = ({
     return filter ? filter.name : "Original";
   };
 
-  // If it's a PDF file, show PDF preview with mobile disabled
+  // If it's a PDF file, show PDF preview with mobile disabled (KEPT)
   if (isPdfFile) {
     return (
       <PdfPreview
@@ -919,9 +914,9 @@ const FilteredImagePreview = ({
     );
   }
 
-  // Handle image preview click - disabled for PDF on mobile
+  // Handle image preview click - REMOVED mobile restriction for images (only PDF preview disabled on mobile)
   const handleImageClick = () => {
-    // Check if it's a PDF file
+    // Check if it's a PDF file - only PDF preview disabled on mobile
     const isPdfByType = file.type === "application/pdf";
     const isPdfByExtension = filename.toLowerCase().endsWith('.pdf');
     const isPdfByFlag = isPdf === true;
@@ -1221,27 +1216,12 @@ export default function ImageFilterTool() {
   const [creatingZip, setCreatingZip] = useState(false);
   const [creatingSinglePdf, setCreatingSinglePdf] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [processingPdf, setProcessingPdf] = useState(false);
 
   // Filter state
   const [selectedFilter, setSelectedFilter] = useState<string>("original");
   const [activeCategory, setActiveCategory] = useState<string>("basic");
-
-  // Detect device type
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      ) || window.innerWidth < 768;
-      setIsMobile(mobile);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   // Generate unique filename
   const generateUniqueFileName = (
@@ -1580,17 +1560,7 @@ export default function ImageFilterTool() {
 
     const selectedFile = pdfFiles[0];
 
-    if (isMobile) {
-      const maxSize = 30 * 1024 * 1024;
-      if (selectedFile.size > maxSize) {
-        alert(
-          `"${selectedFile.name}" is too large (${(selectedFile.size / 1024 / 1024).toFixed(
-            1
-          )}MB). Maximum size for mobile is 30MB.`
-        );
-        return;
-      }
-    }
+    // REMOVED mobile file size limit - now unlimited for all devices
 
     setFile(selectedFile);
     setProcessedImages([]);
@@ -1792,11 +1762,6 @@ export default function ImageFilterTool() {
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       Upload one PDF file to apply filters to each page
-                      {isMobile && (
-                        <span className="block text-purple-600 dark:text-purple-400 mt-1">
-                          Max 30MB per file
-                        </span>
-                      )}
                     </p>
                   </div>
                 </div>
@@ -1806,8 +1771,6 @@ export default function ImageFilterTool() {
                   multiple={false}
                   onFilesSelected={handleFilesSelected}
                   key={file ? file.name : 'uploader'}
-                  maxSize={isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024}
-                  maxFiles={1}
                 />
 
                 {hasFile && (
@@ -1926,8 +1889,6 @@ export default function ImageFilterTool() {
                     <span className="text-xs sm:text-sm font-medium">
                       {processingPdf
                         ? "Extracting and processing PDF pages..."
-                        : isMobile
-                        ? "Processing on mobile..."
                         : "Applying filters to PDF pages..."}
                     </span>
                   </div>

@@ -67,30 +67,8 @@ const tool = {
   path: "/tools/webp-to-jpg",
 };
 
-// Device limits based on performance - DESKTOP UNLIMITED
-const DEVICE_LIMITS = {
-  MOBILE: {
-    maxFiles: 5,
-    maxFileSize: 5 * 1024 * 1024,
-    maxTotalSize: 20 * 1024 * 1024,
-    batchSize: 1,
-    unlimited: false,
-  },
-  TABLET: {
-    maxFiles: 10,
-    maxFileSize: 10 * 1024 * 1024,
-    maxTotalSize: 50 * 1024 * 1024,
-    batchSize: 2,
-    unlimited: false,
-  },
-  DESKTOP: {
-    maxFiles: Infinity,
-    maxFileSize: 50 * 1024 * 1024,
-    maxTotalSize: Infinity,
-    batchSize: 5,
-    unlimited: true,
-  },
-};
+// ─── 🔥 ALL LIMITS REMOVED ──────────────────────────────────────────
+// No limits – unlimited files, unlimited size
 
 // Explore All Tools Data
 const exploreTools: Tool[] = [
@@ -231,12 +209,10 @@ const ImagePreview = ({
 
     const loadImage = async () => {
       try {
-        // Check if file is a Blob or File
         if (file && typeof file === 'object' && 'size' in file) {
           url = URL.createObjectURL(file);
           if (isMounted) {
             setImageUrl(url);
-            // Test if image loads
             const img = new Image();
             img.onload = () => {
               if (isMounted) setImageLoaded(true);
@@ -276,7 +252,6 @@ const ImagePreview = ({
     }
   };
 
-  // Fallback display when image fails to load
   const renderFallback = () => (
     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
       <div className="text-center">
@@ -500,11 +475,11 @@ export default function WebpToJpg() {
   >([]);
   const [zipDownloading, setZipDownloading] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
-  const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [processingError, setProcessingError] = useState<string | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
 
-  // Detect device type and set limits
+  // Detect device type (only for display, no limits applied)
   useEffect(() => {
     const checkDeviceType = () => {
       const width = window.innerWidth;
@@ -525,47 +500,37 @@ export default function WebpToJpg() {
     return () => window.removeEventListener('resize', checkDeviceType);
   }, []);
 
-  const currentLimits = DEVICE_LIMITS[deviceType.toUpperCase() as keyof typeof DEVICE_LIMITS];
-
-  // Validate files before adding - Desktop has unlimited limits
-  const validateFiles = (newFiles: File[]): { valid: File[], errors: string[] } => {
+  // ─── 🔥 UPDATED: handleFilesSelected – NO LIMITS ───
+  const handleFilesSelected = (newFiles: File[]) => {
     const validFiles: File[] = [];
     const errors: string[] = [];
-    let totalSize = files.reduce((acc, f) => acc + f.size, 0);
 
     for (const file of newFiles) {
       // Check if it's a WebP file
       const isWebP = file.type.includes('webp') || file.name.endsWith('.webp');
       
-      // Check file type - only WebP allowed
       if (!isWebP) {
-        errors.push(`"${file.name}" is not a WebP image. Please upload WebP files only.`);
+        errors.push(`"${file.name}" is not a WebP image.`);
         continue;
       }
 
-      // Check individual file size (applies to all devices)
-      if (file.size > currentLimits.maxFileSize) {
-        errors.push(`"${file.name}" exceeds ${currentLimits.maxFileSize/1024/1024}MB per file limit`);
-        continue;
-      }
-
-      // Check total file count (not for desktop)
-      if (!currentLimits.unlimited && files.length + validFiles.length >= currentLimits.maxFiles) {
-        errors.push(`Maximum ${currentLimits.maxFiles} files allowed on ${deviceType}`);
-        break;
-      }
-
-      // Check total size (not for desktop)
-      if (!currentLimits.unlimited && totalSize + file.size > currentLimits.maxTotalSize) {
-        errors.push(`Total size exceeds ${currentLimits.maxTotalSize/1024/1024}MB limit on ${deviceType}`);
+      if (file.size === 0) {
+        errors.push(`"${file.name}" appears to be empty or corrupted.`);
         continue;
       }
 
       validFiles.push(file);
-      totalSize += file.size;
     }
 
-    return { valid: validFiles, errors };
+    if (errors.length > 0) {
+      alert(`Some files were not added:\n${errors.join('\n')}`);
+    }
+    
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
+      setJpgBlobs([]);
+      setShowFeatures(false);
+    }
   };
 
   // Generate unique filename for JPG
@@ -587,6 +552,7 @@ export default function WebpToJpg() {
     }
   }, [downloadNotifications]);
 
+  // ─── 🔥 FIXED: handleConvert – using files[i].name instead of file.name ───
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -598,43 +564,33 @@ export default function WebpToJpg() {
 
     try {
       const blobs: ConvertedFile[] = [];
-      
-      // Process in batches based on device capability
-      const batchSize = currentLimits.batchSize;
-      
-      for (let batchStart = 0; batchStart < files.length; batchStart += batchSize) {
-        const batch = files.slice(batchStart, batchStart + batchSize);
-        
-        await Promise.all(batch.map(async (file, batchIndex) => {
-          try {
-            const globalIndex = batchStart + batchIndex;
-            // Convert WebP to JPG
-            const blob = await convertWebpToJpg(file);
 
-            // Generate appropriate filename
-            const baseName = file.name
-              .replace(/\.webp$/i, '')
-              .replace(/\.[^/.]+$/, '');
-            const uniqueFilename = generateUniqueFileName(baseName, globalIndex);
+      for (let i = 0; i < files.length; i++) {
+        try {
+          const file = files[i];
+          const blob = await convertWebpToJpg(file);
 
-            blobs.push({
-              blob: blob,
-              name: uniqueFilename,
-              originalFile: file,
-              timestamp: Date.now(),
-            });
-
-            // Update progress
-            setProgress(((globalIndex + 1) / files.length) * 100);
-          } catch (error) {
-            console.error(`Error converting ${file.name}:`, error);
-            throw new Error(`Failed to convert "${file.name}". Please try again.`);
+          if (!blob || blob.size === 0) {
+            throw new Error(`Conversion resulted in empty file for "${file.name}"`);
           }
-        }));
 
-        // Small delay between batches to prevent freezing
-        if (batchStart + batchSize < files.length) {
-          await new Promise(resolve => setTimeout(resolve, 300));
+          const baseName = file.name
+            .replace(/\.webp$/i, '')
+            .replace(/\.[^/.]+$/, '');
+          const uniqueFilename = generateUniqueFileName(baseName, i);
+
+          blobs.push({
+            blob: blob,
+            name: uniqueFilename,
+            originalFile: file,
+            timestamp: Date.now(),
+          });
+
+          setProgress(((i + 1) / files.length) * 100);
+        } catch (error) {
+          // FIXED: Use files[i].name instead of file.name
+          console.error(`Error converting ${files[i].name}:`, error);
+          throw new Error(`Failed to convert "${files[i].name}". Please try again.`);
         }
       }
       
@@ -655,19 +611,14 @@ export default function WebpToJpg() {
     try {
       const zip = new JSZip();
       
-      // Add all JPG files to the zip
       jpgBlobs.forEach((item, index) => {
         zip.file(item.name, item.blob);
       });
 
-      // Generate zip file
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      
-      // Create download link
       const zipName = `converted_images_${new Date().getTime()}.zip`;
       downloadFile(zipBlob, zipName);
 
-      // Add download notification
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
         fileName: zipName,
@@ -677,7 +628,6 @@ export default function WebpToJpg() {
       };
       setDownloadNotifications((prev) => [...prev, notification]);
 
-      // Auto-remove notification after 5 seconds
       setTimeout(() => {
         setDownloadNotifications((prev) =>
           prev.filter((n) => n.id !== notification.id)
@@ -691,34 +641,25 @@ export default function WebpToJpg() {
     }
   };
 
-  // ✅ FIXED: PDF generation using pdf-lib for proper resource isolation
+  // PDF generation using pdf-lib
   const handleDownloadAsPDF = async () => {
     if (jpgBlobs.length === 0) return;
 
     setPdfDownloading(true);
     try {
-      // Create a new PDF document
       const pdfDoc = await PDFDocument.create();
       
-      // Process each image and add it as a separate page
       for (let i = 0; i < jpgBlobs.length; i++) {
         const item = jpgBlobs[i];
-        
-        // Read the blob as ArrayBuffer
         const arrayBuffer = await item.blob.arrayBuffer();
-        
-        // Embed the JPG image - each image is embedded separately
-        // This ensures each page has its own image resource
         const image = await pdfDoc.embedJpg(arrayBuffer);
         
-        // Get image dimensions
         const imgWidth = image.width;
         const imgHeight = image.height;
         
-        // Calculate aspect ratio and fit to A4 page
-        const pageWidth = 595.28; // A4 in points (1 point = 1/72 inch)
+        const pageWidth = 595.28;
         const pageHeight = 841.89;
-        const margin = 28.35; // 1cm margin in points
+        const margin = 28.35;
         
         const maxWidth = pageWidth - (margin * 2);
         const maxHeight = pageHeight - (margin * 2);
@@ -731,16 +672,10 @@ export default function WebpToJpg() {
           finalWidth = (maxHeight / imgHeight) * imgWidth;
         }
         
-        // Center the image on the page
         const x = (pageWidth - finalWidth) / 2;
         const y = (pageHeight - finalHeight) / 2;
         
-        // Add a new page for each image
         const page = pdfDoc.addPage([pageWidth, pageHeight]);
-        
-        // Draw the image on the page
-        // CRITICAL: Each page gets its own embedded image object
-        // No shared resources between pages
         page.drawImage(image, {
           x: x,
           y: y,
@@ -749,12 +684,10 @@ export default function WebpToJpg() {
         });
       }
       
-      // Save the PDF
       const pdfBytes = await pdfDoc.save({
         useObjectStreams: false,
       });
       
-      // ✅ FIXED: Convert Uint8Array to ArrayBuffer for Blob
       const arrayBuffer = new ArrayBuffer(pdfBytes.length);
       const view = new Uint8Array(arrayBuffer);
       view.set(pdfBytes);
@@ -762,7 +695,6 @@ export default function WebpToJpg() {
       const pdfBlob = new Blob([arrayBuffer], { type: 'application/pdf' });
       const pdfName = `converted_images_${new Date().getTime()}.pdf`;
       
-      // Create a download link
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -772,7 +704,6 @@ export default function WebpToJpg() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      // Add download notification
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
         fileName: pdfName,
@@ -782,7 +713,6 @@ export default function WebpToJpg() {
       };
       setDownloadNotifications((prev) => [...prev, notification]);
 
-      // Auto-remove notification after 5 seconds
       setTimeout(() => {
         setDownloadNotifications((prev) =>
           prev.filter((n) => n.id !== notification.id)
@@ -797,12 +727,10 @@ export default function WebpToJpg() {
   };
 
   const handleDownloadAllSeparate = () => {
-    // Downloads all converted files individually
     jpgBlobs.forEach((item) => {
       downloadFile(item.blob, item.name);
     });
 
-    // Add download notification
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
       fileName: jpgBlobs.length === 1 ? jpgBlobs[0].name : "Multiple files",
@@ -812,7 +740,6 @@ export default function WebpToJpg() {
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
-    // Auto-remove notification after 5 seconds
     setTimeout(() => {
       setDownloadNotifications((prev) =>
         prev.filter((n) => n.id !== notification.id)
@@ -826,7 +753,6 @@ export default function WebpToJpg() {
 
     downloadFile(item.blob, item.name);
 
-    // Add download notification
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
       fileName: item.name,
@@ -836,7 +762,6 @@ export default function WebpToJpg() {
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
-    // Auto-remove notification after 5 seconds
     setTimeout(() => {
       setDownloadNotifications((prev) =>
         prev.filter((n) => n.id !== notification.id)
@@ -849,21 +774,6 @@ export default function WebpToJpg() {
       prevFiles.filter((_, index) => index !== indexToRemove)
     );
     setJpgBlobs([]);
-  };
-
-  const handleFilesSelected = (newFiles: File[]) => {
-    // Validate files
-    const { valid, errors } = validateFiles(newFiles);
-    
-    if (errors.length > 0) {
-      alert(`Some files were not added:\n${errors.join('\n')}`);
-    }
-    
-    if (valid.length > 0) {
-      setFiles((prev) => [...prev, ...valid]);
-      setJpgBlobs([]);
-      setShowFeatures(false);
-    }
   };
 
   const handleReset = () => {
@@ -879,7 +789,6 @@ export default function WebpToJpg() {
   const isReadyToConvert = hasFiles && !hasResults && !converting;
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
-  // Calculate total size of converted files
   const convertedTotalSize = jpgBlobs.reduce(
     (acc, item) => acc + item.blob.size,
     0
@@ -888,17 +797,6 @@ export default function WebpToJpg() {
     totalSize > 0
       ? (((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
       : "0";
-
-  // Get device-specific limits message
-  const getLimitsMessage = () => {
-    if (deviceType === 'desktop') {
-      return "";
-    }
-
-    return `Limits on ${deviceType}: ${currentLimits.maxFiles} files max, ${
-      currentLimits.maxFileSize / 1024 / 1024
-    }MB per file`;
-  };
 
   return (
     <>
@@ -970,7 +868,7 @@ export default function WebpToJpg() {
                   Upload WebP images and convert them to JPG format instantly. 
                   Fast, secure, and browser-based. Download individually, as ZIP, or as PDF.
                   <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    {getLimitsMessage()}
+                    No limits • Unlimited files • Any size
                   </span>
                 </p>
               </div>
@@ -988,10 +886,8 @@ export default function WebpToJpg() {
                   {[
                     {
                       icon: Zap,
-                      title: deviceType === 'desktop' ? "Unlimited Conversions" : "Fast Conversion",
-                      desc: deviceType === 'desktop' 
-                        ? "Convert unlimited WebP files to JPG format with no restrictions" 
-                        : "Convert WebP files to JPG format in seconds with our optimized engine",
+                      title: "Unlimited Conversions",
+                      desc: "Convert unlimited WebP files to JPG format with no restrictions",
                       gradient: "from-purple-500 to-pink-600",
                       bg: "from-purple-50 to-pink-50",
                       border: "border-purple-200",
@@ -1049,33 +945,23 @@ export default function WebpToJpg() {
                       Upload WebP Images
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      {deviceType === 'desktop' 
-                        ? "Select unlimited WebP files to convert to JPG format • Desktop: Unlimited conversions!"
-                        : `Select WebP files to convert to JPG format • ${getLimitsMessage()}`
-                      }
+                      Select unlimited WebP files to convert to JPG format – No limits, any size
                     </p>
                   </div>
                 </div>
 
-                {/* FileUploader - Only WebP */}
+                {/* ─── 🔥 UPDATED: FileUploader – unlimited ─── */}
                 <div className="mb-6">
                   <FileUploader
                     accept="image/webp"
                     multiple={true}
                     onFilesSelected={handleFilesSelected}
-                    maxFiles={currentLimits.maxFiles}
-                    maxSize={currentLimits.maxFileSize}
-                    unlimited={currentLimits.unlimited}
                   />
                 </div>
 
                 {hasFiles && (
                   <div className="text-center mb-6">
-                    <div className={`inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-full ${
-                      deviceType === 'desktop' 
-                        ? 'bg-gradient-to-r from-emerald-100 to-cyan-100 dark:from-emerald-900/30 dark:to-cyan-900/30'
-                        : 'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30'
-                    }`}>
+                    <div className="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-full">
                       <div className="flex items-center gap-1 sm:gap-2">
                         <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
                         <span className="font-medium text-purple-700 dark:text-purple-300">
@@ -1086,19 +972,9 @@ export default function WebpToJpg() {
                         <span>
                           • {(totalSize / 1024 / 1024).toFixed(2)} MB total
                         </span>
-                        {deviceType === 'mobile' ? (
-                          <span className="flex items-center gap-1">
-                            • <Smartphone className="w-3 h-3" /> Optimized for mobile
-                          </span>
-                        ) : deviceType === 'desktop' ? (
-                          <span className="flex items-center gap-1">
-                            • <Monitor className="w-3 h-3" /> Unlimited desktop power
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1">
-                            • <Cpu className="w-3 h-3" /> Tablet mode
-                          </span>
-                        )}
+                        <span className="flex items-center gap-1">
+                          • <Monitor className="w-3 h-3" /> Unlimited
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1113,11 +989,7 @@ export default function WebpToJpg() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
-                        Uploaded WebP Files {
-                          currentLimits.unlimited 
-                            ? `(${files.length} files)` 
-                            : `(${files.length}/${currentLimits.maxFiles})`
-                        }
+                        Uploaded WebP Files ({files.length})
                       </h3>
                       <button
                         onClick={handleReset}
@@ -1160,19 +1032,13 @@ export default function WebpToJpg() {
                       <div className="space-y-3 sm:space-y-4">
                         <ProgressBar
                           progress={progress}
-                          label={`Converting ${files.length} WebP files to JPG... (Batch of ${currentLimits.batchSize})`}
+                          label={`Converting ${files.length} WebP files to JPG...`}
                         />
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-purple-600 dark:text-purple-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing on {deviceType} device...
-                            {deviceType === 'desktop' && " (Unlimited mode)"}
+                            Processing your WebP files...
                           </span>
-                          {deviceType === 'mobile' && (
-                            <span className="text-xs text-gray-500">
-                              (Please keep screen on)
-                            </span>
-                          )}
                         </div>
                       </div>
                     )}
@@ -1188,32 +1054,8 @@ export default function WebpToJpg() {
                       >
                         <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                         Convert {files.length} WebP to JPG
-                        {deviceType === 'desktop' ? (
-                          <Monitor className="w-3.5 h-3.5" />
-                        ) : deviceType === 'mobile' ? (
-                          <Smartphone className="w-3.5 h-3.5" />
-                        ) : (
-                          <Cpu className="w-3.5 h-3.5" />
-                        )}
                       </motion.button>
                     )}
-
-                    {/* Device Info */}
-                    <div className="text-center">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs ${
-                        deviceType === 'desktop'
-                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {deviceType === 'desktop' ? (
-                          <Monitor className="w-3 h-3" />
-                        ) : (
-                          <Cpu className="w-3 h-3" />
-                        )}
-                        Processing on: {deviceType} • Batch size: {currentLimits.batchSize}
-                        {deviceType === 'desktop' && " • Unlimited files"}
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
@@ -1241,8 +1083,7 @@ export default function WebpToJpg() {
                       Successfully converted {files.length} WebP files to JPG format
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      Processed on {deviceType} • {sizeReduction}% average size change
-                      {deviceType === 'desktop' && " • Unlimited desktop mode"}
+                      {sizeReduction}% average size change • Choose your download option below
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
@@ -1348,7 +1189,7 @@ export default function WebpToJpg() {
               </motion.div>
             )}
 
-            {/* --- Stats Footer (Card Style) --- */}
+            {/* --- Stats Footer --- */}
             {(hasFiles || hasResults) && (
               <div className="mt-6 sm:mt-10 md:mt-14">
                 <div className="max-w-6xl mx-auto px-4">
@@ -1373,10 +1214,10 @@ export default function WebpToJpg() {
                         bg: "bg-green-50 dark:bg-green-900/10",
                       },
                       {
-                        value: deviceType === 'desktop' ? "Unlimited" : deviceType,
-                        label: deviceType === 'desktop' ? "Desktop Mode" : "Device Mode",
-                        color: deviceType === 'desktop' ? "text-emerald-600" : "text-pink-600",
-                        bg: deviceType === 'desktop' ? "bg-emerald-50 dark:bg-emerald-900/10" : "bg-pink-50 dark:bg-pink-900/10",
+                        value: "Unlimited",
+                        label: "Device Mode",
+                        color: "text-emerald-600",
+                        bg: "bg-emerald-50 dark:bg-emerald-900/10",
                       },
                     ].map((stat, index) => (
                       <div

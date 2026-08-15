@@ -620,17 +620,12 @@ export default function PdfToImage() {
   const [pdfWorkerLoaded, setPdfWorkerLoaded] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Initialize pdf.js worker - use local worker
+  // Initialize pdf.js worker - SIMPLIFIED APPROACH
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-      try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-        setPdfWorkerLoaded(true);
-        console.log('PDF worker initialized with local worker');
-      } catch (error) {
-        console.warn("Failed to set PDF.js worker source:", error);
-      }
-    }
+    const version = '3.11.174';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
+    setPdfWorkerLoaded(true);
+    console.log('PDF worker initialized with CDN');
   }, []);
 
   // Detect device type
@@ -681,41 +676,31 @@ export default function PdfToImage() {
     }
   };
 
-  // Handle file selection and get page counts
+  // ─── 🔥 UPDATED: handleFilesSelected – NO SIZE OR COUNT LIMITS ───
   const handleFilesSelected = async (newFiles: File[]) => {
-    const maxSize = isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024;
-    const maxFiles = isMobile ? 10 : 50;
-    
-    const filteredFiles = newFiles.filter(file => {
+    // Simply accept all files – no size or count checks
+    if (newFiles.length === 0) return;
+
+    // Just filter out non-PDF files (to avoid errors later)
+    const validPdfFiles = newFiles.filter(file => {
       if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
         alert(`File "${file.name}" is not a PDF document.`);
         return false;
       }
-      
-      if (file.size === 0 || file.size > maxSize) {
-        alert(`File "${file.name}" is too large (${(file.size/1024/1024).toFixed(1)}MB) or corrupted. Maximum size is ${isMobile ? '30MB' : '200MB'} for ${isMobile ? 'mobile' : 'desktop'}.`);
-        return false;
-      }
       return true;
     });
-    
-    const totalFiles = files.length + filteredFiles.length;
-    if (totalFiles > maxFiles) {
-      alert(`Maximum ${maxFiles} files allowed for ${isMobile ? 'mobile' : 'desktop'} devices.`);
-      return;
-    }
-    
-    if (filteredFiles.length > 0) {
-      setFiles((prev) => [...prev, ...filteredFiles]);
-      setImageBlobs([]);
-      setShowFeatures(false);
-      
-      // Get total pages for the first file (for page range feature)
-      if (filteredFiles.length > 0) {
-        const pages = await getPdfPageCount(filteredFiles[0]);
-        setTotalPages(pages);
-        setPageRange({start: 1, end: pages});
-      }
+
+    if (validPdfFiles.length === 0) return;
+
+    setFiles((prev) => [...prev, ...validPdfFiles]);
+    setImageBlobs([]);
+    setShowFeatures(false);
+
+    // Get total pages for the first file (for page range feature)
+    if (validPdfFiles.length > 0) {
+      const pages = await getPdfPageCount(validPdfFiles[0]);
+      setTotalPages(pages);
+      setPageRange({start: 1, end: pages});
     }
   };
 
@@ -840,15 +825,9 @@ export default function PdfToImage() {
       for (let i = 0; i < files.length; i++) {
         try {
           const file = files[i];
-          
-          if (file.size === 0 || file.size > (isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024)) {
-            failedFiles.push(`${file.name} (invalid size)`);
-            continue;
-          }
-          
+          // No size check – convert all
           const converted = await convertPdfToImages(file);
           allConverted = [...allConverted, ...converted];
-          
         } catch (error: any) {
           console.error(`Error converting PDF ${i}:`, error);
           failedFiles.push(files[i].name);
@@ -1056,18 +1035,14 @@ export default function PdfToImage() {
 
               <div className="text-center mb-4 sm:mb-6 md:mb-8">
                 <motion.div
-  initial={{ scale: 0.5 }}
-  animate={{ scale: 1 }}
-  className="inline-flex items-center justify-center
-    w-14 h-14 md:w-16 md:h-16
-    bg-gradient-to-br from-green-500 to-emerald-500
-    rounded-2xl md:rounded-3xl
-    mb-3 md:mb-4 shadow-xl"
- >
-  <span className="text-2xl md:text-3xl text-white select-none">
-    {tool.icon}
-  </span>
-</motion.div>
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  className="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl md:rounded-3xl mb-3 md:mb-4 shadow-xl"
+                >
+                  <span className="text-2xl md:text-3xl text-white select-none">
+                    {tool.icon}
+                  </span>
+                </motion.div>
 
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
                   Convert PDF to JPG/PNG - Free, Fast & No Watermark | PDFSwift
@@ -1077,7 +1052,7 @@ export default function PdfToImage() {
                   Convert your PDF pages to high-quality JPG or PNG images with
                   superior quality
                   <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    {isMobile ? "📱 Mobile: Up to 30MB per PDF" : "💻 Desktop: Up to 200MB per PDF"}
+                    📱 No size limit • No file count limit
                   </span>
                 </p>
               </div>
@@ -1096,9 +1071,7 @@ export default function PdfToImage() {
                     {
                       icon: FileText,
                       title: "PDF to Image",
-                      desc: isMobile 
-                        ? "Convert PDF pages to images on mobile devices"
-                        : "Convert PDF documents to high-quality images",
+                      desc: "Convert PDF documents to high-quality images",
                       gradient: "from-purple-500 to-pink-600",
                       bg: "from-purple-50 to-pink-50",
                       border: "border-purple-200",
@@ -1157,29 +1130,23 @@ export default function PdfToImage() {
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       Select PDF files to convert to images
-                      {isMobile && (
-                        <span className="block text-purple-600 dark:text-purple-400 mt-1">
-                          Max 30MB per file • 10 files max
-                        </span>
-                      )}
+                      <span className="block text-purple-600 dark:text-purple-400 mt-1">
+                        No size limit • Unlimited files
+                      </span>
                     </p>
                   </div>
                 </div>
 
-                {/* FileUploader */}
+                {/* FileUploader - now completely unlimited */}
                 <div className="mb-6">
                   <FileUploader
                     accept="application/pdf"
                     multiple={true}
                     onFilesSelected={handleFilesSelected}
-                    maxFiles={isMobile ? 10 : 50}
-                    maxSize={isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024}
+                    // No maxSize, no maxFiles, no unlimited prop – truly unlimited
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                    {isMobile 
-                      ? "For best results on mobile, use PDF files under 30MB"
-                      : "Desktop browser recommended for files above 30MB"
-                    }
+                    All files are processed directly in your browser • No size limits
                   </p>
                 </div>
 
@@ -1295,9 +1262,6 @@ export default function PdfToImage() {
                         <span>
                           • {(totalSize / 1024 / 1024).toFixed(2)} MB total
                         </span>
-                        {isMobile && totalSize > 100 * 1024 * 1024 && (
-                          <span className="text-red-600"> • Large files may cause issues on mobile</span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1361,14 +1325,9 @@ export default function PdfToImage() {
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-purple-600 dark:text-purple-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            {isMobile ? "Processing on mobile..." : "Processing your PDFs..."}
+                            Processing your PDFs...
                           </span>
                         </div>
-                        {isMobile && totalSize > 50 * 1024 * 1024 && (
-                          <div className="text-center text-xs text-purple-600 dark:text-purple-400">
-                            Large files may take longer on mobile devices
-                          </div>
-                        )}
                       </div>
                     )}
 
@@ -1581,7 +1540,7 @@ export default function PdfToImage() {
                   {
                     step: "1",
                     title: "Upload PDF Files",
-                    desc: `Upload PDF files (${isMobile ? "max 30MB" : "up to 200MB"}) using drag & drop or file picker.`
+                    desc: "Upload any number of PDF files (no size limit) using drag & drop or file picker."
                   },
                   {
                     step: "2",
@@ -1684,34 +1643,30 @@ export default function PdfToImage() {
               <div className="space-y-4">
                 {[
                   {
-                    question: "What is the maximum file size for conversion?",
-                    answer: `For mobile devices: Maximum 35MB per PDF file. For desktop browsers: Up to 200MB per PDF file. We recommend using desktop browsers for files larger than 30MB.`
-                  },
-                  {
-                    question: "Is there any limit on the number of PDF files I can convert at once?",
-                    answer: `Mobile: Up to 10 files at once. Desktop: Up to 50 files at once. For best performance, convert files in batches if you have many large files.`
+                    question: "Is there any limit on file size or number of files?",
+                    answer: "No! There are no limits on file size or the number of files you can convert. You can upload as many PDFs as you like, regardless of their size."
                   },
                   {
                     question: "What image formats are available for output?",
-                    answer: `You can choose between JPG (with adjustable quality from 10% to 100%) and PNG (lossless format). JPG files are smaller in size, while PNG files preserve transparency and have better quality.`
+                    answer: "You can choose between JPG (with adjustable quality from 10% to 100%) and PNG (lossless format). JPG files are smaller in size, while PNG files preserve transparency and have better quality."
                   },
                   {
                     question: "Can I convert password-protected PDF files?",
-                    answer: `Currently, we do not support password-protected PDF files. Please remove the password protection before converting to images.`
+                    answer: "Currently, we do not support password-protected PDF files. Please remove the password protection before converting to images."
                   },
                   {
                     question: "How do I download converted images?",
                     answer: isMobile 
-                      ? `On mobile: Tap the download icon (↓) on each image to download individually. You can also use the "Download as ZIP Archive" button for bulk download.`
-                      : `You can download images individually by clicking the download button on each image, or download all images at once as a ZIP archive using the "Download as ZIP Archive" button.`
+                      ? "On mobile: Tap the download icon (↓) on each image to download individually. You can also use the 'Download as ZIP Archive' button for bulk download."
+                      : "You can download images individually by clicking the download button on each image, or download all images at once as a ZIP archive using the 'Download as ZIP Archive' button."
                   },
                   {
                     question: "Is the conversion secure? Are my files uploaded to your servers?",
-                    answer: `All conversion happens directly in your browser (client-side). Your PDF files are never uploaded to any server, ensuring complete privacy and security.`
+                    answer: "All conversion happens directly in your browser (client-side). Your PDF files are never uploaded to any server, ensuring complete privacy and security."
                   },
                   {
                     question: "What quality settings are available?",
-                    answer: `For JPG output, you can adjust quality from 10% (smallest file size, lower quality) to 100% (largest file size, best quality). PNG output uses lossless compression with no quality loss.`
+                    answer: "For JPG output, you can adjust quality from 10% (smallest file size, lower quality) to 100% (largest file size, best quality). PNG output uses lossless compression with no quality loss."
                   },
                   {
                     question: "Is the PDF to JPG converter on pdfswift free to use?",
@@ -1747,7 +1702,7 @@ export default function PdfToImage() {
                   },
                   {
                     question: "What happens to text and fonts in the PDF?",
-                    answer: `All text, fonts, and images from the PDF are rendered as images. The text will no longer be selectable or searchable after conversion, which is why this is called PDF to Image conversion.`
+                    answer: "All text, fonts, and images from the PDF are rendered as images. The text will no longer be selectable or searchable after conversion, which is why this is called PDF to Image conversion."
                   }
                 ].map((faq, index) => (
                   <details

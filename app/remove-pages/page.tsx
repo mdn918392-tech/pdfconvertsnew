@@ -958,15 +958,12 @@ export default function PdfPageRemoverTool() {
       });
 
       setDownloadProgress(90);
-      // FIXED SECTION START
       const uint8Array =
         pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
 
-      // Use "as any" to bypass the SharedArrayBuffer vs BlobPart type conflict
       const blob = new Blob([uint8Array as any], {
         type: "application/pdf",
       });
-      // FIXED SECTION END
 
       setDownloadProgress(95);
       const fileName = generatePdfFilename(files[0].name);
@@ -1060,8 +1057,26 @@ export default function PdfPageRemoverTool() {
     }
   };
 
+  // ─── 🔥 UPDATED: handleFilesSelected – NO LIMITS ───
   const handleFilesSelected = (newFiles: File[]) => {
-    setFiles(newFiles);
+    // Filter valid PDF files – NO SIZE LIMIT
+    const filteredFiles = newFiles.filter(file => {
+      if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+        alert(`File "${file.name}" is not a PDF document.`);
+        return false;
+      }
+      
+      if (file.size === 0) {
+        alert(`File "${file.name}" appears to be empty or corrupted.`);
+        return false;
+      }
+      return true;
+    });
+    
+    if (filteredFiles.length === 0) return;
+    
+    // This tool only supports a single PDF – take the first one if multiple are selected
+    setFiles(filteredFiles.slice(0, 1));
     setProcessed(false);
     setPageData([]);
     setPdfData(null);
@@ -1230,10 +1245,14 @@ export default function PdfPageRemoverTool() {
                   </h2>
                   <p className="text-xs sm:text-sm md:text-base text-gray-500 dark:text-gray-400">
                     Select your PDF file (auto-processed after upload)
+                    <span className="block text-red-600 dark:text-red-400 mt-1">
+                      No limits • Any size
+                    </span>
                   </p>
                 </div>
               </div>
 
+              {/* ─── 🔥 UPDATED: FileUploader – no maxSize, no maxFiles ─── */}
               <FileUploader
                 accept="application/pdf"
                 multiple={false}

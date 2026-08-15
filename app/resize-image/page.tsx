@@ -936,7 +936,7 @@ export default function ResizeImage() {
                   custom dimensions, maintain aspect ratio, and resize images
                   securely without signup.
                   <span className="block text-green-600 dark:text-green-400 font-medium mt-1 md:mt-2 text-sm md:text-base">
-                    Full HD (1920×1080), 4K UHD, Mobile & Social Media Presets
+                    No limits • Any size • Any dimension
                   </span>
                 </p>
               </div>
@@ -1026,7 +1026,7 @@ export default function ResizeImage() {
                   </div>
                 </div>
 
-                {/* FileUploader - Single file only */}
+                {/* ─── 🔥 UPDATED: FileUploader – no limits ─── */}
                 <FileUploader
                   accept="image/*"
                   multiple={false}
@@ -1087,7 +1087,6 @@ export default function ResizeImage() {
                             <input
                               type="number"
                               min="1"
-                              max="10000"
                               value={resizeOptions.width}
                               onChange={(e) =>
                                 setResizeOptions((prev) => ({
@@ -1105,7 +1104,6 @@ export default function ResizeImage() {
                             <input
                               type="number"
                               min="1"
-                              max="10000"
                               value={resizeOptions.height}
                               onChange={(e) =>
                                 setResizeOptions((prev) => ({

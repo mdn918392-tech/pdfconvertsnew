@@ -448,7 +448,7 @@ export default function OrganizePdf() {
   const [showPageNumbers, setShowPageNumbers] = useState(true);
   const [isReversed, setIsReversed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);   // <--- FIXED: added missing ref
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // ----- NEW MOBILE DRAG STATE -----
   const [isDragMode, setIsDragMode] = useState(false);
@@ -533,29 +533,21 @@ export default function OrganizePdf() {
     }
   };
 
-  // Handle file upload
+  // ─── 🔥 UPDATED: handleFilesSelected – NO LIMITS ───
   const handleFilesSelected = async (newFiles: File[]) => {
-    const maxSize = isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024;
-    const maxFiles = isMobile ? 10 : 50;
-    
+    // Filter valid PDF files – NO SIZE LIMIT
     const filteredFiles = newFiles.filter(file => {
       if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
         alert(`File "${file.name}" is not a PDF document.`);
         return false;
       }
       
-      if (file.size === 0 || file.size > maxSize) {
-        alert(`File "${file.name}" is too large (${(file.size/1024/1024).toFixed(1)}MB). Maximum size is ${isMobile ? '30MB' : '200MB'}.`);
+      if (file.size === 0) {
+        alert(`File "${file.name}" appears to be empty or corrupted.`);
         return false;
       }
       return true;
     });
-    
-    const totalFiles = uploadedFiles.length + filteredFiles.length;
-    if (totalFiles > maxFiles) {
-      alert(`Maximum ${maxFiles} files allowed.`);
-      return;
-    }
     
     if (filteredFiles.length === 0) return;
 
@@ -1008,7 +1000,7 @@ export default function OrganizePdf() {
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
                   Rearrange, rotate, and delete pages from your PDF documents
                   <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    {isMobile ? "📱 Mobile: Up to 30MB per PDF" : "💻 Desktop: Up to 200MB per PDF"}
+                    No limits • Upload any size • All devices supported
                   </span>
                 </p>
               </div>
@@ -1094,27 +1086,21 @@ export default function OrganizePdf() {
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       Select PDF files to organize their pages
-                      {isMobile && (
-                        <span className="block text-purple-600 dark:text-purple-400 mt-1">
-                          Max 30MB per file • 10 files max
-                        </span>
-                      )}
+                      <span className="block text-purple-600 dark:text-purple-400 mt-1">
+                        No limits • Unlimited files • Any size
+                      </span>
                     </p>
                   </div>
                 </div>
 
+                {/* ─── 🔥 UPDATED: FileUploader – unlimited ─── */}
                 <FileUploader
                   accept="application/pdf"
                   multiple={true}
                   onFilesSelected={handleFilesSelected}
-                  maxFiles={isMobile ? 10 : 50}
-                  maxSize={isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                  {isMobile 
-                    ? "For best results on mobile, use PDF files under 30MB"
-                    : "Desktop browser recommended for files above 30MB"
-                  }
+                  No file limits – upload as many PDFs as you want
                 </p>
 
                 {uploadedFiles.length > 0 && (
@@ -1360,12 +1346,12 @@ export default function OrganizePdf() {
                 How to Organize Your PDF Online
               </h2>
 
-              <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-6'}`}>
+              <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-7'}`}>
                 {[
                   {
                     step: "1",
                     title: "Upload PDF Files",
-                    desc: `Upload PDF files (${isMobile ? "max 30MB" : "up to 200MB"}) using drag & drop or file picker.`
+                    desc: `Upload one or more PDF files using drag & drop or file picker. No limits!`
                   },
                   {
                     step: "2",
@@ -1490,12 +1476,8 @@ export default function OrganizePdf() {
                     answer: "Click the 'Clear All' button in the toolbar. This will remove all uploaded PDFs and reset the tool to its initial state, allowing you to start fresh with new files."
                   },
                   {
-                    question: "What is the maximum file size for upload?",
-                    answer: `For mobile devices: Maximum 30MB per PDF file. For desktop browsers: Up to 200MB per PDF file. We recommend using desktop browsers for files larger than 30MB.`
-                  },
-                  {
-                    question: "Is there a limit on the number of PDF files?",
-                    answer: `Mobile: Up to 10 files at once. Desktop: Up to 50 files at once. You can upload multiple PDFs and organize all pages together.`
+                    question: "Is there any limit on file size or number of files?",
+                    answer: "No! There are no limits. You can upload any number of PDF files of any size. All processing happens in your browser, so performance may vary based on your device's capabilities."
                   },
                   {
                     question: "Can I reorder pages from different PDFs?",
