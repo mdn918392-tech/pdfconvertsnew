@@ -763,119 +763,6 @@ const DownloadNotification = ({
   );
 };
 
-// Floating Page Counter (Desktop only)
-const FloatingPageCounter = ({
-  count,
-  reverseOrder,
-  compressionQuality,
-  marginSize,
-  customQualityValue,
-  showWarning,
-  isMobile,
-}: {
-  count: number;
-  reverseOrder: boolean;
-  compressionQuality: CompressionQuality;
-  marginSize: MarginSize;
-  customQualityValue?: number;
-  showWarning: boolean;
-  isMobile: boolean;
-}) => {
-  if (count === 0 || isMobile) return null;
-
-  const qualityLabels: Record<CompressionQuality, string> = {
-    none: "100% Quality",
-    custom: customQualityValue ? `${customQualityValue}% Quality` : "Custom Quality",
-    high: "High Quality (95%)",
-    medium: "Medium Quality (85%)",
-    low: "Low Quality (75%)",
-  };
-
-  const marginLabels: Record<MarginSize, string> = {
-    "no-margin": "No Margin",
-    small: "Small Margin (0.25 inch)",
-    big: "Big Margin (1 inch)",
-  };
-
-  const estimatedSize = estimateCompressedSize(
-    Array.from({ length: count }, (_, i) => {
-      return {
-        file: new File([], "image" + i + ".jpg"),
-        id: String(i),
-        rotation: 0,
-        scale: 1,
-        aspectRatio: "free" as const,
-        previewError: false,
-      };
-    }) as FileWithPreview[],
-    compressionQuality,
-    customQualityValue
-  );
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="fixed bottom-4 right-4 z-40 group"
-    >
-      <div
-        className={`flex items-center gap-2 ${
-          showWarning
-            ? "bg-gradient-to-r from-amber-500 to-orange-600"
-            : "bg-gradient-to-r from-blue-500 to-purple-600"
-        } text-white px-5 py-4 rounded-xl shadow-lg ${
-          showWarning ? "animate-pulse" : ""
-        }`}
-      >
-        {showWarning ? (
-          <AlertTriangle className="w-6 h-6 animate-pulse" />
-        ) : (
-          <FileText className="w-6 h-6" />
-        )}
-        <div className="text-center">
-          <div className="text-3xl font-bold">{count}</div>
-          <div className="text-sm opacity-90">Pages</div>
-          <div className="text-xs opacity-80 mt-1">
-            {qualityLabels[compressionQuality]}
-          </div>
-          <div className="text-xs opacity-80 mt-1">
-            {marginLabels[marginSize]}
-          </div>
-          <div className="text-xs opacity-80 mt-1">
-            Est. PDF: {(estimatedSize / (1024 * 1024)).toFixed(1)}MB
-          </div>
-          {reverseOrder && (
-            <div className="text-xs opacity-80 mt-1 flex items-center justify-center gap-1">
-              <ArrowUpDown className="w-3 h-3" />
-              Reverse Order
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="absolute -top-32 right-0 bg-gray-900 text-white text-sm px-3 py-2 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-        <div className="font-medium">Total pages: {count}</div>
-        <div className="text-xs mt-1">
-          Quality: {qualityLabels[compressionQuality]}
-        </div>
-        <div className="text-xs mt-1">Margin: {marginLabels[marginSize]}</div>
-        <div className="text-xs mt-1">
-          Est. PDF Size: {(estimatedSize / (1024 * 1024)).toFixed(2)}MB
-        </div>
-        {reverseOrder && (
-          <div className="text-xs mt-1">• Images in Reverse Order</div>
-        )}
-        {showWarning && (
-          <div className="text-xs mt-1 text-amber-300 font-semibold">
-            • Changes detected - Convert Again
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-};
-
 // Draggable Item Component (Desktop only)
 const DraggableItem = ({
   children,
@@ -914,7 +801,9 @@ const DraggableItem = ({
   );
 };
 
-// Image Container Component
+// ============================================================
+// UPDATED Image Container Component - with loading & error states + force re-mount on src change
+// ============================================================
 const ImageContainer = ({ 
   file, 
   imageUrl, 
@@ -928,41 +817,66 @@ const ImageContainer = ({
   previewError: boolean;
   onClick: () => void;
 }) => {
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Reset states when imageUrl changes
+  useEffect(() => {
+    setImageLoadError(false);
+    setIsLoading(true);
+  }, [imageUrl]);
+
+  const handleImageLoad = () => {
+    setIsLoading(false);
+    setImageLoadError(false);
+  };
+
+  const handleImageError = () => {
+    setIsLoading(false);
+    setImageLoadError(true);
+  };
+
+  const showFallback = !imageUrl || previewError || imageLoadError;
+
   return (
     <div
       className="relative w-full h-48 md:h-56 lg:h-64 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer"
       onClick={onClick}
     >
-      {imageUrl && !previewError ? (
-        <>
-          <img
-            src={imageUrl}
-            alt={file.file.name}
-            className="w-full h-full object-contain transition-transform duration-300"
-            style={{
-              transform: `rotate(${rotation}deg)`,
-              objectFit: 'contain',
-            }}
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-          <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors" />
-        </>
+      {!showFallback ? (
+        // Force re-mount of img when imageUrl changes by using key
+        <img
+          key={imageUrl}
+          src={imageUrl}
+          alt={file.file.name}
+          className="w-full h-full object-contain transition-transform duration-300"
+          style={{
+            transform: `rotate(${rotation}deg)`,
+            objectFit: 'contain',
+          }}
+          loading="eager" // ensure immediate load, especially after deletion
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+        />
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center p-3">
-          <div className="relative mb-2">
-            <ImageIcon className="w-8 h-8 text-gray-400" />
-            {previewError && (
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                <X className="w-2 h-2 text-white" />
+          {isLoading ? (
+            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          ) : (
+            <>
+              <div className="relative mb-2">
+                <ImageIcon className="w-8 h-8 text-gray-400" />
+                {(previewError || imageLoadError) && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                    <X className="w-2 h-2 text-white" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 text-center truncate max-w-full px-2">
-            {previewError ? 'Failed to load' : 'Loading...'}
-          </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 text-center truncate max-w-full px-2">
+                {previewError || imageLoadError ? 'Failed to load' : 'Loading...'}
+              </span>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -2272,18 +2186,6 @@ export default function JpgToPdf() {
         </div>
       </div>
 
-      {!isMobile && (
-        <FloatingPageCounter
-          count={files.length}
-          reverseOrder={reverseOrder}
-          compressionQuality={compressionQuality}
-          marginSize={marginSize}
-          customQualityValue={customQualityValue}
-          showWarning={showChangesWarning}
-          isMobile={isMobile}
-        />
-      )}
-
       <AnimatePresence>
         {expandedImage && (
           <motion.div
@@ -2540,9 +2442,8 @@ export default function JpgToPdf() {
                 mobileLimitMessage={mobileLimitMessage}
               />
             ) : (
-              /* Desktop Full UI (unchanged) */
+              /* Desktop Full UI */
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
-                {/* Desktop UI - copy from earlier, unchanged */}
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-4">
                     <Upload className="w-6 h-6 text-blue-500" />
@@ -2596,13 +2497,13 @@ export default function JpgToPdf() {
                         </div>
                         <div>
                           <h4 className="font-bold text-gray-900 dark:text-white">
-                            Quality Settings: {
+                            Quality Settings: {(
                               compressionQuality === 'none' ? '100% Maximum Quality' :
                               compressionQuality === 'custom' ? `${customQualityValue}% Custom Quality` :
                               compressionQuality === 'high' ? '95% High Quality' :
                               compressionQuality === 'medium' ? '85% Balanced' :
                               '75% Smaller Size'
-                            }
+                            )}
                           </h4>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             {compressionQuality === 'none' ? 'No compression - Original quality preserved' :
@@ -2687,6 +2588,56 @@ export default function JpgToPdf() {
                         </button>
                       </div>
                     </div>
+
+                    {/* NEW: Static Summary Bar - replaces floating counter */}
+                    {files.length > 0 && (
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl border border-blue-200 dark:border-blue-800 p-4 shadow-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-5 h-5 text-blue-500" />
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                {files.length} Pages
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Target className="w-5 h-5 text-purple-500" />
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Quality: {compressionQuality === 'none' ? '100%' : 
+                                           compressionQuality === 'custom' ? `${customQualityValue}%` :
+                                           compressionQuality === 'high' ? '95%' :
+                                           compressionQuality === 'medium' ? '85%' : '75%'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Columns className="w-5 h-5 text-emerald-500" />
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Margin: {marginSize === 'no-margin' ? 'None' : 
+                                          marginSize === 'small' ? 'Small (0.25")' : 'Big (1")'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Info className="w-5 h-5 text-amber-500" />
+                              <span className="text-gray-600 dark:text-gray-400">
+                                Est. PDF: {(estimatedPdfSize / (1024 * 1024)).toFixed(1)} MB
+                              </span>
+                            </div>
+                            {reverseOrder && (
+                              <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                                <ArrowUpDown className="w-4 h-4" />
+                                <span>Reverse Order</span>
+                              </div>
+                            )}
+                          </div>
+                          {showChangesWarning && (
+                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-semibold">
+                              <AlertTriangle className="w-5 h-5 animate-pulse" />
+                              <span>Changes detected – Convert again</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Images Grid/List View */}
                     <div
