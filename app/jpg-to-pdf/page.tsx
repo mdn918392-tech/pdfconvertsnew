@@ -299,7 +299,7 @@ async function isImageBufferValid(buffer: ArrayBuffer): Promise<boolean> {
 }
 
 /**
- * Process a single image using a 4‑level fallback system.
+ * Process a single image using a 5‑level fallback system.
  * Returns a valid JPEG ArrayBuffer or throws with the filename.
  */
 const processImageForPdf = async (
@@ -400,7 +400,7 @@ const processImageForPdf = async (
         const drawWidth = imgWidth * scale;
         const drawHeight = imgHeight * scale;
         ctx.drawImage(
-          source as any, // both types are accepted by drawImage
+          source as any,
           -drawWidth / 2,
           -drawHeight / 2,
           drawWidth,
@@ -515,6 +515,95 @@ const processImageForPdf = async (
     return await validateAndReturn(buffer);
   } catch (err) {
     console.warn("Data URL method failed:", err);
+  }
+
+  // --- 5) createImageBitmap with resize (for high-resolution / memory-heavy images) ---
+  let resizeBitmap: ImageBitmap | null = null;
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: file.type });
+
+    // Use a safe resize dimension – cap at 4096 to prevent OOM, but respect maxDimension if lower
+    const resizeDim = Math.min(maxDimension, 4096);
+
+    // Attempt to decode with built‑in resize (supported in modern Chrome/Android)
+    resizeBitmap = await createImageBitmap(blob, {
+      resizeWidth: resizeDim,
+      resizeHeight: resizeDim,
+      resizeQuality: 'high',
+    });
+
+    if (resizeBitmap.width === 0 || resizeBitmap.height === 0) {
+      throw new Error("Resized bitmap has zero dimensions");
+    }
+
+    // Draw the resized bitmap with rotation (no further scaling)
+    const needsSwap = rotation === 90 || rotation === 270;
+    let canvasWidth = resizeBitmap.width;
+    let canvasHeight = resizeBitmap.height;
+    if (needsSwap) {
+      [canvasWidth, canvasHeight] = [canvasHeight, canvasWidth];
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    const ctx = canvas.getContext("2d", {
+      alpha: false,
+      willReadFrequently: false,
+    });
+
+    if (!ctx) {
+      throw new Error("Canvas context failed");
+    }
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    if (rotation !== 0) {
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((rotation * Math.PI) / 180);
+      ctx.drawImage(
+        resizeBitmap,
+        -resizeBitmap.width / 2,
+        -resizeBitmap.height / 2,
+        resizeBitmap.width,
+        resizeBitmap.height
+      );
+      ctx.restore();
+    } else {
+      ctx.drawImage(resizeBitmap, 0, 0, canvas.width, canvas.height);
+    }
+
+    const blobResult = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => {
+        if (b) resolve(b);
+        else reject(new Error("Canvas toBlob returned null"));
+      }, "image/jpeg", qualityValue);
+    });
+
+    const buffer = await blobResult.arrayBuffer();
+    const valid = await isImageBufferValid(buffer);
+    if (!valid) {
+      throw new Error("Resized JPEG is invalid");
+    }
+
+    // Clean up
+    resizeBitmap.close();
+    resizeBitmap = null;
+    canvas.width = 0;
+    canvas.height = 0;
+
+    return buffer;
+  } catch (err) {
+    console.warn("Resize fallback method failed:", err);
+    if (resizeBitmap) {
+      try { resizeBitmap.close(); } catch (_) {}
+    }
   }
 
   // All methods failed
