@@ -299,11 +299,8 @@ async function isImageBufferValid(buffer: ArrayBuffer): Promise<boolean> {
 }
 
 /**
- * FIXED: Correctly rotate image using canvas.
- * - Canvas dimensions are swapped only when rotation is 90/270.
- * - Image is drawn with its original width/height (scaled) so rotation applies cleanly.
- * - No double‑swapping, so the image fits perfectly without clipping.
- * - ALWAYS returns a valid JPEG ArrayBuffer or throws an error.
+ * Process a single image using a 4‑level fallback system.
+ * Returns a valid JPEG ArrayBuffer or throws with the filename.
  */
 const processImageForPdf = async (
   file: File,
@@ -312,75 +309,72 @@ const processImageForPdf = async (
   customQualityValue: number = 95,
   isMobile: boolean = false
 ): Promise<ArrayBuffer> => {
-  // Helper to perform canvas normalization and re-encode as JPEG
-  const normalizeWithCanvas = async (): Promise<ArrayBuffer> => {
-    let img: HTMLImageElement | null = null;
-    let canvas: HTMLCanvasElement | null = null;
-    let objectUrl: string | null = null;
+  // Helper to compute quality value and max dimension
+  const getQualitySettings = () => {
+    let qualityValue = 0.95;
+    let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
 
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: file.type });
-      objectUrl = URL.createObjectURL(blob);
-      if (!objectUrl) {
-        throw new Error("Failed to create object URL");
-      }
+    switch (quality) {
+      case "none":
+        qualityValue = 1.0;
+        maxDimension = isMobile ? 3072 : 4096;
+        break;
+      case "custom":
+        qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
+        maxDimension = isMobile ? 1024 : 4096;
+        break;
+      case "high":
+        qualityValue = 0.95;
+        maxDimension = isMobile ? 1024 : 3072;
+        break;
+      case "medium":
+        qualityValue = 0.85;
+        maxDimension = isMobile ? 1024 : 2048;
+        break;
+      case "low":
+        qualityValue = 0.75;
+        maxDimension = isMobile ? 1024 : 1600;
+        break;
+    }
 
-      // Load image
-      img = new Image();
-      await new Promise<void>((resolve, reject) => {
-        img!.onload = () => resolve();
-        img!.onerror = () => reject(new Error("Failed to decode image"));
-        img!.src = objectUrl!; // non-null assertion – we already checked above
-      });
+    if (isMobile && file.type !== "image/jpeg") {
+      maxDimension = Math.min(maxDimension, 1024);
+    }
 
-      let qualityValue = 0.95;
-      let maxDimension = isMobile ? MAX_IMAGE_DIMENSION_MOBILE : 4096;
+    return { qualityValue, maxDimension };
+  };
 
-      switch (quality) {
-        case "none":
-          qualityValue = 1.0;
-          maxDimension = isMobile ? 3072 : 4096;
-          break;
-        case "custom":
-          qualityValue = Math.min(1.0, Math.max(0.7, customQualityValue / 100));
-          maxDimension = isMobile ? 1024 : 4096;
-          break;
-        case "high":
-          qualityValue = 0.95;
-          maxDimension = isMobile ? 1024 : 3072;
-          break;
-        case "medium":
-          qualityValue = 0.85;
-          maxDimension = isMobile ? 1024 : 2048;
-          break;
-        case "low":
-          qualityValue = 0.75;
-          maxDimension = isMobile ? 1024 : 1600;
-          break;
-      }
+  // Helper to draw an image source (ImageBitmap or HTMLImageElement) to canvas with rotation
+  const drawToCanvas = (
+    source: HTMLImageElement | ImageBitmap,
+    rotationDeg: number,
+    maxDimension: number,
+    qualityValue: number
+  ): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const imgWidth = source.width;
+      const imgHeight = source.height;
 
-      // On mobile, further reduce for non-JPEG
-      if (isMobile && file.type !== "image/jpeg") {
-        maxDimension = Math.min(maxDimension, 1024);
+      if (imgWidth === 0 || imgHeight === 0) {
+        reject(new Error("Image has zero dimensions"));
+        return;
       }
 
       let scale = 1;
-      const largerDimension = Math.max(img.width, img.height);
-      if (largerDimension > maxDimension) {
-        scale = maxDimension / largerDimension;
+      const largerDim = Math.max(imgWidth, imgHeight);
+      if (largerDim > maxDimension) {
+        scale = maxDimension / largerDim;
       }
 
-      const needsSwap = rotation === 90 || rotation === 270;
+      const needsSwap = rotationDeg === 90 || rotationDeg === 270;
 
-      // Canvas dimensions: swap if rotation is 90/270
-      let canvasWidth = Math.floor(img.width * scale);
-      let canvasHeight = Math.floor(img.height * scale);
+      let canvasWidth = Math.floor(imgWidth * scale);
+      let canvasHeight = Math.floor(imgHeight * scale);
       if (needsSwap) {
         [canvasWidth, canvasHeight] = [canvasHeight, canvasWidth];
       }
 
-      canvas = document.createElement("canvas");
+      const canvas = document.createElement("canvas");
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
 
@@ -390,7 +384,8 @@ const processImageForPdf = async (
       });
 
       if (!ctx) {
-        throw new Error("Failed to get canvas context");
+        reject(new Error("Failed to get canvas context"));
+        return;
       }
 
       ctx.fillStyle = "#FFFFFF";
@@ -398,15 +393,14 @@ const processImageForPdf = async (
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
 
-      if (rotation !== 0) {
+      if (rotationDeg !== 0) {
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((rotation * Math.PI) / 180);
-
-        const drawWidth = img.width * scale;
-        const drawHeight = img.height * scale;
+        ctx.rotate((rotationDeg * Math.PI) / 180);
+        const drawWidth = imgWidth * scale;
+        const drawHeight = imgHeight * scale;
         ctx.drawImage(
-          img,
+          source as any, // both types are accepted by drawImage
           -drawWidth / 2,
           -drawHeight / 2,
           drawWidth,
@@ -414,66 +408,117 @@ const processImageForPdf = async (
         );
         ctx.restore();
       } else {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(source as any, 0, 0, canvas.width, canvas.height);
       }
 
-      // Convert to JPEG
-      const blobData = await new Promise<Blob>((resolve, reject) => {
-        canvas!.toBlob((b) => {
-          if (b) {
-            resolve(b);
-          } else {
-            reject(new Error("Canvas toBlob returned null"));
-          }
-        }, "image/jpeg", qualityValue);
-      });
-
-      const buffer = await blobData.arrayBuffer();
-
-      // Validate the generated JPEG
-      const valid = await isImageBufferValid(buffer);
-      if (!valid) {
-        throw new Error("Canvas‑generated JPEG is invalid");
-      }
-
-      return buffer;
-
-    } finally {
-      // Clean up resources
-      if (img) {
-        img.src = "";
-        img = null;
-      }
-      if (canvas) {
-        canvas.width = 0;
-        canvas.height = 0;
-        canvas = null;
-      }
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-        objectUrl = null;
-      }
-    }
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("Canvas toBlob returned null"));
+        }
+      }, "image/jpeg", qualityValue);
+    });
   };
 
-  // 1. Fast path for desktop JPEG without rotation: try original file
+  // Helper to validate buffer and optionally close ImageBitmap
+  const validateAndReturn = async (buffer: ArrayBuffer, bitmap?: ImageBitmap): Promise<ArrayBuffer> => {
+    const valid = await isImageBufferValid(buffer);
+    if (bitmap) {
+      try { bitmap.close(); } catch (_) {}
+    }
+    if (!valid) {
+      throw new Error("Generated JPEG is invalid");
+    }
+    return buffer;
+  };
+
+  // --- 1) Direct embedding (fast path) ---
   if (!isMobile && file.type === "image/jpeg" && rotation === 0 && file.size < 5 * 1024 * 1024) {
     try {
       const buffer = await file.arrayBuffer();
-      const valid = await isImageBufferValid(buffer);
-      if (valid) {
+      if (await isImageBufferValid(buffer)) {
         return buffer;
-      } else {
-        console.warn("Original JPEG invalid, falling back to canvas normalization");
-        // Fall through to canvas
       }
-    } catch (e) {
-      console.warn("Failed to read original JPEG, falling back to canvas", e);
+    } catch (_) {
+      // fall through
     }
   }
 
-  // 2. Canvas normalization (always used on mobile or when fast path fails)
-  return await normalizeWithCanvas();
+  const { qualityValue, maxDimension } = getQualitySettings();
+
+  // --- 2) createImageBitmap + Canvas ---
+  try {
+    const blob = new Blob([await file.arrayBuffer()], { type: file.type });
+    const bitmap = await createImageBitmap(blob);
+    const blobResult = await drawToCanvas(bitmap, rotation, maxDimension, qualityValue);
+    const buffer = await blobResult.arrayBuffer();
+    return await validateAndReturn(buffer, bitmap);
+  } catch (err) {
+    console.warn("createImageBitmap method failed:", err);
+  }
+
+  // --- 3) HTMLImageElement + Object URL + Canvas ---
+  let objectUrl: string | null = null;
+  try {
+    const blob = new Blob([await file.arrayBuffer()], { type: file.type });
+    objectUrl = URL.createObjectURL(blob);
+    if (!objectUrl) throw new Error("Failed to create object URL");
+
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Image load error"));
+      img.src = objectUrl!;
+    });
+
+    if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+      throw new Error("Image has zero dimensions");
+    }
+
+    const blobResult = await drawToCanvas(img, rotation, maxDimension, qualityValue);
+    const buffer = await blobResult.arrayBuffer();
+    return await validateAndReturn(buffer);
+  } catch (err) {
+    console.warn("Object URL method failed:", err);
+  } finally {
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+
+  // --- 4) FileReader + Data URL + Canvas ---
+  try {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) resolve(e.target.result as string);
+        else reject(new Error("FileReader failed"));
+      };
+      reader.onerror = () => reject(new Error("FileReader error"));
+      reader.readAsDataURL(file);
+    });
+
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Image load error"));
+      img.src = dataUrl;
+    });
+
+    if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+      throw new Error("Image has zero dimensions");
+    }
+
+    const blobResult = await drawToCanvas(img, rotation, maxDimension, qualityValue);
+    const buffer = await blobResult.arrayBuffer();
+    return await validateAndReturn(buffer);
+  } catch (err) {
+    console.warn("Data URL method failed:", err);
+  }
+
+  // All methods failed
+  throw new Error(`Failed to process image "${file.name}" after all fallbacks.`);
 };
 
 /**
@@ -1122,6 +1167,23 @@ const MobileSimpleUI = ({
               <span>{mobileLimitMessage}</span>
             </div>
           )}
+
+          {/* ---- NEW: File count + Clear All button ---- */}
+          <div className="flex items-center justify-between bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 shadow-sm">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-500" />
+              <span className="font-medium text-gray-800 dark:text-gray-200">
+                {files.length} image{files.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <button
+              onClick={onClear}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+            >
+              <X className="w-4 h-4" />
+              Clear All
+            </button>
+          </div>
 
           {/* If compressing (processing images), show loading message */}
           {compressing ? (
