@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: " Webpage to JPG & PDF Converter | Convert Any URL to JPG or PDF Online",
+  title: "Webpage to JPG Converter Free – Convert Web Pages Online | PDFSwift",
   description:
-    "Easily convert any webpage to JPG or PDF online for free. Just enter the URL to convert and download high-quality JPG images or PDF documents in seconds with PDFSwift.",
+    "Convert any webpage to JPG online for free with PDFSwift. Capture full web pages or website screenshots as high-quality JPG images instantly. Fast, secure, and no signup required.",
   keywords: [
     "webpage to jpg",
     "webpage to jpg converter free",
