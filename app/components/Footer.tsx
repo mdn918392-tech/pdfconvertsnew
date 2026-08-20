@@ -8,10 +8,11 @@ export default function Footer() {
     <footer className="bg-black text-gray-300">
       {/* Main Footer */}
       <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
-
-          {/* Brand */}
-          <div className="space-y-3">
+        {/* Grid - 2 columns on mobile, 4 columns on large screens */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
+          
+          {/* Brand - Takes full width on mobile, normal on desktop */}
+          <div className="col-span-2 lg:col-span-1 space-y-3">
             <div className="flex items-center gap-2">
               <Zap className="w-8 h-8 text-white" />
               <Link
@@ -37,8 +38,8 @@ export default function Footer() {
 
           {/* Tools */}
           <div>
-            <h3 className="text-white font-semibold mb-3 sm:mb-4">Tools</h3>
-            <ul className="space-y-1 sm:space-y-2">
+            <h3 className="text-white font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Tools</h3>
+            <ul className="space-y-1.5 sm:space-y-2">
               <li><Link href="/" className="hover:text-white transition text-sm sm:text-base">Home</Link></li>
               <li><Link href="/jpg-to-pdf" className="hover:text-white transition text-sm sm:text-base">JPG to PDF</Link></li>
               <li><Link href="/rotate-pdf" className="hover:text-white transition text-sm sm:text-base">Rotate PDF</Link></li>
@@ -49,8 +50,8 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h3 className="text-white font-semibold mb-3 sm:mb-4">Company</h3>
-            <ul className="space-y-1 sm:space-y-2">
+            <h3 className="text-white font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Company</h3>
+            <ul className="space-y-1.5 sm:space-y-2">
               <li><Link href="/about" className="hover:text-white transition text-sm sm:text-base">About</Link></li>
               <li><Link href="/blog" className="hover:text-white transition text-sm sm:text-base">Blog</Link></li>
               <li><Link href="/" className="hover:text-white transition text-sm sm:text-base">All Tools</Link></li>
@@ -59,8 +60,8 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h3 className="text-white font-semibold mb-3 sm:mb-4">Legal</h3>
-            <ul className="space-y-1 sm:space-y-2">
+            <h3 className="text-white font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Legal</h3>
+            <ul className="space-y-1.5 sm:space-y-2">
               <li><Link href="/privacy" className="hover:text-white transition text-sm sm:text-base">Privacy Policy</Link></li>
               <li><Link href="/security" className="hover:text-white transition text-sm sm:text-base">Security</Link></li>
             </ul>
