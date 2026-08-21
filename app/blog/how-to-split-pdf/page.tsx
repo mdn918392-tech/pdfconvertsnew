@@ -264,40 +264,79 @@ export default function SplitPDFGuide() {
     "Organize split files in dedicated folders"
   ];
 
-  const comprehensiveFAQ = [
-    {
-      question: "Is splitting PDF pages legal?",
-      answer: "Yes, splitting PDF pages is legal as long as you have the right to edit the document. For copyrighted materials, ensure you have permission or are using it under fair use guidelines for personal purposes."
-    },
-    {
-      question: "Can I split password-protected PDFs?",
-      answer: "Most online tools cannot split password-protected PDFs. You'll need desktop software like Adobe Acrobat Pro that can open protected files with the correct password before splitting."
-    },
-    {
-      question: "What's the best format for split documents?",
-      answer: "PDF is usually best for maintaining formatting and quality. However, you can convert split pages to other formats like JPG or Word if needed for specific purposes."
-    },
-    {
-      question: "How do I split a 1000-page PDF efficiently?",
-      answer: "For large PDFs, use desktop software with batch processing capabilities. Split by ranges (e.g., 1-100, 101-200) or use automatic splitting by file size. Online tools may have limitations with very large files."
-    },
-    {
-      question: "Can I undo a PDF split?",
-      answer: "Once split, you cannot automatically 'undo' the operation. Always keep the original file backed up. You can recombine split files using PDF merger tools if needed."
-    },
-    {
-      question: "Are free PDF splitters safe to use?",
-      answer: "Reputable free tools from trusted companies are generally safe. Look for HTTPS encryption, clear privacy policies, and automatic file deletion features. Avoid unknown websites with suspicious ads."
-    },
-    {
-      question: "How do I split PDF without losing quality?",
-      answer: "Quality loss during splitting is rare since PDF splitting is typically lossless. Ensure you're using tools that preserve original resolution and formatting. Avoid tools that compress files during splitting."
-    },
-    {
-      question: "Can I split PDFs on my phone?",
-      answer: "Yes, many mobile apps like Adobe Scan, PDF Element, and Smallpdf offer PDF splitting functionality. Mobile apps are convenient but may have fewer features than desktop versions."
-    }
-  ];
+ const comprehensiveFAQ = [
+  {
+    question: "How to split PDF files online for free?",
+    answer:
+      "Simply upload your PDF to PDFSwift's free Split PDF tool, select the pages or page ranges you want to split, and click the split button. You can then download your separate PDF files instantly.",
+  },
+
+  {
+    question: "How to split PDF pages into separate files?",
+    answer:
+      "Upload your PDF, select the pages you want to separate, and use the Split PDF option. You can split selected page ranges or create separate PDF files from individual pages.",
+  },
+
+  {
+    question: "How can I separate specific pages from a PDF?",
+    answer:
+      "Upload your PDF to PDFSwift, select the specific pages or page ranges you want to separate, and split the document. The selected pages will be created as a separate PDF file.",
+  },
+
+  {
+    question: "Can I split a large PDF into smaller files?",
+    answer:
+      "Yes. You can split a large PDF into smaller documents by selecting specific page ranges. For example, you can split pages 1–10, 11–20, and 21–30 into separate PDF files.",
+  },
+
+  {
+    question: "Can I split PDF pages without losing quality?",
+    answer:
+      "Yes. PDF splitting normally does not reduce the quality of the document because the existing PDF content is separated rather than converted or compressed. PDFSwift preserves the content and formatting of the split pages.",
+  },
+
+  {
+    question: "Can I split a PDF into individual pages?",
+    answer:
+      "Yes. You can split a PDF so that each page becomes a separate PDF file. This is useful when you need to extract individual pages from a larger document.",
+  },
+
+  {
+    question: "Can I split password-protected PDFs?",
+    answer:
+      "If a PDF is password-protected or encrypted, you may need to unlock it with the correct password before splitting it. PDFSwift can process PDFs that your browser is able to open and read.",
+  },
+
+  {
+    question: "How do I split a 1000-page PDF efficiently?",
+    answer:
+      "For very large PDFs, splitting the document into smaller page ranges can make the process easier. You can divide the document into sections such as pages 1–100, 101–200, and so on.",
+  },
+
+  {
+    question: "Can I undo a PDF split?",
+    answer:
+      "Splitting a PDF does not modify your original file. Keep the original PDF if you may need it later. If necessary, you can combine the separated PDF files again using a PDF merger.",
+  },
+
+  {
+    question: "Is it safe to split PDF files online?",
+    answer:
+      "Yes. PDFSwift is designed to process PDF files securely. PDF processing takes place directly in your browser, so your files are not uploaded to or stored on our servers.",
+  },
+
+  {
+    question: "Can I split PDFs on my phone?",
+    answer:
+      "Yes. PDFSwift's Split PDF tool works on modern mobile phones, tablets, laptops, and desktop computers. You can split PDF files directly from a supported web browser without installing software.",
+  },
+
+  {
+    question: "Is splitting PDF pages legal?",
+    answer:
+      "Yes, splitting a PDF is generally legal when you have the right to edit or use the document. For copyrighted material, make sure your use complies with the applicable copyright rules and permissions.",
+  },
+];
 
   // How-to Schema
   const howToSchema = {

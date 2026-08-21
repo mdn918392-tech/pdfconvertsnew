@@ -1,34 +1,73 @@
 export const faqData = [
-    {
-      question: "How does the image resizer work?",
-      answer: "Our image resizer works entirely in your browser. You upload images, set your desired dimensions and quality settings, and the tool resizes them locally without uploading to any server. This ensures your privacy and fast processing."
-    },
-    {
-      question: "What image formats are supported?",
-      answer: "We support all common image formats including JPG, PNG, WebP, GIF, and BMP. The output can be saved as JPG, PNG, or WebP format."
-    },
-    {
-      question: "Will resizing affect image quality?",
-      answer: "Our resizer uses high-quality scaling algorithms to minimize quality loss. You can adjust the quality slider to balance file size and visual quality. For enlarging images, some quality loss is inevitable as we cannot create new pixels."
-    },
-    {
-      question: "What does 'Maintain Aspect Ratio' mean?",
-      answer: "When enabled, the image will be resized proportionally to prevent distortion. If you set dimensions that don't match the original aspect ratio, the tool will automatically adjust one dimension to maintain proportions."
-    },
-    {
-      question: "Can I resize multiple images at once?",
-      answer: "Yes! You can upload and resize multiple images simultaneously. All images will be resized to the same dimensions you specify. You can then download them individually or as a single ZIP file."
-    },
-    {
-      question: "Is there a limit to how many images I can resize?",
-      answer: "There's no hard limit, but performance may vary based on your device's capabilities. For best results, we recommend resizing up to 50 images at once. All processing happens in your browser."
-    },
-    {
-      question: "What are the maximum dimensions I can set?",
-      answer: "You can set dimensions up to 10,000 pixels on each side. However, very large dimensions may cause browser performance issues. We recommend keeping dimensions under 4000x4000 pixels for optimal performance."
-    },
-    {
-      question: "Does resizing reduce file size?",
-      answer: "Yes, reducing image dimensions typically reduces file size, especially when combined with quality optimization. Smaller images have fewer pixels, which means smaller file sizes."
-    }
-  ];
+  {
+    question: "How can I resize a JPG image online?",
+    answer:
+      "Upload your JPG image to PDFSwift's image resizer, enter your preferred width and height or choose a resize percentage, and click Resize to download the resized image.",
+  },
+
+  {
+    question: "Can I resize JPG images for free?",
+    answer:
+      "Yes, PDFSwift lets you resize JPG images online for free without installing software or creating an account.",
+  },
+
+  {
+    question: "Can I increase the size of a JPG image?",
+    answer:
+      "Yes, you can increase the width and height of a JPG image by entering larger dimensions. However, increasing image dimensions cannot create new detail that was not present in the original image.",
+  },
+
+  {
+    question: "Can I reduce the size of a JPG image?",
+    answer:
+      "Yes. You can reduce the width and height of a JPG image to make it smaller. Reducing the image dimensions can also help reduce its file size.",
+  },
+
+  {
+    question: "Will resizing a JPG reduce image quality?",
+    answer:
+      "Reducing image dimensions usually maintains good visual quality. When increasing the size of a JPG, some loss of sharpness may occur because the image has to be enlarged beyond its original resolution.",
+  },
+
+  {
+    question: "Can I resize an image without changing its proportions?",
+    answer:
+      "Yes. Enable Maintain Aspect Ratio to resize the image proportionally and prevent stretching or distortion. The tool automatically adjusts the dimensions to preserve the original proportions.",
+  },
+
+  {
+    question: "Can I resize multiple images at once?",
+    answer:
+      "Yes, you can upload and resize multiple images in one session. This makes it easier to apply the same dimensions to multiple images without processing each file separately.",
+  },
+
+  {
+    question: "What image formats are supported by the image resizer?",
+    answer:
+      "PDFSwift supports common image formats such as JPG, PNG, WebP, GIF, and BMP. Depending on the tool settings, resized images can be saved in supported output formats.",
+  },
+
+  {
+    question: "Can I resize JPG images on mobile devices?",
+    answer:
+      "Yes. PDFSwift's image resizer works on modern mobile phones, tablets, laptops, and desktop computers through a supported web browser.",
+  },
+
+  {
+    question: "Does resizing a JPG reduce its file size?",
+    answer:
+      "Yes. Reducing the image dimensions usually decreases the file size because the resized image contains fewer pixels. You can also adjust image quality to further optimize the file size.",
+  },
+
+  {
+    question: "Is the image resizer safe to use?",
+    answer:
+      "Yes. PDFSwift processes image resizing directly in your browser, helping keep your images private without requiring them to be uploaded to a server.",
+  },
+
+  {
+    question: "Can I resize a JPG without installing software?",
+    answer:
+      "Yes. PDFSwift's online JPG resizer works directly in your browser, so you do not need to install any desktop software or mobile application.",
+  },
+];

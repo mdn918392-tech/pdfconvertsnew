@@ -2,41 +2,66 @@ export const faqData = [
   {
     question: "Is the passport size photo maker on PDFSwift free to use?",
     answer:
-      "Yes, the passport size photo maker on PDFSwift is completely free to use. You can create passport photos online without signup, subscription, or hidden charges.",
+      "Yes, the passport size photo maker on PDFSwift is completely free to use. You can create passport-size photos online without signup, subscription, or hidden charges.",
   },
+
   {
-    question: "Which passport photo sizes are supported?",
+    question: "How can I create a passport size photo online?",
     answer:
-      "PDFSwift supports multiple official passport photo sizes including USA (2×2 inches), India (35×35 mm), UK (35×45 mm), Canada (50×70 mm), Australia, and visa photo formats.",
+      "Upload your photo to PDFSwift's passport size photo maker, select the required photo size and layout, and generate your passport-size photos. You can then download the finished photos for printing.",
   },
+
+  {
+    question: "Can I create a passport photo PDF online?",
+    answer:
+      "Yes. PDFSwift lets you create a printable passport photo PDF by arranging multiple passport-size photos on a page. You can download the generated PDF and print it when needed.",
+  },
+
+  {
+    question: "How do I arrange passport size photos on an A4 page?",
+    answer:
+      "Upload your photo, select the required passport photo dimensions, choose A4 as the paper size, and generate the layout. Multiple passport-size photos can be arranged on a single A4 page for convenient printing.",
+  },
+
   {
     question: "Can I print multiple passport photos on one page?",
     answer:
-      "Yes, you can choose multiple layout options such as 1×1, 2×2, 3×3, 4×4 grids and standard 4×6 or 6×4 sheets to print multiple passport photos on a single page.",
+      "Yes. You can arrange multiple passport-size photos on a single page using different layout options. This makes it easier to print several copies at once.",
   },
+
+  {
+    question: "Which passport photo sizes are supported?",
+    answer:
+      "PDFSwift supports commonly used passport and visa photo dimensions. The required size can vary by country and application, so always check the official requirements for the document you are applying for.",
+  },
+
+  {
+    question: "Can I create passport photos for printing?",
+    answer:
+      "Yes. PDFSwift creates printable passport-size photo layouts that can be downloaded and printed on supported paper sizes such as A4.",
+  },
+
   {
     question: "Is my photo uploaded to any server?",
     answer:
-      "No. All passport photo processing happens directly in your browser. Your photo is never uploaded, stored, or shared on any server, ensuring complete privacy.",
+      "No. Passport photo processing is performed directly in your browser. Your photo is not uploaded, stored, or shared with third parties.",
   },
+
   {
-    question: "What background colors are available?",
+    question: "Can I use the passport photo maker on mobile devices?",
     answer:
-      "You can choose from white, off-white, light blue, or light gray backgrounds depending on passport or visa requirements.",
+      "Yes. PDFSwift's passport size photo maker works on modern mobile phones, tablets, laptops, and desktop computers through a supported web browser.",
   },
+
   {
-    question: "What print quality and DPI does PDFSwift support?",
+    question: "Do the generated passport photos contain watermarks?",
     answer:
-      "PDFSwift supports professional print quality with 150 DPI, 300 DPI (recommended), and 600 DPI options to ensure sharp, print-ready passport photos.",
+      "No. PDFSwift does not add watermarks, logos, or unwanted branding to the generated passport photos or printable layouts.",
   },
+
   {
-    question: "Can I use PDFSwift passport photos for official documents?",
+    question: "Are the passport photos suitable for official documents?",
     answer:
-      "Yes, the generated passport photos follow official size standards and are suitable for passports, visas, ID cards, and other government documents.",
+      "PDFSwift can help you create photos in commonly required passport and visa dimensions. However, photo requirements differ by country and application, so verify the exact size, background, and other requirements with the relevant official authority before submission.",
   },
-  {
-    question: "Do the generated passport photos include watermarks?",
-    answer:
-      "No, PDFSwift does not add any watermarks or branding. All downloaded passport photos are clean and ready for official use.",
-  }
 ];

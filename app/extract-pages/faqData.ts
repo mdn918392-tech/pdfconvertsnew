@@ -1,43 +1,61 @@
 export const faqData = [
-    {
-      question: "Is the Extract Pages from PDF tool completely free to use?",
-      answer:
-        "Yes, our Extract Pages from PDF tool is completely free with no hidden charges. You can extract pages from PDF files online without signing up, creating an account, or providing any payment information.",
-    },
-    {
-      question: "Is it safe to extract pages from PDF files online?",
-      answer:
-        "Yes, it is 100% safe and secure. All PDF processing happens directly in your browser. Your PDF files are never uploaded to any server, never stored, and never shared, ensuring complete privacy and data protection.",
-    },
-    {
-      question: "How do I extract specific pages from a PDF file?",
-      answer:
-        "Simply upload your PDF file, select the page numbers or page range you want to extract, and click the extract button. The tool will instantly create a new PDF containing only the selected pages.",
-    },
-    {
-      question: "Can I extract multiple pages or page ranges at once?",
-      answer:
-        "Yes, you can extract single pages, multiple pages, or specific page ranges from a PDF file. This makes it easy to split large PDFs or save only the pages you need.",
-    },
-    {
-      question: "Is there a limit on PDF file size or number of pages?",
-      answer:
-        "There is no strict limit on the number of pages you can extract. Large PDF files are supported, although performance may depend on your device and browser capabilities.",
-    },
-    {
-      question: "Will the extracted PDF contain watermarks or branding?",
-      answer:
-        "No, the extracted PDF files are completely watermark-free. We do not add logos, branding, or any modifications. You retain full ownership and copyright of your documents.",
-    },
-    {
-      question: "Do I need to install software or create an account?",
-      answer:
-        "No installation or registration is required. The Extract Pages from PDF tool works entirely online in your browser, making it fast, simple, and convenient to use on any device.",
-    },
-    {
-      question: "Can I use this PDF page extractor on mobile devices?",
-      answer:
-        "Yes, the tool is fully responsive and works smoothly on mobile phones, tablets, laptops, and desktop computers. It supports all modern browsers on Android, iOS, Windows, and macOS.",
-    }
-  ];
-  
+  {
+    question: "How to extract PDF pages online for free?",
+    answer:
+      "Upload your PDF to PDFSwift's Extract Pages from PDF tool, select the pages you want to extract, and click the extract button. The selected pages will be created as a new PDF that you can download for free.",
+  },
+
+  {
+    question: "How can I extract pages from a PDF for free?",
+    answer:
+      "Simply upload your PDF, select one or more pages you want to extract, and generate a new PDF containing only the selected pages. PDFSwift lets you extract PDF pages online without installing software.",
+  },
+
+  {
+    question: "Can I extract specific pages from a PDF online?",
+    answer:
+      "Yes. You can select specific pages or page ranges from your PDF and extract them into a separate PDF file while keeping the selected page content intact.",
+  },
+
+  {
+    question: "How do I extract one page from a PDF?",
+    answer:
+      "Upload your PDF to PDFSwift, select the single page you want to extract, and create a new PDF. You can then download the extracted page as a separate PDF file.",
+  },
+
+  {
+    question: "Can I extract multiple pages from a PDF?",
+    answer:
+      "Yes. You can select multiple individual pages or a page range and extract them into a new PDF document. This is useful when you only need certain pages from a large PDF.",
+  },
+
+  {
+    question: "Can I extract individual pages from a PDF?",
+    answer:
+      "Yes. PDFSwift allows you to select individual pages from a PDF and create a separate PDF containing only those selected pages.",
+  },
+
+  {
+    question: "Is there a free PDF page extractor online?",
+    answer:
+      "Yes. PDFSwift works as a free online PDF page extractor that lets you select and extract specific pages from a PDF directly in your browser.",
+  },
+
+  {
+    question: "Can I download individual PDF pages?",
+    answer:
+      "Yes. You can extract the page you need from a PDF and download it as a separate PDF file.",
+  },
+
+  {
+    question: "Can I extract PDF pages without installing software?",
+    answer:
+      "Yes. PDFSwift works directly in your browser, so you can extract PDF pages online without installing desktop software or a separate application.",
+  },
+
+  {
+    question: "Is it safe to extract pages from a PDF online?",
+    answer:
+      "Yes. PDFSwift is designed to process PDF files securely and protect your documents while extracting the pages you select.",
+  },
+];
