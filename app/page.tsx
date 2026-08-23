@@ -41,7 +41,6 @@ export default function Home() {
       href: "/pdf-to-jpg",
       path: "/tools/pdf-to-jpg",
     },
-    
     {
       id: "split-pdf",
       name: "Split PDF",
@@ -52,7 +51,6 @@ export default function Home() {
       href: "/split-pdf",
       path: "/tools/split-pdf",
     },
-    
     {
       id: "extract-pages",
       name: "Extract Pages",
@@ -63,18 +61,17 @@ export default function Home() {
       href: "/extract-pages",
       path: "/tools/extract-pages",
     },
-
     {
-  id: "organize-pdf",
-  name: "Organize PDF",
-  description: "Reorder, rotate, delete, and reverse PDF pages",
-  category: "pdf",
-  icon: "🗂️",
-  color: "from-blue-500 to-cyan-500",
-  href: "/organize-pdf",
-  path: "/organize-pdf",
- },
- {
+      id: "organize-pdf",
+      name: "Organize PDF",
+      description: "Reorder, rotate, delete, and reverse PDF pages",
+      category: "pdf",
+      icon: "🗂️",
+      color: "from-blue-500 to-cyan-500",
+      href: "/organize-pdf",
+      path: "/organize-pdf",
+    },
+    {
       id: "jpg-to-pdf",
       name: "JPG to PDF",
       description: "Convert JPG images to PDF documents",
@@ -85,15 +82,15 @@ export default function Home() {
       path: "/tools/jpg-to-pdf",
     },
     {
-  id: "compress-pdf",
-  name: "Compress PDF",
-  description: "Compress PDF files and reduce file size",
-  category: "pdf",
-  icon: "📦",
-  color: "from-blue-500 to-cyan-500",
-  href: "/compress-pdf",
-  path: "/tools/compress-pdf",
-},
+      id: "compress-pdf",
+      name: "Compress PDF",
+      description: "Compress PDF files and reduce file size",
+      category: "pdf",
+      icon: "📦",
+      color: "from-blue-500 to-cyan-500",
+      href: "/compress-pdf",
+      path: "/tools/compress-pdf",
+    },
     {
       id: "remove-pages",
       name: "Remove Pages",
@@ -114,33 +111,27 @@ export default function Home() {
       href: "/rotate-pdf",
       path: "/tools/rotate-pdf",
     },
-
-  {
-  id: "add-pages-and-images-to-pdf",
-  name: "Add Pages & Images to PDF",
-  description: "Insert new pages and add images anywhere in your PDF",
-  category: "pdf",
-  icon: "📄➕",
-  color: "from-indigo-500 to-purple-500",
-  href: "add-pages-and-images-to-pdf",
-  path: "/tools/add-pages-and-images-to-pdf",
-},
-
-{
-  id: "pdf-filter",
-  name: "PDF filter",
-  description: "Apply filters and visual effects to PDF files online",
-  category: "pdf",
-  icon: "📄✨",
-  color: "from-purple-500 to-pink-600",
-  href: "/pdf-filter",
-  path: "/tools/pdf-filter",
-},
-
-
+    {
+      id: "add-pages-and-images-to-pdf",
+      name: "Add Pages & Images to PDF",
+      description: "Insert new pages and add images anywhere in your PDF",
+      category: "pdf",
+      icon: "📄➕",
+      color: "from-indigo-500 to-purple-500",
+      href: "add-pages-and-images-to-pdf",
+      path: "/tools/add-pages-and-images-to-pdf",
+    },
+    {
+      id: "pdf-filter",
+      name: "PDF filter",
+      description: "Apply filters and visual effects to PDF files online",
+      category: "pdf",
+      icon: "📄✨",
+      color: "from-purple-500 to-pink-600",
+      href: "/pdf-filter",
+      path: "/tools/pdf-filter",
+    },
     // Image Tools
-
-   
     {
       id: "png-to-jpg",
       name: "PNG to JPG",
@@ -151,47 +142,36 @@ export default function Home() {
       href: "/png-to-jpg",
       path: "/tools/png-to-jpg",
     },
-
-      {
-  id: "resize-image",
-  name: "Resize Image",
-  description: "Resize JPG, PNG, and WebP images with custom dimensions",
-  category: "image",
-  icon: "📏",
-  color: "from-green-500 to-emerald-500",
-  href: "/resize-image",
-  path: "/tools/resize-image",
-},
-
-{
- id: "passport-photo",
-  name: "Passport Photo Maker",
-  description: "Create passport size photos online",
-  category: "image",
-  icon: "📸",
-  color: "from-blue-500 to-indigo-600",
-  href: "/passport-photo",
-  path: "/tools/passport-photo",
-},
- {
-  id: "rotate-image",
-  name: "Rotate Image",
-  description: "Rotate JPG, PNG, and WebP images online",
-  category: "image",
-  icon: "↻",
-  color: "from-blue-500 to-cyan-500",
-  href: "/rotate-image",
-  path: "/tools/rotate-image",
-},
-
-
-  
-
-  
-
-    
-
-
+    {
+      id: "resize-image",
+      name: "Resize Image",
+      description: "Resize JPG, PNG, and WebP images with custom dimensions",
+      category: "image",
+      icon: "📏",
+      color: "from-green-500 to-emerald-500",
+      href: "/resize-image",
+      path: "/tools/resize-image",
+    },
+    {
+      id: "passport-photo",
+      name: "Passport Photo Maker",
+      description: "Create passport size photos online",
+      category: "image",
+      icon: "📸",
+      color: "from-blue-500 to-indigo-600",
+      href: "/passport-photo",
+      path: "/tools/passport-photo",
+    },
+    {
+      id: "rotate-image",
+      name: "Rotate Image",
+      description: "Rotate JPG, PNG, and WebP images online",
+      category: "image",
+      icon: "↻",
+      color: "from-blue-500 to-cyan-500",
+      href: "/rotate-image",
+      path: "/tools/rotate-image",
+    },
     {
       id: "compress-image",
       name: "Compress Image",
@@ -202,18 +182,16 @@ export default function Home() {
       href: "/compress-image",
       path: "/tools/compress-image",
     },
-    
-
-     {
-    id: "webpage-to-jpg",
-    name: "WebPage to JPG",
-    description: "Convert WebP images to JPG format",
-    category: "image",
-    icon: "🔄",
-    color: "from-purple-500 to-pink-500",
-    href: "/webpage-to-jpg",
-    path: "/tools/webp-to-jpg",
-  },
+    {
+      id: "webpage-to-jpg",
+      name: "WebPage to JPG",
+      description: "Convert WebP images to JPG format",
+      category: "image",
+      icon: "🔄",
+      color: "from-purple-500 to-pink-500",
+      href: "/webpage-to-jpg",
+      path: "/tools/webp-to-jpg",
+    },
   ];
 
   const cleanTools = extendedTools.filter((t) => t != null);
@@ -250,7 +228,6 @@ export default function Home() {
   ];
 
   const stats = [
-  
     {
       value: "100%",
       label: "Free Forever",
@@ -405,55 +382,55 @@ export default function Home() {
         </motion.div>
 
         {/* Stats Section */}
-<motion.div
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.1 }}
-  className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16"
->
-  {stats.map((stat, index) => (
-    <motion.div
-      key={index}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.1 }}
-      className="group bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl p-5 
-                 border-2 border-gray-100 dark:border-gray-800 
-                 hover:border-gray-200 dark:hover:border-gray-700 
-                 transition-all duration-300 hover:scale-105 hover:shadow-xl"
-    >
-      {/* Icon */}
-      <div
-        className={`bg-gradient-to-br ${stat.gradient} p-3 rounded-xl w-fit mb-4 
-                    group-hover:scale-110 transition-transform shadow-lg`}
-      >
-        <div className="text-white">
-          {stat.icon === "free" && (
-            <div className="w-6 h-6 border-2 border-white rounded-full" />
-          )}
-          {stat.icon === "zap" && <Zap className="w-6 h-6" />}
-          {stat.icon === "clock" && (
-            <div className="w-6 h-6 border-2 border-white rounded-full relative">
-              <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full 
-                              -translate-x-1/2 -translate-y-1/2" />
-            </div>
-          )}
-          {stat.icon === "shield" && <Shield className="w-6 h-6" />}
-        </div>
-      </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16"
+        >
+          {stats.map((stat, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.1 }}
+              className="group bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl p-5 
+                         border-2 border-gray-100 dark:border-gray-800 
+                         hover:border-gray-200 dark:hover:border-gray-700 
+                         transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-default"
+            >
+              {/* Icon */}
+              <div
+                className={`bg-gradient-to-br ${stat.gradient} p-3 rounded-xl w-fit mb-4 
+                            group-hover:scale-110 transition-transform shadow-lg`}
+              >
+                <div className="text-white">
+                  {stat.icon === "free" && (
+                    <div className="w-6 h-6 border-2 border-white rounded-full" />
+                  )}
+                  {stat.icon === "zap" && <Zap className="w-6 h-6" />}
+                  {stat.icon === "clock" && (
+                    <div className="w-6 h-6 border-2 border-white rounded-full relative">
+                      <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full 
+                                      -translate-x-1/2 -translate-y-1/2" />
+                    </div>
+                  )}
+                  {stat.icon === "shield" && <Shield className="w-6 h-6" />}
+                </div>
+              </div>
 
-      {/* Value */}
-      <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-        {stat.value}
-      </div>
+              {/* Value */}
+              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                {stat.value}
+              </div>
 
-      {/* Label */}
-      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-        {stat.label}
-      </div>
-    </motion.div>
-  ))}
-</motion.div>
+              {/* Label */}
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                {stat.label}
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
 
         {/* Category Tabs */}
         <motion.div
@@ -467,7 +444,7 @@ export default function Home() {
               <button
                 key={tab.id}
                 onClick={() => setActiveCategory(tab.id)}
-                className={`group flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                className={`group flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-300 cursor-pointer ${
                   activeCategory === tab.id
                     ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg"
                     : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-100 dark:border-gray-800"
@@ -492,7 +469,6 @@ export default function Home() {
             ))}
           </div>
 
-
           {/* Tools Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredTools.map((tool, index) => (
@@ -503,7 +479,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ scale: 1.03, y: -5 }}
-                className="group bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-6 hover:border-blue-300 dark:hover:border-cyan-700 transition-all shadow-lg hover:shadow-2xl"
+                className="group bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-6 hover:border-blue-300 dark:hover:border-cyan-700 transition-all shadow-lg hover:shadow-2xl cursor-pointer"
               >
                 <div className="flex items-start gap-4">
                   <div
@@ -552,7 +528,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="group relative bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-8 hover:border-gray-200 dark:hover:border-gray-600 transition-all duration-300 hover:scale-105"
+                className="group relative bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-8 hover:border-gray-200 dark:hover:border-gray-600 transition-all duration-300 hover:scale-105 cursor-default"
               >
                 <div
                   className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 rounded-2xl transition-opacity duration-300`}
@@ -574,43 +550,42 @@ export default function Home() {
         </motion.div>
 
         {/* FAQ Section */}
-<motion.div
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.5 }}
-  className="mb-16"
-  id="faq"
- >
-  <div className="text-center mb-12">
-    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-      Frequently Asked Questions
-    </h2>
-    <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-      Get answers to common questions about PDFSwift
-    </p>
-  </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mb-16"
+          id="faq"
+        >
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Get answers to common questions about PDFSwift
+            </p>
+          </div>
 
-  <div className="max-w-3xl mx-auto space-y-4">
-    {faqs.map((faq, index) => (
-      <motion.div
-        key={index}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-100 dark:border-gray-700 p-6"
-      >
-        <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-3">
-          {faq.question}
-        </h3>
+          <div className="max-w-3xl mx-auto space-y-4">
+            {faqs.map((faq, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-100 dark:border-gray-700 p-6 cursor-default"
+              >
+                <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-3">
+                  {faq.question}
+                </h3>
 
-        <p className="text-gray-600 dark:text-gray-400">
-          {faq.answer}
-        </p>
-      </motion.div>
-    ))}
-  </div>
-</motion.div>
-
+                <p className="text-gray-600 dark:text-gray-400">
+                  {faq.answer}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </div>
   );

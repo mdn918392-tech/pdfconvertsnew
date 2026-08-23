@@ -37,6 +37,8 @@ import {
   Target,
   Sliders,
   Info,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
@@ -665,6 +667,7 @@ export default function CompressPdf() {
   const [originalFileSizes, setOriginalFileSizes] = useState<Map<string, number>>(new Map());
   const [compressionResult, setCompressionResult] = useState<'success' | 'failed' | 'already-compressed' | null>(null);
   const [compressionPercentage, setCompressionPercentage] = useState<number | null>(null);
+  const [compressionError, setCompressionError] = useState<string | null>(null);
   
   // Target size feature
   const [targetSizeMode, setTargetSizeMode] = useState<'manual' | 'target'>('manual');
@@ -714,9 +717,9 @@ export default function CompressPdf() {
     }
   }, [downloadNotifications]);
 
-  // ─── 🔥 UPDATED: NO LIMITS ───
+  // ─── 🔥 UPDATED: Only allow 1 file ───
   const handleFilesSelected = (newFiles: File[]) => {
-    // Filter valid PDF files - NO SIZE LIMIT
+    // Filter valid PDF files
     const filteredFiles = newFiles.filter(file => {
       if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
         alert(`File "${file.name}" is not a PDF document.`);
@@ -732,18 +735,21 @@ export default function CompressPdf() {
     
     if (filteredFiles.length === 0) return;
     
-    // Add all files - NO MAX FILES LIMIT
-    setFiles((prev) => [...prev, ...filteredFiles]);
+    // 🔥 Only keep the FIRST file, ignore the rest
+    const firstFile = filteredFiles[0];
+    
+    // 🔥 Automatically remove previous file and replace with new one
+    setFiles([firstFile]);
     setCompressedFiles([]);
     setShowFeatures(false);
     setCompressionResult(null);
     setCompressionPercentage(null);
+    setCompressionError(null);
+    setProgress(0);
     
-    // Store original file sizes
-    const sizeMap = new Map(originalFileSizes);
-    filteredFiles.forEach(file => {
-      sizeMap.set(file.name, file.size);
-    });
+    // Store original file size
+    const sizeMap = new Map();
+    sizeMap.set(firstFile.name, firstFile.size);
     setOriginalFileSizes(sizeMap);
   };
 
@@ -836,6 +842,7 @@ export default function CompressPdf() {
             
           } catch (pageError) {
             console.error(`Error processing page ${i}:`, pageError);
+            // Continue with other pages
           }
         }
         
@@ -967,6 +974,7 @@ export default function CompressPdf() {
     setShowFeatures(false);
     setCompressionResult(null);
     setCompressionPercentage(null);
+    setCompressionError(null);
 
     try {
       let allCompressedPages: ConvertedFile[] = [];
@@ -1000,46 +1008,70 @@ export default function CompressPdf() {
         } catch (error: any) {
           console.error(`Error compressing PDF ${file.name}:`, error);
           failedFiles.push(file.name);
-          continue;
+          // Continue to next file
         }
       }
       
-      if (allCompressedPages.length > 0) {
-        setProgress(85);
-        const compressedPdfBlob = await rebuildPdfFromImages(allCompressedPages, (progressValue) => {
-          setProgress(Math.min(98, progressValue));
-        });
+      // ─── 🔥 CRITICAL FIX: Handle case where NO pages were compressed ───
+      if (allCompressedPages.length === 0) {
+        // Build a detailed error message
+        let errorMsg = 'Failed to compress PDF. No pages could be processed.';
         
-        const originalSize = files.reduce((acc, f) => acc + f.size, 0);
-        const compressedSize = compressedPdfBlob.size;
-        
-        const percentage = ((originalSize - compressedSize) / originalSize * 100);
-        setCompressionPercentage(percentage);
-        
-        // Check if compression was successful
-        if (compressedSize < originalSize) {
-          setCompressionResult('success');
-        } else {
-          setCompressionResult('already-compressed');
+        if (failedFiles.length > 0) {
+          errorMsg = `Failed to compress the PDF file. The file may be corrupted, password-protected, or in an unsupported format.\n\nPlease try:\n• Using a different PDF file\n• Checking if the file is password-protected\n• Using a smaller or simpler PDF\n• Making sure the PDF is not damaged`;
         }
         
-        const compressedPdfFile: ConvertedFile = {
-          blob: compressedPdfBlob,
-          name: `compressed_${files.length === 1 ? files[0]?.name || 'document' : 'merged_document'}`,
-          originalFile: files[0],
-          timestamp: Date.now(),
-          pageNumber: 0,
-          originalSize: originalSize,
-          compressedSize: compressedSize,
-          isOriginal: false,
-          isAlreadyCompressed: false,
-        };
+        if (isTargetModeActive) {
+          errorMsg += `\n\n💡 Tip: The target size (${formatTargetSize()}) might be too small. Try increasing the target size or using Manual mode.`;
+        }
         
-        setCompressedFiles([compressedPdfFile]);
+        setCompressionError(errorMsg);
+        setCompressionResult('failed');
+        setProgress(0);
+        setCompressing(false);
+        
+        // Show a user-friendly alert as well
+        alert('❌ Compression failed: No pages could be processed. Please check your file and try again.');
+        
+        return; // Exit early - don't show success UI
       }
       
-      if (failedFiles.length > 0) {
-        const message = `Successfully compressed ${allCompressedPages.length > 0 ? files.length - failedFiles.length : 0} of ${files.length} PDF files.\n\nFailed files:\n${failedFiles.slice(0, 3).join('\n')}`;
+      // ─── Success path: We have compressed pages ───
+      setProgress(85);
+      const compressedPdfBlob = await rebuildPdfFromImages(allCompressedPages, (progressValue) => {
+        setProgress(Math.min(98, progressValue));
+      });
+      
+      const originalSize = files.reduce((acc, f) => acc + f.size, 0);
+      const compressedSize = compressedPdfBlob.size;
+      
+      const percentage = ((originalSize - compressedSize) / originalSize * 100);
+      setCompressionPercentage(percentage);
+      
+      // Check if compression was successful (size reduced)
+      if (compressedSize < originalSize) {
+        setCompressionResult('success');
+      } else {
+        setCompressionResult('already-compressed');
+      }
+      
+      const compressedPdfFile: ConvertedFile = {
+        blob: compressedPdfBlob,
+        name: `compressed_${files.length === 1 ? files[0]?.name || 'document' : 'merged_document'}`,
+        originalFile: files[0],
+        timestamp: Date.now(),
+        pageNumber: 0,
+        originalSize: originalSize,
+        compressedSize: compressedSize,
+        isOriginal: false,
+        isAlreadyCompressed: false,
+      };
+      
+      setCompressedFiles([compressedPdfFile]);
+      
+      if (failedFiles.length > 0 && allCompressedPages.length > 0) {
+        // Partial success - some files failed but we have results
+        const message = `⚠️ Partial success: ${allCompressedPages.length > 0 ? files.length - failedFiles.length : 0} of ${files.length} PDF files compressed.\n\nFailed files:\n${failedFiles.slice(0, 3).join('\n')}`;
         alert(message);
       }
       
@@ -1048,7 +1080,9 @@ export default function CompressPdf() {
     } catch (error: any) {
       console.error("Compression error:", error);
       setProgress(0);
-      alert(error.message || "Failed to compress PDF. Please try again.");
+      setCompressionError(error.message || "Failed to compress PDF. Please try again.");
+      setCompressionResult('failed');
+      alert(error.message || "❌ Failed to compress PDF. Please try again.");
     } finally {
       setCompressing(false);
     }
@@ -1109,6 +1143,7 @@ export default function CompressPdf() {
     setCompressedFiles([]);
     setCompressionResult(null);
     setCompressionPercentage(null);
+    setCompressionError(null);
     setProgress(0);
   };
 
@@ -1120,11 +1155,13 @@ export default function CompressPdf() {
     setIsTargetModeActive(false);
     setCompressionResult(null);
     setCompressionPercentage(null);
+    setCompressionError(null);
   };
 
   const hasFiles = files.length > 0;
   const hasResults = compressedFiles.length > 0;
-  const isReadyToCompress = hasFiles && !hasResults && !compressing && pdfWorkerLoaded;
+  const hasError = compressionError !== null && compressionResult === 'failed';
+  const isReadyToCompress = hasFiles && !hasResults && !compressing && pdfWorkerLoaded && !hasError;
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
   
   const totalOriginalSize = compressedFiles.reduce((acc, f) => acc + (f.originalSize || 0), 0);
@@ -1144,6 +1181,53 @@ export default function CompressPdf() {
   };
 
   const isAlreadyCompressed = compressionResult === 'already-compressed';
+
+  // ─── Error UI Component ───
+  const ErrorDisplay = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-red-200 dark:border-red-800/50 p-3 sm:p-4 md:p-6 lg:p-8 shadow-lg sm:shadow-xl md:shadow-2xl mb-6 md:mb-8"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+        <div className="flex-shrink-0">
+          <div className="p-2 sm:p-3 bg-gradient-to-r from-red-500 to-rose-600 rounded-lg sm:rounded-xl shadow-lg">
+            <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
+          </div>
+        </div>
+        <div className="flex-1">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-black text-red-700 dark:text-red-400 mb-1 sm:mb-2">
+            ❌ Compression Failed
+          </h2>
+          <div className="text-sm sm:text-base text-red-600 dark:text-red-300 whitespace-pre-line">
+            {compressionError}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2 sm:gap-3">
+            <button
+              onClick={handleReset}
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-medium rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all text-xs sm:text-sm"
+            >
+              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              Try Again
+            </button>
+            <button
+              onClick={() => setCompressionError(null)}
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+          {isTargetModeActive && (
+            <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800/50 rounded-lg">
+              <p className="text-xs sm:text-sm text-yellow-700 dark:text-yellow-400">
+                💡 <strong>Tip:</strong> Target size of {formatTargetSize()} might be too small for this PDF. Try increasing the target size or switching to Manual mode.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
 
   return (
     <>
@@ -1211,7 +1295,7 @@ export default function CompressPdf() {
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
                   Compress your PDF files by converting to images and rebuilding
                   <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    No limits • No file size restrictions • All devices supported
+                    One file at a time • No file size restrictions • All devices supported
                   </span>
                 </p>
               </div>
@@ -1274,6 +1358,7 @@ export default function CompressPdf() {
               )}
             </AnimatePresence>
 
+            {/* ─── MAIN TOOL CARD ─── */}
             <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
               <div className="mb-4 sm:mb-6 md:mb-8">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
@@ -1282,26 +1367,26 @@ export default function CompressPdf() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                      Upload PDF Documents
+                      Upload PDF Document
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Select one or more PDF files to compress
+                      Select a PDF file to compress
                       <span className="block text-blue-600 dark:text-blue-400 mt-1">
-                        Unlimited files • No size restrictions
+                        One file at a time • No size restrictions
                       </span>
                     </p>
                   </div>
                 </div>
 
-                {/* ─── 🔥 UPDATED: Removed unlimited prop ─── */}
+                {/* ─── File Uploader ─── */}
                 <div className="mb-6">
                   <FileUploader
                     accept="application/pdf"
-                    multiple={true}
+                    multiple={false}
                     onFilesSelected={handleFilesSelected}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                    No file limits • Upload as many PDFs as you want
+                    Upload one PDF at a time • Previous file will be replaced
                   </p>
                 </div>
 
@@ -1315,6 +1400,7 @@ export default function CompressPdf() {
                             onClick={() => {
                               setTargetSizeMode('manual');
                               setIsTargetModeActive(false);
+                              setCompressionError(null);
                             }}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                               targetSizeMode === 'manual' && !isTargetModeActive
@@ -1328,6 +1414,7 @@ export default function CompressPdf() {
                             onClick={() => {
                               setTargetSizeMode('target');
                               setIsTargetModeActive(true);
+                              setCompressionError(null);
                             }}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                               isTargetModeActive
@@ -1420,7 +1507,7 @@ export default function CompressPdf() {
                       <div className="flex items-center gap-1 sm:gap-2">
                         <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
                         <span className="font-medium text-blue-700 dark:text-blue-300">
-                          {files.length} PDF {files.length === 1 ? 'file' : 'files'} selected
+                          {files.length} PDF file selected
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
@@ -1439,17 +1526,17 @@ export default function CompressPdf() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
-                        Uploaded PDF Files ({files.length})
+                        Uploaded PDF File
                       </h3>
                       <button
                         onClick={handleReset}
                         className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors"
                       >
-                        Clear All
+                        Clear
                       </button>
                     </div>
 
-                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'} gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700`}>
+                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'} gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700`}>
                       {files.map((file, index) => (
                         <div
                           key={index}
@@ -1485,7 +1572,7 @@ export default function CompressPdf() {
                           label={
                             isTargetModeActive 
                               ? `Optimizing to ${formatTargetSize()}... ${Math.round(progress)}%`
-                              : `Compressing ${files.length} PDF ${files.length === 1 ? 'file' : 'files'}... ${Math.round(progress)}%`
+                              : `Compressing PDF... ${Math.round(progress)}%`
                           }
                         />
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-blue-600 dark:text-blue-400">
@@ -1493,14 +1580,14 @@ export default function CompressPdf() {
                           <span className="text-xs sm:text-sm font-medium">
                             {isTargetModeActive 
                               ? `🎯 Targeting ${formatTargetSize()} (${Math.round(progress)}%)`
-                              : `Compressing your PDFs... (${Math.round(progress)}%)`
+                              : `Compressing your PDF... (${Math.round(progress)}%)`
                             }
                           </span>
                         </div>
                       </div>
                     )}
 
-                    {isReadyToCompress && (
+                    {isReadyToCompress && !hasError && (
                       <motion.button
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -1516,12 +1603,12 @@ export default function CompressPdf() {
                         {isTargetModeActive ? (
                           <>
                             <Target className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6'}`} />
-                            Compress {files.length} PDF{files.length > 1 ? 's' : ''} to {formatTargetSize()}
+                            Compress PDF to {formatTargetSize()}
                           </>
                         ) : (
                           <>
                             <FileDown className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6'}`} />
-                            Compress {files.length} PDF{files.length > 1 ? 's' : ''}
+                            Compress PDF
                           </>
                         )}
                         <Sparkles className={`${isMobile ? 'w-4 h-4' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5'}`} />
@@ -1533,11 +1620,22 @@ export default function CompressPdf() {
                         ⏳ PDF renderer is initializing. Please wait a moment...
                       </div>
                     )}
+
+                    {hasError && (
+                      <div className="text-center text-sm text-red-600 dark:text-red-400 p-3 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                        <AlertCircle className="w-4 h-4 inline-block mr-1.5" />
+                        {compressionError?.split('\n')[0] || 'Compression failed. Please try again.'}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
+            {/* ─── ERROR DISPLAY ─── */}
+            {hasError && <ErrorDisplay />}
+
+            {/* ─── SUCCESS DISPLAY ─── */}
             {hasResults && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -1580,7 +1678,7 @@ export default function CompressPdf() {
                     }`}>
                       {isAlreadyCompressed 
                         ? `This PDF is already optimized. The file size cannot be reduced further.`
-                        : `Successfully compressed ${files.length} PDF ${files.length === 1 ? 'file' : 'files'}`
+                        : `Successfully compressed PDF file`
                       }
                       {isTargetModeActive && ` to ${formatTargetSize()}`}
                     </p>
@@ -1614,7 +1712,7 @@ export default function CompressPdf() {
                         ? 'from-blue-500 to-cyan-600'
                         : 'from-green-500 to-emerald-600'
                     } text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base ${isMobile ? 'text-base px-4 py-2' : ''}`}>
-                      {files.length} PDF{files.length > 1 ? 's' : ''}
+                      1 PDF
                     </div>
                   </div>
                 </div>
@@ -1633,7 +1731,7 @@ export default function CompressPdf() {
                     )}
                   </h3>
 
-                  <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'} gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 ${
+                  <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'} gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 ${
                     isAlreadyCompressed ? 'border-blue-100 dark:border-blue-800/30' : 'border-green-100 dark:border-green-800/30'
                   }`}>
                     {compressedFiles.map((item, index) => (
@@ -1740,7 +1838,7 @@ export default function CompressPdf() {
               </motion.div>
             )}
 
-            {(hasFiles || hasResults) && (
+            {(hasFiles || hasResults) && !hasError && (
               <div className="mt-6 sm:mt-10 md:mt-14">
                 <div className="max-w-6xl mx-auto px-4">
                   <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'} gap-4 sm:gap-6`}>
@@ -1810,8 +1908,8 @@ export default function CompressPdf() {
                 {[
                   {
                     step: "1",
-                    title: "Upload PDF Files",
-                    desc: `Upload one or more PDF files using drag & drop or file picker. No limits!`
+                    title: "Upload PDF File",
+                    desc: `Upload a PDF file using drag & drop or file picker.`
                   },
                   {
                     step: "2",
