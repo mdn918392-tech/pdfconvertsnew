@@ -411,7 +411,7 @@ const ImagePreview = ({
             </div>
           </div>
 
-          {/* 🔥 Action Buttons - Always visible on top right */}
+          {/* Action Buttons - Always visible on top right */}
           <div className="absolute top-3 right-3 flex gap-2">
             {/* Remove Button (For Input Files) */}
             {onRemove && (
@@ -440,8 +440,6 @@ const ImagePreview = ({
               </motion.button>
             )}
           </div>
-
-          {/* 🔥 REMOVED: Bottom buttons - No longer showing */}
         </div>
       </motion.div>
     </>
@@ -530,6 +528,7 @@ export default function PngToJpg() {
   const [zipDownloading, setZipDownloading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const [allConvertedFiles, setAllConvertedFiles] = useState<ConvertedFile[]>([]);
 
   // Detect device type (only for UI hints, no limits)
   useEffect(() => {
@@ -564,13 +563,12 @@ export default function PngToJpg() {
     }
   }, [downloadNotifications]);
 
-  // --- FIXED: handleConvert with batch processing for mobile ---
+  // --- FIXED: handleConvert - Add to existing converted files ---
   const handleConvert = async () => {
     if (files.length === 0) return;
 
     setConverting(true);
     setProgress(0);
-    setJpgBlobs([]);
     setShowFeatures(false);
 
     try {
@@ -631,7 +629,14 @@ export default function PngToJpg() {
         }
       }
       
+      // 🔥 FIX: Add newly converted files to existing ones
+      setAllConvertedFiles((prev) => [...prev, ...blobs]);
+      
+      // Show only the newly converted files as results
       setJpgBlobs(blobs);
+      
+      // Clear the uploaded files after conversion
+      setFiles([]);
       
       // Show detailed error message if any files failed
       if (failedFiles.length > 0) {
@@ -659,14 +664,17 @@ export default function PngToJpg() {
   };
 
   const handleDownloadAllAsZip = async () => {
-    if (jpgBlobs.length === 0) return;
+    // Use all converted files (including previous ones)
+    const filesToDownload = allConvertedFiles.length > 0 ? allConvertedFiles : jpgBlobs;
+    
+    if (filesToDownload.length === 0) return;
 
     setZipDownloading(true);
     try {
       const zip = new JSZip();
       
       // Add all JPG files to the zip
-      jpgBlobs.forEach((item, index) => {
+      filesToDownload.forEach((item, index) => {
         if (item.blob && item.blob.size > 0) {
           zip.file(item.name, item.blob);
         }
@@ -683,7 +691,7 @@ export default function PngToJpg() {
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
         fileName: zipName,
-        fileCount: jpgBlobs.length,
+        fileCount: filesToDownload.length,
         timestamp: new Date(),
         type: 'zip',
       };
@@ -704,8 +712,11 @@ export default function PngToJpg() {
   };
 
   const handleDownloadAllSeparate = () => {
+    // Use all converted files (including previous ones)
+    const filesToDownload = allConvertedFiles.length > 0 ? allConvertedFiles : jpgBlobs;
+    
     // Downloads all converted files individually
-    jpgBlobs.forEach((item) => {
+    filesToDownload.forEach((item) => {
       if (item.blob && item.blob.size > 0) {
         downloadFile(item.blob, item.name);
       }
@@ -714,10 +725,10 @@ export default function PngToJpg() {
     // Add download notification
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
-      fileName: jpgBlobs.length === 1 ? jpgBlobs[0].name : "Multiple files",
-      fileCount: jpgBlobs.length,
+      fileName: filesToDownload.length === 1 ? filesToDownload[0].name : "Multiple files",
+      fileCount: filesToDownload.length,
       timestamp: new Date(),
-      type: jpgBlobs.length === 1 ? 'single' : 'multi',
+      type: filesToDownload.length === 1 ? 'single' : 'multi',
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
@@ -730,7 +741,10 @@ export default function PngToJpg() {
   };
 
   const handleSingleDownload = (index: number) => {
-    const item = jpgBlobs[index];
+    // Use all converted files (including previous ones)
+    const filesToDownload = allConvertedFiles.length > 0 ? allConvertedFiles : jpgBlobs;
+    const item = filesToDownload[index];
+    
     if (!item || !item.blob || item.blob.size === 0) {
       alert("Cannot download this file. It may be corrupted.");
       return;
@@ -760,10 +774,9 @@ export default function PngToJpg() {
     setFiles((prevFiles) =>
       prevFiles.filter((_, index) => index !== indexToRemove)
     );
-    setJpgBlobs([]);
   };
 
-  // ─── 🔥 UPDATED: handleFilesSelected – NO LIMITS ───
+  // ─── 🔥 UPDATED: handleFilesSelected – APPEND to existing files ───
   const handleFilesSelected = (newFiles: File[]) => {
     // Filter valid PNG files – NO SIZE LIMIT, NO COUNT LIMIT
     const filteredFiles = newFiles.filter(file => {
@@ -781,29 +794,36 @@ export default function PngToJpg() {
     
     if (filteredFiles.length === 0) return;
     
-    // Add all files – NO MAX FILES LIMIT
+    // 🔥 APPEND new files to existing ones
     setFiles((prev) => [...prev, ...filteredFiles]);
-    setJpgBlobs([]);
     setShowFeatures(false);
   };
 
   const handleReset = () => {
     setFiles([]);
     setJpgBlobs([]);
+    setAllConvertedFiles([]);
     setProgress(0);
     setShowFeatures(true);
   };
 
   const hasFiles = files.length > 0;
   const hasResults = jpgBlobs.length > 0;
-  const isReadyToConvert = hasFiles && !hasResults && !converting;
+  const hasAllConverted = allConvertedFiles.length > 0;
+  const isReadyToConvert = hasFiles && !converting;
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
-  // Calculate total size of converted files
+  // Calculate total size of all converted files
+  const allConvertedTotalSize = allConvertedFiles.reduce(
+    (acc, item) => acc + (item.blob?.size || 0),
+    0
+  );
+  
   const convertedTotalSize = jpgBlobs.reduce(
     (acc, item) => acc + (item.blob?.size || 0),
     0
   );
+  
   const sizeReduction =
     totalSize > 0 && convertedTotalSize > 0
       ? Math.max(0, ((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
@@ -887,7 +907,7 @@ export default function PngToJpg() {
 
             {/* --- Features Grid --- */}
             <AnimatePresence>
-              {showFeatures && !hasFiles && (
+              {showFeatures && !hasFiles && !hasAllConverted && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -945,7 +965,7 @@ export default function PngToJpg() {
 
             {/* --- Main Converter Card --- */}
             <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
-              {/* Upload Section */}
+              {/* Upload Section - Always show for adding more files */}
               <div className="mb-4 sm:mb-6 md:mb-8">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
                   <div className="p-1.5 sm:p-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-xl">
@@ -960,11 +980,15 @@ export default function PngToJpg() {
                       <span className="block text-orange-600 dark:text-orange-400 mt-1">
                         Unlimited files • Any size
                       </span>
+                      {allConvertedFiles.length > 0 && (
+                        <span className="block text-green-600 dark:text-green-400 mt-1 text-xs">
+                          ✓ {allConvertedFiles.length} files already converted
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
 
-                {/* ─── 🔥 UPDATED: FileUploader – no maxSize, no maxFiles ─── */}
                 <div className="mb-6">
                   <FileUploader
                     accept="image/png"
@@ -1006,7 +1030,7 @@ export default function PngToJpg() {
                         Uploaded PNG Images ({files.length})
                       </h3>
                       <button
-                        onClick={handleReset}
+                        onClick={() => setFiles([])}
                         className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors"
                       >
                         Clear All
@@ -1064,7 +1088,7 @@ export default function PngToJpg() {
             </div>
             
             {/* --- Results and Download Area --- */}
-            {hasResults && (
+            {(hasResults || hasAllConverted) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1082,7 +1106,7 @@ export default function PngToJpg() {
                       Conversion Complete! 🎉
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
-                      Successfully converted {jpgBlobs.length} PNG files to JPG
+                      Successfully converted {allConvertedFiles.length} PNG files to JPG
                       format
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
@@ -1091,7 +1115,7 @@ export default function PngToJpg() {
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
                     <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
-                      {jpgBlobs.length} Files
+                      {allConvertedFiles.length} Files
                     </div>
                   </div>
                 </div>
@@ -1100,11 +1124,11 @@ export default function PngToJpg() {
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                   <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                    Converted JPG Images
+                    All Converted JPG Images ({allConvertedFiles.length})
                   </h3>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-green-100 dark:border-green-800/30">
-                    {jpgBlobs.map((item, index) => (
+                    {allConvertedFiles.map((item, index) => (
                       <ImagePreview
                         key={index}
                         file={item.blob}
@@ -1146,7 +1170,7 @@ export default function PngToJpg() {
                         <>
                           <Archive className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                           <span className="text-center">Download as ZIP</span>
-                          <span className="hidden sm:inline">({jpgBlobs.length} files)</span>
+                          <span className="hidden sm:inline">({allConvertedFiles.length} files)</span>
                           <FolderClosed className="w-4 h-4 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                         </>
                       )}
@@ -1168,26 +1192,26 @@ export default function PngToJpg() {
                     >
                       <Download className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                       <span className="text-center">Download All</span>
-                      <span className="hidden sm:inline">({jpgBlobs.length} files)</span>
+                      <span className="hidden sm:inline">({allConvertedFiles.length} files)</span>
                       <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                     </motion.button>
                   </div>
 
-                  {/* Convert More Images Button */}
+                  {/* Reset Button */}
                   <div className="flex justify-center">
                     <button
                       onClick={handleReset}
                       className="px-4 py-2.5 sm:px-6 sm:py-3 
-                        text-orange-600 dark:text-orange-400 
-                        hover:text-orange-700 dark:hover:text-orange-300 
-                        font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 
+                        text-red-600 dark:text-red-400 
+                        hover:text-red-700 dark:hover:text-red-300 
+                        font-medium hover:bg-red-50 dark:hover:bg-red-950/30 
                         rounded-xl transition-colors 
                         text-sm sm:text-base 
                         active:scale-95 touch-manipulation"
                     >
                       <span className="flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4" />
-                        Convert More Images
+                        <X className="w-4 h-4" />
+                        Clear All & Start Over
                       </span>
                     </button>
                   </div>
@@ -1196,7 +1220,7 @@ export default function PngToJpg() {
             )}
 
             {/* --- Stats Footer (Card Style) --- */}
-            {(hasFiles || hasResults) && (
+            {(hasFiles || hasAllConverted) && (
               <div className="mt-6 sm:mt-10 md:mt-14">
                 <div className="max-w-6xl mx-auto px-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
@@ -1214,7 +1238,7 @@ export default function PngToJpg() {
                         bg: "bg-blue-50 dark:bg-blue-900/10",
                       },
                       {
-                        value: jpgBlobs.length,
+                        value: allConvertedFiles.length,
                         label: "Files Converted",
                         color: "text-green-600",
                         bg: "bg-green-50 dark:bg-green-900/10",
