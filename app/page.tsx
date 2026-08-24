@@ -23,8 +23,8 @@ export default function Home() {
     // PDF Tools
     {
       id: "merge-pdf",
-      name: "Merge PDF",
-      description: "Combine multiple PDF files into one",
+      name: "Merge PDF Online",
+      description: "Combine multiple PDF files into one single document online for free without losing quality.",
       category: "pdf",
       icon: "🔗",
       color: "from-purple-500 to-pink-500",
@@ -33,8 +33,8 @@ export default function Home() {
     },
     {
       id: "pdf-to-jpg",
-      name: "PDF to JPG",
-      description: "Convert PDF pages to JPG images",
+      name: "PDF to JPG Converter",
+      description: "Convert PDF pages to high-resolution JPG images online free with fast batch processing.",
       category: "pdf",
       icon: "🖼️",
       color: "from-green-500 to-emerald-500",
@@ -43,8 +43,8 @@ export default function Home() {
     },
     {
       id: "split-pdf",
-      name: "Split PDF",
-      description: "Split PDF into separate pages",
+      name: "Split PDF Pages",
+      description: "Split PDF files into separate pages or extract individual PDF documents online for free.",
       category: "pdf",
       icon: "✂️",
       color: "from-orange-500 to-red-500",
@@ -53,8 +53,8 @@ export default function Home() {
     },
     {
       id: "extract-pages",
-      name: "Extract Pages",
-      description: "Extract specific pages from PDF",
+      name: "Extract PDF Pages",
+      description: "Extract specific pages from PDF online free and save them as a separate PDF file instantly.",
       category: "pdf",
       icon: "📑",
       color: "from-indigo-500 to-blue-500",
@@ -63,8 +63,8 @@ export default function Home() {
     },
     {
       id: "organize-pdf",
-      name: "Organize PDF",
-      description: "Reorder, rotate, delete, and reverse PDF pages",
+      name: "Organize PDF Pages",
+      description: "Reorder, rotate, delete, and rearrange pages in your PDF document easily online.",
       category: "pdf",
       icon: "🗂️",
       color: "from-blue-500 to-cyan-500",
@@ -73,8 +73,8 @@ export default function Home() {
     },
     {
       id: "jpg-to-pdf",
-      name: "JPG to PDF",
-      description: "Convert JPG images to PDF documents",
+      name: "JPG to PDF Converter",
+      description: "Convert JPG, PNG, and WebP images to PDF documents online free with custom layout settings.",
       category: "pdf",
       icon: "📄",
       color: "from-blue-500 to-cyan-500",
@@ -83,8 +83,8 @@ export default function Home() {
     },
     {
       id: "compress-pdf",
-      name: "Compress PDF",
-      description: "Compress PDF files and reduce file size",
+      name: "Compress PDF Online",
+      description: "Compress PDF files online and reduce file size fast while maintaining maximum document quality.",
       category: "pdf",
       icon: "📦",
       color: "from-blue-500 to-cyan-500",
@@ -93,8 +93,8 @@ export default function Home() {
     },
     {
       id: "remove-pages",
-      name: "Remove Pages",
-      description: "Delete specific pages from PDF",
+      name: "PDF Page Remover",
+      description: "Delete PDF pages and remove unwanted pages from PDF documents online free in seconds.",
       category: "pdf",
       icon: "🗑️",
       color: "from-rose-500 to-pink-500",
@@ -103,8 +103,8 @@ export default function Home() {
     },
     {
       id: "rotate-pdf",
-      name: "Rotate PDF",
-      description: "Rotate PDF pages",
+      name: "Rotate PDF Pages",
+      description: "Rotate PDF pages clockwise or counterclockwise online and save the new orientation permanently.",
       category: "pdf",
       icon: "🔄",
       color: "from-teal-500 to-cyan-500",
@@ -113,8 +113,8 @@ export default function Home() {
     },
     {
       id: "add-pages-and-images-to-pdf",
-      name: "Add Pages & Images to PDF",
-      description: "Insert new pages and add images anywhere in your PDF",
+      name: "Add Pages to PDF",
+      description: "Add pages to PDF online free and insert new images or blank pages anywhere in your PDF file.",
       category: "pdf",
       icon: "📄➕",
       color: "from-indigo-500 to-purple-500",
@@ -123,8 +123,8 @@ export default function Home() {
     },
     {
       id: "pdf-filter",
-      name: "PDF filter",
-      description: "Apply filters and visual effects to PDF files online",
+      name: "PDF Filter & Effects",
+      description: "Apply custom visual filters, contrast adjustments, and color effects to PDF documents online.",
       category: "pdf",
       icon: "📄✨",
       color: "from-purple-500 to-pink-600",
@@ -134,8 +134,8 @@ export default function Home() {
     // Image Tools
     {
       id: "png-to-jpg",
-      name: "PNG to JPG",
-      description: "Convert PNG images to JPG format",
+      name: "PNG to JPG Converter",
+      description: "Convert PNG images to JPG format online free with fast processing and clear image quality.",
       category: "image",
       icon: "🔄",
       color: "from-emerald-500 to-green-500",
@@ -144,8 +144,8 @@ export default function Home() {
     },
     {
       id: "resize-image",
-      name: "Resize Image",
-      description: "Resize JPG, PNG, and WebP images with custom dimensions",
+      name: "Resize JPG & Image",
+      description: "Resize JPG, PNG, and WebP images online free by changing pixels or dimensions instantly.",
       category: "image",
       icon: "📏",
       color: "from-green-500 to-emerald-500",
@@ -155,7 +155,7 @@ export default function Home() {
     {
       id: "passport-photo",
       name: "Passport Photo Maker",
-      description: "Create passport size photos online",
+      description: "Create passport size photos online free, format printable A4 sheets, and export directly to PDF.",
       category: "image",
       icon: "📸",
       color: "from-blue-500 to-indigo-600",
@@ -164,8 +164,8 @@ export default function Home() {
     },
     {
       id: "rotate-image",
-      name: "Rotate Image",
-      description: "Rotate JPG, PNG, and WebP images online",
+      name: "Rotate JPG & Image",
+      description: "Rotate JPG, PNG, and WebP images online quickly to fix photo orientation for free.",
       category: "image",
       icon: "↻",
       color: "from-blue-500 to-cyan-500",
@@ -174,25 +174,25 @@ export default function Home() {
     },
     {
       id: "compress-image",
-      name: "Compress Image",
-      description: "Reduce JPG/PNG file size",
+      name: "Compress Image Online",
+      description: "Reduce JPG, PNG, and WebP image file sizes online free without sacrificing visual quality.",
       category: "image",
       icon: "📉",
       color: "from-blue-500 to-cyan-500",
       href: "/compress-image",
       path: "/tools/compress-image",
     },
-    {
-      id: "webpage-to-jpg",
-      name: "WebPage to JPG",
-      description: "Convert WebP images to JPG format",
-      category: "image",
-      icon: "🔄",
-      color: "from-purple-500 to-pink-500",
-      href: "/webpage-to-jpg",
-      path: "/tools/webp-to-jpg",
-    },
-  ];
+   {
+   id: "webpage-to-jpg",
+    name: "Webpage to JPG Converter",
+   description: "Convert webpage to JPG online free instantly.",
+   category: "image",
+    icon: "🔄",
+   color: "from-purple-500 to-pink-500",
+   href: "/webpage-to-jpg",
+   path: "/tools/webpage-to-jpg",
+   },
+];
 
   const cleanTools = extendedTools.filter((t) => t != null);
 
@@ -228,40 +228,35 @@ export default function Home() {
   ];
 
   const stats = [
-    {
-      value: "100%",
-      label: "Free Forever",
-      icon: "free",
-      gradient: "from-emerald-500 to-green-500",
-    },
-    {
-      value: "0.5s",
-      label: "Processing Time",
-      icon: "zap",
-      gradient: "from-violet-500 to-purple-500",
-    },
-    {
-      value: "99.9%",
-      label: "Uptime",
-      icon: "clock",
-      gradient: "from-amber-500 to-orange-500",
-    },
-    {
-      value: "256-bit",
-      label: "Encryption",
-      icon: "shield",
-      gradient: "from-rose-500 to-pink-500",
-    },
-  ];
+  {
+    value: "100%",
+    label: "Free Forever",
+    icon: "free",
+    gradient: "from-emerald-500 to-green-500",
+  },
+  {
+    value: "0.5s",
+    label: "Processing Time",
+    icon: "zap",
+    gradient: "from-violet-500 to-purple-500",
+  },
+  {
+    value: "99.9%",
+    label: "Uptime",
+    icon: "clock",
+    gradient: "from-amber-500 to-orange-500",
+  },
+ 
+];
 
   const features = [
     {
-      icon: <Shield className="w-6 h-6" />,
-      title: "Military-Grade Security",
-      description:
-        "256-bit end-to-end encryption. Your files never leave your browser.",
-      gradient: "from-blue-500 to-cyan-500",
-    },
+  icon: <Shield className="w-6 h-6" />,
+  title: "Privacy First",
+  description:
+    "Your privacy comes first. We keep your files private and secure while you use PDFSwift.",
+  gradient: "from-blue-500 to-cyan-500",
+},
     {
       icon: <Zap className="w-6 h-6" />,
       title: "Lightning Fast Processing",
@@ -278,37 +273,52 @@ export default function Home() {
     },
   ];
 
-  // FAQ Data with Schema Structure
+ // FAQ Data with Schema Structure
   const faqs = [
     {
-      question: "Is PDFSwift really free?",
-      answer: "Yes, PDFSwift is completely free with no hidden costs, no subscription fees, and no usage limits. All features are available at no cost.",
-      schemaAnswer: "Yes, PDFSwift is completely free with no hidden costs, no subscription fees, and no usage limits. All features are available at no cost."
+      question: "What is PDFSwift (or pdf swift) and how does it work?",
+      answer: "PDFSwift (also searched as pdf swift) is a free online platform offering easy-to-use tools for PDF and image editing. You can split PDFs, remove pages, convert URLs to JPGs, and compress files instantly directly in your browser.",
+      schemaAnswer: "PDFSwift (also searched as pdf swift) is a free online platform offering easy-to-use tools for PDF and image editing. You can split PDFs, remove pages, convert URLs to JPGs, and compress files instantly directly in your browser."
     },
     {
-      question: "Are my files secure?",
-      answer: "Absolutely. All file processing happens 100% in your browser. We never upload your files to any server. Your data stays on your device with military-grade encryption.",
-      schemaAnswer: "All file processing happens 100% in your browser. We never upload your files to any server. Your data stays on your device with military-grade encryption."
+      question: "Is PDFSwift really free to use?",
+      answer: "Yes, PDFSwift is 100% completely free with no hidden costs, no subscription fees, and no usage limits. You can split PDF files, remove PDF pages, and convert documents without paying anything.",
+      schemaAnswer: "Yes, PDFSwift is 100% completely free with no hidden costs, no subscription fees, and no usage limits. You can split PDF files, remove PDF pages, and convert documents without paying anything."
     },
     {
-      question: "What file formats are supported?",
-      answer: "PDFSwift supports PDF, JPG, PNG, and other common document formats. We're constantly adding support for more file types based on user feedback.",
-      schemaAnswer: "PDFSwift supports PDF, JPG, PNG, and other common document formats. We're constantly adding support for more file types."
+      question: "How do I split PDF pages or delete specific pages from a PDF?",
+      answer: "You can easily use our Split PDF or PDF Page Remover tool. Simply upload your document, select the specific pages you want to split or delete, and download your updated PDF instantly.",
+      schemaAnswer: "You can easily use our Split PDF or PDF Page Remover tool. Simply upload your document, select the specific pages you want to split or delete, and download your updated PDF instantly."
     },
     {
-      question: "Is there a file size limit?",
-      answer: "No, there's no file size limit. However, very large files may take longer to process depending on your device's capabilities.",
-      schemaAnswer: "No, there's no file size limit. However, very large files may take longer to process depending on your device's capabilities."
+      question: "How can I convert a URL to JPG or webpage to JPG?",
+      answer: "Use our URL to JPG converter tool on PDFSwift. Just paste any website link or URL, click convert, and download full high-quality webpage screenshots as JPG images for free.",
+      schemaAnswer: "Use our URL to JPG converter tool on PDFSwift. Just paste any website link or URL, click convert, and download full high-quality webpage screenshots as JPG images for free."
     },
     {
-      question: "Do I need to create an account?",
-      answer: "No account required. PDFSwift works instantly without any sign-up or registration. Just open the tool and start using it.",
-      schemaAnswer: "No account required. PDFSwift works instantly without any sign-up or registration. Just open the tool and start using it."
+      question: "Are my uploaded files secure and private?",
+      answer: "Absolutely. All file processing on PDFSwift happens 100% locally in your web browser. We never upload, store, or view your files on any external server, ensuring maximum privacy and data security.",
+      schemaAnswer: "All file processing on PDFSwift happens 100% locally in your web browser. We never upload, store, or view your files on any external server, ensuring maximum privacy and data security."
     },
     {
-      question: "Can I use PDFSwift on mobile?",
-      answer: "Yes, PDFSwift is fully responsive and works perfectly on all devices including smartphones, tablets, and desktops.",
-      schemaAnswer: "Yes, PDFSwift is fully responsive and works perfectly on all devices including smartphones, tablets, and desktops."
+      question: "Can I add new pages or images to an existing PDF?",
+      answer: "Yes, our 'Add Pages to PDF' tool allows you to insert new blank pages, add images, or attach extra pages into any existing PDF document online.",
+      schemaAnswer: "Yes, our 'Add Pages to PDF' tool allows you to insert new blank pages, add images, or attach extra pages into any existing PDF document online."
+    },
+    {
+      question: "Can I create passport size photos online and export to PDF?",
+      answer: "Yes, our Passport Photo Maker tool lets you create printable passport-size photo sheets online for free and export them directly as a print-ready PDF document.",
+      schemaAnswer: "Yes, our Passport Photo Maker tool lets you create printable passport-size photo sheets online for free and export them directly as a print-ready PDF document."
+    },
+    {
+      question: "Is there any file size limit or daily restriction?",
+      answer: "No, PDFSwift has no file size limits or daily task caps. However, processing speed for extremely large files depends on your device's RAM and CPU performance.",
+      schemaAnswer: "No, PDFSwift ne has no file size limits or daily task caps. However, processing speed for extremely large files depends on your device's RAM and CPU performance."
+    },
+    {
+      question: "Do I need to sign up or create an account on PDFSwift?",
+      answer: "No registration or sign-up is required. You can use all PDF tools, image converters, and editors instantly without providing any personal email or creating an account.",
+      schemaAnswer: "No registration or sign-up is required. You can use all PDF tools, image converters, and editors instantly without providing any personal email or creating an account."
     }
   ];
 
@@ -382,55 +392,61 @@ export default function Home() {
         </motion.div>
 
         {/* Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-16"
-        >
-          {stats.map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className="group bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl p-5 
-                         border-2 border-gray-100 dark:border-gray-800 
-                         hover:border-gray-200 dark:hover:border-gray-700 
-                         transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-default"
-            >
-              {/* Icon */}
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.1 }}
+  className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16 w-full"
+>
+  {stats.slice(0, 3).map((stat, index) => (
+    <motion.div
+      key={index}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.1 }}
+      className="group bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl p-5
+                 border-2 border-gray-100 dark:border-gray-800
+                 hover:border-gray-200 dark:hover:border-gray-700
+                 transition-all duration-300 hover:scale-105 hover:shadow-xl
+                 cursor-default w-full"
+    >
+      {/* Icon */}
+      <div
+        className={`bg-gradient-to-br ${stat.gradient} p-3 rounded-xl w-fit mb-4
+                    group-hover:scale-110 transition-transform shadow-lg`}
+      >
+        <div className="text-white">
+          {stat.icon === "free" && (
+            <div className="w-6 h-6 border-2 border-white rounded-full" />
+          )}
+
+          {stat.icon === "zap" && (
+            <Zap className="w-6 h-6" />
+          )}
+
+          {stat.icon === "clock" && (
+            <div className="w-6 h-6 border-2 border-white rounded-full relative">
               <div
-                className={`bg-gradient-to-br ${stat.gradient} p-3 rounded-xl w-fit mb-4 
-                            group-hover:scale-110 transition-transform shadow-lg`}
-              >
-                <div className="text-white">
-                  {stat.icon === "free" && (
-                    <div className="w-6 h-6 border-2 border-white rounded-full" />
-                  )}
-                  {stat.icon === "zap" && <Zap className="w-6 h-6" />}
-                  {stat.icon === "clock" && (
-                    <div className="w-6 h-6 border-2 border-white rounded-full relative">
-                      <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full 
-                                      -translate-x-1/2 -translate-y-1/2" />
-                    </div>
-                  )}
-                  {stat.icon === "shield" && <Shield className="w-6 h-6" />}
-                </div>
-              </div>
+                className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full
+                           -translate-x-1/2 -translate-y-1/2"
+              />
+            </div>
+          )}
+        </div>
+      </div>
 
-              {/* Value */}
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                {stat.value}
-              </div>
+      {/* Value */}
+      <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+        {stat.value}
+      </div>
 
-              {/* Label */}
-              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                {stat.label}
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+      {/* Label */}
+      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+        {stat.label}
+      </div>
+    </motion.div>
+  ))}
+</motion.div>
 
         {/* Category Tabs */}
         <motion.div

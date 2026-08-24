@@ -66,7 +66,7 @@ export default function Header() {
                     <a href="/" className="flex items-center gap-3 group flex-shrink-0">
                         <div className="relative w-10 h-10 md:w-12 md:h-12 flex-shrink-0">
                             <Image
-                                src="/favicon.png"
+                                src="/logo.png"
                                 alt="PDFSwift Logo"
                                 fill
                                 className="object-contain transition-transform duration-200 group-hover:scale-105"

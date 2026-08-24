@@ -411,18 +411,18 @@ const ImagePreview = ({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {/* 🔥 Action Buttons - Always visible on top right */}
+          <div className="absolute top-3 right-3 flex gap-2">
             {/* Remove Button (For Input Files) */}
             {onRemove && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onRemove}
-                className="p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                className="p-1.5 sm:p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
                 aria-label={`Remove ${filename}`}
               >
-                <XCircle className="w-4 h-4" />
+                <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               </motion.button>
             )}
 
@@ -432,14 +432,16 @@ const ImagePreview = ({
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleIndividualDownload}
-                className="p-1.5 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
+                className="p-1.5 sm:p-2 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
                 title={`Download ${filename}`}
                 disabled={!file}
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-4 h-4 sm:w-5 sm:h-5" />
               </motion.button>
             )}
           </div>
+
+          {/* 🔥 REMOVED: Bottom buttons - No longer showing */}
         </div>
       </motion.div>
     </>
@@ -562,6 +564,7 @@ export default function PngToJpg() {
     }
   }, [downloadNotifications]);
 
+  // --- FIXED: handleConvert with batch processing for mobile ---
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -573,22 +576,32 @@ export default function PngToJpg() {
     try {
       const blobs: ConvertedFile[] = [];
       let successCount = 0;
-      let failedFiles: string[] = [];
+      const failedFiles: { name: string; error: string }[] = [];
       
+      // Process files one by one to avoid memory issues
       for (let i = 0; i < files.length; i++) {
         try {
           const file = files[i];
           
           // Skip corrupted files (size 0)
           if (file.size === 0) {
-            failedFiles.push(`${file.name} (empty file)`);
+            failedFiles.push({ 
+              name: file.name, 
+              error: "File is empty or corrupted" 
+            });
             continue;
           }
           
           const uniqueFilename = generateUniqueFileName(file.name, i);
           
-          // Quality adjustment: 0.9 for desktop, 0.85 for mobile (still good)
+          // Quality adjustment for mobile
           const quality = isMobile ? 0.85 : 0.9;
+          
+          // Small delay for memory management
+          if (i > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          }
+          
           const blob = await convertPngToJpg(file, quality);
 
           if (!blob || blob.size === 0) {
@@ -603,15 +616,16 @@ export default function PngToJpg() {
           });
           successCount++;
           
-          // Animate progress smoothly
-          setProgress(((i + 1) / files.length) * 100);
-
-          // Small delay for smooth progress animation
-          await new Promise((resolve) => setTimeout(resolve, 200));
+          // Update progress smoothly
+          const progressValue = ((i + 1) / files.length) * 100;
+          setProgress(Math.min(progressValue, 100));
           
         } catch (error: any) {
           console.error(`Error converting file ${i}:`, error);
-          failedFiles.push(files[i].name);
+          failedFiles.push({ 
+            name: files[i].name, 
+            error: error.message || "Conversion failed" 
+          });
           // Continue with next file
           continue;
         }
@@ -619,13 +633,26 @@ export default function PngToJpg() {
       
       setJpgBlobs(blobs);
       
+      // Show detailed error message if any files failed
       if (failedFiles.length > 0) {
-        const message = `Successfully converted ${successCount} out of ${files.length} files.\n\nFailed files (${failedFiles.length}):\n${failedFiles.slice(0, 3).join('\n')}${failedFiles.length > 3 ? `\n...and ${failedFiles.length - 3} more` : ''}\n\nReason: File may be corrupted or unsupported.`;
-        alert(message);
+        let errorMessage = `✅ Successfully converted ${successCount} out of ${files.length} files.\n\n`;
+        errorMessage += `❌ Failed to convert ${failedFiles.length} file(s):\n\n`;
+        
+        failedFiles.forEach((file, index) => {
+          errorMessage += `${index + 1}. ${file.name}\n`;
+          errorMessage += `   Error: ${file.error}\n\n`;
+        });
+        
+        errorMessage += `\n💡 Possible reasons:\n`;
+        errorMessage += `• File may be corrupted or damaged\n`;
+        errorMessage += `• File format may not be valid PNG\n`;
+        errorMessage += `• Browser memory limitations (try with fewer files)\n`;
+        
+        alert(errorMessage);
       }
     } catch (error: any) {
       console.error("Conversion error:", error);
-      alert("Failed to convert PNG to JPG. Please try again.");
+      alert(`❌ Conversion Failed\n\nError: ${error.message || "Unknown error"}\n\nPlease try again with fewer files or check if your images are valid PNG files.`);
     } finally {
       setConverting(false);
     }
@@ -741,12 +768,12 @@ export default function PngToJpg() {
     // Filter valid PNG files – NO SIZE LIMIT, NO COUNT LIMIT
     const filteredFiles = newFiles.filter(file => {
       if (!file.type.includes('png') && !file.name.toLowerCase().endsWith('.png')) {
-        alert(`File "${file.name}" is not a PNG image.`);
+        alert(`❌ File "${file.name}" is not a PNG image.\n\nPlease select valid PNG files only.`);
         return false;
       }
       
       if (file.size === 0) {
-        alert(`File "${file.name}" appears to be empty or corrupted.`);
+        alert(`❌ File "${file.name}" appears to be empty or corrupted.\n\nPlease check the file and try again.`);
         return false;
       }
       return true;
@@ -976,7 +1003,7 @@ export default function PngToJpg() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
-                        Uploaded PNG Images
+                        Uploaded PNG Images ({files.length})
                       </h3>
                       <button
                         onClick={handleReset}
@@ -1093,16 +1120,22 @@ export default function PngToJpg() {
 
                 {/* --- Download Options Section --- */}
                 <div className="space-y-4 sm:space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {/* Download as ZIP Button */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleDownloadAllAsZip}
                       disabled={zipDownloading}
-                      className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
-                        zipDownloading ? 'opacity-75 cursor-not-allowed' : ''
-                      }`}
+                      className={`w-full py-3 sm:py-3 md:py-4 px-4 sm:px-4 md:px-6 
+                        bg-gradient-to-r from-purple-500 to-indigo-600 
+                        hover:from-purple-600 hover:to-indigo-700 
+                        text-white font-bold rounded-xl sm:rounded-xl md:rounded-2xl 
+                        shadow-lg hover:shadow-2xl transition-all 
+                        text-sm sm:text-base md:text-lg 
+                        flex items-center justify-center gap-2 sm:gap-3
+                        active:scale-95 touch-manipulation
+                        ${zipDownloading ? 'opacity-75 cursor-not-allowed' : ''}`}
                     >
                       {zipDownloading ? (
                         <>
@@ -1111,9 +1144,10 @@ export default function PngToJpg() {
                         </>
                       ) : (
                         <>
-                          <Archive className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                          Download as ZIP Archive ({jpgBlobs.length} files)
-                          <FolderClosed className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                          <Archive className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                          <span className="text-center">Download as ZIP</span>
+                          <span className="hidden sm:inline">({jpgBlobs.length} files)</span>
+                          <FolderClosed className="w-4 h-4 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                         </>
                       )}
                     </motion.button>
@@ -1123,21 +1157,38 @@ export default function PngToJpg() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleDownloadAllSeparate}
-                      className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
+                      className="w-full py-3 sm:py-3 md:py-4 px-4 sm:px-4 md:px-6 
+                        bg-gradient-to-r from-green-500 to-emerald-600 
+                        hover:from-green-600 hover:to-emerald-700 
+                        text-white font-bold rounded-xl sm:rounded-xl md:rounded-2xl 
+                        shadow-lg hover:shadow-2xl transition-all 
+                        text-sm sm:text-base md:text-lg 
+                        flex items-center justify-center gap-2 sm:gap-3
+                        active:scale-95 touch-manipulation"
                     >
-                      <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                      Download All {jpgBlobs.length} Files Separately
-                      <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                      <Download className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                      <span className="text-center">Download All</span>
+                      <span className="hidden sm:inline">({jpgBlobs.length} files)</span>
+                      <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                     </motion.button>
                   </div>
 
-                  <div className="text-center">
+                  {/* Convert More Images Button */}
+                  <div className="flex justify-center">
                     <button
                       onClick={handleReset}
-                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
+                      className="px-4 py-2.5 sm:px-6 sm:py-3 
+                        text-orange-600 dark:text-orange-400 
+                        hover:text-orange-700 dark:hover:text-orange-300 
+                        font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 
+                        rounded-xl transition-colors 
+                        text-sm sm:text-base 
+                        active:scale-95 touch-manipulation"
                     >
-                      <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
-                      Convert More Images
+                      <span className="flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4" />
+                        Convert More Images
+                      </span>
                     </button>
                   </div>
                 </div>

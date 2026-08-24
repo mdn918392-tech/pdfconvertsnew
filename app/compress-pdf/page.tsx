@@ -753,14 +753,15 @@ export default function CompressPdf() {
     setOriginalFileSizes(sizeMap);
   };
 
-  // Compress PDF by converting to images and rebuilding
+  // ─── UPDATED: Compress PDF and return targetMet flag ───
   const compressPdfToImages = async (
     pdfFile: File, 
     targetSizeBytes?: number,
     onProgress?: (progress: number) => void
-  ): Promise<ConvertedFile[]> => {
+  ): Promise<{ files: ConvertedFile[]; targetMet: boolean }> => {
     const convertedFiles: ConvertedFile[] = [];
     const originalSize = pdfFile.size;
+    let targetMet = true; // default true if no target specified
     
     try {
       const pdfUrl = URL.createObjectURL(pdfFile);
@@ -846,6 +847,7 @@ export default function CompressPdf() {
           }
         }
         
+        // Check if target is met (only if targetSizeBytes is provided)
         if (targetSizeBytes) {
           const targetRange = targetSizeBytes * 0.9;
           
@@ -853,6 +855,7 @@ export default function CompressPdf() {
             bestBlobs = tempBlobs;
             bestFilenames = tempFilenames;
             totalCompressedSize = tempTotalSize;
+            targetMet = true;
             break;
           } else if (tempTotalSize < targetRange) {
             currentScale = Math.min(2.0, currentScale * 1.15);
@@ -862,15 +865,18 @@ export default function CompressPdf() {
             setCompressionLevel(Math.max(10, compressionLevel - 5));
           }
           
+          // Keep best attempt (closest to target without exceeding)
           if (tempTotalSize <= targetSizeBytes && (bestBlobs.length === 0 || tempTotalSize > totalCompressedSize)) {
             bestBlobs = tempBlobs;
             bestFilenames = tempFilenames;
             totalCompressedSize = tempTotalSize;
           }
         } else {
+          // No target: use this iteration and mark targetMet true
           bestBlobs = tempBlobs;
           bestFilenames = tempFilenames;
           totalCompressedSize = tempTotalSize;
+          targetMet = true;
           break;
         }
         
@@ -879,6 +885,18 @@ export default function CompressPdf() {
         if (onProgress) {
           onProgress(Math.min(90, adaptiveProgress));
         }
+      }
+      
+      // After loop, if targetSizeBytes provided but targetMet is false, we need to check if we have a best attempt
+      if (targetSizeBytes && !targetMet) {
+        // If we have bestBlobs, we can still use them but mark targetMet false
+        if (bestBlobs.length === 0) {
+          // No blobs at all -> throw error
+          throw new Error('Failed to compress any pages');
+        }
+        // Use best attempt
+        totalCompressedSize = bestBlobs.reduce((acc, blob) => acc + blob.size, 0);
+        // targetMet remains false
       }
       
       if (bestBlobs.length > 0) {
@@ -903,7 +921,7 @@ export default function CompressPdf() {
         throw new Error('Failed to compress any pages from the PDF');
       }
       
-      return convertedFiles;
+      return { files: convertedFiles, targetMet };
       
     } catch (error) {
       console.error('PDF compression error:', error);
@@ -979,6 +997,7 @@ export default function CompressPdf() {
     try {
       let allCompressedPages: ConvertedFile[] = [];
       let failedFiles: string[] = [];
+      let targetMet = true;
       
       let targetSizeBytes: number | undefined;
       if (isTargetModeActive) {
@@ -999,11 +1018,15 @@ export default function CompressPdf() {
           
           setProgress(5 + (fileIndex / files.length) * 5);
           
-          const compressed = await compressPdfToImages(file, targetSizeBytes, (progressValue) => {
+          const result = await compressPdfToImages(file, targetSizeBytes, (progressValue) => {
             const baseProgress = 10 + (fileIndex / files.length) * 80;
             setProgress(baseProgress + progressValue * 0.8);
           });
-          allCompressedPages = [...allCompressedPages, ...compressed];
+          allCompressedPages = [...allCompressedPages, ...result.files];
+          // If any file fails to meet target, overall targetMet becomes false
+          if (!result.targetMet) {
+            targetMet = false;
+          }
           
         } catch (error: any) {
           console.error(`Error compressing PDF ${file.name}:`, error);
@@ -1012,31 +1035,37 @@ export default function CompressPdf() {
         }
       }
       
-      // ─── 🔥 CRITICAL FIX: Handle case where NO pages were compressed ───
+      // ─── Check if we have pages ───
       if (allCompressedPages.length === 0) {
-        // Build a detailed error message
         let errorMsg = 'Failed to compress PDF. No pages could be processed.';
-        
         if (failedFiles.length > 0) {
           errorMsg = `Failed to compress the PDF file. The file may be corrupted, password-protected, or in an unsupported format.\n\nPlease try:\n• Using a different PDF file\n• Checking if the file is password-protected\n• Using a smaller or simpler PDF\n• Making sure the PDF is not damaged`;
         }
-        
         if (isTargetModeActive) {
           errorMsg += `\n\n💡 Tip: The target size (${formatTargetSize()}) might be too small. Try increasing the target size or using Manual mode.`;
         }
-        
         setCompressionError(errorMsg);
         setCompressionResult('failed');
         setProgress(0);
         setCompressing(false);
-        
-        // Show a user-friendly alert as well
         alert('❌ Compression failed: No pages could be processed. Please check your file and try again.');
-        
-        return; // Exit early - don't show success UI
+        return;
       }
       
-      // ─── Success path: We have compressed pages ───
+      // ─── Handle target not met ───
+      if (isTargetModeActive && !targetMet) {
+        // Target not met: show specific error and do not proceed
+        const targetDisplay = formatTargetSize();
+        const errorMsg = `Your PDF could not be compressed to ${targetDisplay} without significantly affecting its quality. Please choose a larger target size and try again.`;
+        setCompressionError(errorMsg);
+        setCompressionResult('failed');
+        setProgress(0);
+        setCompressing(false);
+        // Optionally, we could still offer the best attempt but we choose not to.
+        return;
+      }
+      
+      // ─── Success path: target met (or manual mode) ───
       setProgress(85);
       const compressedPdfBlob = await rebuildPdfFromImages(allCompressedPages, (progressValue) => {
         setProgress(Math.min(98, progressValue));
@@ -1182,7 +1211,7 @@ export default function CompressPdf() {
 
   const isAlreadyCompressed = compressionResult === 'already-compressed';
 
-  // ─── Error UI Component ───
+  // ─── Error UI Component (updated for target size message) ───
   const ErrorDisplay = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
