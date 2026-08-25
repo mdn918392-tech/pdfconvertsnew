@@ -37,6 +37,8 @@ export default function Header() {
     const pdfTools = [
         { name: "JPG to PDF", href: "/jpg-to-pdf" },
         { name: "PDF to JPG", href: "/pdf-to-jpg" },
+        { name: "arrange multiple images", href: "/arrange-multiple-images" },
+
         { name: "Merge PDF", href: "/merge-pdf" },
         { name: "Split PDF", href: "/split-pdf" },
         { name: "Organize PDF", href: "/organize-pdf" },

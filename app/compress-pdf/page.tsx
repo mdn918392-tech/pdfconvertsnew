@@ -1084,16 +1084,22 @@ export default function CompressPdf() {
         setCompressionResult('already-compressed');
       }
       
+      // 🔥 FIX: Keep the original filename without adding "compressed_" prefix
+      const originalFileName = files[0]?.name || 'document.pdf';
+      // Remove .pdf extension if present, then add .pdf
+      const baseNameWithoutExt = originalFileName.replace(/\.pdf$/i, '');
+      const finalName = `${baseNameWithoutExt}.pdf`;
+      
       const compressedPdfFile: ConvertedFile = {
         blob: compressedPdfBlob,
-        name: `compressed_${files.length === 1 ? files[0]?.name || 'document' : 'merged_document'}`,
+        name: finalName, // Use original filename
         originalFile: files[0],
         timestamp: Date.now(),
         pageNumber: 0,
         originalSize: originalSize,
         compressedSize: compressedSize,
         isOriginal: false,
-        isAlreadyCompressed: false,
+        isAlreadyCompressed: compressedSize >= originalSize,
       };
       
       setCompressedFiles([compressedPdfFile]);

@@ -1,14 +1,13 @@
-"use client"; // ⚠️ Required for client-side interactivity
+"use client";
 
-import { useRef, useState, useCallback } from 'react';
-import { Upload } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useRef, useState, useCallback } from "react";
+import { Upload } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface FileUploaderProps {
   accept: string;
   multiple?: boolean;
   onFilesSelected: (files: File[]) => void;
-  // No size or count limits – always unlimited
 }
 
 export default function FileUploader({
@@ -19,50 +18,67 @@ export default function FileUploader({
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Handle files – no filtering, no limits
   const handleFiles = useCallback(
-    (newFilesList: FileList | null) => {
-      if (!newFilesList) return;
-
-      const fileArray = Array.from(newFilesList);
-
-      if (fileArray.length === 0) return;
-
-      // Pass all files directly – NO SIZE or COUNT checks
-      if (multiple) {
-        onFilesSelected(fileArray);
-      } else {
-        onFilesSelected(fileArray.slice(0, 1));
+    (fileList: FileList | null) => {
+      if (!fileList || fileList.length === 0) {
+        return;
       }
 
-      if (inputRef.current) inputRef.current.value = "";
+      const files = Array.from(fileList);
+
+      // Multiple files allowed
+      if (multiple) {
+        onFilesSelected(files);
+      }
+      // Only one file allowed
+      else {
+        onFilesSelected([files[0]]);
+      }
+
+      // Reset input so the same file can be selected again
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
     },
     [multiple, onFilesSelected]
   );
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
   };
 
-  const handleDragLeave = () => setIsDragging(false);
-
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    setIsDragging(false);
+
     handleFiles(e.dataTransfer.files);
+  };
+
+  const handleClick = () => {
+    inputRef.current?.click();
   };
 
   return (
     <div className="w-full">
       <motion.div
         whileHover={{ scale: 1.01 }}
-        onClick={() => inputRef.current?.click()}
+        onClick={handleClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
+          border-2 border-dashed rounded-xl p-8
+          text-center cursor-pointer
           transition-all duration-200
           ${
             isDragging
@@ -72,12 +88,17 @@ export default function FileUploader({
         `}
       >
         <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+
         <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {isDragging ? "Drop files here" : "Click or drag files to upload"}
+          {isDragging
+            ? "Drop files here"
+            : "Click or drag files to upload"}
         </p>
+
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {multiple ? "Multiple files supported" : "Single file only"} • 
-          <span className="font-medium"> Unlimited size • No limits</span>
+          {multiple
+            ? "Unlimited files • No size limit"
+            : "Single file only • No size limit"}
         </p>
 
         <input

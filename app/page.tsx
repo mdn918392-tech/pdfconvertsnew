@@ -32,6 +32,17 @@ export default function Home() {
       path: "/tools/merge-pdf",
     },
     {
+  id: "arrange-multiple-images",
+  name: "Arrange Multiple Images",
+  description:
+    "Arrange multiple images on one page online. Move, resize, rotate, and organize photos on A4, A3, or custom-size sheets.",
+  category: "image",
+  icon: "🖼️",
+  color: "from-blue-500 to-cyan-500",
+  href: "/arrange-multiple-images",
+  path: "/tools/arrange-multiple-images",
+},
+    {
       id: "pdf-to-jpg",
       name: "PDF to JPG Converter",
       description: "Convert PDF pages to high-resolution JPG images online free with fast batch processing.",
