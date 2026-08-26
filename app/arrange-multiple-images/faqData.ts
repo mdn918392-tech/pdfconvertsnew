@@ -54,11 +54,7 @@ export const faqData = [
     answer:
       "Yes. You can create printable layouts using A4, A3, or custom page sizes. Adjust the image positions, sizes, margins, and background before exporting.",
   },
-  {
-    question: "Are my uploaded images stored on a server?",
-    answer:
-      "The image arrangement and export process is performed directly in your browser. Your images are loaded locally in the browser while you create and export your layout.",
-  },
+ 
   {
     question: "Can I use the image arrangement tool on mobile?",
     answer:
