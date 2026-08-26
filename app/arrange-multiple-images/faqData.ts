@@ -49,7 +49,11 @@ export const faqData = [
     answer:
       "Yes. You can export your completed image layout as a PDF. The tool can also export the pages as JPG or PNG files.",
   },
- 
+  {
+    question: "Can I arrange images for printing?",
+    answer:
+      "Yes. You can create printable layouts using A4, A3, or custom page sizes. Adjust the image positions, sizes, margins, and background before exporting.",
+  },
  
   {
     question: "Can I use the image arrangement tool on mobile?",
