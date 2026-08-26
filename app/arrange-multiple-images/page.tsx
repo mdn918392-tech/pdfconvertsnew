@@ -185,8 +185,8 @@ const PAPER_SIZES = {
 };
 
 const PREVIEW_SCALE = 0.35;
-const MAX_SCALE = 0.6;
-const MIN_SCALE = 0.1;
+const MAX_SCALE = 0.8;
+const MIN_SCALE = 0.05;
 
 const DEFAULT_PAGE_SETTINGS: PageSettings = {
   width: PAPER_SIZES.a4.width,
@@ -237,17 +237,60 @@ export default function ImageToA4Sheet() {
   const [imageCache, setImageCache] = useState<Map<string, HTMLImageElement>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+  const [lastTapTime, setLastTapTime] = useState<{ [key: string]: number }>({});
+  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number; id: string | null } | null>(null);
+  const [isPinching, setIsPinching] = useState(false);
+  const [lastPinchDist, setLastPinchDist] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
-  // 🔥 Check if mobile
+  // 🔥 Check if mobile and container size
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+    const checkSize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setContainerWidth(rect.width);
+        setContainerHeight(rect.height);
+      }
     };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    checkSize();
+    window.addEventListener("resize", checkSize);
+    window.addEventListener("orientationchange", () => {
+      setTimeout(checkSize, 300);
+    });
+    return () => {
+      window.removeEventListener("resize", checkSize);
+      window.removeEventListener("orientationchange", checkSize);
+    };
   }, []);
+
+  // 🔥 Auto-fit canvas on resize
+  useEffect(() => {
+    if (containerWidth > 0 && containerHeight > 0) {
+      const pageAspect = pageSettings.width / pageSettings.height;
+      const containerAspect = containerWidth / containerHeight;
+      let newScale;
+      
+      if (pageAspect > containerAspect) {
+        newScale = (containerWidth - 40) / pageSettings.width;
+      } else {
+        newScale = (containerHeight - 40) / pageSettings.height;
+      }
+      
+      // Clamp scale
+      newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
+      
+      // Only update if scale is reasonable
+      if (newScale > 0.01) {
+        setScale(newScale);
+      }
+    }
+  }, [containerWidth, containerHeight, pageSettings.width, pageSettings.height]);
 
   const dragState = useRef<{
     id: string | null;
@@ -314,8 +357,12 @@ export default function ImageToA4Sheet() {
     }));
   }, []);
 
-  // 🔥 FIXED: Delete image and cleanup
+  // 🔥 FIXED: Delete image with confirmation and cleanup
   const handleDeleteImage = useCallback((id: string) => {
+    setShowDeleteConfirm(id);
+  }, []);
+
+  const confirmDeleteImage = useCallback((id: string) => {
     setImages((prev) => {
       // Find the image to delete
       const imgToDelete = prev.find((i) => i.id === id);
@@ -352,6 +399,7 @@ export default function ImageToA4Sheet() {
     });
 
     if (selectedId === id) setSelectedId(null);
+    setShowDeleteConfirm(null);
   }, [currentPage, selectedId, cleanupEmptyPages]);
 
   // --- Load images into cache ---
@@ -445,6 +493,32 @@ export default function ImageToA4Sheet() {
     });
   };
 
+  // --- Get current scale for rendering ---
+  const getCurrentScale = useCallback(() => {
+    return isMobile ? Math.min(scale, 0.4) : scale;
+  }, [scale, isMobile]);
+
+  // --- Handle double tap for rotation ---
+  const handleImageDoubleTap = useCallback((e: React.MouseEvent | React.TouchEvent, id: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const now = Date.now();
+    const lastTap = lastTapTime[id] || 0;
+    
+    if (now - lastTap < 500) {
+      // Double tap detected - rotate 90 degrees
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === id ? { ...img, rotation: (img.rotation + 90) % 360 } : img
+        )
+      );
+      setLastTapTime(prev => ({ ...prev, [id]: 0 }));
+    } else {
+      setLastTapTime(prev => ({ ...prev, [id]: now }));
+    }
+  }, [lastTapTime]);
+
   // --- Drag & Resize Handlers with Touch Support ---
   const handleMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent, id: string, handle?: string) => {
     e.preventDefault();
@@ -466,8 +540,9 @@ export default function ImageToA4Sheet() {
       clientY = e.clientY;
     }
 
-    const mouseX = (clientX - rect.left) / scale;
-    const mouseY = (clientY - rect.top) / scale;
+    const currentScale = getCurrentScale();
+    const mouseX = (clientX - rect.left) / currentScale;
+    const mouseY = (clientY - rect.top) / currentScale;
 
     if (handle) {
       dragState.current = {
@@ -500,7 +575,7 @@ export default function ImageToA4Sheet() {
       };
       setIsDragging(true);
     }
-  }, [images, scale]);
+  }, [images, getCurrentScale]);
 
   const handleMouseMove = useCallback((e: MouseEvent | TouchEvent) => {
     if (!dragState.current.id) return;
@@ -519,8 +594,9 @@ export default function ImageToA4Sheet() {
       clientY = (e as MouseEvent).clientY;
     }
 
-    const mouseX = (clientX - rect.left) / scale;
-    const mouseY = (clientY - rect.top) / scale;
+    const currentScale = getCurrentScale();
+    const mouseX = (clientX - rect.left) / currentScale;
+    const mouseY = (clientY - rect.top) / currentScale;
 
     if (isDragging && !dragState.current.resizeHandle) {
       const newX = mouseX - dragState.current.offsetX;
@@ -541,8 +617,8 @@ export default function ImageToA4Sheet() {
         )
       );
     } else if (dragState.current.resizeHandle) {
-      const dx = (clientX - dragState.current.startX) / scale;
-      const dy = (clientY - dragState.current.startY) / scale;
+      const dx = (clientX - dragState.current.startX) / currentScale;
+      const dy = (clientY - dragState.current.startY) / currentScale;
       let newWidth = dragState.current.startWidth;
       let newHeight = dragState.current.startHeight;
 
@@ -571,7 +647,7 @@ export default function ImageToA4Sheet() {
         )
       );
     }
-  }, [isDragging, images, scale, pageSettings]);
+  }, [isDragging, images, pageSettings, getCurrentScale]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -602,6 +678,33 @@ export default function ImageToA4Sheet() {
       window.removeEventListener("touchend", handleMouseUp);
     };
   }, [handleMouseMove, handleMouseUp]);
+
+  // --- Pinch zoom support ---
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      setLastPinchDist(dist);
+      setIsPinching(true);
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isPinching && e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      const scaleFactor = dist / lastPinchDist;
+      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * scaleFactor));
+      setScale(newScale);
+      setLastPinchDist(dist);
+    }
+  }, [isPinching, lastPinchDist, scale]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsPinching(false);
+  }, []);
 
   // --- Rotation Functions ---
   const handleRotate = (id: string, angle: number) => {
@@ -749,9 +852,8 @@ export default function ImageToA4Sheet() {
           page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
         }
         const pdfBytes = await pdfDoc.save();
-         const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+        const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
         const link = document.createElement("a");
-       
         link.href = URL.createObjectURL(pdfBlob); 
         link.download = `custom-sheet-${Date.now()}.pdf`;
         document.body.appendChild(link);
@@ -796,12 +898,12 @@ export default function ImageToA4Sheet() {
   };
 
   const canvasSize = useMemo(() => {
-    const baseScale = isMobile ? Math.min(scale, 0.25) : scale;
+    const currentScale = getCurrentScale();
     return {
-      width: pageSettings.width * baseScale,
-      height: pageSettings.height * baseScale,
+      width: pageSettings.width * currentScale,
+      height: pageSettings.height * currentScale,
     };
-  }, [pageSettings, scale, isMobile]);
+  }, [pageSettings, getCurrentScale]);
 
   const selectedImage = images.find((img) => img.id === selectedId);
   const currentPaperSize = PAPER_SIZES[pageSettings.paperSize];
@@ -809,16 +911,16 @@ export default function ImageToA4Sheet() {
   const hasImages = images.length > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-3 sm:py-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/20 py-2 sm:py-6">
       <div className="container mx-auto px-2 sm:px-4 max-w-7xl">
         {/* Header */}
-        <div className="mb-4 sm:mb-6">
+        <div className="mb-3 sm:mb-6">
           <a href="/" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-all font-medium group text-sm">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span>Back to Tools</span>
           </a>
-          <div className="text-center mt-3 sm:mt-4">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white">
+          <div className="text-center mt-2 sm:mt-4">
+            <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white">
              Create Custom Image Sheets Online – Arrange Multiple Images
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1 sm:mt-2 max-w-2xl mx-auto text-xs sm:text-sm md:text-base">
@@ -827,11 +929,9 @@ export default function ImageToA4Sheet() {
           </div>
         </div>
 
-      
-
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 sm:gap-6">
-          {/* Left Panel */}
-          <div className="xl:col-span-1 space-y-3 sm:space-y-4">
+          {/* Left Panel - Collapsible on mobile */}
+          <div className="xl:col-span-1 space-y-3 sm:space-y-4 order-2 xl:order-1">
             {/* Upload */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
               <div className="flex items-center justify-between mb-2">
@@ -1152,6 +1252,15 @@ export default function ImageToA4Sheet() {
                       Backward
                     </button>
                   </div>
+
+                  {/* 🔥 Mobile-friendly delete button at bottom */}
+                  <button
+                    onClick={() => handleDeleteImage(selectedImage.id)}
+                    className="w-full py-2 sm:py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs sm:text-sm mt-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Image
+                  </button>
                 </div>
               )}
             </div>
@@ -1206,7 +1315,7 @@ export default function ImageToA4Sheet() {
           </div>
 
           {/* Right Panel - Canvas */}
-          <div className="xl:col-span-3">
+          <div className="xl:col-span-3 order-1 xl:order-2">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
               {/* Toolbar */}
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2 sm:mb-4 pb-2 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -1227,10 +1336,23 @@ export default function ImageToA4Sheet() {
                     <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                   <button
-                    onClick={() => setScale(isMobile ? 0.2 : PREVIEW_SCALE)}
+                    onClick={() => {
+                      // Auto-fit
+                      if (containerWidth > 0 && containerHeight > 0) {
+                        const pageAspect = pageSettings.width / pageSettings.height;
+                        const containerAspect = containerWidth / containerHeight;
+                        let newScale;
+                        if (pageAspect > containerAspect) {
+                          newScale = (containerWidth - 40) / pageSettings.width;
+                        } else {
+                          newScale = (containerHeight - 40) / pageSettings.height;
+                        }
+                        setScale(Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale)));
+                      }
+                    }}
                     className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 transition-colors text-[9px] sm:text-xs"
                   >
-                    Reset
+                    Fit
                   </button>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2">
@@ -1288,21 +1410,33 @@ export default function ImageToA4Sheet() {
                 </div>
               )}
 
-              {/* Canvas */}
+              {/* Canvas Container - Scrollable */}
               <div 
-                className="overflow-auto flex justify-center p-2 sm:p-4 bg-gray-100 dark:bg-gray-900/50 rounded-xl touch-none" 
-                style={{ minHeight: isMobile ? "300px" : "500px" }}
+                ref={containerRef}
+                className="overflow-auto flex justify-center items-start p-2 sm:p-4 bg-gray-100 dark:bg-gray-900/50 rounded-xl touch-none"
+                style={{ 
+                  minHeight: isMobile ? "350px" : "500px",
+                  maxHeight: isMobile ? "70vh" : "75vh",
+                  height: "100%",
+                  width: "100%",
+                  position: "relative"
+                }}
                 onMouseLeave={handleMouseUp}
                 onTouchCancel={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
                 <div
                   ref={canvasRef}
-                  className="relative border-2 border-gray-300 dark:border-gray-700 shadow-xl rounded-xl overflow-hidden"
+                  className="relative border-2 border-gray-300 dark:border-gray-700 shadow-xl rounded-xl overflow-hidden flex-shrink-0"
                   style={{
                     width: canvasSize.width,
                     height: canvasSize.height,
                     backgroundColor: pageSettings.backgroundColor,
                     flexShrink: 0,
+                    minWidth: canvasSize.width,
+                    minHeight: canvasSize.height,
                   }}
                   onClick={() => setSelectedId(null)}
                 >
@@ -1317,22 +1451,22 @@ export default function ImageToA4Sheet() {
                     <div
                       className="absolute border-2 border-dashed border-blue-400/30 pointer-events-none"
                       style={{
-                        left: pageSettings.margin * (isMobile ? Math.min(scale, 0.25) : scale),
-                        top: pageSettings.margin * (isMobile ? Math.min(scale, 0.25) : scale),
-                        right: pageSettings.margin * (isMobile ? Math.min(scale, 0.25) : scale),
-                        bottom: pageSettings.margin * (isMobile ? Math.min(scale, 0.25) : scale),
+                        left: pageSettings.margin * getCurrentScale(),
+                        top: pageSettings.margin * getCurrentScale(),
+                        right: pageSettings.margin * getCurrentScale(),
+                        bottom: pageSettings.margin * getCurrentScale(),
                       }}
                     />
                   )}
 
                   {/* Images */}
                   {pageImages.map((img) => {
-                    const currentScale = isMobile ? Math.min(scale, 0.25) : scale;
+                    const currentScale = getCurrentScale();
                     return (
                       <div
                         key={img.id}
                         className={`absolute cursor-move group ${
-                          selectedId === img.id ? "ring-2 ring-blue-500 ring-offset-2" : ""
+                          selectedId === img.id ? "ring-2 ring-blue-500 ring-offset-2 ring-offset-transparent" : ""
                         }`}
                         style={{
                           left: img.x * currentScale,
@@ -1344,10 +1478,36 @@ export default function ImageToA4Sheet() {
                           zIndex: img.zIndex,
                         }}
                         onMouseDown={(e) => handleMouseDown(e, img.id)}
-                        onTouchStart={(e) => handleMouseDown(e, img.id)}
+                        onTouchStart={(e) => {
+                          // Store touch start position to detect if it's a tap vs drag
+                          const touch = e.touches[0];
+                          if (touch) {
+                            setTouchStartPos({ x: touch.clientX, y: touch.clientY, id: img.id });
+                          }
+                          handleMouseDown(e, img.id);
+                        }}
+                        onTouchEnd={(e) => {
+                          // Check if it was a tap (not a drag)
+                          if (touchStartPos && touchStartPos.id === img.id) {
+                            const touch = e.changedTouches[0];
+                            if (touch) {
+                              const dx = touch.clientX - touchStartPos.x;
+                              const dy = touch.clientY - touchStartPos.y;
+                              if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+                                // It was a tap, handle double tap
+                                handleImageDoubleTap(e, img.id);
+                              }
+                            }
+                            setTouchStartPos(null);
+                          }
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedId(img.id);
+                        }}
+                        onDoubleClick={(e) => {
+                          // Desktop double click for rotation
+                          handleImageDoubleTap(e, img.id);
                         }}
                       >
                         <img
@@ -1373,7 +1533,7 @@ export default function ImageToA4Sheet() {
                         {selectedId === img.id && img.loaded && (
                           <>
                             <div
-                              className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full cursor-se-resize border-2 border-white shadow-lg"
+                              className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full cursor-se-resize border-2 border-white shadow-lg touch-none"
                               onMouseDown={(e) => {
                                 e.stopPropagation();
                                 handleMouseDown(e, img.id, "se");
@@ -1384,7 +1544,7 @@ export default function ImageToA4Sheet() {
                               }}
                             />
                             <div
-                              className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-4 sm:w-3 sm:h-6 bg-blue-500 rounded-full cursor-e-resize border-2 border-white shadow-lg"
+                              className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-4 sm:w-3 sm:h-6 bg-blue-500 rounded-full cursor-e-resize border-2 border-white shadow-lg touch-none"
                               onMouseDown={(e) => {
                                 e.stopPropagation();
                                 handleMouseDown(e, img.id, "e");
@@ -1395,7 +1555,7 @@ export default function ImageToA4Sheet() {
                               }}
                             />
                             <div
-                              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-2 sm:w-6 sm:h-3 bg-blue-500 rounded-full cursor-s-resize border-2 border-white shadow-lg"
+                              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-2 sm:w-6 sm:h-3 bg-blue-500 rounded-full cursor-s-resize border-2 border-white shadow-lg touch-none"
                               onMouseDown={(e) => {
                                 e.stopPropagation();
                                 handleMouseDown(e, img.id, "s");
@@ -1405,7 +1565,8 @@ export default function ImageToA4Sheet() {
                                 handleMouseDown(e, img.id, "s");
                               }}
                             />
-                            <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 flex gap-0.5 sm:gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* 🔥 Mobile-visible delete button on image */}
+                            <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 flex gap-0.5 sm:gap-1">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1450,14 +1611,15 @@ export default function ImageToA4Sheet() {
               <div className="mt-3 sm:mt-4 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-center flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
                 <span>🖱️ Drag to move</span>
                 <span>📐 Drag corners to resize</span>
-                <span>🔄 Use controls to rotate</span>
+                <span>🔄 Double-tap to rotate 90°</span>
                 <span>📄 {allPages.length} page{allPages.length > 1 ? "s" : ""}</span>
               </div>
             </div>
           </div>
         </div>
-          {/* ===== HOW TO USE SECTION - MOVED ABOVE EXPLORE TOOLS ===== */}
-        <section className="mb-8 md:mb-12">
+
+        {/* ===== HOW TO USE SECTION ===== */}
+        <section className="mb-8 md:mb-12 mt-6">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
@@ -1486,7 +1648,7 @@ export default function ImageToA4Sheet() {
                   step: "3",
                   icon: "🔄",
                   title: "Rotate & Adjust",
-                  description: "Use rotation controls (0-360°) or snap to angles (0°, 45°, 90°). Fine-tune with +/-15° buttons or slider."
+                  description: "Use rotation controls (0-360°) or snap to angles (0°, 45°, 90°). Double-tap on mobile for 90° rotation."
                 },
                 {
                   step: "4",
@@ -1521,16 +1683,64 @@ export default function ImageToA4Sheet() {
                     Pro Tips
                   </h4>
                   <ul className="text-blue-700 dark:text-blue-400 text-xs md:text-sm space-y-1 mt-1 list-disc list-inside">
-                    <li>Use <kbd className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 rounded text-xs font-mono">Shift</kbd> + drag to snap to margins</li>
-                    <li>Double-click an image to select it quickly</li>
-                    <li>Use <kbd className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 rounded text-xs font-mono">Ctrl/Cmd</kbd> + click to select multiple images</li>
+                    <li>Double-tap an image to rotate 90° clockwise</li>
+                    <li>Pinch to zoom on mobile devices</li>
+                    <li>Use the "Fit" button to auto-fit the canvas</li>
                     <li>Page navigation buttons show image count per page</li>
+                    <li>Delete button is always visible on mobile when image is selected</li>
                   </ul>
                 </div>
               </div>
             </div>
           </div>
         </section>
+
+        {/* 🔥 Delete Confirmation Modal */}
+        <AnimatePresence>
+          {showDeleteConfirm && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={() => setShowDeleteConfirm(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                    Delete Image?
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    This action cannot be undone. The image will be permanently removed.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowDeleteConfirm(null)}
+                      className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => confirmDeleteImage(showDeleteConfirm)}
+                      className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Explore All Tools Section */}
         <div className="mb-6 md:mb-8 mt-12">
@@ -1589,7 +1799,7 @@ export default function ImageToA4Sheet() {
           </div>
         </div>
 
-        {/* FAQ Section - Updated for this specific tool */}
+        {/* FAQ Section */}
         <section className="max-w-3xl mx-auto my-16 px-4">
           <div className="text-center mb-8">
             <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 dark:text-white mb-3`}>
@@ -1612,7 +1822,7 @@ export default function ImageToA4Sheet() {
               },
               {
                 question: "Can I rotate images?",
-                answer: "Yes! You can rotate images freely from 0° to 360°. There are snap angles (0°, 45°, 90°) and +/-15° buttons for precise control."
+                answer: "Yes! You can rotate images freely from 0° to 360°. There are snap angles (0°, 45°, 90°) and +/-15° buttons for precise control. On mobile, double-tap to rotate 90°."
               },
               {
                 question: "How do I resize an image while keeping its aspect ratio?",
