@@ -801,17 +801,24 @@ export default function ImageToA4Sheet() {
     });
   };
 
-  // --- Export ---
+  // --- FIXED: Export with lower DPI for better zoom-out capability ---
   const handleExport = async () => {
     setIsExporting(true);
     try {
       const pages = allPages;
       const canvases: HTMLCanvasElement[] = [];
 
+      // Use a lower DPI for better zoom-out capability
+      // 72 DPI instead of 300 DPI makes the page smaller in PDF units
+      const dpiScale = 72 / 300; // 0.24
+      const exportWidth = Math.round(pageSettings.width * dpiScale);
+      const exportHeight = Math.round(pageSettings.height * dpiScale);
+
       for (const pageNum of pages) {
+        // Create canvas at lower resolution for PDF
         const canvas = document.createElement("canvas");
-        canvas.width = pageSettings.width;
-        canvas.height = pageSettings.height;
+        canvas.width = exportWidth;
+        canvas.height = exportHeight;
         const ctx = canvas.getContext("2d")!;
 
         ctx.fillStyle = pageSettings.backgroundColor;
@@ -832,9 +839,15 @@ export default function ImageToA4Sheet() {
 
         for (const { img, data } of imageElements) {
           ctx.save();
-          ctx.translate(data.x + data.width / 2, data.y + data.height / 2);
+          // Scale positions and sizes for the lower resolution
+          const scaledX = data.x * dpiScale;
+          const scaledY = data.y * dpiScale;
+          const scaledWidth = data.width * dpiScale;
+          const scaledHeight = data.height * dpiScale;
+          
+          ctx.translate(scaledX + scaledWidth / 2, scaledY + scaledHeight / 2);
           ctx.rotate((data.rotation * Math.PI) / 180);
-          ctx.drawImage(img, -data.width / 2, -data.height / 2, data.width, data.height);
+          ctx.drawImage(img, -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
           ctx.restore();
         }
 
@@ -844,13 +857,17 @@ export default function ImageToA4Sheet() {
       if (exportFormat === "pdf") {
         const { PDFDocument } = await import("pdf-lib");
         const pdfDoc = await PDFDocument.create();
+        
         for (const canvas of canvases) {
           const pngData = canvas.toDataURL("image/png");
           const pngBytes = await fetch(pngData).then((res) => res.arrayBuffer());
           const image = await pdfDoc.embedPng(pngBytes);
+          
+          // Create page with exact image dimensions (now smaller)
           const page = pdfDoc.addPage([image.width, image.height]);
           page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
         }
+
         const pdfBytes = await pdfDoc.save();
         const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
         const link = document.createElement("a");
@@ -861,12 +878,43 @@ export default function ImageToA4Sheet() {
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
       } else {
+        // For JPG/PNG, use full resolution for better quality
         const mimeType = exportFormat === "jpg" ? "image/jpeg" : "image/png";
         const ext = exportFormat === "jpg" ? "jpg" : "png";
-        for (let i = 0; i < canvases.length; i++) {
+        // Re-generate with full resolution for image exports
+        for (const pageNum of pages) {
+          const canvas = document.createElement("canvas");
+          canvas.width = pageSettings.width;
+          canvas.height = pageSettings.height;
+          const ctx = canvas.getContext("2d")!;
+
+          ctx.fillStyle = pageSettings.backgroundColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          const pageImagesData = images.filter((img) => img.page === pageNum);
+          
+          const imageElements: { img: HTMLImageElement; data: ImageItem }[] = [];
+          for (const imgData of pageImagesData) {
+            const img = new Image();
+            img.src = imgData.url;
+            await new Promise((resolve) => {
+              img.onload = resolve;
+              img.onerror = resolve;
+            });
+            imageElements.push({ img, data: imgData });
+          }
+
+          for (const { img, data } of imageElements) {
+            ctx.save();
+            ctx.translate(data.x + data.width / 2, data.y + data.height / 2);
+            ctx.rotate((data.rotation * Math.PI) / 180);
+            ctx.drawImage(img, -data.width / 2, -data.height / 2, data.width, data.height);
+            ctx.restore();
+          }
+
           const link = document.createElement("a");
-          link.href = canvases[i].toDataURL(mimeType, 0.95);
-          link.download = `custom-sheet-page-${i + 1}.${ext}`;
+          link.href = canvas.toDataURL(mimeType, 0.95);
+          link.download = `custom-sheet-page-${pageNum}.${ext}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -1415,11 +1463,14 @@ export default function ImageToA4Sheet() {
                 ref={containerRef}
                 className="overflow-auto flex justify-center items-start p-2 sm:p-4 bg-gray-100 dark:bg-gray-900/50 rounded-xl touch-none"
                 style={{ 
-                  minHeight: isMobile ? "350px" : "500px",
-                  maxHeight: isMobile ? "70vh" : "75vh",
+                  minHeight: isMobile ? "400px" : "500px",
+                  maxHeight: isMobile ? "75vh" : "75vh",
                   height: "100%",
                   width: "100%",
-                  position: "relative"
+                  position: "relative",
+                  overflowY: "auto",
+                  overflowX: "auto",
+                  WebkitOverflowScrolling: "touch",
                 }}
                 onMouseLeave={handleMouseUp}
                 onTouchCancel={handleMouseUp}
@@ -1437,6 +1488,8 @@ export default function ImageToA4Sheet() {
                     flexShrink: 0,
                     minWidth: canvasSize.width,
                     minHeight: canvasSize.height,
+                    maxWidth: "100%",
+                    maxHeight: "100%",
                   }}
                   onClick={() => setSelectedId(null)}
                 >
@@ -1479,7 +1532,6 @@ export default function ImageToA4Sheet() {
                         }}
                         onMouseDown={(e) => handleMouseDown(e, img.id)}
                         onTouchStart={(e) => {
-                          // Store touch start position to detect if it's a tap vs drag
                           const touch = e.touches[0];
                           if (touch) {
                             setTouchStartPos({ x: touch.clientX, y: touch.clientY, id: img.id });
@@ -1487,14 +1539,12 @@ export default function ImageToA4Sheet() {
                           handleMouseDown(e, img.id);
                         }}
                         onTouchEnd={(e) => {
-                          // Check if it was a tap (not a drag)
                           if (touchStartPos && touchStartPos.id === img.id) {
                             const touch = e.changedTouches[0];
                             if (touch) {
                               const dx = touch.clientX - touchStartPos.x;
                               const dy = touch.clientY - touchStartPos.y;
                               if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-                                // It was a tap, handle double tap
                                 handleImageDoubleTap(e, img.id);
                               }
                             }
@@ -1506,7 +1556,6 @@ export default function ImageToA4Sheet() {
                           setSelectedId(img.id);
                         }}
                         onDoubleClick={(e) => {
-                          // Desktop double click for rotation
                           handleImageDoubleTap(e, img.id);
                         }}
                       >
@@ -1565,8 +1614,8 @@ export default function ImageToA4Sheet() {
                                 handleMouseDown(e, img.id, "s");
                               }}
                             />
-                            {/* 🔥 Mobile-visible delete button on image */}
-                            <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 flex gap-0.5 sm:gap-1">
+                            {/* 🔥 MOBILE-ONLY: Remove duplicate and delete icons on image - hidden on mobile, visible on desktop */}
+                            <div className="hidden sm:flex absolute -top-1 -right-1 sm:-top-2 sm:-right-2 gap-0.5 sm:gap-1">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
