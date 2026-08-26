@@ -1580,7 +1580,7 @@ export default function PdfToImage() {
                     Explore All Tools
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
-                    10+ specialized PDF, image, and document tools
+                    15+ specialized PDF, image, and document tools
                   </p>
                 </div>
               </div>

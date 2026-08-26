@@ -3,6 +3,10 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import BreadcrumbSchema from "./BreadcrumbSchema";
+import ArticleSchema from "./ArticleSchema";
+import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
 import {
   Upload,
   Download,
@@ -1117,6 +1121,11 @@ export default function ImageToA4Sheet() {
 
   return (
     <>
+
+    <ArticleSchema />
+        <HowToSchema />
+        <FAQSchema />
+        <BreadcrumbSchema />
       {/* Toast Container */}
       <AnimatePresence>
         {toasts.map((toast) => (
@@ -2055,7 +2064,7 @@ export default function ImageToA4Sheet() {
                   Explore All Tools
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
-                  10+ specialized PDF, image, and document tools
+                  15+ specialized PDF, image, and document tools
                 </p>
               </div>
             </div>
