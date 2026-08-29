@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
-import Head from "next/head";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Download,
@@ -977,12 +976,13 @@ export default function PassportPhotoMaker() {
     }, 5000);
   };
 
-  // ─── NEW: Download as PDF ──────────────────────────────────────────────
+  // Download as PDF with proper sheet layout
   const handleDownloadAsPDF = async () => {
     if (processedSheets.length === 0) return;
 
     setPdfDownloading(true);
     try {
+      const { PDFDocument } = await import("pdf-lib");
       const pdfDoc = await PDFDocument.create();
       
       for (const sheet of processedSheets) {
@@ -998,8 +998,8 @@ export default function PassportPhotoMaker() {
       }
 
       const pdfBytes = await pdfDoc.save();
-      // ✅ FIX: Use pdfBytes directly (Uint8Array is a valid BlobPart)
-     const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+      
+      const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const pdfName = `passport_photos_${new Date().getTime()}.pdf`;
       
       downloadFile(pdfBlob, pdfName);
@@ -1022,7 +1022,6 @@ export default function PassportPhotoMaker() {
       setPdfDownloading(false);
     }
   };
-  // ──────────────────────────────────────────────────────────────────────
 
   const handleRemoveFile = () => {
     setFile(null);
@@ -1792,7 +1791,7 @@ export default function PassportPhotoMaker() {
                     <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                   </motion.button>
 
-                  {/* ─── NEW: Download as PDF ─── */}
+                  {/* Download as PDF */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}

@@ -1,25 +1,22 @@
-import { FlatCompat } from '@eslint/eslintrc';
-import js from '@eslint/js';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import nextVitals from 'eslint-config-next/core-web-vitals';
 
-// ES modules में __dirname पाने के लिए
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const eslintConfig = defineConfig([
+  ...nextVitals,
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-});
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+  ]),
 
-const eslintConfig = [
-  ...compat.config({
-    extends: ['next'],
+  {
     rules: {
       'react/no-unescaped-entities': 'off',
       '@next/next/no-page-custom-font': 'off',
     },
-  }),
-];
+  },
+]);
 
 export default eslintConfig;

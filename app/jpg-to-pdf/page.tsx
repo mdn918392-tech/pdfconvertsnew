@@ -942,7 +942,7 @@ const DraggableItem = ({
 };
 
 // ============================================================
-// UPDATED Image Container Component - with loading & error states + force re-mount on src change
+// FIXED: Image Container Component - with improved quality
 // ============================================================
 const ImageContainer = ({ 
   file, 
@@ -984,20 +984,23 @@ const ImageContainer = ({
       onClick={onClick}
     >
       {!showFallback ? (
-        // Force re-mount of img when imageUrl changes by using key
-        <img
-          key={imageUrl}
-          src={imageUrl}
-          alt={file.file.name}
-          className="w-full h-full object-contain transition-transform duration-300"
-          style={{
-            transform: `rotate(${rotation}deg)`,
-            objectFit: 'contain',
-          }}
-          loading="eager" // ensure immediate load, especially after deletion
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-        />
+        <div className="w-full h-full flex items-center justify-center">
+          <img
+            key={imageUrl}
+            src={imageUrl}
+            alt={file.file.name}
+            className="w-full h-full object-contain transition-transform duration-300"
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              objectFit: 'contain',
+              imageRendering: 'auto',
+            }}
+            loading="eager"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            decoding="async"
+          />
+        </div>
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center p-3">
           {isLoading ? (
@@ -1157,8 +1160,8 @@ interface MobileSimpleUIProps {
   onDownload: () => void;
   onClear: () => void;
   autoCompressionActive: boolean;
-  compressing: boolean;           // NEW: loading state while preparing images
-  mobileLimitMessage: string | null; // NEW: limit message
+  compressing: boolean;
+  mobileLimitMessage: string | null;
 }
 
 const MobileSimpleUI = ({
@@ -1257,7 +1260,7 @@ const MobileSimpleUI = ({
             </div>
           )}
 
-          {/* ---- NEW: File count + Clear All button ---- */}
+          {/* File count + Clear All button */}
           <div className="flex items-center justify-between bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 shadow-sm">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-blue-500" />
@@ -1385,7 +1388,7 @@ export default function JpgToPdf() {
   const [autoCompressionActive, setAutoCompressionActive] = useState(false);
   const [currentProcessingImage, setCurrentProcessingImage] = useState(0);
   const [totalProcessingImages, setTotalProcessingImages] = useState(0);
-  const [mobileLimitMessage, setMobileLimitMessage] = useState<string | null>(null); // NEW: limit message
+  const [mobileLimitMessage, setMobileLimitMessage] = useState<string | null>(null);
 
   // Limits
   const maxSizePerFile = isMobile ? MAX_SIZE_MOBILE : MAX_SIZE_DESKTOP;
@@ -1882,92 +1885,28 @@ export default function JpgToPdf() {
     [files, isMobile]
   );
 
-  // Handle expand image
+  // ============================================================
+  // COMPLETELY FIXED: Handle expand image with perfect quality
+  // ============================================================
   const handleExpandImage = async (file: FileWithPreview) => {
     if (!file.previewUrl || file.previewError) return;
 
     try {
+      // Load image with high quality
       const img = new Image();
       
-      img.onload = () => {
-        let displayWidth = img.naturalWidth;
-        let displayHeight = img.naturalHeight;
-        
-        if (file.rotation === 90 || file.rotation === 270) {
-          displayWidth = img.naturalHeight;
-          displayHeight = img.naturalWidth;
-        }
-        
-        const viewportWidth = window.innerWidth * 0.9;
-        const viewportHeight = window.innerHeight * 0.8;
-        
-        let scale = 1;
-        if (displayWidth > viewportWidth) {
-          scale = Math.min(scale, viewportWidth / displayWidth);
-        }
-        if (displayHeight > viewportHeight) {
-          scale = Math.min(scale, viewportHeight / displayHeight);
-        }
-        
-        const finalWidth = Math.floor(displayWidth * scale);
-        const finalHeight = Math.floor(displayHeight * scale);
-        
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        
-        if (!ctx) {
-          setExpandedImage({
-            url: file.previewUrl!,
-            rotation: file.rotation,
-            naturalWidth: img.naturalWidth,
-            naturalHeight: img.naturalHeight,
-            id: file.id,
-          });
-          return;
-        }
-        
-        if (file.rotation === 90 || file.rotation === 270) {
-          canvas.width = finalHeight;
-          canvas.height = finalWidth;
-        } else {
-          canvas.width = finalWidth;
-          canvas.height = finalHeight;
-        }
-        
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((file.rotation * Math.PI) / 180);
-        ctx.drawImage(
-          img,
-          -finalWidth / 2,
-          -finalHeight / 2,
-          finalWidth,
-          finalHeight
-        );
-        ctx.restore();
-        
-        const rotatedUrl = canvas.toDataURL("image/jpeg", 0.95);
-        
-        // Cleanup
-        canvas.width = 0;
-        canvas.height = 0;
-        
-        setExpandedImage({
-          url: rotatedUrl,
-          rotation: file.rotation,
-          naturalWidth: canvas.width,
-          naturalHeight: canvas.height,
-          id: file.id,
-        });
-      };
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = file.previewUrl!;
+      });
+
+      // Get original dimensions
+      const naturalWidth = img.naturalWidth;
+      const naturalHeight = img.naturalHeight;
       
-      img.onerror = () => {
+      if (naturalWidth === 0 || naturalHeight === 0) {
+        // Fallback: use preview URL directly
         setExpandedImage({
           url: file.previewUrl!,
           rotation: file.rotation,
@@ -1975,11 +1914,127 @@ export default function JpgToPdf() {
           naturalHeight: 0,
           id: file.id,
         });
-      };
+        return;
+      }
+
+      // Determine if we need to swap dimensions based on rotation
+      const needsSwap = file.rotation === 90 || file.rotation === 270;
       
-      img.src = file.previewUrl;
+      // Get viewport dimensions
+      const viewportWidth = window.innerWidth * 0.85;
+      const viewportHeight = window.innerHeight * 0.8;
+      
+      // Calculate the display dimensions (accounting for rotation)
+      let displayWidth = needsSwap ? naturalHeight : naturalWidth;
+      let displayHeight = needsSwap ? naturalWidth : naturalHeight;
+      
+      // Calculate scale to fit in viewport while maintaining quality
+      let scaleX = viewportWidth / displayWidth;
+      let scaleY = viewportHeight / displayHeight;
+      let scale = Math.min(scaleX, scaleY);
+      
+      // If image is smaller than viewport, don't upscale too much
+      // But if it's larger, scale down to fit
+      if (scale > 1) {
+        // Image is smaller than viewport - show at original size (or slightly larger)
+        // But cap at 1.5x to avoid pixelation
+        scale = Math.min(scale, 1.5);
+      }
+      
+      // For high DPI displays, render at higher resolution
+      const dpr = window.devicePixelRatio || 1;
+      // Use DPR for sharper rendering on retina displays
+      const renderScale = Math.max(scale, 1);
+      const finalScale = renderScale * dpr;
+      
+      // Calculate final dimensions for canvas
+      let finalWidth = Math.round(displayWidth * finalScale);
+      let finalHeight = Math.round(displayHeight * finalScale);
+      
+      // Limit maximum canvas size to avoid memory issues
+      const MAX_CANVAS_SIZE = 4096;
+      if (finalWidth > MAX_CANVAS_SIZE) {
+        const ratio = MAX_CANVAS_SIZE / finalWidth;
+        finalWidth = MAX_CANVAS_SIZE;
+        finalHeight = Math.round(finalHeight * ratio);
+      }
+      if (finalHeight > MAX_CANVAS_SIZE) {
+        const ratio = MAX_CANVAS_SIZE / finalHeight;
+        finalHeight = MAX_CANVAS_SIZE;
+        finalWidth = Math.round(finalWidth * ratio);
+      }
+
+      // Create canvas with high resolution
+      const canvas = document.createElement("canvas");
+      
+      // Set canvas size based on rotation
+      if (needsSwap) {
+        canvas.width = finalHeight;
+        canvas.height = finalWidth;
+      } else {
+        canvas.width = finalWidth;
+        canvas.height = finalHeight;
+      }
+      
+      const ctx = canvas.getContext("2d", {
+        alpha: false,
+        willReadFrequently: false,
+      });
+      
+      if (!ctx) {
+        setExpandedImage({
+          url: file.previewUrl!,
+          rotation: file.rotation,
+          naturalWidth,
+          naturalHeight,
+          id: file.id,
+        });
+        return;
+      }
+
+      // Enable high-quality image rendering
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+
+      // Clear with white background
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Calculate draw dimensions
+      const drawWidth = naturalWidth * finalScale;
+      const drawHeight = naturalHeight * finalScale;
+
+      // Draw image with rotation
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((file.rotation * Math.PI) / 180);
+      ctx.drawImage(
+        img,
+        -drawWidth / 2,
+        -drawHeight / 2,
+        drawWidth,
+        drawHeight
+      );
+      ctx.restore();
+
+      // Get high-quality data URL with 100% quality
+      const rotatedUrl = canvas.toDataURL("image/jpeg", 1.0);
+      
+      // Clean up canvas to free memory
+      canvas.width = 0;
+      canvas.height = 0;
+      
+      setExpandedImage({
+        url: rotatedUrl,
+        rotation: file.rotation,
+        naturalWidth,
+        naturalHeight,
+        id: file.id,
+      });
+      
     } catch (error) {
       console.error("Failed to prepare expanded image:", error);
+      // Fallback: use the preview URL directly
       setExpandedImage({
         url: file.previewUrl!,
         rotation: file.rotation,
@@ -1988,6 +2043,39 @@ export default function JpgToPdf() {
         id: file.id,
       });
     }
+  };
+
+  // Handle rotate in fullscreen
+  const handleRotateInFullScreen = (degrees: number) => {
+    if (!expandedImage) return;
+
+    const newRotation = (expandedImage.rotation + degrees) % 360;
+    const fileId = expandedImage.id;
+
+    setFiles((prev) =>
+      prev.map((f) =>
+        f.id === fileId ? { ...f, rotation: newRotation } : f
+      )
+    );
+
+    setExpandedImage((prev) =>
+      prev ? { ...prev, rotation: newRotation } : null
+    );
+
+    if (rotatedUrls[fileId]) {
+      URL.revokeObjectURL(rotatedUrls[fileId]);
+      setRotatedUrls((prev) => {
+        const newUrls = { ...prev };
+        delete newUrls[fileId];
+        return newUrls;
+      });
+    }
+
+    setPdfBlob(null);
+    setOriginalStateHash("");
+    setShowChangesWarning(false);
+    setProcessingError(null);
+    setProgress(0);
   };
 
   // ----- MAIN CONVERT FUNCTION (with robust error handling) -----
@@ -2221,40 +2309,7 @@ export default function JpgToPdf() {
     setAutoCompressionActive(false);
     setCurrentProcessingImage(0);
     setTotalProcessingImages(0);
-    setMobileLimitMessage(null); // clear limit message
-  };
-
-  // Handle rotate in fullscreen
-  const handleRotateInFullScreen = (degrees: number) => {
-    if (!expandedImage) return;
-
-    const newRotation = (expandedImage.rotation + degrees) % 360;
-    const fileId = expandedImage.id;
-
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === fileId ? { ...f, rotation: newRotation } : f
-      )
-    );
-
-    setExpandedImage((prev) =>
-      prev ? { ...prev, rotation: newRotation } : null
-    );
-
-    if (rotatedUrls[fileId]) {
-      URL.revokeObjectURL(rotatedUrls[fileId]);
-      setRotatedUrls((prev) => {
-        const newUrls = { ...prev };
-        delete newUrls[fileId];
-        return newUrls;
-      });
-    }
-
-    setPdfBlob(null);
-    setOriginalStateHash("");
-    setShowChangesWarning(false);
-    setProcessingError(null);
-    setProgress(0);
+    setMobileLimitMessage(null);
   };
 
   const displayFiles = !isMobile && reverseOrder ? [...files].reverse() : files;
@@ -2316,7 +2371,7 @@ export default function JpgToPdf() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
           >
             <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
               <button
@@ -2342,32 +2397,42 @@ export default function JpgToPdf() {
             </div>
 
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-full max-h-full flex items-center justify-center"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative max-w-[95vw] max-h-[90vh] flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-center w-full h-full">
+              <div className="flex items-center justify-center w-full h-full bg-black/50 rounded-xl p-4">
                 <img
                   src={expandedImage.url}
                   alt="Expanded preview"
-                  className="max-w-full max-h-full object-contain rounded-lg bg-white"
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                   style={{
                     transform: `rotate(${expandedImage.rotation}deg)`,
-                    maxHeight: '90vh',
-                    maxWidth: '90vw',
+                    maxHeight: '85vh',
+                    maxWidth: '85vw',
+                    imageRendering: 'auto',
+                    width: 'auto',
+                    height: 'auto',
                   }}
-                  onError={() => setExpandedImage(null)}
+                  onError={(e) => {
+                    // If the generated URL fails, try using the original preview
+                    const file = files.find(f => f.id === expandedImage.id);
+                    if (file?.previewUrl) {
+                      e.currentTarget.src = file.previewUrl;
+                    }
+                  }}
                 />
               </div>
             </motion.div>
 
+            {/* Mobile close button */}
             <button
-              className="absolute bottom-4 left-1/2 transform -translate-x-1/2 md:hidden p-3 bg-white/20 hover:bg-white/30 text-white rounded-full transition-colors"
+              className="absolute bottom-6 left-1/2 transform -translate-x-1/2 md:hidden p-4 bg-white/20 hover:bg-white/30 text-white rounded-full transition-colors"
               onClick={() => setExpandedImage(null)}
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </button>
           </motion.div>
         )}
@@ -2566,7 +2631,7 @@ export default function JpgToPdf() {
                 mobileLimitMessage={mobileLimitMessage}
               />
             ) : (
-              /* Desktop Full UI */
+              /* Desktop Full UI - Keep the same as before */
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl p-6 md:p-8 mb-8">
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-4">
@@ -2713,7 +2778,7 @@ export default function JpgToPdf() {
                       </div>
                     </div>
 
-                    {/* NEW: Static Summary Bar - replaces floating counter */}
+                    {/* Static Summary Bar */}
                     {files.length > 0 && (
                       <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-850 rounded-2xl border border-blue-200 dark:border-blue-800 p-4 shadow-sm">
                         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
