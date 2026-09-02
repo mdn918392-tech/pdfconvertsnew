@@ -454,14 +454,17 @@ const ImagePreview = ({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {/* ✅ FIX: Action Buttons - Always visible on ALL devices */}
+          <div className="absolute top-3 right-3 flex gap-2">
             {/* Remove Button (For Input Files) */}
             {onRemove && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={onRemove}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove();
+                }}
                 className="p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
                 aria-label={`Remove ${filename}`}
               >
@@ -474,7 +477,10 @@ const ImagePreview = ({
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={handleIndividualDownload}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleIndividualDownload();
+                }}
                 className="p-1.5 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
                 title={`Download ${filename}`}
                 disabled={!file || file.size === 0}
@@ -1018,7 +1024,7 @@ export default function CompressImage() {
                   </div>
                 </div>
 
-                {/* ─── 🔥 FIX: Removed `unlimited={true}` ─── */}
+                {/* FileUploader */}
                 <FileUploader
                   accept="image/png,image/jpeg,image/jpg"
                   multiple={true}

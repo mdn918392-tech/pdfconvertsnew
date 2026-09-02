@@ -11,6 +11,8 @@ import {
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
+  Search,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import type { Tool } from "./types";
@@ -18,6 +20,7 @@ import type { Tool } from "./types";
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const extendedTools: Tool[] = [
     // PDF Tools
@@ -216,10 +219,30 @@ export default function Home() {
   // सभी टूल्स को combine करें
   const allTools = [...categories.pdf, ...categories.image];
 
-  const filteredTools =
-    activeCategory === "all"
-      ? allTools
-      : categories[activeCategory as keyof typeof categories] || [];
+  // Search filter function
+  const getFilteredTools = () => {
+    const searchLower = searchQuery.toLowerCase().trim();
+    
+    // If search query is empty, use category filter
+    if (!searchLower) {
+      return activeCategory === "all"
+        ? allTools
+        : categories[activeCategory as keyof typeof categories] || [];
+    }
+
+    // Search through all tools regardless of category
+    return allTools.filter((tool) => {
+      const nameMatch = tool.name.toLowerCase().includes(searchLower);
+      const descMatch = tool.description.toLowerCase().includes(searchLower);
+      const categoryMatch = tool.category.toLowerCase().includes(searchLower);
+      return nameMatch || descMatch || categoryMatch;
+    });
+  };
+
+  const filteredTools = getFilteredTools();
+
+  // Get search result count for display
+  const searchResultCount = filteredTools.length;
 
   // सिर्फ all, pdf, और image टैब रखें
   const categoryTabs = [
@@ -351,6 +374,11 @@ export default function Home() {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
+  // Clear search function
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       {/* Schema.org Structured Data */}
@@ -459,6 +487,42 @@ export default function Home() {
   ))}
 </motion.div>
 
+        {/* Search Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-8 max-w-2xl mx-auto"
+        >
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search for tools... (e.g., PDF, JPG, Compress, Merge)"
+              className="w-full pl-12 pr-12 py-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 dark:focus:border-cyan-500 transition-all duration-300 shadow-lg hover:shadow-xl"
+            />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <div className="mt-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+              Found <span className="font-semibold text-blue-600 dark:text-cyan-400">{searchResultCount}</span> tool{searchResultCount !== 1 ? "s" : ""} for &quot;{searchQuery}&quot;
+              {searchResultCount === 0 && " — Try a different keyword"}
+            </div>
+          )}
+        </motion.div>
+
         {/* Category Tabs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -470,12 +534,17 @@ export default function Home() {
             {categoryTabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveCategory(tab.id)}
+                onClick={() => {
+                  setActiveCategory(tab.id);
+                  // Clear search when switching categories
+                  if (searchQuery) setSearchQuery("");
+                }}
                 className={`group flex items-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-300 cursor-pointer ${
-                  activeCategory === tab.id
+                  activeCategory === tab.id && !searchQuery
                     ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg"
                     : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-2 border-gray-100 dark:border-gray-800"
-                }`}
+                } ${searchQuery ? "opacity-50 cursor-not-allowed" : ""}`}
+                disabled={!!searchQuery}
               >
                 <span className="text-lg">
                   {tab.id === "all" && <Grid className="w-5 h-5" />}
@@ -485,7 +554,7 @@ export default function Home() {
                 <span>{tab.label}</span>
                 <span
                   className={`px-2 py-1 text-xs rounded-full ${
-                    activeCategory === tab.id
+                    activeCategory === tab.id && !searchQuery
                       ? "bg-white/20"
                       : "bg-gray-100 dark:bg-gray-700"
                   }`}
@@ -498,37 +567,55 @@ export default function Home() {
 
           {/* Tools Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredTools.map((tool, index) => (
-              <motion.a
-                key={tool.id}
-                href={tool.href}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                whileHover={{ scale: 1.03, y: -5 }}
-                className="group bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-6 hover:border-blue-300 dark:hover:border-cyan-700 transition-all shadow-lg hover:shadow-2xl cursor-pointer"
-              >
-                <div className="flex items-start gap-4">
-                  <div
-                    className={`p-3 bg-gradient-to-br ${tool.color} rounded-xl shadow-lg`}
-                  >
-                    <span className="text-2xl">{tool.icon}</span>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
-                      {tool.name}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                      {tool.description}
-                    </p>
-                    <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 font-medium">
-                      <span className="text-sm">Use Tool</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            {filteredTools.length > 0 ? (
+              filteredTools.map((tool, index) => (
+                <motion.a
+                  key={tool.id}
+                  href={tool.href}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ scale: 1.03, y: -5 }}
+                  className="group bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700 p-6 hover:border-blue-300 dark:hover:border-cyan-700 transition-all shadow-lg hover:shadow-2xl cursor-pointer"
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`p-3 bg-gradient-to-br ${tool.color} rounded-xl shadow-lg`}
+                    >
+                      <span className="text-2xl">{tool.icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-2 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
+                        {tool.name}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                        {tool.description}
+                      </p>
+                      <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 font-medium">
+                        <span className="text-sm">Use Tool</span>
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.a>
-            ))}
+                </motion.a>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-16">
+                <div className="text-6xl mb-4">🔍</div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  No tools found
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  We couldn&apos;t find any tools matching &quot;{searchQuery}&quot;
+                </p>
+                <button
+                  onClick={clearSearch}
+                  className="mt-4 text-blue-600 dark:text-cyan-400 hover:underline font-medium"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
           </div>
         </motion.div>
 
