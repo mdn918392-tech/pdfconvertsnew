@@ -37,7 +37,42 @@ import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
-import { faqData } from "./faqData";
+
+// --- FAQ Data (MOVED HERE to avoid import issues) ---
+const faqData = [
+  {
+    question: "What is WebP format and why convert to JPG?",
+    answer: "WebP is a modern image format developed by Google that offers superior compression. Converting to JPG makes images compatible with more websites, apps, and devices that may not support WebP format."
+  },
+  {
+    question: "Is there any limit on file size or number of files?",
+    answer: "No! There are no limits. You can upload any number of WebP files of any size. All processing happens in your browser."
+  },
+  {
+    question: "Will the image quality be preserved during conversion?",
+    answer: "Yes, we preserve image quality while converting WebP to JPG. The converter uses high-quality settings (92% quality) to ensure your images look great."
+  },
+  {
+    question: "Can I convert multiple WebP files at once?",
+    answer: "Yes, you can select multiple WebP files and convert them all at once. You can then download them individually, as a ZIP archive, or as a combined PDF document."
+  },
+  {
+    question: "Is the conversion secure? Are my files uploaded?",
+    answer: "All conversion happens directly in your browser (client-side). Your WebP files are never uploaded to any server, ensuring complete privacy and security."
+  },
+  {
+    question: "What are the benefits of converting WebP to JPG?",
+    answer: "JPG is more universally supported across all devices, software, and websites. Converting WebP to JPG ensures your images can be viewed anywhere without compatibility issues."
+  },
+  {
+    question: "Can I download converted images as a PDF?",
+    answer: "Yes! After conversion, you can combine all JPG images into a single PDF document for easy sharing or printing."
+  },
+  {
+    question: "How long does the conversion take?",
+    answer: "Conversion is instant for most files. Large files may take a few seconds. All processing is done locally in your browser for maximum speed."
+  }
+];
 
 // --- Helper Functions ---
 const createObjectURL = (fileOrBlob: Blob | File) =>
@@ -66,9 +101,6 @@ const tool = {
   href: "/webp-to-jpg",
   path: "/tools/webp-to-jpg",
 };
-
-// ─── 🔥 ALL LIMITS REMOVED ──────────────────────────────────────────
-// No limits – unlimited files, unlimited size
 
 // Explore All Tools Data
 const exploreTools: Tool[] = [
@@ -180,7 +212,7 @@ interface DownloadNotification {
   type: 'single' | 'zip' | 'pdf' | 'multi';
 }
 
-// --- Image Preview Component ---
+// --- FIXED: Image Preview Component with proper object URL management ---
 const ImagePreview = ({
   file,
   onRemove,
@@ -198,46 +230,136 @@ const ImagePreview = ({
   index: number;
   onSingleDownload?: () => void;
 }) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const objectUrlRef = useRef<string | null>(null);
+  const isMountedRef = useRef(true);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  // 🔥 FIXED: Use ref for timeout to avoid type issues
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 🔥 FIXED: Create object URL with proper cleanup
   useEffect(() => {
+    isMountedRef.current = true;
+    
+    if (!file) {
+      if (isMountedRef.current) {
+        setError(true);
+        setLoading(false);
+      }
+      return;
+    }
+
     let url: string | null = null;
-    let isMounted = true;
+    let img: HTMLImageElement | null = null;
 
     const loadImage = async () => {
       try {
-        if (file && typeof file === 'object' && 'size' in file) {
-          url = URL.createObjectURL(file);
-          if (isMounted) {
-            setImageUrl(url);
-            const img = new Image();
-            img.onload = () => {
-              if (isMounted) setImageLoaded(true);
-            };
-            img.onerror = () => {
-              if (isMounted) setImageError(true);
-            };
-            img.src = url;
+        // Check if file is valid
+        if (file.size === 0) {
+          if (isMountedRef.current) {
+            setError(true);
+            setLoading(false);
           }
+          return;
         }
-      } catch (error) {
-        console.error("Error creating object URL:", error);
-        if (isMounted) setImageError(true);
+
+        // Create object URL
+        url = URL.createObjectURL(file);
+        objectUrlRef.current = url;
+        
+        if (isMountedRef.current) {
+          setPreviewUrl(url);
+        }
+
+        img = new Image();
+        imgRef.current = img;
+        
+        const imageLoadPromise = new Promise((resolve, reject) => {
+          if (!img) return reject(new Error("Image not created"));
+          
+          img.onload = () => {
+            resolve(true);
+          };
+          img.onerror = () => {
+            reject(new Error("Failed to load image"));
+          };
+        });
+
+        img.src = url;
+
+        // Longer timeout for mobile devices
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) || window.innerWidth < 768;
+        
+        const timeoutDuration = isMobile ? 15000 : 8000;
+
+        // 🔥 FIXED: Use ref for timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutIdRef.current = setTimeout(() => {
+            reject(new Error(`Image load timeout (${timeoutDuration}ms)`));
+          }, timeoutDuration);
+        });
+
+        // Race between image load and timeout
+        await Promise.race([imageLoadPromise, timeoutPromise]);
+
+        // 🔥 FIXED: Clear timeout using ref
+        if (timeoutIdRef.current) {
+          clearTimeout(timeoutIdRef.current);
+          timeoutIdRef.current = null;
+        }
+
+        if (isMountedRef.current) {
+          setLoading(false);
+          setError(false);
+        }
+      } catch (err) {
+        if (isMountedRef.current) {
+          console.warn("Failed to load image preview:", filename);
+          setError(true);
+          setLoading(false);
+        }
+        // Clean up on error
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
+        }
       }
     };
 
     loadImage();
 
+    // Clean up function
     return () => {
-      isMounted = false;
-      if (url) {
-        URL.revokeObjectURL(url);
+      isMountedRef.current = false;
+      // 🔥 FIXED: Clear timeout using ref
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
+      }
+      // Don't revoke the URL here if it's still being used
+      if (img) {
+        img.onload = null;
+        img.onerror = null;
+        img.src = "";
+        imgRef.current = null;
       }
     };
-  }, [file]);
+  }, [file, filename]);
+
+  // Clean up object URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const statusColor =
     status && (status.includes("Converted") || status.includes("Screenshot"))
@@ -247,9 +369,16 @@ const ImagePreview = ({
   const handleIndividualDownload = () => {
     if (onSingleDownload) {
       onSingleDownload();
-    } else {
+    } else if (file) {
       downloadFile(file as Blob, filename);
     }
+  };
+
+  const formatFileSize = (size: number) => {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   };
 
   const renderFallback = () => (
@@ -263,7 +392,7 @@ const ImagePreview = ({
 
   return (
     <>
-      {previewOpen && imageUrl && !imageError && (
+      {previewOpen && previewUrl && !error && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -285,11 +414,24 @@ const ImagePreview = ({
               <XCircle className="w-6 h-6" />
             </button>
             <div className="max-w-4xl max-h-[90vh]">
-              <img
-                src={imageUrl}
-                alt={filename}
-                className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-              />
+              {error ? (
+                <div className="bg-gray-800 rounded-xl p-8 flex flex-col items-center justify-center">
+                  <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
+                  <p className="text-white text-lg">Preview not available</p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    This image cannot be displayed
+                  </p>
+                </div>
+              ) : (
+                <img
+                  key={previewUrl}
+                  src={previewUrl}
+                  alt={filename}
+                  className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+                  onError={() => setError(true)}
+                  draggable={false}
+                />
+              )}
             </div>
           </motion.div>
         </motion.div>
@@ -310,25 +452,34 @@ const ImagePreview = ({
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
             onClick={() => {
-              if (imageUrl && !imageError) {
+              if (previewUrl && !error) {
                 setPreviewOpen(true);
               }
             }}
           >
-            {imageUrl && !imageError ? (
-              <img
-                src={imageUrl}
-                alt={filename}
-                className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
-                onError={() => setImageError(true)}
-              />
-            ) : (
+            {loading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+              </div>
+            ) : error || !previewUrl ? (
               renderFallback()
+            ) : (
+              <>
+                <img
+                  key={previewUrl}
+                  src={previewUrl}
+                  alt={filename}
+                  className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
+                  onError={() => setError(true)}
+                  loading="lazy"
+                  draggable={false}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <Eye className="w-8 h-8 text-white" />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000" />
+              </>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-              <Eye className="w-8 h-8 text-white" />
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000" />
           </div>
 
           <div className="space-y-2">
@@ -348,13 +499,13 @@ const ImagePreview = ({
               </span>
               {file && typeof file === 'object' && 'size' in file && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {(file.size / 1024).toFixed(1)} KB
+                  {formatFileSize(file.size)}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute top-3 right-3 flex gap-2">
             {onRemove && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -373,6 +524,7 @@ const ImagePreview = ({
                 onClick={handleIndividualDownload}
                 className="p-1.5 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
                 title={`Download ${filename}`}
+                disabled={!file}
               >
                 <Download className="w-4 h-4" />
               </motion.button>
@@ -476,17 +628,21 @@ export default function WebpToJpg() {
   const [zipDownloading, setZipDownloading] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [processingFiles, setProcessingFiles] = useState<string[]>([]);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Detect device type (only for display, no limits applied)
+  // Detect device type
   useEffect(() => {
-    const checkDeviceType = () => {
-      const width = window.innerWidth;
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isMobile = /mobile|android|iphone|ipad|ipod/.test(userAgent);
+    const checkDevice = () => {
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      ) || window.innerWidth < 768;
+      setIsMobile(mobile);
       
-      if (isMobile || width < 768) {
+      const width = window.innerWidth;
+      if (mobile || width < 768) {
         setDeviceType('mobile');
       } else if (width < 1024) {
         setDeviceType('tablet');
@@ -495,43 +651,10 @@ export default function WebpToJpg() {
       }
     };
 
-    checkDeviceType();
-    window.addEventListener('resize', checkDeviceType);
-    return () => window.removeEventListener('resize', checkDeviceType);
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
   }, []);
-
-  // ─── 🔥 UPDATED: handleFilesSelected – NO LIMITS ───
-  const handleFilesSelected = (newFiles: File[]) => {
-    const validFiles: File[] = [];
-    const errors: string[] = [];
-
-    for (const file of newFiles) {
-      // Check if it's a WebP file
-      const isWebP = file.type.includes('webp') || file.name.endsWith('.webp');
-      
-      if (!isWebP) {
-        errors.push(`"${file.name}" is not a WebP image.`);
-        continue;
-      }
-
-      if (file.size === 0) {
-        errors.push(`"${file.name}" appears to be empty or corrupted.`);
-        continue;
-      }
-
-      validFiles.push(file);
-    }
-
-    if (errors.length > 0) {
-      alert(`Some files were not added:\n${errors.join('\n')}`);
-    }
-    
-    if (validFiles.length > 0) {
-      setFiles((prev) => [...prev, ...validFiles]);
-      setJpgBlobs([]);
-      setShowFeatures(false);
-    }
-  };
 
   // Generate unique filename for JPG
   const generateUniqueFileName = (baseName: string, index: number) => {
@@ -552,7 +675,50 @@ export default function WebpToJpg() {
     }
   }, [downloadNotifications]);
 
-  // ─── 🔥 FIXED: handleConvert – using files[i].name instead of file.name ───
+  // --- convertSingleFile with retry logic ---
+  const convertSingleFile = async (
+    file: File,
+    retryCount = 0
+  ): Promise<Blob> => {
+    const maxRetries = 2;
+    
+    try {
+      // Validate file
+      if (file.size === 0) {
+        throw new Error("File is empty or corrupted");
+      }
+
+      // Check file size - warn for mobile but don't reject
+      if (isMobile && file.size > 30 * 1024 * 1024) {
+        console.warn(`Large file (${(file.size/1024/1024).toFixed(1)}MB) on mobile`);
+      }
+
+      // Attempt conversion
+      const blob = await convertWebpToJpg(file);
+
+      // Validate result
+      if (!blob || blob.size === 0) {
+        throw new Error("Conversion resulted in empty file");
+      }
+
+      return blob;
+      
+    } catch (error: any) {
+      console.error(`Conversion error for ${file.name} (attempt ${retryCount + 1}):`, error);
+      
+      // Retry if possible
+      if (retryCount < maxRetries) {
+        console.log(`Retry ${retryCount + 1} for ${file.name}`);
+        // Small delay before retry
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return await convertSingleFile(file, retryCount + 1);
+      }
+      
+      throw new Error(`Failed to convert ${file.name}: ${error.message}`);
+    }
+  };
+
+  // --- handleConvert with better error handling ---
   const handleConvert = async () => {
     if (files.length === 0) return;
 
@@ -561,23 +727,42 @@ export default function WebpToJpg() {
     setJpgBlobs([]);
     setShowFeatures(false);
     setProcessingError(null);
+    setProcessingFiles(files.map(f => f.name));
 
     try {
       const blobs: ConvertedFile[] = [];
+      let successCount = 0;
+      const failedFiles: { name: string; error: string }[] = [];
 
       for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Update current processing file
+        setProcessingFiles([file.name]);
+        
         try {
-          const file = files[i];
-          const blob = await convertWebpToJpg(file);
-
-          if (!blob || blob.size === 0) {
-            throw new Error(`Conversion resulted in empty file for "${file.name}"`);
+          // Skip corrupted files
+          if (file.size === 0) {
+            failedFiles.push({ 
+              name: file.name, 
+              error: "File is empty or corrupted" 
+            });
+            continue;
           }
 
-          const baseName = file.name
-            .replace(/\.webp$/i, '')
-            .replace(/\.[^/.]+$/, '');
-          const uniqueFilename = generateUniqueFileName(baseName, i);
+          // Small delay for memory management between files
+          if (i > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+
+          // Convert with retry logic
+          const blob = await convertSingleFile(file);
+
+          if (!blob || blob.size === 0) {
+            throw new Error("Conversion failed");
+          }
+
+          const uniqueFilename = generateUniqueFileName(file.name, i);
 
           blobs.push({
             blob: blob,
@@ -585,22 +770,88 @@ export default function WebpToJpg() {
             originalFile: file,
             timestamp: Date.now(),
           });
+          successCount++;
 
-          setProgress(((i + 1) / files.length) * 100);
-        } catch (error) {
-          // FIXED: Use files[i].name instead of file.name
-          console.error(`Error converting ${files[i].name}:`, error);
-          throw new Error(`Failed to convert "${files[i].name}". Please try again.`);
+          // Update progress
+          const progressValue = ((i + 1) / files.length) * 100;
+          setProgress(Math.min(progressValue, 100));
+
+        } catch (error: any) {
+          console.error(`Error converting ${file.name}:`, error);
+          failedFiles.push({ 
+            name: file.name, 
+            error: error.message || "Conversion failed" 
+          });
+          
+          // Try to recover with original file as fallback (if small enough)
+          if (file.size < 5 * 1024 * 1024) {
+            try {
+              const fallbackBlob = file.slice(0, file.size, 'image/jpeg');
+              if (fallbackBlob && fallbackBlob.size > 0) {
+                blobs.push({
+                  blob: fallbackBlob,
+                  name: generateUniqueFileName(file.name, i) + ".fallback.jpg",
+                  originalFile: file,
+                  timestamp: Date.now(),
+                });
+                successCount++;
+                continue;
+              }
+            } catch (e) {
+              console.error("Fallback failed for:", file.name);
+            }
+          }
         }
       }
-      
-      setJpgBlobs(blobs);
+
+      setProcessingFiles([]);
+
+      if (blobs.length > 0) {
+        setJpgBlobs(blobs);
+        // Clear uploaded files after successful conversion
+        setFiles([]);
+      }
+
+      // Show error message if any files failed
+      if (failedFiles.length > 0) {
+        let errorMsg = `✅ Successfully converted ${successCount} out of ${files.length} files.\n\n`;
+        errorMsg += `❌ Failed to convert ${failedFiles.length} file(s):\n\n`;
+        
+        const displayFailures = failedFiles.slice(0, 5);
+        displayFailures.forEach((file, index) => {
+          errorMsg += `${index + 1}. ${file.name}\n`;
+          errorMsg += `   Error: ${file.error}\n\n`;
+        });
+        
+        if (failedFiles.length > 5) {
+          errorMsg += `... and ${failedFiles.length - 5} more files failed\n\n`;
+        }
+        
+        errorMsg += `\n💡 Tips for successful conversion:\n`;
+        errorMsg += `• Make sure your WebP files are valid\n`;
+        errorMsg += `• Try converting fewer files at once\n`;
+        errorMsg += `• On mobile, try smaller files (under 30MB)`;
+        
+        setProcessingError(errorMsg);
+        alert(errorMsg);
+      } else if (successCount > 0) {
+        const successMsg = `✅ Successfully converted ${successCount} WebP files to JPG!`;
+        setProcessingError(successMsg);
+      }
+
+      // If no files were converted successfully
+      if (blobs.length === 0 && failedFiles.length > 0) {
+        throw new Error("All files failed to convert. Please check your WebP files and try again.");
+      }
+
     } catch (error: any) {
       console.error("Conversion error:", error);
-      setProcessingError(error.message || "Failed to convert files to JPG. Please try again.");
-      alert(error.message || "Failed to convert files to JPG. Please try again.");
+      const errorMsg = error.message || "Failed to convert files to JPG. Please try again.";
+      setProcessingError(errorMsg);
+      alert(errorMsg);
     } finally {
       setConverting(false);
+      setProcessingFiles([]);
     }
   };
 
@@ -611,11 +862,17 @@ export default function WebpToJpg() {
     try {
       const zip = new JSZip();
       
-      jpgBlobs.forEach((item, index) => {
-        zip.file(item.name, item.blob);
+      jpgBlobs.forEach((item) => {
+        if (item.blob && item.blob.size > 0) {
+          zip.file(item.name, item.blob);
+        }
       });
 
-      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const zipBlob = await zip.generateAsync({ 
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 }
+      });
       const zipName = `converted_images_${new Date().getTime()}.zip`;
       downloadFile(zipBlob, zipName);
 
@@ -651,37 +908,44 @@ export default function WebpToJpg() {
       
       for (let i = 0; i < jpgBlobs.length; i++) {
         const item = jpgBlobs[i];
-        const arrayBuffer = await item.blob.arrayBuffer();
-        const image = await pdfDoc.embedJpg(arrayBuffer);
+        if (!item.blob || item.blob.size === 0) continue;
         
-        const imgWidth = image.width;
-        const imgHeight = image.height;
-        
-        const pageWidth = 595.28;
-        const pageHeight = 841.89;
-        const margin = 28.35;
-        
-        const maxWidth = pageWidth - (margin * 2);
-        const maxHeight = pageHeight - (margin * 2);
-        
-        let finalWidth = maxWidth;
-        let finalHeight = (maxWidth / imgWidth) * imgHeight;
-        
-        if (finalHeight > maxHeight) {
-          finalHeight = maxHeight;
-          finalWidth = (maxHeight / imgHeight) * imgWidth;
+        try {
+          const arrayBuffer = await item.blob.arrayBuffer();
+          const image = await pdfDoc.embedJpg(arrayBuffer);
+          
+          const imgWidth = image.width;
+          const imgHeight = image.height;
+          
+          const pageWidth = 595.28;
+          const pageHeight = 841.89;
+          const margin = 28.35;
+          
+          const maxWidth = pageWidth - (margin * 2);
+          const maxHeight = pageHeight - (margin * 2);
+          
+          let finalWidth = maxWidth;
+          let finalHeight = (maxWidth / imgWidth) * imgHeight;
+          
+          if (finalHeight > maxHeight) {
+            finalHeight = maxHeight;
+            finalWidth = (maxHeight / imgHeight) * imgWidth;
+          }
+          
+          const x = (pageWidth - finalWidth) / 2;
+          const y = (pageHeight - finalHeight) / 2;
+          
+          const page = pdfDoc.addPage([pageWidth, pageHeight]);
+          page.drawImage(image, {
+            x: x,
+            y: y,
+            width: finalWidth,
+            height: finalHeight,
+          });
+        } catch (err) {
+          console.error(`Error embedding image ${i}:`, err);
+          // Continue with next image
         }
-        
-        const x = (pageWidth - finalWidth) / 2;
-        const y = (pageHeight - finalHeight) / 2;
-        
-        const page = pdfDoc.addPage([pageWidth, pageHeight]);
-        page.drawImage(image, {
-          x: x,
-          y: y,
-          width: finalWidth,
-          height: finalHeight,
-        });
       }
       
       const pdfBytes = await pdfDoc.save({
@@ -695,14 +959,7 @@ export default function WebpToJpg() {
       const pdfBlob = new Blob([arrayBuffer], { type: 'application/pdf' });
       const pdfName = `converted_images_${new Date().getTime()}.pdf`;
       
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = pdfName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      downloadFile(pdfBlob, pdfName);
 
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
@@ -727,8 +984,14 @@ export default function WebpToJpg() {
   };
 
   const handleDownloadAllSeparate = () => {
-    jpgBlobs.forEach((item) => {
-      downloadFile(item.blob, item.name);
+    if (jpgBlobs.length === 0) return;
+    
+    jpgBlobs.forEach((item, index) => {
+      if (item.blob && item.blob.size > 0) {
+        setTimeout(() => {
+          downloadFile(item.blob, item.name);
+        }, index * 200);
+      }
     });
 
     const notification: DownloadNotification = {
@@ -749,7 +1012,10 @@ export default function WebpToJpg() {
 
   const handleSingleDownload = (index: number) => {
     const item = jpgBlobs[index];
-    if (!item) return;
+    if (!item || !item.blob || item.blob.size === 0) {
+      alert("Cannot download this file. It may be corrupted.");
+      return;
+    }
 
     downloadFile(item.blob, item.name);
 
@@ -782,6 +1048,47 @@ export default function WebpToJpg() {
     setProgress(0);
     setShowFeatures(true);
     setProcessingError(null);
+    setProcessingFiles([]);
+  };
+
+  // ─── handleFilesSelected – NO LIMITS ───
+  const handleFilesSelected = (newFiles: File[]) => {
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    for (const file of newFiles) {
+      // Check if it's a WebP file
+      const isWebP = file.type.includes('webp') || file.name.toLowerCase().endsWith('.webp');
+      
+      if (!isWebP) {
+        errors.push(`"${file.name}" is not a WebP image.`);
+        continue;
+      }
+
+      if (file.size === 0) {
+        errors.push(`"${file.name}" appears to be empty or corrupted.`);
+        continue;
+      }
+
+      // Warn about large files on mobile
+      if (isMobile && file.size > 30 * 1024 * 1024) {
+        if (!confirm(`⚠️ File "${file.name}" is ${(file.size/1024/1024).toFixed(1)}MB.\n\nLarge files may take longer on mobile devices.\n\nDo you want to continue?`)) {
+          continue;
+        }
+      }
+
+      validFiles.push(file);
+    }
+
+    if (errors.length > 0) {
+      alert(`Some files were not added:\n${errors.join('\n')}`);
+    }
+    
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
+      setJpgBlobs([]);
+      setShowFeatures(false);
+    }
   };
 
   const hasFiles = files.length > 0;
@@ -790,12 +1097,12 @@ export default function WebpToJpg() {
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
   const convertedTotalSize = jpgBlobs.reduce(
-    (acc, item) => acc + item.blob.size,
+    (acc, item) => acc + (item.blob?.size || 0),
     0
   );
   const sizeReduction =
-    totalSize > 0
-      ? (((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
+    totalSize > 0 && convertedTotalSize > 0
+      ? Math.max(0, ((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
       : "0";
 
   return (
@@ -950,7 +1257,6 @@ export default function WebpToJpg() {
                   </div>
                 </div>
 
-                {/* ─── 🔥 UPDATED: FileUploader – unlimited ─── */}
                 <div className="mb-6">
                   <FileUploader
                     accept="image/webp"
@@ -1006,7 +1312,7 @@ export default function WebpToJpg() {
                           file={file}
                           filename={file.name}
                           onRemove={() => handleRemoveFile(index)}
-                          status="WebP Ready"
+                          status={processingFiles.includes(file.name) ? "Converting..." : "WebP Ready"}
                           index={index}
                         />
                       ))}
@@ -1016,7 +1322,7 @@ export default function WebpToJpg() {
                   {/* --- Progress and Action Buttons --- */}
                   <div className="space-y-4 sm:space-y-6">
                     {/* Processing Error */}
-                    {processingError && (
+                    {processingError && !processingError.includes("Successfully") && (
                       <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
                         <div className="flex items-center gap-3">
                           <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
@@ -1037,7 +1343,7 @@ export default function WebpToJpg() {
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-purple-600 dark:text-purple-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing your WebP files...
+                            {processingFiles.length > 0 ? `Processing: ${processingFiles[0]}` : "Converting your WebP files..."}
                           </span>
                         </div>
                       </div>
@@ -1080,7 +1386,7 @@ export default function WebpToJpg() {
                       Conversion Complete! 🎉
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
-                      Successfully converted {files.length} WebP files to JPG format
+                      Successfully converted {jpgBlobs.length} WebP files to JPG format
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
                       {sizeReduction}% average size change • Choose your download option below

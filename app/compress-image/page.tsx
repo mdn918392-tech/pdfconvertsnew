@@ -208,8 +208,9 @@ const ImagePreview = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const objectUrlRef = useRef<string | null>(null);
 
-  // Create object URL with mobile optimization
+  // Create object URL with proper cleanup
   useEffect(() => {
     if (!file) {
       setError(true);
@@ -219,66 +220,79 @@ const ImagePreview = ({
 
     let url: string | null = null;
     let img: HTMLImageElement | null = null;
-    let timeoutId: NodeJS.Timeout;
+    let isMounted = true;
 
-    try {
-      url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-
-      // Mobile devices पर timeout कम रखें
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      ) || window.innerWidth < 768;
-      
-      const timeoutDuration = isMobile ? 3000 : 5000; // Mobile: 3s, Desktop: 5s
-
-      img = new Image();
-      img.onload = () => {
-        clearTimeout(timeoutId);
-        setLoading(false);
-        setError(false);
-      };
-      img.onerror = () => {
-        clearTimeout(timeoutId);
-        setError(true);
-        setLoading(false);
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to load image:', filename);
+    const loadImage = async () => {
+      try {
+        // Check if file is valid
+        if (file.size === 0) {
+          if (isMounted) {
+            setError(true);
+            setLoading(false);
+          }
+          return;
         }
-      };
-      
-      timeoutId = setTimeout(() => {
-        if (loading) {
+
+        url = URL.createObjectURL(file);
+        objectUrlRef.current = url;
+        
+        if (isMounted) {
+          setPreviewUrl(url);
+        }
+
+        img = new Image();
+        
+        const imageLoadPromise = new Promise((resolve, reject) => {
+          if (!img) return reject(new Error("Image not created"));
+          
+          img.onload = () => resolve(true);
+          img.onerror = () => reject(new Error("Failed to load image"));
+        });
+
+        img.src = url;
+
+        // Set timeout for mobile devices (longer timeout)
+        const timeoutPromise = new Promise((_, reject) => {
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          ) || window.innerWidth < 768;
+          
+          // Mobile devices need more time
+          const timeoutDuration = isMobile ? 10000 : 5000;
+          setTimeout(() => reject(new Error("Image load timeout")), timeoutDuration);
+        });
+
+        await Promise.race([imageLoadPromise, timeoutPromise]);
+
+        if (isMounted) {
+          setLoading(false);
+          setError(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.warn("Failed to load image preview:", filename, err);
           setError(true);
           setLoading(false);
-          if (img) {
-            img.onload = null;
-            img.onerror = null;
-          }
         }
-      }, timeoutDuration);
-
-      img.src = url;
-
-      // Clean up
-      return () => {
-        clearTimeout(timeoutId);
-        if (url) {
-          URL.revokeObjectURL(url);
-        }
-        if (img) {
-          img.onload = null;
-          img.onerror = null;
-        }
-      };
-    } catch (err) {
-      setError(true);
-      setLoading(false);
-      if (url) {
-        URL.revokeObjectURL(url);
       }
-    }
-  }, [file, filename, loading]);
+    };
+
+    loadImage();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+      if (img) {
+        img.onload = null;
+        img.onerror = null;
+        img.src = "";
+      }
+    };
+  }, [file, filename]);
 
   const statusColor =
     status && status.includes("Compressed")
@@ -286,7 +300,9 @@ const ImagePreview = ({
       : "text-blue-600 dark:text-blue-400";
 
   const handleIndividualDownload = () => {
-    downloadFile(file as Blob, filename);
+    if (file && file.size > 0) {
+      downloadFile(file as Blob, filename);
+    }
   };
 
   // Calculate compression percentage
@@ -405,6 +421,7 @@ const ImagePreview = ({
                   onError={handleImageError}
                   draggable={false}
                   onDragStart={(e) => e.preventDefault()}
+                  loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                   <Eye className="w-8 h-8 text-white" />
@@ -454,7 +471,7 @@ const ImagePreview = ({
             </div>
           </div>
 
-          {/* ✅ FIX: Action Buttons - Always visible on ALL devices */}
+          {/* Action Buttons - Always visible on ALL devices */}
           <div className="absolute top-3 right-3 flex gap-2">
             {/* Remove Button (For Input Files) */}
             {onRemove && (
@@ -581,6 +598,7 @@ export default function CompressImage() {
   const [compressionQuality, setCompressionQuality] = useState<number>(80);
   const [isMobile, setIsMobile] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [processingFiles, setProcessingFiles] = useState<string[]>([]);
 
   // Detect device type (only for UI hints, no limits)
   useEffect(() => {
@@ -616,6 +634,64 @@ export default function CompressImage() {
     }
   }, [downloadNotifications]);
 
+  // Helper function to compress a single image with retry
+  const compressSingleImage = async (
+    file: File,
+    quality: number,
+    retryCount = 0
+  ): Promise<Blob> => {
+    const maxRetries = 2;
+    
+    try {
+      let compressedBlob: Blob;
+      
+      // Check if file is valid
+      if (file.size === 0) {
+        throw new Error("File is empty or corrupted");
+      }
+
+      // For PNG files, convert to JPG first
+      if (file.type === 'image/png') {
+        const jpgBlob = await convertPngToJpg(file, 0.85);
+        compressedBlob = await compressImage(jpgBlob, quality);
+      } else if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
+        compressedBlob = await compressImage(file, quality);
+      } else {
+        // For other image types, try direct compression
+        compressedBlob = await compressImage(file, quality);
+      }
+
+      // Validate compressed blob
+      if (!compressedBlob || compressedBlob.size === 0) {
+        throw new Error("Compression resulted in empty file");
+      }
+
+      // If compressed file is larger than original (rare), use original
+      if (compressedBlob.size > file.size && file.size > 0) {
+        // Try with higher quality
+        if (quality < 90) {
+          return await compressSingleImage(file, Math.min(quality + 10, 95), retryCount);
+        }
+        // Return original file if compression didn't help
+        return file.slice(0, file.size, file.type);
+      }
+
+      return compressedBlob;
+      
+    } catch (error) {
+      // Retry with lower quality if compression failed
+      if (retryCount < maxRetries) {
+        const newQuality = Math.max(quality - 20, 30);
+        console.log(`Retry ${retryCount + 1} for ${file.name} with quality ${newQuality}`);
+        return await compressSingleImage(file, newQuality, retryCount + 1);
+      }
+      
+      // If all retries fail, return original file as fallback
+      console.warn(`All compression retries failed for ${file.name}, using original`);
+      return file.slice(0, file.size, file.type);
+    }
+  };
+
   const handleCompress = async () => {
     if (files.length === 0) return;
 
@@ -624,77 +700,98 @@ export default function CompressImage() {
     setCompressedBlobs([]);
     setShowFeatures(false);
     setErrorMessage("");
+    setProcessingFiles(files.map(f => f.name));
 
     try {
       const blobs: ConvertedFile[] = [];
       let successCount = 0;
-      let failedFiles: string[] = [];
+      const failedFiles: string[] = [];
 
+      // Process files one by one with memory management
       for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const currentProgress = ((i) / files.length) * 100;
+        setProgress(currentProgress);
+        
         try {
-          const file = files[i];
+          // Update current processing file
+          setProcessingFiles([file.name]);
           
-          // Check if file is empty/corrupted
+          // Validate file
           if (file.size === 0) {
             failedFiles.push(`${file.name} (corrupted or empty file)`);
             continue;
           }
 
+          // For very large images on mobile, reduce quality automatically
+          let effectiveQuality = compressionQuality;
+          if (isMobile && file.size > 5 * 1024 * 1024) {
+            effectiveQuality = Math.min(compressionQuality, 70);
+          }
+          if (isMobile && file.size > 10 * 1024 * 1024) {
+            effectiveQuality = Math.min(compressionQuality, 50);
+          }
+
           const uniqueFilename = generateUniqueFileName(file.name, i);
           const originalSize = file.size;
 
-          let compressedBlob: Blob;
-          
-          try {
-            // Check file type and compress accordingly
-            if (file.type === 'image/png') {
-              // Convert PNG to JPG with 85% quality (good balance)
-              const jpgBlob = await convertPngToJpg(file, 0.85);
-              compressedBlob = await compressImage(jpgBlob, compressionQuality);
-            } else if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
-              compressedBlob = await compressImage(file, compressionQuality);
-            } else {
-              // For other image types
-              compressedBlob = await compressImage(file, compressionQuality);
-            }
+          // Compress with retry logic
+          let compressedBlob = await compressSingleImage(file, effectiveQuality);
 
-            // Check if compression resulted in valid blob
-            if (!compressedBlob || compressedBlob.size === 0) {
-              throw new Error("Compression resulted in empty file");
-            }
-
-            blobs.push({
-              blob: compressedBlob,
-              name: uniqueFilename,
-              originalFile: file,
-              timestamp: Date.now(),
-              originalSize: originalSize,
-              compressedSize: compressedBlob.size,
-            });
-            successCount++;
-            
-          } catch (compressionError) {
-            console.error(`Error compressing ${file.name}:`, compressionError);
-            failedFiles.push(`${file.name} (compression failed)`);
-            continue;
+          // Validate compressed blob
+          if (!compressedBlob || compressedBlob.size === 0) {
+            // Try one more time with lower quality
+            compressedBlob = await compressSingleImage(file, 30, 1);
           }
 
-          // Animate progress smoothly
-          setProgress(((i + 1) / files.length) * 100);
+          if (!compressedBlob || compressedBlob.size === 0) {
+            failedFiles.push(`${file.name} (compression failed - using original)`);
+            // Use original file as fallback
+            compressedBlob = file.slice(0, file.size, file.type);
+          }
 
-          // Small delay for UI update
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          blobs.push({
+            blob: compressedBlob,
+            name: uniqueFilename,
+            originalFile: file,
+            timestamp: Date.now(),
+            originalSize: originalSize,
+            compressedSize: compressedBlob.size,
+          });
+          successCount++;
           
         } catch (error: any) {
-          console.error(`Error processing file ${i}:`, error);
-          failedFiles.push(files[i].name);
-          continue;
+          console.error(`Error processing ${file.name}:`, error);
+          failedFiles.push(`${file.name} (${error.message || 'processing error'})`);
+          
+          // Try to add original file as fallback
+          try {
+            const fallbackBlob = file.slice(0, file.size, file.type);
+            blobs.push({
+              blob: fallbackBlob,
+              name: generateUniqueFileName(file.name, i),
+              originalFile: file,
+              timestamp: Date.now(),
+              originalSize: file.size,
+              compressedSize: file.size,
+            });
+          } catch (fallbackError) {
+            console.error(`Failed to add fallback for ${file.name}:`, fallbackError);
+          }
         }
+
+        // Update progress
+        setProgress(((i + 1) / files.length) * 100);
+
+        // Small delay for UI update and memory management
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
       
       setCompressedBlobs(blobs);
+      setProcessingFiles([]);
       
-      if (failedFiles.length > 0) {
+      // Show error message if any files failed
+      if (failedFiles.length > 0 && blobs.length > 0) {
         const successMessage = `Successfully compressed ${successCount} out of ${files.length} files.\n\n`;
         let failureMessage = "";
         
@@ -705,12 +802,45 @@ export default function CompressImage() {
         }
         
         setErrorMessage(successMessage + failureMessage);
+      } else if (failedFiles.length === files.length) {
+        setErrorMessage("All files failed to compress. Please try with smaller images or lower quality settings.");
       }
+      
     } catch (error: any) {
       console.error("Compression error:", error);
       setErrorMessage(error.message || "Failed to compress images. Please try again.");
+      
+      // Try to recover any successfully processed files
+      if (compressedBlobs.length === 0) {
+        // If no files were processed, try to add originals as fallback
+        try {
+          const fallbackBlobs: ConvertedFile[] = [];
+          for (let i = 0; i < Math.min(files.length, 5); i++) {
+            const file = files[i];
+            try {
+              fallbackBlobs.push({
+                blob: file.slice(0, file.size, file.type),
+                name: generateUniqueFileName(file.name, i),
+                originalFile: file,
+                timestamp: Date.now(),
+                originalSize: file.size,
+                compressedSize: file.size,
+              });
+            } catch (e) {
+              console.error("Fallback failed:", e);
+            }
+          }
+          if (fallbackBlobs.length > 0) {
+            setCompressedBlobs(fallbackBlobs);
+            setErrorMessage("Partial recovery: Some files were recovered as originals. Please try compressing smaller batches.");
+          }
+        } catch (e) {
+          console.error("Recovery failed:", e);
+        }
+      }
     } finally {
       setCompressing(false);
+      setProcessingFiles([]);
     }
   };
 
@@ -846,6 +976,7 @@ export default function CompressImage() {
     setProgress(0);
     setShowFeatures(true);
     setErrorMessage("");
+    setProcessingFiles([]);
   };
 
   const hasFiles = files.length > 0;
@@ -1060,6 +1191,11 @@ export default function CompressImage() {
                       <span>Smaller Size</span>
                       <span>Better Quality</span>
                     </div>
+                    {isMobile && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                        📱 Mobile mode: Large images will use optimized settings automatically
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -1127,7 +1263,7 @@ export default function CompressImage() {
                           file={file}
                           filename={file.name}
                           onRemove={() => handleRemoveFile(index)}
-                          status="Ready to Compress"
+                          status={processingFiles.includes(file.name) ? "Compressing..." : "Ready to Compress"}
                           index={index}
                           originalSize={file.size}
                         />
@@ -1146,7 +1282,7 @@ export default function CompressImage() {
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Compressing your images...
+                            {processingFiles.length > 0 ? `Processing: ${processingFiles[0]}` : "Compressing your images..."}
                           </span>
                         </div>
                       </div>
@@ -1368,48 +1504,74 @@ export default function CompressImage() {
             </div>
 
             <section className="mt-20">
-              <h2 className="text-3xl font-bold text-center mb-10">
-                How to Compress Images Online
-              </h2>
+  <h2 className="text-3xl font-bold text-center mb-10 text-gray-900 dark:text-white">
+    How to Compress Images Online
+  </h2>
 
-              <div className="grid gap-6 md:grid-cols-4">
-                {/* Step 1 */}
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">1</div>
-                  <h3 className="font-semibold text-lg">Upload Images</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Upload one or multiple images using drag & drop or the upload button
-                  </p>
-                </div>
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    
+    {/* Step 1 */}
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
+      <div className="text-4xl font-bold text-purple-600 mb-2">
+        1
+      </div>
 
-                {/* Step 2 */}
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">2</div>
-                  <h3 className="font-semibold text-lg">Select Compression Settings</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Adjust compression quality slider to balance file size and image quality
-                  </p>
-                </div>
+      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+        Upload Images
+      </h3>
 
-                {/* Step 3 */}
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">3</div>
-                  <h3 className="font-semibold text-lg">Compress Images</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Click compress button to reduce image size while maintaining visual quality
-                  </p>
-                </div>
+      <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+        Upload one or multiple images using drag & drop or the upload button
+      </p>
+    </div>
 
-                {/* Step 4 */}
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-purple-600 mb-2">4</div>
-                  <h3 className="font-semibold text-lg">Download Files</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Download compressed images individually or as a ZIP folder
-                  </p>
-                </div>
-              </div>
-            </section>
+    {/* Step 2 */}
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
+      <div className="text-4xl font-bold text-purple-600 mb-2">
+        2
+      </div>
+
+      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+        Select Compression Settings
+      </h3>
+
+      <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+        Adjust compression quality slider to balance file size and image quality
+      </p>
+    </div>
+
+    {/* Step 3 */}
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
+      <div className="text-4xl font-bold text-purple-600 mb-2">
+        3
+      </div>
+
+      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+        Compress Images
+      </h3>
+
+      <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+        Click compress button to reduce image size while maintaining visual quality
+      </p>
+    </div>
+
+    {/* Step 4 */}
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
+      <div className="text-4xl font-bold text-purple-600 mb-2">
+        4
+      </div>
+
+      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+        Download Files
+      </h3>
+
+      <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+        Download compressed images individually or as a ZIP folder
+      </p>
+    </div>
+
+  </div>
+</section>
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">

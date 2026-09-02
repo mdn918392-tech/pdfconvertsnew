@@ -11,325 +11,172 @@ export interface PdfSettings {
   imagesPerPage: 1 | 2 | 4;
 }
 
-/**
- * Compress an image file
-// imageUtils.ts में यह function update करें
+// ============================================================
+// 1. DEVICE DETECTION HELPERS
+// ============================================================
+
+const isMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  ) || window.innerWidth < 768;
+};
+
+const getDeviceLimits = () => {
+  const isMobile = isMobileDevice();
+  return {
+    isMobile,
+    MAX_FILE_SIZE: isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024, // 30MB mobile, 200MB desktop
+    MAX_DIMENSION: isMobile ? 4000 : 8000,
+    MAX_PIXELS: isMobile ? 4000 * 4000 : 8000 * 8000,
+    MAX_IMAGE_SIZE_MB: isMobile ? 30 : 200,
+    TIMEOUT_MS: isMobile ? 15000 : 8000,
+    DEFAULT_QUALITY: isMobile ? 0.75 : 0.85,
+  };
+};
+
+// ============================================================
+// 2. IMAGE COMPRESSION - MAIN FUNCTION
+// ============================================================
 
 /**
- * Compress an image file (PNG or JPG)
- * PNG files are converted to JPG format
+ * Compress an image file with retry logic for mobile devices
  */
 export async function compressImage(
   file: File | Blob,
-  quality = 0.8
+  quality = 0.8,
+  retryCount = 0
 ): Promise<Blob> {
+  const limits = getDeviceLimits();
+  const maxRetries = 2;
+  
   try {
-    // If it's a PNG file, convert to JPG first
+    // Validate file
+    if (!file || file.size === 0) {
+      throw new Error('File is empty or corrupted');
+    }
+
+    // Check file size limit
+    if (file.size > limits.MAX_FILE_SIZE) {
+      throw new Error(
+        `File size too large (${(file.size / 1024 / 1024).toFixed(1)}MB). ` +
+        `Maximum supported file size is ${limits.MAX_IMAGE_SIZE_MB}MB for ${limits.isMobile ? 'mobile' : 'desktop'} devices.`
+      );
+    }
+
+    // For PNG files, convert to JPG first
     if (file instanceof File && file.type === 'image/png') {
-      // First convert PNG to JPG
       const jpgBlob = await convertPngToJpg(file);
       
       // Then compress the JPG
       const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
+        maxSizeMB: limits.isMobile ? 1 : 5,
+        maxWidthOrHeight: limits.isMobile ? 1920 : 4096,
         useWebWorker: true,
         initialQuality: quality,
+        onProgress: undefined,
       };
       
       const jpgFile = new File([jpgBlob], 'converted.jpg', { type: 'image/jpeg' });
       const compressedFile = await imageCompression(jpgFile, options);
+      
+      // Validate compression result
+      if (!compressedFile || compressedFile.size === 0) {
+        throw new Error('Compression resulted in empty file');
+      }
+      
       return compressedFile;
     }
     
     // For JPG files, compress directly
     const options = {
-      maxSizeMB: 1,
-      maxWidthOrHeight: 1920,
+      maxSizeMB: limits.isMobile ? 1 : 5,
+      maxWidthOrHeight: limits.isMobile ? 1920 : 4096,
       useWebWorker: true,
       initialQuality: quality,
+      onProgress: undefined,
     };
 
     let fileToCompress: File;
     
     if (file instanceof Blob && !(file instanceof File)) {
-      // Convert Blob to File
       fileToCompress = new File([file], 'image.jpg', { type: 'image/jpeg' });
     } else {
       fileToCompress = file as File;
     }
     
     const compressedFile = await imageCompression(fileToCompress, options);
+    
+    // Validate compression result
+    if (!compressedFile || compressedFile.size === 0) {
+      throw new Error('Compression resulted in empty file');
+    }
+    
+    // If compressed file is larger than original and quality is not too low, retry with lower quality
+    if (compressedFile.size > fileToCompress.size && quality > 0.4 && retryCount < maxRetries) {
+      const newQuality = Math.max(quality - 0.2, 0.3);
+      console.log(`Retry ${retryCount + 1}: Compressing with quality ${newQuality}`);
+      return await compressImage(file, newQuality, retryCount + 1);
+    }
+    
     return compressedFile;
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Compression error:', error);
-    throw new Error('Failed to compress image');
+    
+    // Retry with lower quality if possible
+    if (retryCount < maxRetries && quality > 0.3) {
+      const newQuality = Math.max(quality - 0.2, 0.3);
+      console.log(`Retry ${retryCount + 1} with quality ${newQuality}`);
+      return await compressImage(file, newQuality, retryCount + 1);
+    }
+    
+    // Final fallback: return original file
+    if (file instanceof Blob && file.size > 0) {
+      console.warn('Using original file as fallback');
+      return file.slice(0, file.size, file.type);
+    }
+    
+    throw new Error(`Failed to compress image: ${error.message}`);
   }
 }
 
-// Add this function to your imageUtils.ts
-export const processImageForPdf = async (
-  blob: Blob, 
-  options: { flipHorizontal?: boolean; flipVertical?: boolean } = {}
-): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(blob);
-      
-      img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-              reject(new Error('Canvas context not available'));
-              return;
-          }
-          
-          // Apply transformations
-          if (options.flipHorizontal || options.flipVertical) {
-              ctx.save();
-              
-              // Move to center
-              ctx.translate(canvas.width / 2, canvas.height / 2);
-              
-              // Apply flips
-              if (options.flipHorizontal) {
-                  ctx.scale(-1, 1);
-              }
-              if (options.flipVertical) {
-                  ctx.scale(1, -1);
-              }
-              
-              // Draw image centered
-              ctx.drawImage(img, -img.width / 2, -img.height / 2);
-              ctx.restore();
-          } else {
-              ctx.drawImage(img, 0, 0);
-          }
-          
-          canvas.toBlob((newBlob) => {
-              if (newBlob) {
-                  resolve(newBlob);
-              } else {
-                  reject(new Error('Failed to create blob'));
-              }
-              URL.revokeObjectURL(url);
-          }, 'image/jpeg', 0.95);
-      };
-      
-      img.onerror = () => {
-          reject(new Error('Failed to load image'));
-          URL.revokeObjectURL(url);
-      };
-      
-      img.src = url;
-  });
-};
-// --------------------------------------------------
+// ============================================================
+// 3. PNG TO JPG CONVERSION
+// ============================================================
 
-// Add to your existing imageUtils.ts file
-export const resizeImage = async (
-  file: File,
-  width: number,
-  height: number,
-  quality: number = 85,
-  format: 'jpg' | 'png' | 'webp' = 'jpg'
-): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      reject(new Error('Canvas context not available'));
-      return;
-    }
-
-    img.onload = () => {
-      // Set canvas dimensions
-      canvas.width = width;
-      canvas.height = height;
-      
-      // Draw image with high quality scaling
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      // Convert to blob based on format
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error('Failed to create blob'));
-          }
-        },
-        `image/${format}`,
-        quality / 100
-      );
-    };
-    
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = URL.createObjectURL(file);
-  });
-};
-
-// Add this function to your existing imageUtils.ts file
-export const convertWebpToJpg = (file: File): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image();
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) {
-      reject(new Error("Canvas context not available"));
-      return;
-    }
-
-    img.onload = () => {
-      try {
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        // Draw the WebP image onto the canvas
-        ctx.drawImage(img, 0, 0);
-
-        // Convert canvas to JPG blob
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error("Failed to convert WebP to JPG"));
-            }
-          },
-          "image/jpeg",
-          0.92 // Quality: 0.92 (92%)
-        );
-      } catch (error) {
-        reject(error);
-      }
-    };
-
-    img.onerror = () => {
-      reject(new Error("Failed to load WebP image"));
-    };
-
-    img.src = URL.createObjectURL(file);
-  });
-};
-
-
-export const rotateImage = (file: File, degrees: number): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image();
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) {
-      reject(new Error("Canvas context not available"));
-      return;
-    }
-
-    img.onload = () => {
-      try {
-        // Calculate new canvas size based on rotation
-        if (degrees === 90 || degrees === 270) {
-          canvas.width = img.height;
-          canvas.height = img.width;
-        } else {
-          canvas.width = img.width;
-          canvas.height = img.height;
-        }
-
-        // Translate and rotate
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((degrees * Math.PI) / 180);
-        ctx.translate(-img.width / 2, -img.height / 2);
-
-        // Draw the image
-        ctx.drawImage(img, 0, 0);
-
-        // Convert to original format
-        const mimeType = file.type || "image/jpeg";
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error("Failed to rotate image"));
-            }
-          },
-          mimeType,
-          0.92 // Quality: 0.92 (92%)
-        );
-      } catch (error) {
-        reject(error);
-      }
-    };
-
-    img.onerror = () => {
-      reject(new Error("Failed to load image"));
-    };
-
-    img.src = URL.createObjectURL(file);
-  });
-};
-
-// Add this function to your existing imageUtils.ts file
-export const downloadMultipleFiles = (files: { blob: Blob; filename: string }[]) => {
-  // Create a temporary link for each file
-  files.forEach((file) => {
-    const url = URL.createObjectURL(file.blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file.filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    // Add small delay between downloads to avoid browser restrictions
-    setTimeout(() => {}, 100);
-  });
-};
 /**
- * Convert PNG to JPG with white background
+ * Convert PNG to JPG with white background - Optimized for mobile
  */
-// utils/imageUtils.ts
-
-export async function convertPngToJpg(file: File, quality = 0.9): Promise<Blob> {
+export async function convertPngToJpg(file: File | Blob, quality = 0.9): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    // Check if running in browser (client-side)
+    // Check if running in browser
     if (typeof window === 'undefined') {
       reject(new Error('This function can only run in the browser'));
       return;
     }
 
-    // डिवाइस डिटेक्शन
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    ) || window.innerWidth < 768;
+    const limits = getDeviceLimits();
     
-    // डिवाइस के हिसाब से अलग-अलग लिमिट
-    const MAX_FILE_SIZE = isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024;
-    const MAX_DIMENSION = isMobile ? 4000 : 8000;
-    const MAX_PIXELS = isMobile ? 4000 * 4000 : 8000 * 8000;
-    
-    // फाइल साइज चेक
-    if (file.size > MAX_FILE_SIZE) {
+    // File size check
+    if (file.size > limits.MAX_FILE_SIZE) {
       reject(new Error(
         `File size too large (${(file.size/1024/1024).toFixed(1)}MB). ` +
-        `Maximum supported file size is ${isMobile ? '30MB' : '200MB'} for ${isMobile ? 'mobile' : 'desktop'} devices.`
+        `Maximum supported file size is ${limits.MAX_IMAGE_SIZE_MB}MB for ${limits.isMobile ? 'mobile' : 'desktop'} devices.`
       ));
       return;
     }
 
     const img = new Image();
     const reader = new FileReader();
+    let loadTimeout: NodeJS.Timeout;
+
+    const cleanup = () => {
+      if (loadTimeout) clearTimeout(loadTimeout);
+      URL.revokeObjectURL(img.src);
+      img.onload = null;
+      img.onerror = null;
+    };
 
     reader.onload = () => {
       img.src = reader.result as string;
@@ -343,16 +190,16 @@ export async function convertPngToJpg(file: File, quality = 0.9): Promise<Blob> 
         // Calculate current pixels
         const currentPixels = width * height;
         
-        // अगर इमेज बहुत बड़ी है तो स्केल करें
-        if (currentPixels > MAX_PIXELS) {
-          const scale = Math.sqrt(MAX_PIXELS / currentPixels);
+        // Scale down if too large
+        if (currentPixels > limits.MAX_PIXELS) {
+          const scale = Math.sqrt(limits.MAX_PIXELS / currentPixels);
           width = Math.floor(width * scale);
           height = Math.floor(height * scale);
         }
         
-        // डाइमेंशन लिमिट चेक
-        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-          const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+        // Dimension limit check
+        if (width > limits.MAX_DIMENSION || height > limits.MAX_DIMENSION) {
+          const ratio = Math.min(limits.MAX_DIMENSION / width, limits.MAX_DIMENSION / height);
           width = Math.floor(width * ratio);
           height = Math.floor(height * ratio);
         }
@@ -363,22 +210,26 @@ export async function convertPngToJpg(file: File, quality = 0.9): Promise<Blob> 
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
+          cleanup();
           reject(new Error('Canvas context not available'));
           return;
         }
 
-        // सफेद बैकग्राउंड (PNG transparency के लिए)
+        // White background for PNG transparency
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw image with scaling if needed
+        // High-quality rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
 
         // Quality adjustment based on device
-        const finalQuality = isMobile ? Math.min(quality, 0.85) : quality;
+        const finalQuality = limits.isMobile ? Math.min(quality, 0.85) : quality;
         
         canvas.toBlob(
           (blob) => {
+            cleanup();
             if (blob) {
               resolve(blob);
             } else {
@@ -389,44 +240,413 @@ export async function convertPngToJpg(file: File, quality = 0.9): Promise<Blob> 
           finalQuality
         );
       } catch (error: any) {
+        cleanup();
         reject(new Error(`Image processing error: ${error.message}`));
       }
     };
 
     img.onerror = () => {
+      cleanup();
       reject(new Error('Failed to load image. The file may be corrupted or too large.'));
     };
     
     reader.onerror = () => {
+      cleanup();
       reject(new Error('Failed to read file'));
     };
+
+    // Set timeout for image loading
+    loadTimeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Image loading timeout (${limits.TIMEOUT_MS}ms)`));
+    }, limits.TIMEOUT_MS);
     
     reader.readAsDataURL(file);
   });
 }
 
-// Use a different name to avoid conflict
-export function downloadImageFile(blob: Blob, filename: string) {
+// ============================================================
+// 4. IMAGE PROCESSING HELPERS
+// ============================================================
+
+/**
+ * Process image for PDF with transformations
+ */
+export const processImageForPdf = async (
+  blob: Blob,
+  options: { flipHorizontal?: boolean; flipVertical?: boolean } = {}
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const limits = getDeviceLimits();
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    let timeout: NodeJS.Timeout;
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      URL.revokeObjectURL(url);
+      img.onload = null;
+      img.onerror = null;
+    };
+
+    timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Image loading timeout for PDF processing`));
+    }, limits.TIMEOUT_MS);
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          cleanup();
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+
+        // Apply transformations
+        if (options.flipHorizontal || options.flipVertical) {
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          if (options.flipHorizontal) ctx.scale(-1, 1);
+          if (options.flipVertical) ctx.scale(1, -1);
+          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, 0, 0);
+        }
+
+        canvas.toBlob(
+          (newBlob) => {
+            cleanup();
+            if (newBlob) {
+              resolve(newBlob);
+            } else {
+              reject(new Error('Failed to create blob'));
+            }
+          },
+          'image/jpeg',
+          0.95
+        );
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      cleanup();
+      reject(new Error('Failed to load image'));
+    };
+
+    img.src = url;
+  });
+};
+
+// ============================================================
+// 5. IMAGE RESIZE
+// ============================================================
+
+export const resizeImage = async (
+  file: File,
+  width: number,
+  height: number,
+  quality: number = 85,
+  format: 'jpg' | 'png' | 'webp' = 'jpg'
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const limits = getDeviceLimits();
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    let timeout: NodeJS.Timeout;
+
+    if (!ctx) {
+      reject(new Error('Canvas context not available'));
+      return;
+    }
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      URL.revokeObjectURL(img.src);
+      img.onload = null;
+      img.onerror = null;
+    };
+
+    timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Image resize timeout (${limits.TIMEOUT_MS}ms)`));
+    }, limits.TIMEOUT_MS);
+
+    img.onload = () => {
+      try {
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            cleanup();
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create blob'));
+            }
+          },
+          `image/${format}`,
+          quality / 100
+        );
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      cleanup();
+      reject(new Error('Failed to load image'));
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+// ============================================================
+// 6. WEBP TO JPG CONVERSION
+// ============================================================
+
+export const convertWebpToJpg = (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const limits = getDeviceLimits();
+    const img = new Image();
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    let timeout: NodeJS.Timeout;
+
+    if (!ctx) {
+      reject(new Error("Canvas context not available"));
+      return;
+    }
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      URL.revokeObjectURL(img.src);
+      img.onload = null;
+      img.onerror = null;
+    };
+
+    timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`WebP conversion timeout (${limits.TIMEOUT_MS}ms)`));
+    }, limits.TIMEOUT_MS);
+
+    img.onload = () => {
+      try {
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0);
+
+        canvas.toBlob(
+          (blob) => {
+            cleanup();
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("Failed to convert WebP to JPG"));
+            }
+          },
+          "image/jpeg",
+          0.92
+        );
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      cleanup();
+      reject(new Error("Failed to load WebP image"));
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+// ============================================================
+// 7. IMAGE ROTATION
+// ============================================================
+
+export const rotateImage = (file: File, degrees: number): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const limits = getDeviceLimits();
+    const img = new Image();
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    let timeout: NodeJS.Timeout;
+
+    if (!ctx) {
+      reject(new Error("Canvas context not available"));
+      return;
+    }
+
+    const cleanup = () => {
+      if (timeout) clearTimeout(timeout);
+      URL.revokeObjectURL(img.src);
+      img.onload = null;
+      img.onerror = null;
+    };
+
+    timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Image rotation timeout (${limits.TIMEOUT_MS}ms)`));
+    }, limits.TIMEOUT_MS);
+
+    img.onload = () => {
+      try {
+        if (degrees === 90 || degrees === 270) {
+          canvas.width = img.height;
+          canvas.height = img.width;
+        } else {
+          canvas.width = img.width;
+          canvas.height = img.height;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((degrees * Math.PI) / 180);
+        ctx.translate(-img.width / 2, -img.height / 2);
+        ctx.drawImage(img, 0, 0);
+
+        const mimeType = file.type || "image/jpeg";
+        canvas.toBlob(
+          (blob) => {
+            cleanup();
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("Failed to rotate image"));
+            }
+          },
+          mimeType,
+          0.92
+        );
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    };
+
+    img.onerror = () => {
+      cleanup();
+      reject(new Error("Failed to load image"));
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+// ============================================================
+// 8. DOWNLOAD FUNCTIONS
+// ============================================================
+
+export function downloadFile(blob: Blob, filename: string) {
   if (typeof window === 'undefined') {
     console.error('Download function can only run in browser');
     return;
   }
-  
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  if (!blob || blob.size === 0) {
+    console.warn('Cannot download empty file:', filename);
+    return;
+  }
+
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    // Clean up after download
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  } catch (error) {
+    console.error('Download failed:', error);
+  }
 }
 
-// --------------------------------------------------
+export function downloadImageFile(blob: Blob, filename: string) {
+  downloadFile(blob, filename);
+}
 
-/**
- * Split PDF into single-page PDFs
- */
+export const downloadMultipleFiles = (files: { blob: Blob; filename: string }[]) => {
+  files.forEach((file, index) => {
+    if (!file.blob || file.blob.size === 0) return;
+    
+    setTimeout(() => {
+      downloadFile(file.blob, file.filename);
+    }, index * 300); // Delay between downloads
+  });
+};
+
+// ============================================================
+// 9. ZIP DOWNLOAD
+// ============================================================
+
+export const downloadAsZip = async (
+  files: Array<{ name: string; blob: Blob }>,
+  zipFileName: string = "converted_images.zip"
+): Promise<void> => {
+  try {
+    // Filter out invalid files
+    const validFiles = files.filter(f => f.blob && f.blob.size > 0);
+    
+    if (validFiles.length === 0) {
+      throw new Error("No valid files to zip");
+    }
+
+    // Dynamic import for smaller bundle
+    const JSZip = (await import("jszip")).default;
+    const zip = new JSZip();
+
+    // Add all files to ZIP
+    validFiles.forEach((file) => {
+      zip.file(file.name, file.blob);
+    });
+
+    // Generate ZIP file
+    const zipBlob = await zip.generateAsync({
+      type: "blob",
+      compression: "DEFLATE",
+      compressionOptions: { level: 6 }
+    });
+
+    // Download
+    downloadFile(zipBlob, zipFileName);
+  } catch (error) {
+    console.error("Error creating ZIP file:", error);
+    throw new Error(`Failed to create ZIP file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+// ============================================================
+// 10. PDF FUNCTIONS
+// ============================================================
+
 export async function pdfToImages(file: File): Promise<Blob[]> {
   const buffer = await file.arrayBuffer();
   const pdf = await PDFDocument.load(buffer);
@@ -440,11 +660,9 @@ export async function pdfToImages(file: File): Promise<Blob[]> {
 
     const bytes = await newPdf.save();
 
-    // ✅ FIX: Convert Uint8Array to ArrayBuffer safely
-    // Create a new ArrayBuffer and copy the data
     const arrayBuffer = new ArrayBuffer(bytes.length);
     const view = new Uint8Array(arrayBuffer);
-    view.set(bytes); // Copy bytes to the new ArrayBuffer
+    view.set(bytes);
 
     output.push(
       new Blob([arrayBuffer], { type: 'application/pdf' })
@@ -454,49 +672,6 @@ export async function pdfToImages(file: File): Promise<Blob[]> {
   return output;
 }
 
-
-
-// utils/imageUtils.ts में नया फ़ंक्शन जोड़ें
-
-// ZIP डाउनलोड फ़ंक्शन
-export const downloadAsZip = async (
-  files: Array<{ name: string; blob: Blob }>,
-  zipFileName: string = "converted_images.zip"
-): Promise<void> => {
-  try {
-    // JSZip इंस्टॉल करना पड़ेगा
-    const JSZip = (await import("jszip")).default;
-    const zip = new JSZip();
-
-    // सभी फाइलें ZIP में जोड़ें
-    files.forEach((file, index) => {
-      zip.file(file.name, file.blob);
-    });
-
-    // ZIP फाइल जेनरेट करें
-    const zipBlob = await zip.generateAsync({ type: "blob" });
-
-    // डाउनलोड लिंक बनाएं
-    const url = URL.createObjectURL(zipBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = zipFileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Clean up
-    URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Error creating ZIP file:", error);
-    throw new Error("Failed to create ZIP file");
-  }
-};
-// --------------------------------------------------
-
-/**
- * Convert images to single PDF with customizable settings
- */
 export async function downloadAsPdf(
   images: Array<{ blob: Blob; name: string }>,
   settings: PdfSettings = {
@@ -508,13 +683,11 @@ export async function downloadAsPdf(
 ): Promise<Blob> {
   const pdfDoc = await PDFDocument.create();
 
-  // Add metadata
   pdfDoc.setTitle('Compressed Images');
   pdfDoc.setAuthor('Image Compressor Tool');
   pdfDoc.setCreationDate(new Date());
   pdfDoc.setModificationDate(new Date());
 
-  // Define paper sizes in points (1 point = 1/72 inch)
   const paperSizes = {
     'AA': { width: 595, height: 842 },
     'Letter': { width: 612, height: 792 },
@@ -522,57 +695,44 @@ export async function downloadAsPdf(
     'A3': { width: 842, height: 1191 },
   };
 
-  // Get paper size
   const { width: baseWidth, height: baseHeight } = paperSizes[settings.paperSize];
-  
-  // Adjust for orientation
   const pageWidth = settings.orientation === 'landscape' ? baseHeight : baseWidth;
   const pageHeight = settings.orientation === 'landscape' ? baseWidth : baseHeight;
 
-  // Prepare images array (reverse if needed)
   let processedImages = [...images];
   if (settings.reverseOrder) {
     processedImages.reverse();
   }
 
-  // Calculate grid layout based on images per page
   const gridCols = settings.imagesPerPage === 1 ? 1 : settings.imagesPerPage === 2 ? 2 : 2;
   const gridRows = settings.imagesPerPage === 1 ? 1 : settings.imagesPerPage === 2 ? 1 : 2;
 
-  // Process images in batches based on images per page
   for (let pageIndex = 0; pageIndex < Math.ceil(processedImages.length / settings.imagesPerPage); pageIndex++) {
-    // Add a new page
     const page = pdfDoc.addPage([pageWidth, pageHeight]);
-    
-    // Get images for this page
+
     const startIndex = pageIndex * settings.imagesPerPage;
     const endIndex = Math.min(startIndex + settings.imagesPerPage, processedImages.length);
     const pageImages = processedImages.slice(startIndex, endIndex);
-    
-    // Calculate cell dimensions
+
     const margin = 30;
     const availableWidth = pageWidth - (2 * margin);
     const availableHeight = pageHeight - (2 * margin);
     const cellWidth = availableWidth / gridCols;
     const cellHeight = availableHeight / gridRows;
-    
-    // Place each image in its cell
+
     for (let i = 0; i < pageImages.length; i++) {
       const { blob, name } = pageImages[i];
-      
+
       try {
-        // Calculate grid position
         const row = Math.floor(i / gridCols);
         const col = i % gridCols;
-        
+
         const x = margin + (col * cellWidth);
         const y = pageHeight - margin - ((row + 1) * cellHeight);
-        
-        // Convert blob to base64
+
         const base64 = await blobToBase64(blob);
         const data = base64.split(',')[1];
-        
-        // Determine image type and embed
+
         let embedded;
         try {
           if (blob.type.includes('png')) {
@@ -580,7 +740,6 @@ export async function downloadAsPdf(
           } else if (blob.type.includes('jpeg') || blob.type.includes('jpg')) {
             embedded = await pdfDoc.embedJpg(data);
           } else {
-            // Try as PNG first, then JPEG
             try {
               embedded = await pdfDoc.embedPng(data);
             } catch {
@@ -591,54 +750,47 @@ export async function downloadAsPdf(
           console.warn('Failed to embed image:', name);
           continue;
         }
-        
-        // Calculate dimensions to fit cell (with padding)
+
         const padding = 10;
         const maxWidth = cellWidth - (2 * padding);
         const maxHeight = cellHeight - (2 * padding);
-        
+
         let imgWidth = embedded.width;
         let imgHeight = embedded.height;
-        
-        // Maintain aspect ratio
+
         const scale = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
         imgWidth *= scale;
         imgHeight *= scale;
-        
-        // Center in cell
+
         const centerX = x + (cellWidth - imgWidth) / 2;
         const centerY = y + (cellHeight - imgHeight) / 2;
-        
-        // Draw image on page
+
         page.drawImage(embedded, {
           x: centerX,
           y: centerY,
           width: imgWidth,
           height: imgHeight,
         });
-        
-        // Add caption
+
         page.drawText(`Image ${startIndex + i + 1}: ${name.substring(0, 30)}`, {
           x: x + padding,
           y: y + padding,
           size: 8,
           color: rgb(0.3, 0.3, 0.3),
         });
-        
+
       } catch (error) {
         console.error(`Error processing image ${startIndex + i + 1}:`, error);
       }
     }
-    
-    // Add page number
+
     page.drawText(`Page ${pageIndex + 1} of ${Math.ceil(processedImages.length / settings.imagesPerPage)}`, {
       x: pageWidth - 80,
       y: 20,
       size: 9,
       color: rgb(0.4, 0.4, 0.4),
     });
-    
-    // Add PDF settings info
+
     page.drawText(
       `Settings: ${settings.paperSize} ${settings.orientation}, ${settings.imagesPerPage} per page`,
       {
@@ -650,12 +802,11 @@ export async function downloadAsPdf(
     );
   }
 
-  // If no images were added successfully, add a message page
   if (pdfDoc.getPageCount() === 0) {
     const page = pdfDoc.addPage([pageWidth, pageHeight]);
     const centerX = pageWidth / 2;
     const centerY = pageHeight / 2;
-    
+
     page.drawText('No images could be added to PDF', {
       x: centerX - 100,
       y: centerY,
@@ -664,36 +815,18 @@ export async function downloadAsPdf(
   }
 
   const pdfBytes = await pdfDoc.save();
-  
-  // ✅ FIX: Convert Uint8Array to ArrayBuffer for Blob creation
+
   const arrayBuffer = new ArrayBuffer(pdfBytes.length);
   const view = new Uint8Array(arrayBuffer);
   view.set(pdfBytes);
-  
+
   return new Blob([arrayBuffer], { type: 'application/pdf' });
 }
 
-// --------------------------------------------------
+// ============================================================
+// 11. UTILITY FUNCTIONS
+// ============================================================
 
-/**
- * Download blob
- */
-export function downloadFile(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// --------------------------------------------------
-
-/**
- * Blob → Base64
- */
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -702,3 +835,25 @@ function blobToBase64(blob: Blob): Promise<string> {
     reader.readAsDataURL(blob);
   });
 }
+
+// ============================================================
+// 12. EXPORT ALL FUNCTIONS
+// ============================================================
+
+// Export everything for backward compatibility
+export default {
+  compressImage,
+  convertPngToJpg,
+  processImageForPdf,
+  resizeImage,
+  convertWebpToJpg,
+  rotateImage,
+  downloadFile,
+  downloadImageFile,
+  downloadMultipleFiles,
+  downloadAsZip,
+  pdfToImages,
+  downloadAsPdf,
+  isMobileDevice,
+  getDeviceLimits,
+};

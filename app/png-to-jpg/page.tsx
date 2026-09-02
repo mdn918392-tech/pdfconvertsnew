@@ -175,7 +175,7 @@ interface DownloadNotification {
   type: 'single' | 'zip' | 'multi';
 }
 
-// --- Image Preview Component ---
+// --- FIXED: Image Preview Component with proper object URL management ---
 const ImagePreview = ({
   file,
   onRemove,
@@ -197,70 +197,132 @@ const ImagePreview = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const objectUrlRef = useRef<string | null>(null);
+  const isMountedRef = useRef(true);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  // 🔥 FIXED: Use ref for timeout to avoid type issues
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Create object URL
+  // 🔥 FIXED: Create object URL with proper cleanup
   useEffect(() => {
+    isMountedRef.current = true;
+    
     if (!file) {
-      setError(true);
-      setLoading(false);
+      if (isMountedRef.current) {
+        setError(true);
+        setLoading(false);
+      }
       return;
     }
 
     let url: string | null = null;
     let img: HTMLImageElement | null = null;
 
-    try {
-      url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-
-      // Verify the image can be loaded
-      img = new Image();
-      img.onload = () => {
-        setLoading(false);
-        setError(false);
-      };
-      img.onerror = () => {
-        setError(true);
-        setLoading(false);
-        // Don't log to console in production
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to load image preview:', filename);
+    const loadImage = async () => {
+      try {
+        // Check if file is valid
+        if (file.size === 0) {
+          if (isMountedRef.current) {
+            setError(true);
+            setLoading(false);
+          }
+          return;
         }
-      };
-      
-      // Set timeout to handle images that take too long to load
-      const timeoutId = setTimeout(() => {
-        if (loading) {
+
+        // Create object URL
+        url = URL.createObjectURL(file);
+        objectUrlRef.current = url;
+        
+        if (isMountedRef.current) {
+          setPreviewUrl(url);
+        }
+
+        img = new Image();
+        imgRef.current = img;
+        
+        const imageLoadPromise = new Promise((resolve, reject) => {
+          if (!img) return reject(new Error("Image not created"));
+          
+          img.onload = () => {
+            resolve(true);
+          };
+          img.onerror = () => {
+            reject(new Error("Failed to load image"));
+          };
+        });
+
+        img.src = url;
+
+        // Longer timeout for mobile devices
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) || window.innerWidth < 768;
+        
+        const timeoutDuration = isMobile ? 15000 : 8000;
+
+        // 🔥 FIXED: Use ref for timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutIdRef.current = setTimeout(() => {
+            reject(new Error(`Image load timeout (${timeoutDuration}ms)`));
+          }, timeoutDuration);
+        });
+
+        // Race between image load and timeout
+        await Promise.race([imageLoadPromise, timeoutPromise]);
+
+        // 🔥 FIXED: Clear timeout using ref
+        if (timeoutIdRef.current) {
+          clearTimeout(timeoutIdRef.current);
+          timeoutIdRef.current = null;
+        }
+
+        if (isMountedRef.current) {
+          setLoading(false);
+          setError(false);
+        }
+      } catch (err) {
+        if (isMountedRef.current) {
+          console.warn("Failed to load image preview:", filename);
           setError(true);
           setLoading(false);
-          if (img) {
-            img.onload = null;
-            img.onerror = null;
-          }
         }
-      }, 5000); // 5 second timeout
-
-      img.src = url;
-
-      // Clean up
-      return () => {
-        clearTimeout(timeoutId);
-        if (url) {
-          URL.revokeObjectURL(url);
+        // Clean up on error
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
         }
-        if (img) {
-          img.onload = null;
-          img.onerror = null;
-        }
-      };
-    } catch (err) {
-      setError(true);
-      setLoading(false);
-      if (url) {
-        URL.revokeObjectURL(url);
       }
-    }
-  }, [file, filename, loading]);
+    };
+
+    loadImage();
+
+    // Clean up function
+    return () => {
+      isMountedRef.current = false;
+      // 🔥 FIXED: Clear timeout using ref
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
+      }
+      // Don't revoke the URL here if it's still being used
+      if (img) {
+        img.onload = null;
+        img.onerror = null;
+        img.src = "";
+        imgRef.current = null;
+      }
+    };
+  }, [file, filename]);
+
+  // 🔥 FIXED: Clean up object URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const statusColor =
     status && status.includes("Converted")
@@ -278,7 +340,8 @@ const ImagePreview = ({
   const formatFileSize = (size: number) => {
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   };
 
   const handleImageError = () => {
@@ -288,7 +351,7 @@ const ImagePreview = ({
   return (
     <>
       <AnimatePresence>
-        {previewOpen && previewUrl && (
+        {previewOpen && previewUrl && !error && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -305,7 +368,7 @@ const ImagePreview = ({
             >
               <button
                 onClick={() => setPreviewOpen(false)}
-                className="absolute -top-10 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
               >
                 <XCircle className="w-6 h-6" />
               </button>
@@ -321,10 +384,12 @@ const ImagePreview = ({
                   </div>
                 ) : (
                   <img
+                    key={previewUrl}
                     src={previewUrl}
                     alt={filename}
                     className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
                     onError={handleImageError}
+                    draggable={false}
                   />
                 )}
               </div>
@@ -369,10 +434,13 @@ const ImagePreview = ({
             ) : (
               <>
                 <img
+                  key={previewUrl}
                   src={previewUrl}
                   alt={filename}
                   className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
                   onError={handleImageError}
+                  loading="lazy"
+                  draggable={false}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                   <Eye className="w-8 h-8 text-white" />
@@ -403,7 +471,7 @@ const ImagePreview = ({
               </span>
 
               {/* File Size */}
-              {file.size && (
+              {file.size !== undefined && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {formatFileSize(file.size)}
                 </span>
@@ -529,8 +597,10 @@ export default function PngToJpg() {
   const [isMobile, setIsMobile] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const [allConvertedFiles, setAllConvertedFiles] = useState<ConvertedFile[]>([]);
+  const [processingFiles, setProcessingFiles] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
-  // Detect device type (only for UI hints, no limits)
+  // Detect device type
   useEffect(() => {
     const checkMobile = () => {
       const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -563,25 +633,74 @@ export default function PngToJpg() {
     }
   }, [downloadNotifications]);
 
-  // --- FIXED: handleConvert - Add to existing converted files ---
+  // --- convertSingleFile with retry logic ---
+  const convertSingleFile = async (
+    file: File,
+    quality: number,
+    retryCount = 0
+  ): Promise<Blob> => {
+    const maxRetries = 2;
+    
+    try {
+      // Validate file
+      if (file.size === 0) {
+        throw new Error("File is empty or corrupted");
+      }
+
+      // Check file size - for mobile, limit to 30MB
+      if (isMobile && file.size > 30 * 1024 * 1024) {
+        throw new Error(`File size (${(file.size/1024/1024).toFixed(1)}MB) exceeds mobile limit of 30MB`);
+      }
+
+      // Attempt conversion
+      const blob = await convertPngToJpg(file, quality);
+
+      // Validate result
+      if (!blob || blob.size === 0) {
+        throw new Error("Conversion resulted in empty file");
+      }
+
+      return blob;
+      
+    } catch (error: any) {
+      console.error(`Conversion error for ${file.name} (attempt ${retryCount + 1}):`, error);
+      
+      // Retry with lower quality if possible
+      if (retryCount < maxRetries && quality > 0.3) {
+        const newQuality = Math.max(quality - 0.15, 0.3);
+        console.log(`Retry ${retryCount + 1} for ${file.name} with quality ${newQuality}`);
+        return await convertSingleFile(file, newQuality, retryCount + 1);
+      }
+      
+      // If all retries fail, throw the error
+      throw new Error(`Failed to convert ${file.name}: ${error.message}`);
+    }
+  };
+
+  // --- handleConvert with better error handling ---
   const handleConvert = async () => {
     if (files.length === 0) return;
 
     setConverting(true);
     setProgress(0);
     setShowFeatures(false);
+    setErrorMessage("");
+    setProcessingFiles(files.map(f => f.name));
 
     try {
       const blobs: ConvertedFile[] = [];
       let successCount = 0;
       const failedFiles: { name: string; error: string }[] = [];
       
-      // Process files one by one to avoid memory issues
+      // Process files one by one with delay for memory management
       for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Update current processing file
+        setProcessingFiles([file.name]);
+        
         try {
-          const file = files[i];
-          
-          // Skip corrupted files (size 0)
+          // Skip corrupted files
           if (file.size === 0) {
             failedFiles.push({ 
               name: file.name, 
@@ -589,23 +708,38 @@ export default function PngToJpg() {
             });
             continue;
           }
+
+          // Quality adjustment for mobile
+          let quality = isMobile ? 0.75 : 0.9;
           
+          // For very large files on mobile, reduce quality more
+          if (isMobile && file.size > 10 * 1024 * 1024) {
+            quality = 0.6;
+          }
+          if (isMobile && file.size > 20 * 1024 * 1024) {
+            quality = 0.5;
+          }
+
           const uniqueFilename = generateUniqueFileName(file.name, i);
           
-          // Quality adjustment for mobile
-          const quality = isMobile ? 0.85 : 0.9;
-          
-          // Small delay for memory management
+          // Small delay for memory management between files
           if (i > 0) {
-            await new Promise((resolve) => setTimeout(resolve, 50));
+            await new Promise((resolve) => setTimeout(resolve, 100));
           }
           
-          const blob = await convertPngToJpg(file, quality);
+          // Convert with retry logic
+          let blob = await convertSingleFile(file, quality);
+
+          // If blob is still invalid, try one more time with very low quality
+          if (!blob || blob.size === 0) {
+            blob = await convertSingleFile(file, 0.3, 1);
+          }
 
           if (!blob || blob.size === 0) {
-            throw new Error("Conversion resulted in empty file");
+            throw new Error("Conversion failed after all retries");
           }
 
+          // Store the converted file
           blobs.push({
             blob: blob,
             name: uniqueFilename,
@@ -619,21 +753,43 @@ export default function PngToJpg() {
           setProgress(Math.min(progressValue, 100));
           
         } catch (error: any) {
-          console.error(`Error converting file ${i}:`, error);
+          console.error(`Error converting file ${file.name}:`, error);
           failedFiles.push({ 
-            name: files[i].name, 
+            name: file.name, 
             error: error.message || "Conversion failed" 
           });
-          // Continue with next file
+          
+          // Try to save original as fallback for mobile
+          if (isMobile && file.size < 10 * 1024 * 1024) {
+            try {
+              // Try one more time with very aggressive settings
+              const fallbackBlob = await convertSingleFile(file, 0.3, 2);
+              if (fallbackBlob && fallbackBlob.size > 0) {
+                blobs.push({
+                  blob: fallbackBlob,
+                  name: generateUniqueFileName(file.name, i) + ".fallback.jpg",
+                  originalFile: file,
+                  timestamp: Date.now(),
+                });
+                successCount++;
+                continue;
+              }
+            } catch (e) {
+              console.error("Fallback also failed for:", file.name);
+            }
+          }
+          
           continue;
         }
       }
       
-      // 🔥 FIX: Add newly converted files to existing ones
-      setAllConvertedFiles((prev) => [...prev, ...blobs]);
+      setProcessingFiles([]);
       
-      // Show only the newly converted files as results
-      setJpgBlobs(blobs);
+      // Add newly converted files to existing ones
+      if (blobs.length > 0) {
+        setAllConvertedFiles((prev) => [...prev, ...blobs]);
+        setJpgBlobs(blobs);
+      }
       
       // Clear the uploaded files after conversion
       setFiles([]);
@@ -643,23 +799,38 @@ export default function PngToJpg() {
         let errorMessage = `✅ Successfully converted ${successCount} out of ${files.length} files.\n\n`;
         errorMessage += `❌ Failed to convert ${failedFiles.length} file(s):\n\n`;
         
-        failedFiles.forEach((file, index) => {
+        // Show only first 5 failures to avoid huge message
+        const displayFailures = failedFiles.slice(0, 5);
+        displayFailures.forEach((file, index) => {
           errorMessage += `${index + 1}. ${file.name}\n`;
           errorMessage += `   Error: ${file.error}\n\n`;
         });
         
-        errorMessage += `\n💡 Possible reasons:\n`;
-        errorMessage += `• File may be corrupted or damaged\n`;
-        errorMessage += `• File format may not be valid PNG\n`;
-        errorMessage += `• Browser memory limitations (try with fewer files)\n`;
+        if (failedFiles.length > 5) {
+          errorMessage += `... and ${failedFiles.length - 5} more files failed\n\n`;
+        }
         
+        errorMessage += `\n💡 Possible solutions:\n`;
+        errorMessage += `• Try converting fewer files at once\n`;
+        errorMessage += `• Check if your PNG files are valid\n`;
+        errorMessage += `• On mobile, try files under 30MB\n`;
+        
+        setErrorMessage(errorMessage);
         alert(errorMessage);
+      } else if (successCount > 0) {
+        // Show success message
+        const successMsg = `✅ Successfully converted ${successCount} PNG files to JPG!`;
+        setErrorMessage(successMsg);
       }
+      
     } catch (error: any) {
       console.error("Conversion error:", error);
-      alert(`❌ Conversion Failed\n\nError: ${error.message || "Unknown error"}\n\nPlease try again with fewer files or check if your images are valid PNG files.`);
+      const errorMsg = `❌ Conversion Failed\n\nError: ${error.message || "Unknown error"}\n\nPlease try again with fewer files or check if your images are valid PNG files.`;
+      setErrorMessage(errorMsg);
+      alert(errorMsg);
     } finally {
       setConverting(false);
+      setProcessingFiles([]);
     }
   };
 
@@ -674,14 +845,18 @@ export default function PngToJpg() {
       const zip = new JSZip();
       
       // Add all JPG files to the zip
-      filesToDownload.forEach((item, index) => {
+      filesToDownload.forEach((item) => {
         if (item.blob && item.blob.size > 0) {
           zip.file(item.name, item.blob);
         }
       });
 
       // Generate zip file
-      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const zipBlob = await zip.generateAsync({ 
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 }
+      });
       
       // Create download link
       const zipName = `converted_images_${new Date().getTime()}.zip`;
@@ -705,7 +880,7 @@ export default function PngToJpg() {
       }, 5000);
     } catch (error) {
       console.error("ZIP creation error:", error);
-      alert("Failed to create ZIP archive. Please try again.");
+      alert("Failed to create ZIP archive. Please try again or download files individually.");
     } finally {
       setZipDownloading(false);
     }
@@ -715,10 +890,14 @@ export default function PngToJpg() {
     // Use all converted files (including previous ones)
     const filesToDownload = allConvertedFiles.length > 0 ? allConvertedFiles : jpgBlobs;
     
-    // Downloads all converted files individually
-    filesToDownload.forEach((item) => {
+    if (filesToDownload.length === 0) return;
+    
+    // Downloads all converted files individually with delay
+    filesToDownload.forEach((item, index) => {
       if (item.blob && item.blob.size > 0) {
-        downloadFile(item.blob, item.name);
+        setTimeout(() => {
+          downloadFile(item.blob, item.name);
+        }, index * 200);
       }
     });
 
@@ -776,25 +955,36 @@ export default function PngToJpg() {
     );
   };
 
-  // ─── 🔥 UPDATED: handleFilesSelected – APPEND to existing files ───
+  // ─── handleFilesSelected – APPEND to existing files with validation ───
   const handleFilesSelected = (newFiles: File[]) => {
-    // Filter valid PNG files – NO SIZE LIMIT, NO COUNT LIMIT
+    // Filter valid PNG files
     const filteredFiles = newFiles.filter(file => {
-      if (!file.type.includes('png') && !file.name.toLowerCase().endsWith('.png')) {
+      // Check if it's a PNG file
+      const isPng = file.type.includes('png') || file.name.toLowerCase().endsWith('.png');
+      if (!isPng) {
         alert(`❌ File "${file.name}" is not a PNG image.\n\nPlease select valid PNG files only.`);
         return false;
       }
       
+      // Check if file is empty
       if (file.size === 0) {
         alert(`❌ File "${file.name}" appears to be empty or corrupted.\n\nPlease check the file and try again.`);
         return false;
       }
+      
+      // For mobile, warn about large files but don't reject
+      if (isMobile && file.size > 30 * 1024 * 1024) {
+        if (!confirm(`⚠️ File "${file.name}" is ${(file.size/1024/1024).toFixed(1)}MB.\n\nLarge files may take longer or fail on mobile devices.\n\nDo you want to continue?`)) {
+          return false;
+        }
+      }
+      
       return true;
     });
     
     if (filteredFiles.length === 0) return;
     
-    // 🔥 APPEND new files to existing ones
+    // APPEND new files to existing ones
     setFiles((prev) => [...prev, ...filteredFiles]);
     setShowFeatures(false);
   };
@@ -805,6 +995,8 @@ export default function PngToJpg() {
     setAllConvertedFiles([]);
     setProgress(0);
     setShowFeatures(true);
+    setErrorMessage("");
+    setProcessingFiles([]);
   };
 
   const hasFiles = files.length > 0;
@@ -1044,7 +1236,7 @@ export default function PngToJpg() {
                           file={file}
                           filename={file.name}
                           onRemove={() => handleRemoveFile(index)}
-                          status="Ready to Convert"
+                          status={processingFiles.includes(file.name) ? "Converting..." : "Ready to Convert"}
                           index={index}
                         />
                       ))}
@@ -1062,7 +1254,7 @@ export default function PngToJpg() {
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing your images...
+                            {processingFiles.length > 0 ? `Processing: ${processingFiles[0]}` : "Converting your images..."}
                           </span>
                         </div>
                       </div>
@@ -1279,48 +1471,53 @@ export default function PngToJpg() {
             <section
               id="how-to-png-to-jpg"
               className="mt-20 scroll-mt-24"
-             >
-              <h2 className="text-3xl font-bold text-center mb-10">
+            >
+              <h2 className="text-3xl font-bold text-center mb-10 text-gray-900 dark:text-white">
                 How to Convert PNG to JPG Online
               </h2>
 
-              <div className="grid gap-6 md:grid-cols-5">
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                {/* Step 1 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
                   <div className="text-4xl font-bold text-pink-600 mb-2">1</div>
-                  <h3 className="font-semibold text-lg">Upload PNG Images</h3>
-                  <p className="text-gray-600 text-sm mt-2">
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Upload PNG Images</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
                     Upload PNG images using drag & drop or file picker.
                   </p>
                 </div>
 
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                {/* Step 2 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
                   <div className="text-4xl font-bold text-pink-600 mb-2">2</div>
-                  <h3 className="font-semibold text-lg">Review Files</h3>
-                  <p className="text-gray-600 text-sm mt-2">
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Review Files</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
                     Check uploaded PNG images and remove any file if needed.
                   </p>
                 </div>
 
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                {/* Step 3 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
                   <div className="text-4xl font-bold text-pink-600 mb-2">3</div>
-                  <h3 className="font-semibold text-lg">Convert to JPG</h3>
-                  <p className="text-gray-600 text-sm mt-2">
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Convert to JPG</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
                     Click the convert button to change PNG images into JPG format.
                   </p>
                 </div>
 
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                {/* Step 4 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
                   <div className="text-4xl font-bold text-pink-600 mb-2">4</div>
-                  <h3 className="font-semibold text-lg">Preview Results</h3>
-                  <p className="text-gray-600 text-sm mt-2">
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Preview Results</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
                     Preview converted JPG images with reduced file size.
                   </p>
                 </div>
 
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+                {/* Step 5 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
                   <div className="text-4xl font-bold text-pink-600 mb-2">5</div>
-                  <h3 className="font-semibold text-lg">Download JPG Files</h3>
-                  <p className="text-gray-600 text-sm mt-2">
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Download JPG Files</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
                     Download images individually or as a single ZIP archive.
                   </p>
                 </div>
