@@ -265,6 +265,35 @@ export async function convertPngToJpg(file: File | Blob, quality = 0.9): Promise
   });
 }
 
+export async function compressImageAll(
+  file: File | Blob,
+  quality = 0.8
+): Promise<Blob> {
+  try {
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+      initialQuality: quality,
+    };
+
+    let fileToCompress: File;
+    
+    if (file instanceof Blob && !(file instanceof File)) {
+      // Convert Blob to File
+      fileToCompress = new File([file], 'image.jpg', { type: file.type || 'image/jpeg' });
+    } else {
+      fileToCompress = file as File;
+    }
+    
+    const compressedFile = await imageCompression(fileToCompress, options);
+    return compressedFile;
+    
+  } catch (error) {
+    console.error('Compression error:', error);
+    throw new Error('Failed to compress image');
+  }
+}
 // ============================================================
 // 4. IMAGE PROCESSING HELPERS
 // ============================================================

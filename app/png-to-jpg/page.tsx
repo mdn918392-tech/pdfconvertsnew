@@ -184,6 +184,8 @@ const ImagePreview = ({
   filename = "image.jpg",
   index,
   onSingleDownload,
+  showFileSize = false,
+  originalSize = 0,
 }: {
   file: Blob | File;
   onRemove?: () => void;
@@ -192,6 +194,8 @@ const ImagePreview = ({
   filename: string;
   index: number;
   onSingleDownload?: () => void;
+  showFileSize?: boolean;
+  originalSize?: number;
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -200,10 +204,29 @@ const ImagePreview = ({
   const objectUrlRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
   const imgRef = useRef<HTMLImageElement | null>(null);
-  // 🔥 FIXED: Use ref for timeout to avoid type issues
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 🔥 FIXED: Create object URL with proper cleanup
+  // Format file size helper
+  const formatFileSize = (size: number) => {
+    if (size === 0) return '0 B';
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  // Calculate size reduction
+  const getSizeReduction = () => {
+    if (!showFileSize || !originalSize || originalSize === 0) return null;
+    const currentSize = file.size || 0;
+    if (currentSize === 0) return null;
+    const reduction = ((originalSize - currentSize) / originalSize) * 100;
+    return reduction > 0 ? reduction : 0;
+  };
+
+  const sizeReduction = getSizeReduction();
+
+  // FIXED: Create object URL with proper cleanup
   useEffect(() => {
     isMountedRef.current = true;
     
@@ -220,7 +243,6 @@ const ImagePreview = ({
 
     const loadImage = async () => {
       try {
-        // Check if file is valid
         if (file.size === 0) {
           if (isMountedRef.current) {
             setError(true);
@@ -229,7 +251,6 @@ const ImagePreview = ({
           return;
         }
 
-        // Create object URL
         url = URL.createObjectURL(file);
         objectUrlRef.current = url;
         
@@ -253,24 +274,20 @@ const ImagePreview = ({
 
         img.src = url;
 
-        // Longer timeout for mobile devices
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
           navigator.userAgent
         ) || window.innerWidth < 768;
         
         const timeoutDuration = isMobile ? 15000 : 8000;
 
-        // 🔥 FIXED: Use ref for timeout
         const timeoutPromise = new Promise((_, reject) => {
           timeoutIdRef.current = setTimeout(() => {
             reject(new Error(`Image load timeout (${timeoutDuration}ms)`));
           }, timeoutDuration);
         });
 
-        // Race between image load and timeout
         await Promise.race([imageLoadPromise, timeoutPromise]);
 
-        // 🔥 FIXED: Clear timeout using ref
         if (timeoutIdRef.current) {
           clearTimeout(timeoutIdRef.current);
           timeoutIdRef.current = null;
@@ -286,7 +303,6 @@ const ImagePreview = ({
           setError(true);
           setLoading(false);
         }
-        // Clean up on error
         if (objectUrlRef.current) {
           URL.revokeObjectURL(objectUrlRef.current);
           objectUrlRef.current = null;
@@ -296,15 +312,12 @@ const ImagePreview = ({
 
     loadImage();
 
-    // Clean up function
     return () => {
       isMountedRef.current = false;
-      // 🔥 FIXED: Clear timeout using ref
       if (timeoutIdRef.current) {
         clearTimeout(timeoutIdRef.current);
         timeoutIdRef.current = null;
       }
-      // Don't revoke the URL here if it's still being used
       if (img) {
         img.onload = null;
         img.onerror = null;
@@ -314,7 +327,6 @@ const ImagePreview = ({
     };
   }, [file, filename]);
 
-  // 🔥 FIXED: Clean up object URL when component unmounts
   useEffect(() => {
     return () => {
       if (objectUrlRef.current) {
@@ -337,11 +349,12 @@ const ImagePreview = ({
     }
   };
 
-  const formatFileSize = (size: number) => {
+  const formatFileSizeDisplay = (size: number) => {
+    if (size === 0) return '0 B';
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   };
 
   const handleImageError = () => {
@@ -428,7 +441,7 @@ const ImagePreview = ({
                   Preview not available
                 </span>
                 <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  {formatFileSize(file.size || 0)}
+                  {formatFileSizeDisplay(file.size || 0)}
                 </span>
               </div>
             ) : (
@@ -470,10 +483,26 @@ const ImagePreview = ({
                 {status}
               </span>
 
-              {/* File Size */}
-              {file.size !== undefined && (
+              {/* File Size - Show both original and converted sizes */}
+              {showFileSize && originalSize > 0 && file.size > 0 && (
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Original: {formatFileSizeDisplay(originalSize)}
+                  </span>
+                  <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                    Converted: {formatFileSizeDisplay(file.size)}
+                  </span>
+                  {sizeReduction !== null && sizeReduction > 0 && (
+                    <span className="text-xs font-bold text-green-600 dark:text-green-400">
+                      ↓ {sizeReduction.toFixed(1)}% smaller
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              {(!showFileSize || originalSize === 0) && file.size !== undefined && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatFileSize(file.size)}
+                  {formatFileSizeDisplay(file.size)}
                 </span>
               )}
             </div>
@@ -599,6 +628,11 @@ export default function PngToJpg() {
   const [allConvertedFiles, setAllConvertedFiles] = useState<ConvertedFile[]>([]);
   const [processingFiles, setProcessingFiles] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  
+  // Store the total original size for ALL files (including previously converted ones)
+  const [totalOriginalSize, setTotalOriginalSize] = useState<number>(0);
+  // Track how many files have been converted total
+  const [totalConvertedCount, setTotalConvertedCount] = useState<number>(0);
 
   // Detect device type
   useEffect(() => {
@@ -633,6 +667,15 @@ export default function PngToJpg() {
     }
   }, [downloadNotifications]);
 
+  // Format file size helper
+  const formatFileSize = (size: number) => {
+    if (size === 0) return '0 MB';
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
   // --- convertSingleFile with retry logic ---
   const convertSingleFile = async (
     file: File,
@@ -642,20 +685,16 @@ export default function PngToJpg() {
     const maxRetries = 2;
     
     try {
-      // Validate file
       if (file.size === 0) {
         throw new Error("File is empty or corrupted");
       }
 
-      // Check file size - for mobile, limit to 30MB
       if (isMobile && file.size > 30 * 1024 * 1024) {
         throw new Error(`File size (${(file.size/1024/1024).toFixed(1)}MB) exceeds mobile limit of 30MB`);
       }
 
-      // Attempt conversion
       const blob = await convertPngToJpg(file, quality);
 
-      // Validate result
       if (!blob || blob.size === 0) {
         throw new Error("Conversion resulted in empty file");
       }
@@ -665,14 +704,12 @@ export default function PngToJpg() {
     } catch (error: any) {
       console.error(`Conversion error for ${file.name} (attempt ${retryCount + 1}):`, error);
       
-      // Retry with lower quality if possible
       if (retryCount < maxRetries && quality > 0.3) {
         const newQuality = Math.max(quality - 0.15, 0.3);
         console.log(`Retry ${retryCount + 1} for ${file.name} with quality ${newQuality}`);
         return await convertSingleFile(file, newQuality, retryCount + 1);
       }
       
-      // If all retries fail, throw the error
       throw new Error(`Failed to convert ${file.name}: ${error.message}`);
     }
   };
@@ -687,20 +724,23 @@ export default function PngToJpg() {
     setErrorMessage("");
     setProcessingFiles(files.map(f => f.name));
 
+    // Calculate the current batch total size
+    const currentBatchSize = files.reduce((acc, f) => acc + f.size, 0);
+    
+    // Add to the running total original size
+    setTotalOriginalSize(prev => prev + currentBatchSize);
+
     try {
       const blobs: ConvertedFile[] = [];
       let successCount = 0;
       const failedFiles: { name: string; error: string }[] = [];
       
-      // Process files one by one with delay for memory management
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Update current processing file
         setProcessingFiles([file.name]);
         
         try {
-          // Skip corrupted files
           if (file.size === 0) {
             failedFiles.push({ 
               name: file.name, 
@@ -709,10 +749,8 @@ export default function PngToJpg() {
             continue;
           }
 
-          // Quality adjustment for mobile
           let quality = isMobile ? 0.75 : 0.9;
           
-          // For very large files on mobile, reduce quality more
           if (isMobile && file.size > 10 * 1024 * 1024) {
             quality = 0.6;
           }
@@ -722,15 +760,12 @@ export default function PngToJpg() {
 
           const uniqueFilename = generateUniqueFileName(file.name, i);
           
-          // Small delay for memory management between files
           if (i > 0) {
             await new Promise((resolve) => setTimeout(resolve, 100));
           }
           
-          // Convert with retry logic
           let blob = await convertSingleFile(file, quality);
 
-          // If blob is still invalid, try one more time with very low quality
           if (!blob || blob.size === 0) {
             blob = await convertSingleFile(file, 0.3, 1);
           }
@@ -739,7 +774,6 @@ export default function PngToJpg() {
             throw new Error("Conversion failed after all retries");
           }
 
-          // Store the converted file
           blobs.push({
             blob: blob,
             name: uniqueFilename,
@@ -748,7 +782,6 @@ export default function PngToJpg() {
           });
           successCount++;
           
-          // Update progress smoothly
           const progressValue = ((i + 1) / files.length) * 100;
           setProgress(Math.min(progressValue, 100));
           
@@ -759,10 +792,8 @@ export default function PngToJpg() {
             error: error.message || "Conversion failed" 
           });
           
-          // Try to save original as fallback for mobile
           if (isMobile && file.size < 10 * 1024 * 1024) {
             try {
-              // Try one more time with very aggressive settings
               const fallbackBlob = await convertSingleFile(file, 0.3, 2);
               if (fallbackBlob && fallbackBlob.size > 0) {
                 blobs.push({
@@ -785,21 +816,20 @@ export default function PngToJpg() {
       
       setProcessingFiles([]);
       
-      // Add newly converted files to existing ones
       if (blobs.length > 0) {
+        // Update total converted count
+        setTotalConvertedCount(prev => prev + blobs.length);
         setAllConvertedFiles((prev) => [...prev, ...blobs]);
         setJpgBlobs(blobs);
       }
       
-      // Clear the uploaded files after conversion
+      // Clear the uploaded files but KEEP the totalOriginalSize
       setFiles([]);
       
-      // Show detailed error message if any files failed
       if (failedFiles.length > 0) {
         let errorMessage = `✅ Successfully converted ${successCount} out of ${files.length} files.\n\n`;
         errorMessage += `❌ Failed to convert ${failedFiles.length} file(s):\n\n`;
         
-        // Show only first 5 failures to avoid huge message
         const displayFailures = failedFiles.slice(0, 5);
         displayFailures.forEach((file, index) => {
           errorMessage += `${index + 1}. ${file.name}\n`;
@@ -818,8 +848,13 @@ export default function PngToJpg() {
         setErrorMessage(errorMessage);
         alert(errorMessage);
       } else if (successCount > 0) {
-        // Show success message
-        const successMsg = `✅ Successfully converted ${successCount} PNG files to JPG!`;
+        const totalConvertedSize = allConvertedFiles.reduce((acc, b) => acc + b.blob.size, 0) + blobs.reduce((acc, b) => acc + b.blob.size, 0);
+        const reduction = ((totalOriginalSize + currentBatchSize - totalConvertedSize) / (totalOriginalSize + currentBatchSize)) * 100;
+        const successMsg = `✅ Successfully converted ${successCount} PNG files to JPG!\n\n` +
+          `📊 Size Reduction: ${reduction.toFixed(1)}%\n` +
+          `📁 Original Size: ${formatFileSize(totalOriginalSize + currentBatchSize)}\n` +
+          `📁 Converted Size: ${formatFileSize(totalConvertedSize)}\n\n` +
+          `💾 Saved: ${formatFileSize((totalOriginalSize + currentBatchSize) - totalConvertedSize)}`;
         setErrorMessage(successMsg);
       }
       
@@ -835,7 +870,6 @@ export default function PngToJpg() {
   };
 
   const handleDownloadAllAsZip = async () => {
-    // Use all converted files (including previous ones)
     const filesToDownload = allConvertedFiles.length > 0 ? allConvertedFiles : jpgBlobs;
     
     if (filesToDownload.length === 0) return;
@@ -844,25 +878,21 @@ export default function PngToJpg() {
     try {
       const zip = new JSZip();
       
-      // Add all JPG files to the zip
       filesToDownload.forEach((item) => {
         if (item.blob && item.blob.size > 0) {
           zip.file(item.name, item.blob);
         }
       });
 
-      // Generate zip file
       const zipBlob = await zip.generateAsync({ 
         type: "blob",
         compression: "DEFLATE",
         compressionOptions: { level: 6 }
       });
       
-      // Create download link
       const zipName = `converted_images_${new Date().getTime()}.zip`;
       downloadFile(zipBlob, zipName);
 
-      // Add download notification
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
         fileName: zipName,
@@ -872,7 +902,6 @@ export default function PngToJpg() {
       };
       setDownloadNotifications((prev) => [...prev, notification]);
 
-      // Auto-remove notification after 5 seconds
       setTimeout(() => {
         setDownloadNotifications((prev) =>
           prev.filter((n) => n.id !== notification.id)
@@ -887,12 +916,10 @@ export default function PngToJpg() {
   };
 
   const handleDownloadAllSeparate = () => {
-    // Use all converted files (including previous ones)
     const filesToDownload = allConvertedFiles.length > 0 ? allConvertedFiles : jpgBlobs;
     
     if (filesToDownload.length === 0) return;
     
-    // Downloads all converted files individually with delay
     filesToDownload.forEach((item, index) => {
       if (item.blob && item.blob.size > 0) {
         setTimeout(() => {
@@ -901,7 +928,6 @@ export default function PngToJpg() {
       }
     });
 
-    // Add download notification
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
       fileName: filesToDownload.length === 1 ? filesToDownload[0].name : "Multiple files",
@@ -911,7 +937,6 @@ export default function PngToJpg() {
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
-    // Auto-remove notification after 5 seconds
     setTimeout(() => {
       setDownloadNotifications((prev) =>
         prev.filter((n) => n.id !== notification.id)
@@ -920,7 +945,6 @@ export default function PngToJpg() {
   };
 
   const handleSingleDownload = (index: number) => {
-    // Use all converted files (including previous ones)
     const filesToDownload = allConvertedFiles.length > 0 ? allConvertedFiles : jpgBlobs;
     const item = filesToDownload[index];
     
@@ -931,7 +955,6 @@ export default function PngToJpg() {
 
     downloadFile(item.blob, item.name);
 
-    // Add download notification
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
       fileName: item.name,
@@ -941,7 +964,6 @@ export default function PngToJpg() {
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
-    // Auto-remove notification after 5 seconds
     setTimeout(() => {
       setDownloadNotifications((prev) =>
         prev.filter((n) => n.id !== notification.id)
@@ -957,22 +979,18 @@ export default function PngToJpg() {
 
   // ─── handleFilesSelected – APPEND to existing files with validation ───
   const handleFilesSelected = (newFiles: File[]) => {
-    // Filter valid PNG files
     const filteredFiles = newFiles.filter(file => {
-      // Check if it's a PNG file
       const isPng = file.type.includes('png') || file.name.toLowerCase().endsWith('.png');
       if (!isPng) {
         alert(`❌ File "${file.name}" is not a PNG image.\n\nPlease select valid PNG files only.`);
         return false;
       }
       
-      // Check if file is empty
       if (file.size === 0) {
         alert(`❌ File "${file.name}" appears to be empty or corrupted.\n\nPlease check the file and try again.`);
         return false;
       }
       
-      // For mobile, warn about large files but don't reject
       if (isMobile && file.size > 30 * 1024 * 1024) {
         if (!confirm(`⚠️ File "${file.name}" is ${(file.size/1024/1024).toFixed(1)}MB.\n\nLarge files may take longer or fail on mobile devices.\n\nDo you want to continue?`)) {
           return false;
@@ -984,7 +1002,6 @@ export default function PngToJpg() {
     
     if (filteredFiles.length === 0) return;
     
-    // APPEND new files to existing ones
     setFiles((prev) => [...prev, ...filteredFiles]);
     setShowFeatures(false);
   };
@@ -997,13 +1014,15 @@ export default function PngToJpg() {
     setShowFeatures(true);
     setErrorMessage("");
     setProcessingFiles([]);
+    setTotalOriginalSize(0);
+    setTotalConvertedCount(0);
   };
 
   const hasFiles = files.length > 0;
   const hasResults = jpgBlobs.length > 0;
   const hasAllConverted = allConvertedFiles.length > 0;
   const isReadyToConvert = hasFiles && !converting;
-  const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+  const currentFilesSize = files.reduce((acc, file) => acc + file.size, 0);
 
   // Calculate total size of all converted files
   const allConvertedTotalSize = allConvertedFiles.reduce(
@@ -1016,10 +1035,20 @@ export default function PngToJpg() {
     0
   );
   
-  const sizeReduction =
-    totalSize > 0 && convertedTotalSize > 0
-      ? Math.max(0, ((totalSize - convertedTotalSize) / totalSize) * 100).toFixed(1)
-      : "0";
+  // Use stored totalOriginalSize which accumulates all files ever uploaded
+  const originalTotalSize = totalOriginalSize > 0 
+    ? totalOriginalSize 
+    : allConvertedFiles.reduce((acc, item) => acc + (item.originalFile?.size || 0), 0);
+  
+  const sizeReduction = originalTotalSize > 0 && allConvertedTotalSize > 0
+    ? Math.max(0, ((originalTotalSize - allConvertedTotalSize) / originalTotalSize) * 100)
+    : 0;
+
+  // Calculate saved space
+  const savedSpace = originalTotalSize - allConvertedTotalSize;
+
+  // Calculate total files uploaded (including converted ones)
+  const totalFilesUploaded = totalConvertedCount > 0 ? totalConvertedCount : (files.length + allConvertedFiles.length);
 
   return (
     <>
@@ -1203,7 +1232,7 @@ export default function PngToJpg() {
                       </div>
                       <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
                         <span>
-                          • {(totalSize / 1024 / 1024).toFixed(2)} MB total
+                          • {(currentFilesSize / 1024 / 1024).toFixed(2)} MB total
                         </span>
                       </div>
                     </div>
@@ -1287,30 +1316,94 @@ export default function PngToJpg() {
                 className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-green-200 dark:border-green-800/50 p-3 sm:p-4 md:p-6 lg:p-8 shadow-lg sm:shadow-xl md:shadow-2xl mb-6 md:mb-8"
               >
                 {/* Success Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
-                  <div className="flex items-center justify-center sm:justify-start">
-                    <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg sm:rounded-xl shadow-lg">
-                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
-                    </div>
-                  </div>
-                  <div className="flex-1 text-center sm:text-left">
-                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
-                      Conversion Complete! 🎉
-                    </h2>
-                    <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
-                      Successfully converted {allConvertedFiles.length} PNG files to JPG
-                      format
-                    </p>
-                    <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      {sizeReduction}% average size reduction • Choose your download option below
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center mt-2 sm:mt-0">
-                    <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
-                      {allConvertedFiles.length} Files
-                    </div>
-                  </div>
-                </div>
+<div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-5 mb-4 sm:mb-6 md:mb-8">
+
+  {/* Left: Success Icon + Content */}
+  <div className="flex flex-1 min-w-0 flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+
+    {/* Success Icon */}
+    <div className="flex items-center justify-center sm:justify-start shrink-0">
+      <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg sm:rounded-xl shadow-lg">
+        <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" />
+      </div>
+    </div>
+
+    {/* Success Content */}
+    <div className="flex-1 min-w-0 text-center sm:text-left">
+      <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white mb-1 sm:mb-2">
+        Conversion Complete! 🎉
+      </h2>
+
+      <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
+        Successfully converted {allConvertedFiles.length} PNG files to JPG format
+      </p>
+
+      {/* Size Statistics */}
+      {originalTotalSize > 0 && (
+        <div className="mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 text-xs sm:text-sm">
+
+          <span className="text-gray-600 dark:text-gray-400">
+            Original:{" "}
+            <span className="font-medium">
+              {formatFileSize(originalTotalSize)}
+            </span>
+          </span>
+
+          <span className="text-gray-600 dark:text-gray-400">
+            → Converted:{" "}
+            <span className="font-medium text-green-600 dark:text-green-400">
+              {formatFileSize(allConvertedTotalSize)}
+            </span>
+          </span>
+
+          <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-bold">
+            ↓ {sizeReduction.toFixed(1)}% smaller
+          </span>
+
+          <span className="text-blue-600 dark:text-blue-400 font-medium">
+            Saved: {formatFileSize(savedSpace)}
+          </span>
+
+        </div>
+      )}
+    </div>
+  </div>
+
+  {/* Right: Files + Reset */}
+  <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-3 lg:shrink-0">
+
+    {/* Files Count */}
+    <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base whitespace-nowrap">
+      {allConvertedFiles.length} Files
+    </div>
+
+    {/* Reset Button */}
+    <button
+      onClick={handleReset}
+      className="
+        inline-flex items-center justify-center
+        px-3 py-2 sm:px-4 sm:py-2.5
+        text-red-600 dark:text-red-400
+        hover:text-red-700 dark:hover:text-red-300
+        hover:bg-red-50 dark:hover:bg-red-950/30
+        font-medium
+        rounded-xl
+        transition-colors
+        text-xs sm:text-sm md:text-base
+        active:scale-95
+        touch-manipulation
+        whitespace-nowrap
+      "
+    >
+      <span className="flex items-center gap-1.5 sm:gap-2">
+        <X className="w-4 h-4 sm:w-5 sm:h-5" />
+        <span>Clear All & Start Over</span>
+      </span>
+    </button>
+
+  </div>
+
+</div>
 
                 {/* --- Output JPG Previews --- */}
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
@@ -1329,6 +1422,8 @@ export default function PngToJpg() {
                         isDownloadable={true}
                         index={index}
                         onSingleDownload={() => handleSingleDownload(index)}
+                        showFileSize={true}
+                        originalSize={item.originalFile?.size || 0}
                       />
                     ))}
                   </div>
@@ -1418,14 +1513,17 @@ export default function PngToJpg() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
                     {[
                       {
-                        value: files.length,
+                        value: totalFilesUploaded,
                         label: "Files Uploaded",
                         color: "text-orange-600",
                         bg: "bg-orange-50 dark:bg-orange-900/10",
                       },
                       {
-                        value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`,
-                        label: "Total Size",
+                        // Now shows the CORRECT accumulated original size
+                        value: originalTotalSize > 0 
+                          ? `${(originalTotalSize / 1024 / 1024).toFixed(2)} MB`
+                          : `${(currentFilesSize / 1024 / 1024).toFixed(2)} MB`,
+                        label: "Total Input Size",
                         color: "text-blue-600",
                         bg: "bg-blue-50 dark:bg-blue-900/10",
                       },
@@ -1436,8 +1534,8 @@ export default function PngToJpg() {
                         bg: "bg-green-50 dark:bg-green-900/10",
                       },
                       {
-                        value: `${sizeReduction}%`,
-                        label: "Size Reduction",
+                        value: allConvertedTotalSize > 0 ? `${(allConvertedTotalSize / 1024 / 1024).toFixed(2)} MB` : '0 MB',
+                        label: "Total Output Size",
                         color: "text-purple-600",
                         bg: "bg-purple-50 dark:bg-purple-900/10",
                       },
@@ -1464,6 +1562,25 @@ export default function PngToJpg() {
                       </div>
                     ))}
                   </div>
+                  {/* Size Reduction Display */}
+                  {allConvertedFiles.length > 0 && originalTotalSize > 0 && (
+                    <div className="mt-6 text-center">
+                      <div className="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border-2 border-green-200 dark:border-green-800/50">
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Total Size Reduction:
+                        </span>
+                        <span className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                          ↓ {sizeReduction.toFixed(1)}%
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          ({formatFileSize(originalTotalSize)} → {formatFileSize(allConvertedTotalSize)})
+                        </span>
+                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                          Saved: {formatFileSize(savedSpace)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

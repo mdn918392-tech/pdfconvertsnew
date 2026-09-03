@@ -2,10 +2,9 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
-import FAQSchema from "./FAQSchema";
-import { faqData } from "./faqData";
-
+import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
+import JSZip from "jszip";
 import {
   Download,
   ArrowLeft,
@@ -20,40 +19,29 @@ import {
   Layers,
   Eye,
   Clock,
-  Grid,
-  ArrowRight,
   Check,
+  ArrowRight,
+  Grid,
   X,
   Plus,
-  FolderArchive,
-  FileQuestion,
-  Cpu,
-  Globe,
-  Lock,
-  HelpCircle,
+  Archive,
+  FolderClosed,
+  Sliders,
+  Percent,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
-import {
-  convertPngToJpg,
-  downloadFile,
-  downloadAsZip,
-  compressImage,
-} from "../../utils/imageUtils";
+import { compressImageAll, downloadFile } from "../../utils/imageUtils";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
+import FAQSchema from "./FAQSchema";
+import { faqData } from "./faqData";
 
-const tool = {
-  id: "compress-image",
-  name: "Compress Image",
-  description: "Reduce JPG/PNG file size",
-  category: "image",
-  icon: "📉",
-  color: "from-blue-500 to-cyan-500",
-  href: "/compress-image",
-  path: "/tools/compress-image",
-};
+// --- Helper Functions ---
+const createObjectURL = (fileOrBlob: Blob | File) =>
+  URL.createObjectURL(fileOrBlob);
+const revokeObjectURL = (url: string) => URL.revokeObjectURL(url);
 
 // Define Tool type
 type Tool = {
@@ -67,8 +55,20 @@ type Tool = {
   path: string;
 };
 
+const tool = {
+  id: "compress-image",
+  name: "Compress Image",
+  description: "Compress images to reduce file size",
+  category: "image",
+  icon: "📉",
+  color: "from-blue-500 to-cyan-500",
+  href: "/compress-image",
+  path: "/tools/compress-image",
+};
+
 // Explore All Tools Data
 const exploreTools: Tool[] = [
+  
   {
     id: "split-pdf",
     name: "Split PDF",
@@ -161,19 +161,12 @@ const exploreTools: Tool[] = [
   },
 ];
 
-// --- Helper Functions ---
-const createObjectURL = (fileOrBlob: Blob | File) =>
-  URL.createObjectURL(fileOrBlob);
-const revokeObjectURL = (url: string) => URL.revokeObjectURL(url);
-
 // --- Component Interface ---
 interface ConvertedFile {
   blob: Blob;
   name: string;
   originalFile: File;
   timestamp: number;
-  originalSize: number;
-  compressedSize: number;
 }
 
 interface DownloadNotification {
@@ -181,7 +174,7 @@ interface DownloadNotification {
   fileName: string;
   fileCount: number;
   timestamp: Date;
-  isZip?: boolean;
+  type: 'single' | 'zip' | 'multi';
 }
 
 // --- Image Preview Component ---
@@ -192,8 +185,9 @@ const ImagePreview = ({
   isDownloadable = false,
   filename = "image.jpg",
   index,
-  originalSize,
-  compressedSize,
+  onSingleDownload,
+  showFileSize = false,
+  originalSize = 0,
 }: {
   file: Blob | File;
   onRemove?: () => void;
@@ -201,32 +195,58 @@ const ImagePreview = ({
   isDownloadable?: boolean;
   filename: string;
   index: number;
+  onSingleDownload?: () => void;
+  showFileSize?: boolean;
   originalSize?: number;
-  compressedSize?: number;
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
+  const isMountedRef = useRef(true);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Create object URL with proper cleanup
+  // Format file size helper
+  const formatFileSize = (size: number) => {
+    if (size === 0) return '0 B';
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  // Calculate size reduction
+  const getSizeReduction = () => {
+    if (!showFileSize || !originalSize || originalSize === 0) return null;
+    const currentSize = file.size || 0;
+    if (currentSize === 0) return null;
+    const reduction = ((originalSize - currentSize) / originalSize) * 100;
+    return reduction > 0 ? reduction : 0;
+  };
+
+  const sizeReduction = getSizeReduction();
+
+  // FIXED: Create object URL with proper cleanup
   useEffect(() => {
+    isMountedRef.current = true;
+    
     if (!file) {
-      setError(true);
-      setLoading(false);
+      if (isMountedRef.current) {
+        setError(true);
+        setLoading(false);
+      }
       return;
     }
 
     let url: string | null = null;
     let img: HTMLImageElement | null = null;
-    let isMounted = true;
 
     const loadImage = async () => {
       try {
-        // Check if file is valid
         if (file.size === 0) {
-          if (isMounted) {
+          if (isMountedRef.current) {
             setError(true);
             setLoading(false);
           }
@@ -236,63 +256,87 @@ const ImagePreview = ({
         url = URL.createObjectURL(file);
         objectUrlRef.current = url;
         
-        if (isMounted) {
+        if (isMountedRef.current) {
           setPreviewUrl(url);
         }
 
         img = new Image();
+        imgRef.current = img;
         
         const imageLoadPromise = new Promise((resolve, reject) => {
           if (!img) return reject(new Error("Image not created"));
           
-          img.onload = () => resolve(true);
-          img.onerror = () => reject(new Error("Failed to load image"));
+          img.onload = () => {
+            resolve(true);
+          };
+          img.onerror = () => {
+            reject(new Error("Failed to load image"));
+          };
         });
 
         img.src = url;
 
-        // Set timeout for mobile devices (longer timeout)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) || window.innerWidth < 768;
+        
+        const timeoutDuration = isMobile ? 15000 : 8000;
+
         const timeoutPromise = new Promise((_, reject) => {
-          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-          ) || window.innerWidth < 768;
-          
-          // Mobile devices need more time
-          const timeoutDuration = isMobile ? 10000 : 5000;
-          setTimeout(() => reject(new Error("Image load timeout")), timeoutDuration);
+          timeoutIdRef.current = setTimeout(() => {
+            reject(new Error(`Image load timeout (${timeoutDuration}ms)`));
+          }, timeoutDuration);
         });
 
         await Promise.race([imageLoadPromise, timeoutPromise]);
 
-        if (isMounted) {
+        if (timeoutIdRef.current) {
+          clearTimeout(timeoutIdRef.current);
+          timeoutIdRef.current = null;
+        }
+
+        if (isMountedRef.current) {
           setLoading(false);
           setError(false);
         }
       } catch (err) {
-        if (isMounted) {
-          console.warn("Failed to load image preview:", filename, err);
+        if (isMountedRef.current) {
+          console.warn("Failed to load image preview:", filename);
           setError(true);
           setLoading(false);
+        }
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+          objectUrlRef.current = null;
         }
       }
     };
 
     loadImage();
 
-    // Cleanup function
     return () => {
-      isMounted = false;
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
+      isMountedRef.current = false;
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
       }
       if (img) {
         img.onload = null;
         img.onerror = null;
         img.src = "";
+        imgRef.current = null;
       }
     };
   }, [file, filename]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const statusColor =
     status && status.includes("Compressed")
@@ -300,31 +344,23 @@ const ImagePreview = ({
       : "text-blue-600 dark:text-blue-400";
 
   const handleIndividualDownload = () => {
-    if (file && file.size > 0) {
+    if (onSingleDownload) {
+      onSingleDownload();
+    } else if (file) {
       downloadFile(file as Blob, filename);
     }
   };
 
-  // Calculate compression percentage
-  const compressionPercent = originalSize && compressedSize
-    ? ((1 - compressedSize / originalSize) * 100).toFixed(1)
-    : null;
-
-  const formatFileSize = (size: number) => {
+  const formatFileSizeDisplay = (size: number) => {
+    if (size === 0) return '0 B';
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   };
 
   const handleImageError = () => {
     setError(true);
-  };
-
-  // 🔥 FIX: Prevent default drag behavior on the entire image container
-  const handleTouchMove = (e: React.TouchEvent) => {
-    // Allow scrolling within the container but prevent dragging the image away
-    e.preventDefault();
   };
 
   return (
@@ -363,12 +399,12 @@ const ImagePreview = ({
                   </div>
                 ) : (
                   <img
+                    key={previewUrl}
                     src={previewUrl}
                     alt={filename}
                     className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
                     onError={handleImageError}
                     draggable={false}
-                    onDragStart={(e) => e.preventDefault()}
                   />
                 )}
               </div>
@@ -384,7 +420,6 @@ const ImagePreview = ({
         transition={{ delay: index * 0.05 }}
         whileHover={{ y: -5, scale: 1.02 }}
         className="relative group"
-        onTouchMove={handleTouchMove}
       >
         <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-4 border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
           {/* Image Number Badge */}
@@ -396,7 +431,6 @@ const ImagePreview = ({
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
             onClick={() => previewUrl && !error && setPreviewOpen(true)}
-            onDragStart={(e) => e.preventDefault()}
           >
             {loading ? (
               <div className="w-full h-full flex items-center justify-center">
@@ -409,19 +443,19 @@ const ImagePreview = ({
                   Preview not available
                 </span>
                 <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  {formatFileSize(file.size || 0)}
+                  {formatFileSizeDisplay(file.size || 0)}
                 </span>
               </div>
             ) : (
               <>
                 <img
+                  key={previewUrl}
                   src={previewUrl}
                   alt={filename}
                   className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
                   onError={handleImageError}
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
                   loading="lazy"
+                  draggable={false}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                   <Eye className="w-8 h-8 text-white" />
@@ -451,41 +485,43 @@ const ImagePreview = ({
                 {status}
               </span>
 
-              {/* File Size Info */}
-              {originalSize && compressedSize ? (
-                <div className="flex flex-col items-end">
+              {/* File Size - Show both original and compressed sizes */}
+              {showFileSize && originalSize > 0 && file.size > 0 && (
+                <div className="flex flex-col items-end gap-0.5">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatFileSize(compressedSize)}
+                    Original: {formatFileSizeDisplay(originalSize)}
                   </span>
-                  {compressionPercent && (
-                    <span className="text-xs text-green-600 dark:text-green-400 font-bold">
-                      {compressionPercent}% smaller
+                  <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                    Compressed: {formatFileSizeDisplay(file.size)}
+                  </span>
+                  {sizeReduction !== null && sizeReduction > 0 && (
+                    <span className="text-xs font-bold text-green-600 dark:text-green-400">
+                      ↓ {sizeReduction.toFixed(1)}% smaller
                     </span>
                   )}
                 </div>
-              ) : (
+              )}
+              
+              {(!showFileSize || originalSize === 0) && file.size !== undefined && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatFileSize(file.size)}
+                  {formatFileSizeDisplay(file.size)}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Action Buttons - Always visible on ALL devices */}
+          {/* Action Buttons - Always visible on top right */}
           <div className="absolute top-3 right-3 flex gap-2">
             {/* Remove Button (For Input Files) */}
             {onRemove && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove();
-                }}
-                className="p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                onClick={onRemove}
+                className="p-1.5 sm:p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
                 aria-label={`Remove ${filename}`}
               >
-                <XCircle className="w-4 h-4" />
+                <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               </motion.button>
             )}
 
@@ -494,15 +530,12 @@ const ImagePreview = ({
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleIndividualDownload();
-                }}
-                className="p-1.5 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
+                onClick={handleIndividualDownload}
+                className="p-1.5 sm:p-2 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors"
                 title={`Download ${filename}`}
-                disabled={!file || file.size === 0}
+                disabled={!file}
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-4 h-4 sm:w-5 sm:h-5" />
               </motion.button>
             )}
           </div>
@@ -518,51 +551,49 @@ const DownloadNotification = ({
   fileName,
   fileCount,
   timestamp,
-  isZip = false,
+  type,
   onClose,
 }: DownloadNotification & { onClose: () => void }) => {
+  const getMessage = () => {
+    switch (type) {
+      case 'zip':
+        return `ZIP archive downloaded with ${fileCount} files`;
+      case 'multi':
+        return `${fileCount} files downloaded individually`;
+      default:
+        return 'File downloaded successfully! 🎉';
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
       className={`bg-gradient-to-r ${
-        isZip
-          ? "from-purple-500 to-indigo-600"
-          : "from-green-500 to-emerald-600"
+        type === 'zip' 
+          ? 'from-purple-500 to-indigo-600' 
+          : 'from-green-500 to-emerald-600'
       } text-white p-4 rounded-xl shadow-lg mb-2`}
     >
       <div className="flex items-start gap-3">
-        {isZip ? (
-          <FolderArchive className="w-5 h-5 mt-0.5 flex-shrink-0" />
+        {type === 'zip' ? (
+          <Archive className="w-5 h-5 mt-0.5 flex-shrink-0" />
         ) : (
           <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
         )}
         <div className="flex-1 min-w-0">
           <h4 className="font-bold text-sm mb-1">
-            {isZip ? (
-              <>
-                {fileCount > 1
-                  ? `${fileCount} Files Downloaded as ZIP! 📦`
-                  : "File Downloaded as ZIP! 📦"}
-              </>
-            ) : (
-              <>
-                {fileCount > 1
-                  ? `${fileCount} Files Downloaded! 🎉`
-                  : "File Downloaded Successfully! 🎉"}
-              </>
-            )}
+            {type === 'zip' ? 'ZIP Archive Downloaded! 📦' : getMessage()}
           </h4>
-          {fileCount === 1 && !isZip && (
+          {type === 'single' && (
             <p className="text-xs opacity-90 truncate mb-1">{fileName}</p>
           )}
           <p className="text-xs opacity-80 mb-2">
-            {isZip
-              ? `All ${fileCount} files compressed into ZIP archive`
-              : fileCount > 1
-              ? `${fileCount} images compressed`
-              : "Image successfully compressed"}
+            {type === 'zip' 
+              ? `All ${fileCount} files are now in a single ZIP archive`
+              : `${fileCount} image ${fileCount === 1 ? 'file' : 'files'} compressed`
+            }
           </p>
           <div className="flex items-center gap-1 text-xs opacity-80">
             <Clock className="w-3 h-3" />
@@ -583,6 +614,169 @@ const DownloadNotification = ({
   );
 };
 
+// --- Quality Slider Component ---
+const QualitySlider = ({
+  quality,
+  onQualityChange,
+}: {
+  quality: number;
+  onQualityChange: (value: number) => void;
+}) => {
+  const [inputValue, setInputValue] = useState<string>(quality.toString());
+
+  // Update input when quality changes from outside
+  useEffect(() => {
+    setInputValue(quality.toString());
+  }, [quality]);
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    onQualityChange(value);
+    setInputValue(value.toString());
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue >= 10 && numValue <= 100) {
+      onQualityChange(numValue);
+    }
+  };
+
+  const handleInputBlur = () => {
+    let numValue = parseInt(inputValue);
+    if (isNaN(numValue)) {
+      setInputValue(quality.toString());
+      return;
+    }
+    numValue = Math.max(10, Math.min(100, numValue));
+    onQualityChange(numValue);
+    setInputValue(numValue.toString());
+  };
+
+  const getQualityLabel = (value: number) => {
+    if (value >= 90) return "Best Quality";
+    if (value >= 70) return "High Quality";
+    if (value >= 50) return "Good Quality";
+    if (value >= 30) return "Medium Quality";
+    return "Low Quality";
+  };
+
+  const getQualityColor = (value: number) => {
+    if (value >= 90) return "text-green-600 dark:text-green-400";
+    if (value >= 70) return "text-blue-600 dark:text-blue-400";
+    if (value >= 50) return "text-yellow-600 dark:text-yellow-400";
+    if (value >= 30) return "text-orange-600 dark:text-orange-400";
+    return "text-red-600 dark:text-red-400";
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-xl p-4 sm:p-6 border-2 border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Sliders className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
+            Compression Quality
+          </h3>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className={`text-sm font-bold ${getQualityColor(quality)}`}>
+            {quality}%
+          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            ({getQualityLabel(quality)})
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        {/* Slider */}
+        <div className="flex-1">
+          <input
+            type="range"
+            min="10"
+            max="100"
+            value={quality}
+            onChange={handleSliderChange}
+            className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer
+              [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:w-4
+              [&::-webkit-slider-thumb]:h-4
+              [&::-webkit-slider-thumb]:rounded-full
+              [&::-webkit-slider-thumb]:bg-blue-600
+              [&::-webkit-slider-thumb]:cursor-pointer
+              [&::-webkit-slider-thumb]:hover:bg-blue-700
+              [&::-webkit-slider-thumb]:transition-colors
+              [&::-moz-range-thumb]:w-4
+              [&::-moz-range-thumb]:h-4
+              [&::-moz-range-thumb]:rounded-full
+              [&::-moz-range-thumb]:bg-blue-600
+              [&::-moz-range-thumb]:cursor-pointer
+              [&::-moz-range-thumb]:border-0
+              [&::-moz-range-thumb]:hover:bg-blue-700"
+            style={{
+              background: `linear-gradient(to right, #2563eb 0%, #2563eb ${quality}%, #e5e7eb ${quality}%, #e5e7eb 100%)`
+            }}
+          />
+          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <span>10%</span>
+            <span>50%</span>
+            <span>100%</span>
+          </div>
+        </div>
+
+        {/* Number Input */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <input
+              type="number"
+              min="10"
+              max="100"
+              value={inputValue}
+              onChange={handleInputChange}
+              onBlur={handleInputBlur}
+              className="w-16 sm:w-20 px-2 py-1.5 text-sm sm:text-base text-center
+                bg-white dark:bg-gray-700
+                border-2 border-gray-300 dark:border-gray-600
+                rounded-lg
+                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                text-gray-900 dark:text-white
+                [appearance:textfield]
+                [&::-webkit-outer-spin-button]:appearance-none
+                [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500 pointer-events-none">
+              %
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quality Tips */}
+      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+          <span className="text-gray-600 dark:text-gray-400">90-100%: Best</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+          <span className="text-gray-600 dark:text-gray-400">70-89%: High</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+          <span className="text-gray-600 dark:text-gray-400">50-69%: Good</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+          <span className="text-gray-600 dark:text-gray-400">30-49%: Medium</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Main Component ---
 export default function CompressImage() {
   const [files, setFiles] = useState<File[]>([]);
@@ -593,20 +787,33 @@ export default function CompressImage() {
   const [downloadNotifications, setDownloadNotifications] = useState<
     DownloadNotification[]
   >([]);
-  const [creatingZip, setCreatingZip] = useState(false);
-  const notificationsRef = useRef<HTMLDivElement>(null);
-  const [compressionQuality, setCompressionQuality] = useState<number>(80);
+  const [zipDownloading, setZipDownloading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const [allCompressedFiles, setAllCompressedFiles] = useState<ConvertedFile[]>([]);
   const [processingFiles, setProcessingFiles] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  
+  // NEW: User-defined quality setting (10-100%)
+  const [userQuality, setUserQuality] = useState<number>(isMobile ? 75 : 85);
+  
+  // Store total original size and total compressed size separately
+  const [totalOriginalSize, setTotalOriginalSize] = useState<number>(0);
+  const [totalCompressedSize, setTotalCompressedSize] = useState<number>(0);
 
-  // Detect device type (only for UI hints, no limits)
+  // Detect device type
   useEffect(() => {
     const checkMobile = () => {
       const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       ) || window.innerWidth < 768;
       setIsMobile(mobile);
+      // Set default quality based on device
+      if (mobile) {
+        setUserQuality(75);
+      } else {
+        setUserQuality(85);
+      }
     };
     
     checkMobile();
@@ -618,9 +825,7 @@ export default function CompressImage() {
   const generateUniqueFileName = (baseName: string, index: number) => {
     const timestamp = new Date().getTime();
     const randomId = Math.random().toString(36).substring(2, 9);
-    const extension = baseName.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
     const cleanBaseName = baseName
-      .replace(/\.(png|jpg|jpeg)$/i, "")
       .replace(/\.[^/.]+$/, "");
     const sequence = (index + 1).toString().padStart(3, "0");
     return `${cleanBaseName}_compressed_${sequence}_${timestamp}_${randomId}.jpg`;
@@ -634,8 +839,17 @@ export default function CompressImage() {
     }
   }, [downloadNotifications]);
 
-  // Helper function to compress a single image with retry
-  const compressSingleImage = async (
+  // Format file size helper
+  const formatFileSize = (size: number) => {
+    if (size === 0) return '0 MB';
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  // --- compressSingleFile with retry logic ---
+  const compressSingleFile = async (
     file: File,
     quality: number,
     retryCount = 0
@@ -643,268 +857,236 @@ export default function CompressImage() {
     const maxRetries = 2;
     
     try {
-      let compressedBlob: Blob;
-      
-      // Check if file is valid
       if (file.size === 0) {
         throw new Error("File is empty or corrupted");
       }
 
-      // For PNG files, convert to JPG first
-      if (file.type === 'image/png') {
-        const jpgBlob = await convertPngToJpg(file, 0.85);
-        compressedBlob = await compressImage(jpgBlob, quality);
-      } else if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
-        compressedBlob = await compressImage(file, quality);
-      } else {
-        // For other image types, try direct compression
-        compressedBlob = await compressImage(file, quality);
+      if (isMobile && file.size > 30 * 1024 * 1024) {
+        throw new Error(`File size (${(file.size/1024/1024).toFixed(1)}MB) exceeds mobile limit of 30MB`);
       }
 
-      // Validate compressed blob
-      if (!compressedBlob || compressedBlob.size === 0) {
+      // Convert user quality (10-100) to 0.1-1.0 for the library
+      const qualityValue = quality / 100;
+      const blob = await compressImageAll(file, qualityValue);
+
+      if (!blob || blob.size === 0) {
         throw new Error("Compression resulted in empty file");
       }
 
-      // If compressed file is larger than original (rare), use original
-      if (compressedBlob.size > file.size && file.size > 0) {
-        // Try with higher quality
-        if (quality < 90) {
-          return await compressSingleImage(file, Math.min(quality + 10, 95), retryCount);
-        }
-        // Return original file if compression didn't help
-        return file.slice(0, file.size, file.type);
-      }
-
-      return compressedBlob;
+      return blob;
       
-    } catch (error) {
-      // Retry with lower quality if compression failed
-      if (retryCount < maxRetries) {
-        const newQuality = Math.max(quality - 20, 30);
+    } catch (error: any) {
+      console.error(`Compression error for ${file.name} (attempt ${retryCount + 1}):`, error);
+      
+      if (retryCount < maxRetries && quality > 30) {
+        const newQuality = Math.max(quality - 15, 30);
         console.log(`Retry ${retryCount + 1} for ${file.name} with quality ${newQuality}`);
-        return await compressSingleImage(file, newQuality, retryCount + 1);
+        return await compressSingleFile(file, newQuality, retryCount + 1);
       }
       
-      // If all retries fail, return original file as fallback
-      console.warn(`All compression retries failed for ${file.name}, using original`);
-      return file.slice(0, file.size, file.type);
+      throw new Error(`Failed to compress ${file.name}: ${error.message}`);
     }
   };
 
+  // --- handleCompress with user-defined quality ---
   const handleCompress = async () => {
     if (files.length === 0) return;
 
     setCompressing(true);
     setProgress(0);
-    setCompressedBlobs([]);
     setShowFeatures(false);
     setErrorMessage("");
     setProcessingFiles(files.map(f => f.name));
 
+    // Calculate current batch sizes
+    const currentBatchOriginalSize = files.reduce((acc, f) => acc + f.size, 0);
+    
+    // Add to existing total
+    const newTotalOriginalSize = totalOriginalSize + currentBatchOriginalSize;
+    setTotalOriginalSize(newTotalOriginalSize);
+
     try {
       const blobs: ConvertedFile[] = [];
       let successCount = 0;
-      const failedFiles: string[] = [];
-
-      // Process files one by one with memory management
+      const failedFiles: { name: string; error: string }[] = [];
+      let batchCompressedSize = 0;
+      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const currentProgress = ((i) / files.length) * 100;
-        setProgress(currentProgress);
+        
+        setProcessingFiles([file.name]);
         
         try {
-          // Update current processing file
-          setProcessingFiles([file.name]);
-          
-          // Validate file
           if (file.size === 0) {
-            failedFiles.push(`${file.name} (corrupted or empty file)`);
+            failedFiles.push({ 
+              name: file.name, 
+              error: "File is empty or corrupted" 
+            });
             continue;
           }
 
-          // For very large images on mobile, reduce quality automatically
-          let effectiveQuality = compressionQuality;
-          if (isMobile && file.size > 5 * 1024 * 1024) {
-            effectiveQuality = Math.min(compressionQuality, 70);
+          // Use user-defined quality
+          let quality = userQuality;
+          
+          // Auto-adjust for very large files on mobile
+          if (isMobile && file.size > 20 * 1024 * 1024 && quality > 60) {
+            quality = 60;
           }
-          if (isMobile && file.size > 10 * 1024 * 1024) {
-            effectiveQuality = Math.min(compressionQuality, 50);
+          if (isMobile && file.size > 30 * 1024 * 1024 && quality > 50) {
+            quality = 50;
           }
 
           const uniqueFilename = generateUniqueFileName(file.name, i);
-          const originalSize = file.size;
+          
+          if (i > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+          
+          let blob = await compressSingleFile(file, quality);
 
-          // Compress with retry logic
-          let compressedBlob = await compressSingleImage(file, effectiveQuality);
-
-          // Validate compressed blob
-          if (!compressedBlob || compressedBlob.size === 0) {
-            // Try one more time with lower quality
-            compressedBlob = await compressSingleImage(file, 30, 1);
+          if (!blob || blob.size === 0) {
+            blob = await compressSingleFile(file, Math.max(quality - 20, 30), 1);
           }
 
-          if (!compressedBlob || compressedBlob.size === 0) {
-            failedFiles.push(`${file.name} (compression failed - using original)`);
-            // Use original file as fallback
-            compressedBlob = file.slice(0, file.size, file.type);
+          if (!blob || blob.size === 0) {
+            throw new Error("Compression failed after all retries");
           }
 
+          batchCompressedSize += blob.size;
+          
           blobs.push({
-            blob: compressedBlob,
+            blob: blob,
             name: uniqueFilename,
             originalFile: file,
             timestamp: Date.now(),
-            originalSize: originalSize,
-            compressedSize: compressedBlob.size,
           });
           successCount++;
           
-        } catch (error: any) {
-          console.error(`Error processing ${file.name}:`, error);
-          failedFiles.push(`${file.name} (${error.message || 'processing error'})`);
+          const progressValue = ((i + 1) / files.length) * 100;
+          setProgress(Math.min(progressValue, 100));
           
-          // Try to add original file as fallback
-          try {
-            const fallbackBlob = file.slice(0, file.size, file.type);
-            blobs.push({
-              blob: fallbackBlob,
-              name: generateUniqueFileName(file.name, i),
-              originalFile: file,
-              timestamp: Date.now(),
-              originalSize: file.size,
-              compressedSize: file.size,
-            });
-          } catch (fallbackError) {
-            console.error(`Failed to add fallback for ${file.name}:`, fallbackError);
+        } catch (error: any) {
+          console.error(`Error compressing file ${file.name}:`, error);
+          failedFiles.push({ 
+            name: file.name, 
+            error: error.message || "Compression failed" 
+          });
+          
+          if (isMobile && file.size < 10 * 1024 * 1024) {
+            try {
+              const fallbackBlob = await compressSingleFile(file, 30, 2);
+              if (fallbackBlob && fallbackBlob.size > 0) {
+                batchCompressedSize += fallbackBlob.size;
+                blobs.push({
+                  blob: fallbackBlob,
+                  name: generateUniqueFileName(file.name, i) + ".fallback.jpg",
+                  originalFile: file,
+                  timestamp: Date.now(),
+                });
+                successCount++;
+                continue;
+              }
+            } catch (e) {
+              console.error("Fallback also failed for:", file.name);
+            }
           }
+          
+          continue;
         }
-
-        // Update progress
-        setProgress(((i + 1) / files.length) * 100);
-
-        // Small delay for UI update and memory management
-        await new Promise((resolve) => setTimeout(resolve, 100));
       }
       
-      setCompressedBlobs(blobs);
       setProcessingFiles([]);
       
-      // Show error message if any files failed
-      if (failedFiles.length > 0 && blobs.length > 0) {
-        const successMessage = `Successfully compressed ${successCount} out of ${files.length} files.\n\n`;
-        let failureMessage = "";
+      if (blobs.length > 0) {
+        setAllCompressedFiles((prev) => [...prev, ...blobs]);
+        setCompressedBlobs(blobs);
         
-        if (failedFiles.length <= 3) {
-          failureMessage = `Failed files:\n${failedFiles.join('\n')}`;
-        } else {
-          failureMessage = `Failed files (${failedFiles.length}):\n${failedFiles.slice(0, 3).join('\n')}\n...and ${failedFiles.length - 3} more`;
+        // Add batch compressed size to total
+        setTotalCompressedSize(prev => prev + batchCompressedSize);
+      }
+      
+      // Clear the uploaded files but KEEP the total sizes
+      setFiles([]);
+      
+      if (failedFiles.length > 0) {
+        let errorMessage = `✅ Successfully compressed ${successCount} out of ${files.length} files.\n\n`;
+        errorMessage += `❌ Failed to compress ${failedFiles.length} file(s):\n\n`;
+        
+        const displayFailures = failedFiles.slice(0, 5);
+        displayFailures.forEach((file, index) => {
+          errorMessage += `${index + 1}. ${file.name}\n`;
+          errorMessage += `   Error: ${file.error}\n\n`;
+        });
+        
+        if (failedFiles.length > 5) {
+          errorMessage += `... and ${failedFiles.length - 5} more files failed\n\n`;
         }
         
-        setErrorMessage(successMessage + failureMessage);
-      } else if (failedFiles.length === files.length) {
-        setErrorMessage("All files failed to compress. Please try with smaller images or lower quality settings.");
+        errorMessage += `\n💡 Possible solutions:\n`;
+        errorMessage += `• Try compressing fewer files at once\n`;
+        errorMessage += `• Check if your image files are valid\n`;
+        errorMessage += `• On mobile, try files under 30MB\n`;
+        
+        setErrorMessage(errorMessage);
+        alert(errorMessage);
+      } else if (successCount > 0) {
+        const totalCompressedSizeNow = totalCompressedSize + batchCompressedSize;
+        const reduction = newTotalOriginalSize > 0 
+          ? ((newTotalOriginalSize - totalCompressedSizeNow) / newTotalOriginalSize) * 100 
+          : 0;
+        const successMsg = `✅ Successfully compressed ${successCount} image files!\n\n` +
+          `📊 Total Size Reduction: ${reduction.toFixed(1)}%\n` +
+          `📁 Total Original Size: ${formatFileSize(newTotalOriginalSize)}\n` +
+          `📁 Total Compressed Size: ${formatFileSize(totalCompressedSizeNow)}\n\n` +
+          `💾 Total Saved: ${formatFileSize(newTotalOriginalSize - totalCompressedSizeNow)}\n\n` +
+          `⚙️ Compression Quality: ${userQuality}%`;
+        setErrorMessage(successMsg);
       }
       
     } catch (error: any) {
       console.error("Compression error:", error);
-      setErrorMessage(error.message || "Failed to compress images. Please try again.");
-      
-      // Try to recover any successfully processed files
-      if (compressedBlobs.length === 0) {
-        // If no files were processed, try to add originals as fallback
-        try {
-          const fallbackBlobs: ConvertedFile[] = [];
-          for (let i = 0; i < Math.min(files.length, 5); i++) {
-            const file = files[i];
-            try {
-              fallbackBlobs.push({
-                blob: file.slice(0, file.size, file.type),
-                name: generateUniqueFileName(file.name, i),
-                originalFile: file,
-                timestamp: Date.now(),
-                originalSize: file.size,
-                compressedSize: file.size,
-              });
-            } catch (e) {
-              console.error("Fallback failed:", e);
-            }
-          }
-          if (fallbackBlobs.length > 0) {
-            setCompressedBlobs(fallbackBlobs);
-            setErrorMessage("Partial recovery: Some files were recovered as originals. Please try compressing smaller batches.");
-          }
-        } catch (e) {
-          console.error("Recovery failed:", e);
-        }
-      }
+      const errorMsg = `❌ Compression Failed\n\nError: ${error.message || "Unknown error"}\n\nPlease try again with fewer files or check if your images are valid.`;
+      setErrorMessage(errorMsg);
+      alert(errorMsg);
     } finally {
       setCompressing(false);
       setProcessingFiles([]);
     }
   };
 
-  const handleDownload = () => {
-    // Downloads all compressed files individually
-    compressedBlobs.forEach((item) => {
-      if (item.blob && item.blob.size > 0) {
-        downloadFile(item.blob, item.name);
-      }
-    });
+  const handleDownloadAllAsZip = async () => {
+    const filesToDownload = allCompressedFiles.length > 0 ? allCompressedFiles : compressedBlobs;
+    
+    if (filesToDownload.length === 0) return;
 
-    // Add download notification
-    const notification: DownloadNotification = {
-      id: Math.random().toString(36).substring(7),
-      fileName: compressedBlobs.length === 1 ? compressedBlobs[0].name : "Multiple files",
-      fileCount: compressedBlobs.length,
-      timestamp: new Date(),
-      isZip: false,
-    };
-    setDownloadNotifications((prev) => [...prev, notification]);
-
-    // Auto-remove notification after 5 seconds
-    setTimeout(() => {
-      setDownloadNotifications((prev) =>
-        prev.filter((n) => n.id !== notification.id)
-      );
-    }, 5000);
-  };
-
-  const handleDownloadAsZip = async () => {
-    if (compressedBlobs.length === 0) return;
-
-    setCreatingZip(true);
-
+    setZipDownloading(true);
     try {
-      // Prepare files for ZIP
-      const validFiles = compressedBlobs.filter(item => item.blob && item.blob.size > 0);
+      const zip = new JSZip();
       
-      if (validFiles.length === 0) {
-        throw new Error("No valid files to download");
-      }
+      filesToDownload.forEach((item) => {
+        if (item.blob && item.blob.size > 0) {
+          zip.file(item.name, item.blob);
+        }
+      });
 
-      const filesForZip = validFiles.map((item) => ({
-        name: item.name,
-        blob: item.blob,
-      }));
+      const zipBlob = await zip.generateAsync({ 
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 }
+      });
+      
+      const zipName = `compressed_images_${new Date().getTime()}.zip`;
+      downloadFile(zipBlob, zipName);
 
-      // Generate ZIP filename
-      const zipFileName = `compressed_images_${new Date().getTime()}.zip`;
-
-      // Create and download ZIP
-      await downloadAsZip(filesForZip, zipFileName);
-
-      // Add ZIP download notification
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
-        fileName: zipFileName,
-        fileCount: validFiles.length,
+        fileName: zipName,
+        fileCount: filesToDownload.length,
         timestamp: new Date(),
-        isZip: true,
+        type: 'zip',
       };
       setDownloadNotifications((prev) => [...prev, notification]);
 
-      // Auto-remove notification after 5 seconds
       setTimeout(() => {
         setDownloadNotifications((prev) =>
           prev.filter((n) => n.id !== notification.id)
@@ -912,32 +1094,61 @@ export default function CompressImage() {
       }, 5000);
     } catch (error) {
       console.error("ZIP creation error:", error);
-      setErrorMessage("Failed to create ZIP file. Please try downloading files individually.");
+      alert("Failed to create ZIP archive. Please try again or download files individually.");
     } finally {
-      setCreatingZip(false);
+      setZipDownloading(false);
     }
   };
 
+  const handleDownloadAllSeparate = () => {
+    const filesToDownload = allCompressedFiles.length > 0 ? allCompressedFiles : compressedBlobs;
+    
+    if (filesToDownload.length === 0) return;
+    
+    filesToDownload.forEach((item, index) => {
+      if (item.blob && item.blob.size > 0) {
+        setTimeout(() => {
+          downloadFile(item.blob, item.name);
+        }, index * 200);
+      }
+    });
+
+    const notification: DownloadNotification = {
+      id: Math.random().toString(36).substring(7),
+      fileName: filesToDownload.length === 1 ? filesToDownload[0].name : "Multiple files",
+      fileCount: filesToDownload.length,
+      timestamp: new Date(),
+      type: filesToDownload.length === 1 ? 'single' : 'multi',
+    };
+    setDownloadNotifications((prev) => [...prev, notification]);
+
+    setTimeout(() => {
+      setDownloadNotifications((prev) =>
+        prev.filter((n) => n.id !== notification.id)
+      );
+    }, 5000);
+  };
+
   const handleSingleDownload = (index: number) => {
-    const item = compressedBlobs[index];
+    const filesToDownload = allCompressedFiles.length > 0 ? allCompressedFiles : compressedBlobs;
+    const item = filesToDownload[index];
+    
     if (!item || !item.blob || item.blob.size === 0) {
-      setErrorMessage("Cannot download this file. It may be corrupted or failed to compress.");
+      alert("Cannot download this file. It may be corrupted.");
       return;
     }
 
     downloadFile(item.blob, item.name);
 
-    // Add download notification
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
       fileName: item.name,
       fileCount: 1,
       timestamp: new Date(),
-      isZip: false,
+      type: 'single',
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
-    // Auto-remove notification after 5 seconds
     setTimeout(() => {
       setDownloadNotifications((prev) =>
         prev.filter((n) => n.id !== notification.id)
@@ -949,57 +1160,78 @@ export default function CompressImage() {
     setFiles((prevFiles) =>
       prevFiles.filter((_, index) => index !== indexToRemove)
     );
-    setCompressedBlobs([]);
-    if (files.length === 1) {
-      setShowFeatures(true);
-    }
-    setErrorMessage("");
   };
 
-  const handleAddMoreFiles = (newFiles: File[]) => {
-    setFiles((prevFiles) => [...prevFiles, ...newFiles]);
-    setCompressedBlobs([]);
-    setShowFeatures(false);
-    setErrorMessage("");
-  };
-
+  // ─── handleFilesSelected – APPEND to existing files with validation ───
   const handleFilesSelected = (newFiles: File[]) => {
-    setFiles(newFiles);
-    setCompressedBlobs([]);
+    const filteredFiles = newFiles.filter(file => {
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        alert(`❌ File "${file.name}" is not an image.\n\nPlease select valid image files only.`);
+        return false;
+      }
+      
+      if (file.size === 0) {
+        alert(`❌ File "${file.name}" appears to be empty or corrupted.\n\nPlease check the file and try again.`);
+        return false;
+      }
+      
+      if (isMobile && file.size > 30 * 1024 * 1024) {
+        if (!confirm(`⚠️ File "${file.name}" is ${(file.size/1024/1024).toFixed(1)}MB.\n\nLarge files may take longer or fail on mobile devices.\n\nDo you want to continue?`)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+    
+    if (filteredFiles.length === 0) return;
+    
+    setFiles((prev) => [...prev, ...filteredFiles]);
     setShowFeatures(false);
-    setErrorMessage("");
   };
 
   const handleReset = () => {
     setFiles([]);
     setCompressedBlobs([]);
+    setAllCompressedFiles([]);
     setProgress(0);
     setShowFeatures(true);
     setErrorMessage("");
     setProcessingFiles([]);
+    setTotalOriginalSize(0);
+    setTotalCompressedSize(0);
   };
 
   const hasFiles = files.length > 0;
   const hasResults = compressedBlobs.length > 0;
-  const isReadyToCompress = hasFiles && !hasResults && !compressing;
-  const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+  const hasAllCompressed = allCompressedFiles.length > 0;
+  const isReadyToCompress = hasFiles && !compressing;
+  const currentFilesSize = files.reduce((acc, file) => acc + file.size, 0);
 
-  // Calculate total size of compressed files
-  const compressedTotalSize = compressedBlobs.reduce(
-    (acc, item) => acc + (item.compressedSize || 0),
+  // Calculate total compressed size from all compressed files
+  const allCompressedTotalSize = allCompressedFiles.reduce(
+    (acc, item) => acc + (item.blob?.size || 0),
     0
   );
-  const sizeReduction =
-    totalSize > 0 && compressedTotalSize > 0
-      ? Math.max(0, ((totalSize - compressedTotalSize) / totalSize) * 100).toFixed(1)
-      : "0";
+  
+  // Use stored totalCompressedSize if available
+  const totalCompressedSizeDisplay = totalCompressedSize > 0 
+    ? totalCompressedSize 
+    : allCompressedTotalSize;
+  
+  // Use stored totalOriginalSize
+  const originalTotalSizeDisplay = totalOriginalSize > 0 
+    ? totalOriginalSize 
+    : allCompressedFiles.reduce((acc, item) => acc + (item.originalFile?.size || 0), 0);
+  
+  // Calculate size reduction correctly
+  const sizeReduction = originalTotalSizeDisplay > 0 && totalCompressedSizeDisplay > 0
+    ? Math.max(0, ((originalTotalSizeDisplay - totalCompressedSizeDisplay) / originalTotalSizeDisplay) * 100)
+    : 0;
 
-  // Show error message in alert if exists
-  useEffect(() => {
-    if (errorMessage) {
-      alert(errorMessage);
-    }
-  }, [errorMessage]);
+  // Calculate saved space
+  const savedSpace = originalTotalSizeDisplay - totalCompressedSizeDisplay;
 
   return (
     <>
@@ -1008,7 +1240,7 @@ export default function CompressImage() {
       <BreadcrumbSchema />
       <HowToSchema />
       <ArticleSchema />
-
+      
       {/* Download Success Notifications */}
       <div className="fixed top-4 right-4 z-50 w-full max-w-xs sm:max-w-sm">
         <div
@@ -1063,16 +1295,14 @@ export default function CompressImage() {
                   </span>
                 </motion.div>
 
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-orange-600 via-pink-600 to-orange-600 bg-clip-text text-transparent px-2">
-                  Compress Image to PDF Online - 100% Free & Fast | PDFSwift
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent px-2">
+                  Compress Image Online - Free, Fast & No Watermark | PDFSwift
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Compress images online to reduce file size without losing
-                  quality. Fast, secure, browser-based image compressor for JPG
-                  & PNG. No signup required.
-                  <span className="block text-orange-600 dark:text-orange-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    Unlimited files • No size limits
+                  Compress your images to reduce file size while maintaining quality
+                  <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
+                    No limits • Unlimited files • Any size • Custom quality control
                   </span>
                 </p>
               </div>
@@ -1080,7 +1310,7 @@ export default function CompressImage() {
 
             {/* --- Features Grid --- */}
             <AnimatePresence>
-              {showFeatures && (
+              {showFeatures && !hasFiles && !hasAllCompressed && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -1091,26 +1321,26 @@ export default function CompressImage() {
                     {
                       icon: Zap,
                       title: "Fast Compression",
-                      desc: "Compress images quickly with our optimized compression engine",
-                      gradient: "from-orange-500 to-pink-600",
-                      bg: "from-orange-50 to-pink-50",
-                      border: "border-orange-200",
-                    },
-                    {
-                      icon: Palette,
-                      title: "Quality Preserved",
-                      desc: "Maintain image quality while significantly reducing file size with intelligent compression",
-                      gradient: "from-blue-500 to-purple-600",
-                      bg: "from-blue-50 to-purple-50",
+                      desc: "Compress images instantly on any device",
+                      gradient: "from-blue-500 to-cyan-600",
+                      bg: "from-blue-50 to-cyan-50",
                       border: "border-blue-200",
                     },
                     {
                       icon: Shield,
-                      title: "Secure Processing",
-                      desc: "All compression happens locally in your browser. Your images never leave your device",
+                      title: "Quality Preserved",
+                      desc: "Maintain image quality while significantly reducing file size",
                       gradient: "from-green-500 to-emerald-600",
                       bg: "from-green-50 to-emerald-50",
                       border: "border-green-200",
+                    },
+                    {
+                      icon: Sliders,
+                      title: "Custom Quality",
+                      desc: "Adjust compression quality from 10% to 100% for perfect balance",
+                      gradient: "from-purple-500 to-indigo-600",
+                      bg: "from-purple-50 to-indigo-50",
+                      border: "border-purple-200",
                     },
                   ].map((feature, index) => (
                     <div
@@ -1141,95 +1371,66 @@ export default function CompressImage() {
               {/* Upload Section */}
               <div className="mb-4 sm:mb-6 md:mb-8">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
-                  <div className="p-1.5 sm:p-2 bg-gradient-to-r from-orange-100 to-pink-100 dark:from-orange-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-xl">
-                    <Upload className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-orange-600 dark:text-orange-400" />
+                  <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg sm:rounded-xl">
+                    <Upload className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                      {hasFiles ? "Add More Images" : "Upload Images"}
+                      Upload Images
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Upload JPG or PNG images to compress and reduce file size
-                      without losing quality. No limits on number or size of files.
+                      Select images to compress – no limits
+                      <span className="block text-blue-600 dark:text-blue-400 mt-1">
+                        Unlimited files • Any size • All formats supported
+                      </span>
+                      {allCompressedFiles.length > 0 && (
+                        <span className="block text-green-600 dark:text-green-400 mt-1 text-xs">
+                          ✓ {allCompressedFiles.length} files already compressed
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
 
-                {/* FileUploader */}
-                <FileUploader
-                  accept="image/png,image/jpeg,image/jpg"
-                  multiple={true}
-                  onFilesSelected={
-                    hasFiles ? handleAddMoreFiles : handleFilesSelected
-                  }
-                  key={files.length}
-                />
+                <div className="mb-6">
+                  <FileUploader
+                    accept="image/*"
+                    multiple={true}
+                    onFilesSelected={handleFilesSelected}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                    No file limits – upload as many images as you want
+                  </p>
+                </div>
 
-                {/* Compression Quality Slider */}
                 {hasFiles && (
-                  <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-700/30">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        Compression Quality: {compressionQuality}%
-                      </label>
-                      <span className="text-xs text-blue-600 dark:text-blue-400">
-                        {compressionQuality >= 80 ? "High Quality" : 
-                         compressionQuality >= 60 ? "Good Balance" : 
-                         compressionQuality >= 40 ? "Medium" : "High Compression"}
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="10"
-                      max="95"
-                      step="5"
-                      value={compressionQuality}
-                      onChange={(e) => setCompressionQuality(Number(e.target.value))}
-                      className="w-full h-2 bg-blue-200 dark:bg-blue-800 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 dark:[&::-webkit-slider-thumb]:bg-blue-400"
-                    />
-                    <div className="flex justify-between text-xs text-blue-600 dark:text-blue-400 mt-1">
-                      <span>Smaller Size</span>
-                      <span>Better Quality</span>
-                    </div>
-                    {isMobile && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                        📱 Mobile mode: Large images will use optimized settings automatically
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Selected Files Summary */}
-                {hasFiles && (
-                  <div className="mt-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gradient-to-r from-orange-50 to-pink-50 dark:from-orange-900/20 dark:to-pink-900/20 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-r from-orange-500 to-pink-600 rounded-lg">
-                          <Layers className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-orange-700 dark:text-orange-300">
-                            {files.length} {files.length === 1 ? 'image' : 'images'} selected
-                          </p>
-                          <p className="text-xs text-orange-600 dark:text-orange-400">
-                            Total size: {(totalSize / 1024 / 1024).toFixed(2)} MB • 
-                            {files.filter(f => f.type === 'image/png').length} PNG • 
-                            {files.filter(f => f.type.includes('jpeg')).length} JPG
-                          </p>
-                        </div>
+                  <div className="text-center mb-6">
+                    <div className="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-lg sm:rounded-full">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+                        <span className="font-medium text-blue-700 dark:text-blue-300">
+                          {files.length} image files selected
+                        </span>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleReset}
-                          className="px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
-                        >
-                          Clear All
-                        </button>
+                      <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                        <span>
+                          • {(currentFilesSize / 1024 / 1024).toFixed(2)} MB total
+                        </span>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
+
+              {/* --- Quality Slider Section --- */}
+              {hasFiles && (
+                <div className="mb-6">
+                  <QualitySlider
+                    quality={userQuality}
+                    onQualityChange={setUserQuality}
+                  />
+                </div>
+              )}
 
               {/* --- File Previews and Compression Area --- */}
               {hasFiles && (
@@ -1238,22 +1439,15 @@ export default function CompressImage() {
                   <div className="space-y-3 sm:space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+                        <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                         Uploaded Images ({files.length})
                       </h3>
-                      <div className="flex gap-2">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() =>
-                            document.getElementById("file-upload")?.click()
-                          }
-                          className="px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-colors flex items-center gap-1"
-                        >
-                          <Plus className="w-3 h-3" />
-                          Add More
-                        </motion.button>
-                      </div>
+                      <button
+                        onClick={() => setFiles([])}
+                        className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg sm:rounded-xl transition-colors"
+                      >
+                        Clear All
+                      </button>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700">
@@ -1265,7 +1459,6 @@ export default function CompressImage() {
                           onRemove={() => handleRemoveFile(index)}
                           status={processingFiles.includes(file.name) ? "Compressing..." : "Ready to Compress"}
                           index={index}
-                          originalSize={file.size}
                         />
                       ))}
                     </div>
@@ -1277,9 +1470,9 @@ export default function CompressImage() {
                       <div className="space-y-3 sm:space-y-4">
                         <ProgressBar
                           progress={progress}
-                          label={`Compressing ${files.length} files...`}
+                          label={`Compressing ${files.length} files at ${userQuality}% quality...`}
                         />
-                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-orange-600 dark:text-orange-400">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-blue-600 dark:text-blue-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
                             {processingFiles.length > 0 ? `Processing: ${processingFiles[0]}` : "Compressing your images..."}
@@ -1295,11 +1488,10 @@ export default function CompressImage() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleCompress}
-                        disabled={compressing}
-                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
                       >
                         <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                        Compress {files.length} Images
+                        Compress {files.length} Images at {userQuality}% Quality
                         <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                       </motion.button>
                     )}
@@ -1307,14 +1499,14 @@ export default function CompressImage() {
                 </div>
               )}
             </div>
-
+            
             {/* --- Results and Download Area --- */}
-            {hasResults && (
+            {(hasResults || hasAllCompressed) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-green-200 dark:border-green-800/50 p-3 sm:p-4 md:p-6 lg:p-8 shadow-lg sm:shadow-xl md:shadow-2xl mb-6 md:mb-8"
-              >
+               >
                 {/* Success Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
                   <div className="flex items-center justify-center sm:justify-start">
@@ -1327,252 +1519,323 @@ export default function CompressImage() {
                       Compression Complete! 🎉
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
-                      Successfully compressed {compressedBlobs.length} images
-                      {sizeReduction !== "0" && ` • ${sizeReduction}% average size reduction`}
+                      Successfully compressed {allCompressedFiles.length} image files at {userQuality}% quality
                     </p>
-                    <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
-                      All PNGs converted to JPG format • Files are ready for download
-                    </p>
+                    {/* Size Statistics */}
+                    {originalTotalSizeDisplay > 0 && (
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs sm:text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Original: <span className="font-medium">{formatFileSize(originalTotalSizeDisplay)}</span>
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          → Compressed: <span className="font-medium text-green-600 dark:text-green-400">{formatFileSize(totalCompressedSizeDisplay)}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full font-bold">
+                          ↓ {sizeReduction.toFixed(1)}% smaller
+                        </span>
+                        <span className="text-blue-600 dark:text-blue-400 font-medium">
+                          Saved: {formatFileSize(savedSpace)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
                     <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base">
-                      {compressedBlobs.length} Files
+                      {allCompressedFiles.length} Files
                     </div>
                   </div>
                 </div>
 
-                {/* --- Output Compressed Images Previews --- */}
-                <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
-                  <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                    Compressed JPG Images
-                  </h3>
+                {/* --- Output Compressed Image Previews --- */}
+<div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-green-100 dark:border-green-800/30">
-                    {compressedBlobs.map((item, index) => (
-                      <ImagePreview
-                        key={index}
-                        file={item.blob}
-                        filename={item.name}
-                        status="Compressed ✓"
-                        isDownloadable={true}
-                        index={index}
-                        originalSize={item.originalSize}
-                        compressedSize={item.compressedSize}
-                      />
-                    ))}
-                  </div>
-                </div>
+  {/* Section Header */}
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
-                {/* --- Download Buttons --- */}
+    {/* Left: Title */}
+    <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+      <Download className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 shrink-0" />
+      <span>
+        All Compressed Images ({allCompressedFiles.length})
+      </span>
+    </h3>
+
+    {/* Right: Actions */}
+    <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-3">
+
+      {/* Files Count */}
+      <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base whitespace-nowrap">
+        {allCompressedFiles.length} Files
+      </div>
+
+      {/* Reset Button */}
+      <button
+        onClick={handleReset}
+        className="
+          inline-flex items-center justify-center
+          px-3 py-2 sm:px-4 sm:py-2.5
+          text-red-600 dark:text-red-400
+          hover:text-red-700 dark:hover:text-red-300
+          hover:bg-red-50 dark:hover:bg-red-950/30
+          font-medium
+          rounded-xl
+          transition-colors
+          text-xs sm:text-sm md:text-base
+          active:scale-95
+          touch-manipulation
+          whitespace-nowrap
+        "
+      >
+        <span className="flex items-center gap-1.5 sm:gap-2">
+          <X className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span>Clear All & Start Over</span>
+        </span>
+      </button>
+
+    </div>
+  </div>
+
+  {/* Image Previews */}
+  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-green-100 dark:border-green-800/30">
+    {allCompressedFiles.map((item, index) => (
+      <ImagePreview
+        key={index}
+        file={item.blob}
+        filename={item.name}
+        status="Compressed ✓"
+        isDownloadable={true}
+        index={index}
+        onSingleDownload={() => handleSingleDownload(index)}
+        showFileSize={true}
+        originalSize={item.originalFile?.size || 0}
+      />
+    ))}
+  </div>
+
+</div>
+
+                {/* --- Download Options Section --- */}
                 <div className="space-y-4 sm:space-y-6">
-                  {/* Download All as Individual Files */}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleDownload}
-                    className="w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3"
-                  >
-                    <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                    Download All {compressedBlobs.length} Images
-                    <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
-                  </motion.button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    {/* Download as ZIP Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDownloadAllAsZip}
+                      disabled={zipDownloading}
+                      className={`w-full py-3 sm:py-3 md:py-4 px-4 sm:px-4 md:px-6 
+                        bg-gradient-to-r from-purple-500 to-indigo-600 
+                        hover:from-purple-600 hover:to-indigo-700 
+                        text-white font-bold rounded-xl sm:rounded-xl md:rounded-2xl 
+                        shadow-lg hover:shadow-2xl transition-all 
+                        text-sm sm:text-base md:text-lg 
+                        flex items-center justify-center gap-2 sm:gap-3
+                        active:scale-95 touch-manipulation
+                        ${zipDownloading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                    >
+                      {zipDownloading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                          Creating ZIP...
+                        </>
+                      ) : (
+                        <>
+                          <Archive className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                          <span className="text-center">Download as ZIP</span>
+                          <span className="hidden sm:inline">({allCompressedFiles.length} files)</span>
+                          <FolderClosed className="w-4 h-4 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                        </>
+                      )}
+                    </motion.button>
 
-                  {/* Download as ZIP */}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleDownloadAsZip}
-                    disabled={creatingZip || compressedBlobs.length === 0}
-                    className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
-                      creatingZip ? "opacity-70 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    {creatingZip ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:h-6 border-b-2 border-white"></div>
-                        <span>Creating ZIP...</span>
-                      </>
-                    ) : (
-                      <>
-                        <FolderArchive className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                        Download as ZIP File
-                        <span className="text-xs px-2 py-1 bg-white/20 rounded-full">
-                          {compressedBlobs.length} files
-                        </span>
-                      </>
-                    )}
-                  </motion.button>
+                    {/* Download All Separately Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDownloadAllSeparate}
+                      className="w-full py-3 sm:py-3 md:py-4 px-4 sm:px-4 md:px-6 
+                        bg-gradient-to-r from-green-500 to-emerald-600 
+                        hover:from-green-600 hover:to-emerald-700 
+                        text-white font-bold rounded-xl sm:rounded-xl md:rounded-2xl 
+                        shadow-lg hover:shadow-2xl transition-all 
+                        text-sm sm:text-base md:text-lg 
+                        flex items-center justify-center gap-2 sm:gap-3
+                        active:scale-95 touch-manipulation"
+                    >
+                      <Download className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                      <span className="text-center">Download All</span>
+                      <span className="hidden sm:inline">({allCompressedFiles.length} files)</span>
+                      <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+                    </motion.button>
+                  </div>
 
-                  {/* Compress More Button */}
-                  <div className="text-center">
+                  {/* Reset Button */}
+                  <div className="flex justify-center">
                     <button
                       onClick={handleReset}
-                      className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base"
+                      className="px-4 py-2.5 sm:px-6 sm:py-3 
+                        text-red-600 dark:text-red-400 
+                        hover:text-red-700 dark:hover:text-red-300 
+                        font-medium hover:bg-red-50 dark:hover:bg-red-950/30 
+                        rounded-xl transition-colors 
+                        text-sm sm:text-base 
+                        active:scale-95 touch-manipulation"
                     >
-                      <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
-                      Compress More Images
+                      <span className="flex items-center gap-2">
+                        <X className="w-4 h-4" />
+                        Clear All & Start Over
+                      </span>
                     </button>
-                  </div>
-                </div>
-
-                {/* ZIP Benefits Info */}
-                <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl border border-purple-200 dark:border-purple-800/30">
-                  <div className="flex items-start gap-3">
-                    <FolderArchive className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-bold text-purple-700 dark:text-purple-300 text-sm mb-1">
-                        Why Download as ZIP?
-                      </h4>
-                      <ul className="text-xs text-purple-600 dark:text-purple-400 space-y-1">
-                        <li className="flex items-center gap-1">
-                          <Check className="w-3 h-3" />
-                          <span>Single file for easy sharing</span>
-                        </li>
-                        <li className="flex items-center gap-1">
-                          <Check className="w-3 h-3" />
-                          <span>Preserves folder structure</span>
-                        </li>
-                        <li className="flex items-center gap-1">
-                          <Check className="w-3 h-3" />
-                          <span>Faster downloads for multiple files</span>
-                        </li>
-                        <li className="flex items-center gap-1">
-                          <Check className="w-3 h-3" />
-                          <span>Compressed size saves bandwidth</span>
-                        </li>
-                      </ul>
-                    </div>
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* --- Stats Footer (Clean Card Layout) --- */}
-            <div className="mt-10 sm:mt-14">
-              <div className="max-w-6xl mx-auto px-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-                  {[
-                    {
-                      value: files.length,
-                      label: "Files Uploaded",
-                      color: "text-orange-600",
-                      bg: "bg-orange-50 dark:bg-orange-900/10",
-                    },
-                    {
-                      value: `${(totalSize / 1024 / 1024).toFixed(1)} MB`,
-                      label: "Original Size",
-                      color: "text-blue-600",
-                      bg: "bg-blue-50 dark:bg-blue-900/10",
-                    },
-                    {
-                      value: compressedBlobs.length,
-                      label: "Files Compressed",
-                      color: "text-green-600",
-                      bg: "bg-green-50 dark:bg-green-900/10",
-                    },
-                    {
-                      value: `${sizeReduction}%`,
-                      label: "Size Reduction",
-                      color: "text-purple-600",
-                      bg: "bg-purple-50 dark:bg-purple-900/10",
-                    },
-                  ].map((stat, index) => (
-                    <div
-                      key={index}
-                      className={`flex flex-col justify-center items-center
-          rounded-2xl border border-gray-200 dark:border-gray-800
-          ${stat.bg}
-          p-4 sm:p-6
-          shadow-sm hover:shadow-lg
-          transition-all duration-300`}
-                    >
+            {/* --- Stats Footer (Card Style) --- */}
+            {(hasFiles || hasAllCompressed) && (
+              <div className="mt-6 sm:mt-10 md:mt-14">
+                <div className="max-w-6xl mx-auto px-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+                    {[
+                      {
+                        value: files.length > 0 ? files.length : allCompressedFiles.length,
+                        label: "Files Uploaded",
+                        color: "text-blue-600",
+                        bg: "bg-blue-50 dark:bg-blue-900/10",
+                      },
+                      {
+                        value: originalTotalSizeDisplay > 0 
+                          ? `${(originalTotalSizeDisplay / 1024 / 1024).toFixed(2)} MB`
+                          : `${(currentFilesSize / 1024 / 1024).toFixed(2)} MB`,
+                        label: "Total Input Size",
+                        color: "text-orange-600",
+                        bg: "bg-orange-50 dark:bg-orange-900/10",
+                      },
+                      {
+                        value: allCompressedFiles.length,
+                        label: "Files Compressed",
+                        color: "text-green-600",
+                        bg: "bg-green-50 dark:bg-green-900/10",
+                      },
+                      {
+                        value: totalCompressedSizeDisplay > 0 
+                          ? `${(totalCompressedSizeDisplay / 1024 / 1024).toFixed(2)} MB` 
+                          : '0 MB',
+                        label: "Total Output Size",
+                        color: "text-purple-600",
+                        bg: "bg-purple-50 dark:bg-purple-900/10",
+                      },
+                    ].map((stat, index) => (
                       <div
-                        className={`text-xl sm:text-2xl md:text-3xl font-extrabold 
-            ${stat.color} dark:${stat.color.replace("600", "400")}`}
+                        key={index}
+                        className={`flex flex-col items-center justify-center
+                        rounded-2xl border border-gray-200 dark:border-gray-800
+                        ${stat.bg}
+                        p-4 sm:p-6
+                        shadow-sm hover:shadow-lg
+                        transition-all duration-300`}
                       >
-                        {stat.value}
-                      </div>
+                        <div
+                          className={`text-xl sm:text-2xl md:text-3xl xl:text-4xl font-extrabold
+                          ${stat.color} dark:${stat.color.replace("600", "400")}`}
+                        >
+                          {stat.value}
+                        </div>
 
-                      <div className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
-                        {stat.label}
+                        <div className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                          {stat.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Size Reduction Display */}
+                  {allCompressedFiles.length > 0 && originalTotalSizeDisplay > 0 && (
+                    <div className="mt-6 text-center">
+                      <div className="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl border-2 border-green-200 dark:border-green-800/50">
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Total Size Reduction:
+                        </span>
+                        <span className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
+                          ↓ {sizeReduction.toFixed(1)}%
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          ({formatFileSize(originalTotalSizeDisplay)} → {formatFileSize(totalCompressedSizeDisplay)})
+                        </span>
+                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                          Saved: {formatFileSize(savedSpace)}
+                        </span>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
-            </div>
+            )}
+            
+            <section
+              id="how-to-compress-image"
+              className="mt-20 scroll-mt-24"
+            >
+              <h2 className="text-3xl font-bold text-center mb-10 text-gray-900 dark:text-white">
+                How to Compress Images Online
+              </h2>
 
-            <section className="mt-20">
-  <h2 className="text-3xl font-bold text-center mb-10 text-gray-900 dark:text-white">
-    How to Compress Images Online
-  </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+                {/* Step 1 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">1</div>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Upload Images</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                    Upload images using drag & drop or file picker.
+                  </p>
+                </div>
 
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-    
-    {/* Step 1 */}
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
-      <div className="text-4xl font-bold text-purple-600 mb-2">
-        1
-      </div>
+                {/* Step 2 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">2</div>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Set Quality</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                    Adjust the quality slider from 10% to 100% as needed.
+                  </p>
+                </div>
 
-      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-        Upload Images
-      </h3>
+                {/* Step 3 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Review Files</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                    Check uploaded images and remove any file if needed.
+                  </p>
+                </div>
 
-      <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
-        Upload one or multiple images using drag & drop or the upload button
-      </p>
-    </div>
+                {/* Step 4 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Compress Images</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                    Click the compress button to reduce image file sizes.
+                  </p>
+                </div>
 
-    {/* Step 2 */}
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
-      <div className="text-4xl font-bold text-purple-600 mb-2">
-        2
-      </div>
+                {/* Step 5 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">5</div>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Preview Results</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                    Preview compressed images with reduced file size.
+                  </p>
+                </div>
 
-      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-        Select Compression Settings
-      </h3>
-
-      <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
-        Adjust compression quality slider to balance file size and image quality
-      </p>
-    </div>
-
-    {/* Step 3 */}
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
-      <div className="text-4xl font-bold text-purple-600 mb-2">
-        3
-      </div>
-
-      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-        Compress Images
-      </h3>
-
-      <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
-        Click compress button to reduce image size while maintaining visual quality
-      </p>
-    </div>
-
-    {/* Step 4 */}
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
-      <div className="text-4xl font-bold text-purple-600 mb-2">
-        4
-      </div>
-
-      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
-        Download Files
-      </h3>
-
-      <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
-        Download compressed images individually or as a ZIP folder
-      </p>
-    </div>
-
-  </div>
-</section>
-
+                {/* Step 6 */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition">
+                  <div className="text-4xl font-bold text-blue-600 mb-2">6</div>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Download Files</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                    Download images individually or as a single ZIP archive.
+                  </p>
+                </div>
+              </div>
+            </section>
+            
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-6 md:mb-8">
@@ -1629,90 +1892,68 @@ export default function CompressImage() {
                 </Link>
               </div>
             </div>
-          </motion.div>
 
-          {/* --- FAQ Section --- */}
-          <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
-            <div className="text-center mb-6 sm:mb-8 md:mb-12">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
-                Frequently Asked Questions
-              </h2>
-              <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Everything you need to know about compressing images online
-              </p>
-            </div>
+            {/* Visible FAQ Section */}
+            <section className="max-w-3xl mx-auto my-16 px-4">
+              {/* Title */}
+              <div className="text-center mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                  Frequently Asked Questions
+                </h2>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Everything you need to know about compressing images online
+                </p>
+              </div>
 
-            <div className="space-y-3 sm:space-y-4">
-              {[
-                {
-                  question: "Is there any limit on file size or number of files?",
-                  answer: "No, there are no limits. You can upload any number of images of any size. However, very large files may take longer to process depending on your device's performance."
-                },
-                {
-                  question: "Will the image quality be preserved during compression?",
-                  answer: "Yes, we use intelligent compression algorithms that reduce file size while maintaining visual quality. You can adjust the compression quality using the slider to find the perfect balance between size and quality."
-                },
-                {
-                  question: "Can I compress PNG files with transparency?",
-                  answer: "Yes, PNG files with transparency (alpha channel) are supported. During compression to JPG, transparent areas will be converted to white background as JPG format does not support transparency."
-                },
-                {
-                  question: "How do I download compressed files?",
-                  answer: "You can download files individually by clicking the download button on each image, or download all files at once as a ZIP archive using the 'Download as ZIP' button."
-                },
-                {
-                  question: "Is the compression secure? Are my files uploaded to your servers?",
-                  answer: "All compression happens directly in your browser (client-side). Your images are never uploaded to any server, ensuring complete privacy and security."
-                },
-                {
-                  question: "What image formats are supported?",
-                  answer: "We support JPG, JPEG, and PNG formats. Other image formats like WebP, BMP, or TIFF are not supported. PNG files are automatically converted to JPG during compression for better size reduction."
-                },
-                {
-                  question: "Why does my browser become slow during compression?",
-                  answer: "Compressing very large images can be memory-intensive. For best performance on any device, consider compressing files in smaller batches if you notice performance issues."
-                }
-              ].map((faq, index) => (
-                <details
-                  key={index}
-                  className="
-                    group rounded-xl border border-gray-200 dark:border-gray-700
-                    bg-white dark:bg-gray-900
-                    transition-all duration-300
-                    hover:border-blue-400/60 dark:hover:border-blue-500/60
-                    open:shadow-lg open:border-blue-500
-                  "
-                >
-                  <summary
-                    className="
-                      flex cursor-pointer list-none items-center justify-between
-                      px-4 sm:px-5 py-3 sm:py-4
-                      text-sm sm:text-base md:text-lg
-                      font-semibold text-gray-900 dark:text-white
-                    "
+              {/* FAQ List */}
+              <div className="space-y-4">
+                {[
+                  {
+                    question: "Is there any limit on file size or number of files?",
+                    answer: "No! There are no limits. You can upload any number of images of any size. All processing happens in your browser."
+                  },
+                  {
+                    question: "What does the quality slider do?",
+                    answer: "The quality slider lets you control the compression level from 10% to 100%. Higher quality means larger file size but better image quality. Lower quality means smaller file size but more compression artifacts. We recommend 70-90% for most use cases."
+                  },
+                  {
+                    question: "What image formats are supported?",
+                    answer: "All common image formats are supported including JPG, PNG, WebP, BMP, GIF, and TIFF. The tool will compress them while preserving the original format."
+                  },
+                  {
+                    question: "How do I download compressed files?",
+                    answer: "You can download files individually by clicking the download button on each image, or download all files at once as a ZIP archive using the 'Download as ZIP Archive' button."
+                  },
+                  {
+                    question: "Is the compression secure? Are my files uploaded to your servers?",
+                    answer: "All compression happens directly in your browser (client-side). Your images are never uploaded to any server, ensuring complete privacy and security."
+                  },
+                  {
+                    question: "How much file size reduction can I expect?",
+                    answer: "File size reduction varies based on the image content, format, and the quality setting you choose. At 70% quality, you can typically expect 40-70% reduction in file size while maintaining good visual quality."
+                  },
+                  {
+                    question: "Can I compress images with transparency?",
+                    answer: "Yes! PNG images with transparency are fully supported. The compression will maintain the transparency while reducing the file size."
+                  }
+                ].map((faq, index) => (
+                  <details
+                    key={index}
+                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
+                    bg-white dark:bg-gray-800"
                   >
-                    <span>{faq.question}</span>
-                    <span
-                      className="
-                        ml-3 flex h-6 w-6 items-center justify-center
-                        rounded-full bg-gray-100 dark:bg-gray-800
-                        text-gray-500 dark:text-gray-400
-                        transition-transform duration-300
-                        group-open:rotate-180
-                      "
-                    >
-                      ▼
-                    </span>
-                  </summary>
-                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
-                    <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
+                      {faq.question}
+                    </summary>
+                    <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
                       {faq.answer}
                     </p>
-                  </div>
-                </details>
-              ))}
-            </div>
-          </section>
+                  </details>
+                ))}
+              </div>
+            </section>
+           
+          </motion.div>
         </div>
       </div>
     </>
