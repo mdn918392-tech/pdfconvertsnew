@@ -1224,9 +1224,9 @@ export default function PdfPageRemoverTool() {
             </h1>
 
             <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-              Remove unwanted pages from your PDF documents instantly.
+              Remove unwanted pages from PDF files online instantly with PDFSwift. 
               <span className="block text-red-600 dark:text-red-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
-                Select which pages to keep and download a clean PDF!
+                Select the pages you want to remove or keep, then download a clean PDF without unwanted page
               </span>
             </p>
           </div>
@@ -1244,7 +1244,7 @@ export default function PdfPageRemoverTool() {
                     Upload PDF
                   </h2>
                   <p className="text-xs sm:text-sm md:text-base text-gray-500 dark:text-gray-400">
-                    Select your PDF file (auto-processed after upload)
+                    Easily remove unwanted or specific pages from your PDF with our free online PDF page remover.
                     <span className="block text-red-600 dark:text-red-400 mt-1">
                       No limits • Any size
                     </span>

@@ -225,6 +225,8 @@ export default function ExtractPDFPagesGuide() {
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Complete guide to extract specific pages from PDF documents on Windows, Mac, iOS, Android, and online tools.
           </p>
+
+          
           
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             <div className="flex items-center px-4 py-2 bg-blue-50 rounded-lg">

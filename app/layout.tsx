@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
    🌍 GLOBAL SEO METADATA
 ========================= */
 export const metadata: Metadata = {
-  metadataBase: new URL("https://pdfswift.online"),
+  metadataBase: new URL("https://www.pdfswift.online"),
 
   // ✅ GOOGLE SEARCH CONSOLE VERIFICATION
   verification: {
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
   },
 
   alternates: {
-    canonical: "https://pdfswift.online",
+    canonical: "https://www.pdfswift.online",
   },
 
   openGraph: {

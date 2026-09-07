@@ -309,11 +309,11 @@ export default function Home() {
 
  // FAQ Data with Schema Structure
   const faqs = [
-    {
-      question: "What is PDFSwift (or pdf swift) and how does it work?",
-      answer: "PDFSwift (also searched as pdf swift) is a free online platform offering easy-to-use tools for PDF and image editing. You can split PDFs, remove pages, convert URLs to JPGs, and compress files instantly directly in your browser.",
-      schemaAnswer: "PDFSwift (also searched as pdf swift) is a free online platform offering easy-to-use tools for PDF and image editing. You can split PDFs, remove pages, convert URLs to JPGs, and compress files instantly directly in your browser."
-    },
+   {
+  question: "What is PDFSwift (or pdf swift) and how does it work?",
+  answer: "PDFSwift (also searched as pdf swift) is a free online platform with easy-to-use PDF and image tools. It lets you perform common PDF tasks such as splitting files, adding or removing pages, compressing files, and more directly in your browser.",
+  schemaAnswer: "PDFSwift (also searched as pdf swift) is a free online platform with easy-to-use PDF and image tools. It lets you perform common PDF tasks such as splitting files, adding or removing pages, compressing files, and more directly in your browser."
+   },
     {
       question: "Is PDFSwift really free to use?",
       answer: "Yes, PDFSwift is 100% completely free with no hidden costs, no subscription fees, and no usage limits. You can split PDF files, remove PDF pages, and convert documents without paying anything.",

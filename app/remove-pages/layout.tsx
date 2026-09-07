@@ -4,7 +4,7 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   title: "Remove Pages from PDF Online Free - No Watermark | PDFSwift",
   description:
-    "Delete unwanted pages from PDF files online for free. Clean, fast, and secure PDF page remover tool. Download your new PDF instantly without any watermark or signup.",
+    "Remove unwanted pages from PDF files online instantly with PDFSwift. Select the pages you want to remove or keep, then download a clean PDF without unwanted page",
   keywords: [
   "remove pages from PDF online",
   "delete PDF pages",

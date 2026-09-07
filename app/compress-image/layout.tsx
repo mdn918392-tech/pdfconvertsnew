@@ -4,7 +4,7 @@ import type { Metadata, Viewport } from "next";
 
 
 export const metadata: Metadata = {
-  title: "Compress Image to PDF Online - 100% Free & Fast | PDFSwift",
+  title: "Compress Image Online - Free, Fast & No Watermark | PDFSwift",
   description:
     "Easily compress your images and convert them into high-quality PDF files online for free. Fast, secure, and no installation required. Try PDFSwift now",
  keywords: [

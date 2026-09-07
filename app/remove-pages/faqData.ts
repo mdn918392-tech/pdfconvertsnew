@@ -49,9 +49,19 @@ export const faqData = [
     answer:
       "There is no strict limit on the number of pages you can remove. Large PDF files are supported, although performance may depend on your device and browser capabilities.",
   },
+
   {
     question: "Can I remove PDF pages on mobile devices?",
     answer:
       "Yes, the Remove Pages from PDF tool on pdfswift works perfectly on mobile phones, tablets, laptops, and desktop computers. It supports all modern browsers without requiring any software installation.",
   },
+  
+  {
+    question: "What is a PDF page remover?",
+    answer:
+      "A PDF page remover is an online tool that lets you remove unwanted, extra, or specific pages from a PDF file. PDFSwift lets you select the pages you want to remove and download the updated PDF instantly.",
+  },
 ];
+
+
+
