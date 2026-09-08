@@ -1624,16 +1624,17 @@ export default function PdfPageExtractorTool() {
               </motion.div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent px-2">
-               Extract PDF Pages Online - Free, Fast & No Watermark | PDFSwif
+               Extract PDF Pages Online Free | PDF Page Extractor | PDFSwift
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                Extract specific pages from PDF files online free without
-                watermark.
-                <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
-                  Select pages to extract and download them as a new PDF!
-                </span>
-              </p>
+  Extract specific pages from PDF files online for free with PDFSwift.
+  Select individual pages or page ranges and create a new PDF containing
+  only the pages you need.
+  <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
+    Select the pages you need and download your new PDF instantly.
+  </span>
+</p>
             </div>
 
             {/* Main Card - Responsive */}
@@ -1645,12 +1646,13 @@ export default function PdfPageExtractorTool() {
                     <FolderOpen className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                      Upload PDF
-                    </h2>
-                    <p className="text-xs sm:text-sm md:text-base text-gray-500 dark:text-gray-400">
-                      Select your PDF file to extract pages (No size limit)
-                    </p>
+                   <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+  Upload PDF
+</h2>
+
+<p className="text-xs sm:text-sm md:text-base text-gray-500 dark:text-gray-400">
+  Select your PDF file to choose and extract the pages you need
+</p>
                   </div>
                 </div>
 
@@ -2245,60 +2247,67 @@ export default function PdfPageExtractorTool() {
                         How to Extract Pages from PDF
                       </h2>
 
-                      <div className="grid gap-6 md:grid-cols-4">
-                        {/* Step 1 */}
-                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                          <div className="text-4xl font-bold text-purple-600 mb-2">
-                            1
-                          </div>
-                          <h3 className="font-semibold text-lg">Upload PDF</h3>
-                          <p className="text-gray-600 text-sm mt-2">
-                            Upload the PDF file from which you want to extract
-                            pages.
-                          </p>
-                        </div>
+                     <div className="grid gap-6 md:grid-cols-4">
+  {/* Step 1 */}
+  <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
+    <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+      1
+    </div>
 
-                        {/* Step 2 */}
-                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                          <div className="text-4xl font-bold text-purple-600 mb-2">
-                            2
-                          </div>
-                          <h3 className="font-semibold text-lg">
-                            Select Pages
-                          </h3>
-                          <p className="text-gray-600 text-sm mt-2">
-                            Click on pages to select or deselect them for
-                            extraction.
-                          </p>
-                        </div>
+    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+      Upload PDF
+    </h3>
 
-                        {/* Step 3 */}
-                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                          <div className="text-4xl font-bold text-purple-600 mb-2">
-                            3
-                          </div>
-                          <h3 className="font-semibold text-lg">
-                            Extract Pages
-                          </h3>
-                          <p className="text-gray-600 text-sm mt-2">
-                            Click the extract button to create a new PDF with
-                            selected pages.
-                          </p>
-                        </div>
+    <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+      Upload the PDF file containing the pages you want to extract.
+    </p>
+  </div>
 
-                        {/* Step 4 */}
-                        <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                          <div className="text-4xl font-bold text-purple-600 mb-2">
-                            4
-                          </div>
-                          <h3 className="font-semibold text-lg">
-                            Download PDF
-                          </h3>
-                          <p className="text-gray-600 text-sm mt-2">
-                            Download the extracted pages as a new PDF instantly.
-                          </p>
-                        </div>
-                      </div>
+  {/* Step 2 */}
+  <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
+    <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+      2
+    </div>
+
+    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+      Select Pages
+    </h3>
+
+    <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+      Select the individual pages you want to include in the new PDF.
+    </p>
+  </div>
+
+  {/* Step 3 */}
+  <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
+    <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+      3
+    </div>
+
+    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+      Extract Pages
+    </h3>
+
+    <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+      Extract your selected pages and create a new PDF file.
+    </p>
+  </div>
+
+  {/* Step 4 */}
+  <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800">
+    <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+      4
+    </div>
+
+    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">
+      Download PDF
+    </h3>
+
+    <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+      Download the new PDF containing only your selected pages.
+    </p>
+  </div>
+</div>
                     </section> 
                     
             {/* Explore All Tools Section */}
@@ -2358,7 +2367,7 @@ export default function PdfPageExtractorTool() {
               </div>
 
               {/* --- FAQ Section --- */}
-              <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
+               <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
                 {/* Header */}
                 <div className="text-center mb-6 sm:mb-8 md:mb-12">
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">

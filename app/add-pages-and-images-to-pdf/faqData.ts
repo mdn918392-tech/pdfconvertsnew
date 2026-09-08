@@ -1,73 +1,73 @@
 export const faqData = [
   {
-    question: "Is the Add Pages & Images to PDF tool completely free to use?",
+    question: "Is the Add Pages & Images to PDF tool free to use?",
     answer:
-      "Yes, our Add Pages & Images to PDF tool is completely free with no hidden charges. You can add pages, insert blank pages, or add images to your PDF without creating an account, signing up, or paying anything.",
+      "Yes, PDFSwift lets you add pages and images to a PDF online for free. You can add blank pages or insert images without creating an account or paying for the tool.",
   },
 
   {
-    question: "How can I add pages to an existing PDF?",
+    question: "How can I add pages to a PDF online?",
     answer:
-      "Simply upload your PDF, choose where you want to add the new pages, and insert blank pages or images as needed. PDFSwift will create an updated PDF with the new pages in the selected position.",
+      "Upload your PDF, choose where you want to add the new pages, and select the number and page size. You can add blank pages or insert images as new pages, then download the updated PDF.",
   },
 
   {
-    question: "How can I insert pages in a PDF online for free?",
+    question: "How can I insert pages into a PDF for free?",
     answer:
-      "Upload your PDF to the Add Pages & Images to PDF tool, select the page where you want to insert new content, and add blank pages or images. The updated PDF can then be downloaded for free.",
+      "Upload your PDF to PDFSwift, select the position where you want to insert the new page, and choose whether to add a blank page or an image. The updated PDF can then be downloaded for free.",
   },
 
   {
     question: "Can I add blank pages to a PDF?",
     answer:
-      "Yes. You can insert blank pages before or after any page number in your PDF. You can also choose the number of blank pages and select a page size such as A4, A3, Letter, Legal, or a custom size.",
+      "Yes. You can add one or multiple blank pages to your PDF and place them before or after any existing page. You can also choose A4, A3, Letter, Legal, or a custom page size.",
   },
 
   {
     question: "Can I add images to a PDF as new pages?",
     answer:
-      "Yes, you can upload supported image formats such as JPG and PNG and add them to your PDF as new pages. You can choose where the image pages should appear in the document.",
+      "Yes. You can add supported images such as JPG and PNG to your PDF as new pages. You can choose where the image page should appear in the document.",
   },
 
   {
-    question: "Can I insert pages between existing PDF pages?",
+    question: "Can I insert a page between existing PDF pages?",
     answer:
-      "Yes. PDFSwift allows you to insert new blank pages or image pages at the position you choose, including between existing pages of your PDF.",
+      "Yes. You can insert a new blank page or image page between existing pages by choosing the position where the new page should be added.",
   },
 
   {
     question: "Can I add multiple pages to a PDF at once?",
     answer:
-      "Yes, you can add multiple blank pages or image pages to an existing PDF. This makes it easy to expand your document without recreating the entire PDF.",
+      "Yes. You can add multiple blank pages or image pages to an existing PDF. You can choose how many pages to insert and where they should be placed.",
+  },
+
+  {
+    question: "Can I choose the size of a new PDF page?",
+    answer:
+      "Yes. You can choose from A4, A3, Letter, Legal, or a custom page size when adding new blank pages to your PDF.",
   },
 
   {
     question: "Is PDFSwift a free PDF page adder?",
     answer:
-      "Yes. PDFSwift works as a free PDF page adder that lets you add blank pages and image pages to an existing PDF directly from your browser.",
+      "Yes. PDFSwift works as a free PDF page adder that lets you add blank pages and image pages to an existing PDF directly in your browser.",
   },
 
   {
-    question: "Is it safe to add pages or images to a PDF online using PDFSwift?",
+    question: "Is it safe to add pages or images to a PDF with PDFSwift?",
     answer:
-      "Yes, it is 100% safe and secure. All PDF processing happens locally in your browser using modern web technologies. Your PDF files and images are never uploaded to our servers, never stored, and never shared with anyone.",
+      "PDFSwift processes your files directly in your browser, so your PDF and images are not sent to a server for processing. This helps keep your files private while you add pages or images to your PDF.",
   },
 
   {
-    question: "Will adding pages or images affect my original PDF quality?",
+    question: "Will adding pages or images change my original PDF pages?",
     answer:
-      "No, your original PDF pages remain unchanged. The inserted blank pages and images are added without damaging the existing content or reducing the quality of the original pages.",
+      "No. The existing pages in your PDF remain unchanged. The new blank pages or image pages are added to the updated PDF according to the position you select.",
   },
 
   {
-    question: "How fast is the PDF editing process?",
+    question: "Will the downloaded PDF have a watermark?",
     answer:
-      "The process is fast because it runs directly in your browser. Adding pages or inserting images usually takes only a few seconds, depending on your PDF size and device performance.",
-  },
-
-  {
-    question: "Will the downloaded PDF contain any watermark?",
-    answer:
-      "No, the final modified PDF is completely watermark-free. PDFSwift does not add branding, logos, or unwanted marks to your PDF.",
+      "No. PDFSwift does not add a watermark, logo, or unwanted branding to the downloaded PDF.",
   },
 ];

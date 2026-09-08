@@ -7,6 +7,7 @@ import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
+import { faqData } from "./faqData";
 import {
   Upload,
   Download,
@@ -1143,10 +1144,12 @@ export default function ImageToA4Sheet() {
             </a>
             <div className="text-center mt-2 sm:mt-4">
               <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white">
-               Create Custom Image Sheets Online – Arrange Multiple Images
+               Create Image Sheets Online Free | Arrange Multiple Images | PDFSwift
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1 sm:mt-2 max-w-2xl mx-auto text-xs sm:text-sm md:text-base">
-               Create custom image sheets online by arranging multiple photos your way. Resize, move, rotate and organize images on A4, A3 or custom pages, then download as PDF, JPG or PNG.
+                Create custom image sheets online with PDFSwift. Arrange multiple JPG, PNG,
+  and WebP images on A4, A3, or custom-size pages, then export your layout
+  as a PDF, JPG, or PNG.
               </p>
             </div>
           </div>
@@ -1884,83 +1887,111 @@ export default function ImageToA4Sheet() {
             </div>
           </div>
 
-          {/* ===== HOW TO USE SECTION ===== */}
-          <section className="mb-8 md:mb-12 mt-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
-                  <span className="text-2xl">📋</span>
-                </div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                  How to Use This Tool
-                </h2>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                {[
-                  {
-                    step: "1",
-                    icon: "📤",
-                    title: "Upload Images",
-                    description: "Click 'Upload to Page X' to add images. Supports JPG, PNG, WebP formats. Images are added to the current page."
-                  },
-                  {
-                    step: "2",
-                    icon: "✋",
-                    title: "Arrange Freely",
-                    description: "Drag images to reposition, use corner handles to resize. Lock ratio option maintains aspect ratio while resizing."
-                  },
-                  {
-                    step: "3",
-                    icon: "🔄",
-                    title: "Rotate & Adjust",
-                    description: "Use rotation controls (0-360°) or snap to angles (0°, 45°, 90°). Double-tap on mobile for 90° rotation."
-                  },
-                  {
-                    step: "4",
-                    icon: "📄",
-                    title: "Export & Download",
-                    description: "Choose PDF, JPG, or PNG format. Export single pages or all pages at once with high-quality 300 DPI output."
-                  }
-                ].map((item) => (
-                  <div key={item.step} className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 md:p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-all group">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm md:text-base shadow-lg flex-shrink-0">
-                        {item.step}
-                      </div>
-                      <span className="text-2xl md:text-3xl">{item.icon}</span>
-                    </div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-sm md:text-base mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {item.title}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
+      {/* ===== HOW TO USE SECTION ===== */}
+<section className="mb-8 md:mb-12 mt-6">
+  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+    
+    <div className="flex items-center gap-3 mb-6">
+      <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
+        <span className="text-2xl">📋</span>
+      </div>
 
-              {/* Quick Tips */}
-              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                <div className="flex items-start gap-3">
-                  <span className="text-lg mt-0.5">💡</span>
-                  <div>
-                    <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-sm md:text-base">
-                      Pro Tips
-                    </h4>
-                    <ul className="text-blue-700 dark:text-blue-400 text-xs md:text-sm space-y-1 mt-1 list-disc list-inside">
-                      <li>Enable "Auto-Adjust" to automatically arrange images in a grid</li>
-                      <li>Double-tap an image to rotate 90° clockwise</li>
-                      <li>Pinch to zoom on mobile devices</li>
-                      <li>Use the "Fit" button to auto-fit the canvas</li>
-                      <li>Page navigation buttons show image count per page</li>
-                      <li>Delete button is always visible on mobile when image is selected</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
+      <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+        How to Create a Custom Image Sheet
+      </h2>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      {[
+        {
+          step: "1",
+          icon: "📤",
+          title: "Upload Images",
+          description:
+            "Upload JPG, PNG, or WebP images to the page where you want to arrange them.",
+        },
+        {
+          step: "2",
+          icon: "✋",
+          title: "Arrange Images",
+          description:
+            "Drag images to position them, resize them, and adjust their placement on the page.",
+        },
+        {
+          step: "3",
+          icon: "🔄",
+          title: "Rotate & Adjust",
+          description:
+            "Rotate images and fine-tune their position and size to create your preferred layout.",
+        },
+        {
+          step: "4",
+          icon: "📄",
+          title: "Export & Download",
+          description:
+            "Choose PDF, JPG, or PNG and export your image sheet as a high-quality file.",
+        },
+      ].map((item) => (
+        <div
+          key={item.step}
+          className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 md:p-5 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-all group"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm md:text-base shadow-lg flex-shrink-0">
+              {item.step}
             </div>
-          </section>
+
+            <span className="text-2xl md:text-3xl">
+              {item.icon}
+            </span>
+          </div>
+
+          <h3 className="font-bold text-gray-900 dark:text-white text-sm md:text-base mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            {item.title}
+          </h3>
+
+          <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm leading-relaxed">
+            {item.description}
+          </p>
+        </div>
+      ))}
+    </div>
+
+    {/* Quick Tips */}
+    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+      <div className="flex items-start gap-3">
+        <span className="text-lg mt-0.5">💡</span>
+
+        <div>
+          <h4 className="font-semibold text-blue-800 dark:text-blue-300 text-sm md:text-base">
+            Pro Tips
+          </h4>
+
+          <ul className="text-blue-700 dark:text-blue-400 text-xs md:text-sm space-y-1 mt-1 list-disc list-inside">
+            <li>
+              Use Auto-Adjust to automatically arrange images in a grid.
+            </li>
+            <li>
+              Double-tap an image on mobile to rotate it 90° clockwise.
+            </li>
+            <li>
+              Pinch to zoom when working on mobile devices.
+            </li>
+            <li>
+              Use the Fit button to automatically fit the canvas.
+            </li>
+            <li>
+              Check page navigation to see how many images are placed on each page.
+            </li>
+            <li>
+              Use the delete option to remove a selected image.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
           {/* Delete Confirmation Modal */}
           <AnimatePresence>
@@ -2113,94 +2144,67 @@ export default function ImageToA4Sheet() {
             </div>
           </div>
 
-          {/* FAQ Section */}
-          <section className="max-w-3xl mx-auto my-16 px-4">
-            <div className="text-center mb-8">
-              <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 dark:text-white mb-3`}>
-                Frequently Asked Questions
-              </h2>
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                Everything you need to know about Image to A4/A3 Custom Sheet
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {[
-                {
-                  question: "What image formats are supported?",
-                  answer: "The tool supports JPG, PNG, and WebP image formats. You can upload multiple images at once and arrange them on your custom sheet."
-                },
-                {
-                  question: "What paper sizes are available?",
-                  answer: "You can choose from A4 (210 × 297 mm), A3 (297 × 420 mm), or Custom size. Custom size allows you to set any width and height in pixels at 300 DPI."
-                },
-                {
-                  question: "Can I rotate images?",
-                  answer: "Yes! You can rotate images freely from 0° to 360°. There are snap angles (0°, 45°, 90°) and +/-15° buttons for precise control. On mobile, double-tap to rotate 90°."
-                },
-                {
-                  question: "How do I resize an image while keeping its aspect ratio?",
-                  answer: "Enable the 'Lock Ratio' checkbox in the image controls. When locked, resizing one dimension automatically adjusts the other to maintain the original aspect ratio."
-                },
-                {
-                  question: "What is the Auto-Adjust feature?",
-                  answer: "Auto-Adjust automatically arranges all images on the current page into a neat grid layout. It calculates the optimal grid size based on the page dimensions and margin settings."
-                },
-                {
-                  question: "Can I have multiple pages?",
-                  answer: "Yes! You can add new pages using the '+' button in the toolbar. Each page can hold multiple images. Navigate between pages using the page buttons."
-                },
-                {
-                  question: "What export formats are available?",
-                  answer: "You can export as PDF, JPG, or PNG. PDF exports all pages as a single document. JPG and PNG export each page as a separate image file."
-                },
-                {
-                  question: "What is the resolution of exported files?",
-                  answer: "Export uses 300 DPI (dots per inch) quality. A4 is 2480 × 3508 pixels, A3 is 3508 × 4961 pixels at 300 DPI."
-                },
-                {
-                  question: "Can I duplicate an image?",
-                  answer: "Yes, select an image and click the duplicate button (copy icon) or use the duplicate option on the image itself. The duplicate will be offset by 30px."
-                },
-                {
-                  question: "How do I change the background color?",
-                  answer: "Use the color picker in the Page Settings panel. The background color applies to the current page and all exported pages."
-                },
-                {
-                  question: "Can I rearrange image layers?",
-                  answer: "Yes, use the 'Forward' and 'Backward' buttons in the image controls to change the z-index (stacking order) of selected images."
-                },
-                {
-                  question: "What is the margin guide?",
-                  answer: "The margin guide shows a dashed border inside the page. You can adjust the margin size in Page Settings. Images can be placed anywhere on the page."
-                },
-                {
-                  question: "Is my data secure?",
-                  answer: "Yes! All processing happens locally in your browser. Your images are never uploaded to any server, ensuring complete privacy and security."
-                },
-                {
-                  question: "Can I use this tool for free?",
-                  answer: "Yes, the Image to A4/A3 Custom Sheet tool is completely free to use with no signup or subscription required."
-                },
-                {
-                  question: "How many images can I upload?",
-                  answer: "There is no limit! You can upload as many images as you want. Performance may vary based on your device's capabilities and image sizes."
-                }
-              ].map((faq, index) => (
-                <details
-                  key={index}
-                  className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800"
-                >
-                  <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
-                    {faq.question}
-                  </summary>
-                  <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-                    {faq.answer}
+              {/* --- FAQ Section --- */}
+               <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
+                {/* Header */}
+                <div className="text-center mb-6 sm:mb-8 md:mb-12">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
+                    Frequently Asked Questions
+                  </h2>
+                  <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Everything you need to know about editing PDFs online
                   </p>
-                </details>
-              ))}
-            </div>
-          </section>
+                </div>
+
+                {/* FAQ Cards */}
+                <div className="space-y-3 sm:space-y-4">
+                  {faqData.map((faq, index) => (
+                    <details
+                      key={index}
+                      className="
+          group rounded-xl border border-gray-200 dark:border-gray-700
+          bg-white dark:bg-gray-900
+          transition-all duration-300
+          hover:border-blue-400/60 dark:hover:border-blue-500/60
+          open:shadow-lg open:border-blue-500
+        "
+                    >
+                      {/* Question */}
+                      <summary
+                        className="
+            flex cursor-pointer list-none items-center justify-between
+            px-4 sm:px-5 py-3 sm:py-4
+            text-sm sm:text-base md:text-lg
+            font-semibold text-gray-900 dark:text-white
+          "
+                      >
+                        <span>{faq.question}</span>
+
+                        {/* Arrow */}
+                        <span
+                          className="
+              ml-3 flex h-6 w-6 items-center justify-center
+              rounded-full bg-gray-100 dark:bg-gray-800
+              text-gray-500 dark:text-gray-400
+              transition-transform duration-300
+              group-open:rotate-180
+            "
+                        >
+                          ▼
+                        </span>
+                      </summary>
+
+                      {/* Answer */}
+                      <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
+                        <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                          {faq.answer}
+                        </p>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </section>
+
         </div>
       </div>
     </>

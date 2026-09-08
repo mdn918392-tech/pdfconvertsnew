@@ -3,14 +3,15 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   title: "Add Pages & Images to PDF Online Free | PDFSwift",
   description:
-    "Add blank pages and insert images anywhere in your PDF online for free. Fast, secure, browser-based tool with instant download.",
+    "Add pages to your PDF online free — insert blank pages or images anywhere, before or after any page. Fast, secure, browser-based tool with instant download.",
 
  keywords: [
-  "add blank page to pdf online",
-  "insert page after pdf page",
-  "insert page before pdf page",
-  "add images between pdf pages",
-  "add new page in pdf free",
+ "add pages to pdf",
+    "add page to pdf",
+    "add pages to pdf online",
+    "add pages to pdf free",
+    "insert pages in pdf",
+    "add pages to pdf file",
 ],
 
 

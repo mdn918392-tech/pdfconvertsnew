@@ -422,8 +422,8 @@ export default function Home() {
           {/* Refined Description */}
           <div className="max-w-3xl mx-auto space-y-6">
             <h2 className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
-              PDFSwift is a free online PDF tool to convert, compress, merge, split, rotate, and edit PDF files safely.  
-              We keep your files private — 100% secure by default.
+             PDFSwift is a free online PDF toolkit for converting, compressing, merging, splitting, rotating, and editing PDF files. Our browser-based tools are designed to process your files privately, helping you complete everyday PDF tasks quickly without unnecessary uploads.
+
               <br />
               Your privacy is our default setting.
             </h2>

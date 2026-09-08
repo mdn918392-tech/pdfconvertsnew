@@ -1833,11 +1833,12 @@ export default function PdfPageAdderTool() {
               </motion.div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 sm:mb-4 bg-gradient-to-r from-green-600 via-emerald-600 to-green-600 bg-clip-text text-transparent px-2">
-                Add Pages & Images to PDF Online Free | PDFSwift
+                Add Pages & Images to PDF Online – Free & Instant
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-               Add new pages and insert images anywhere in your PDF online for free. Easily merge extra pages, add photos, and download updated PDF instantly — secure and browser-based
+              Add pages and images to PDF online for free with PDFSwift. Insert blank pages or images anywhere in your PDF, place them before or after any page, choose your preferred page size, and download your updated PDF instantly. Everything is processed securely in your browser.
+
                 <span className="block text-green-600 dark:text-green-400 font-medium mt-1 sm:mt-2 text-sm sm:text-base md:text-lg">
                   Click any page for full screen view!
                 </span>
@@ -1857,7 +1858,7 @@ export default function PdfPageAdderTool() {
                       Upload PDF
                     </h2>
                     <p className="text-xs sm:text-sm md:text-base text-gray-500 dark:text-gray-400">
-                      Select your PDF file (auto-processed after upload)
+                     Select your PDF file to add pages or images
                     </p>
                   </div>
                 </div>
@@ -1881,11 +1882,11 @@ export default function PdfPageAdderTool() {
                         <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
                           <Plus className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
                           <span className="text-xs sm:text-sm md:text-base font-semibold text-green-800 dark:text-green-300">
-                            Clean Blank Pages
+                            Add Blank Pages to PDF
                           </span>
                         </div>
                         <p className="text-xs text-green-700/80 dark:text-green-400/80 mt-1 sm:mt-2">
-                          Completely blank pages • No text, no watermark
+                          Create completely blank PDF pages with no text or watermark
                         </p>
                       </div>
 
@@ -1893,11 +1894,11 @@ export default function PdfPageAdderTool() {
                         <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
                           <Layout className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
                           <span className="text-xs sm:text-sm md:text-base font-semibold text-purple-800 dark:text-purple-300">
-                            Multiple Page Sizes
+                            Choose PDF Page Size
                           </span>
                         </div>
                         <p className="text-xs text-purple-700/80 dark:text-purple-400/80 mt-1 sm:mt-2">
-                          A4, A3, Letter, Legal, Custom sizes
+                          Choose A4, A3, Letter, Legal, or a custom page size when adding pages to your PDF
                         </p>
                       </div>
 
@@ -1905,7 +1906,7 @@ export default function PdfPageAdderTool() {
                         <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
                           <Maximize2 className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
                           <span className="text-xs sm:text-sm md:text-base font-semibold text-blue-800 dark:text-blue-300">
-                            Full Screen View
+                           Full Screen PDF & Image View
                           </span>
                         </div>
                         <p className="text-xs text-blue-700/80 dark:text-blue-400/80 mt-1 sm:mt-2">
@@ -2332,57 +2333,85 @@ export default function PdfPageAdderTool() {
               imageName={fullScreenViewer.imageName}
               pageData={fullScreenViewer.pageData}
             />
-<section
+ <section
   id="how-to-add-pages-images-to-pdf"
   className="mt-20 scroll-mt-24"
->
-  <h2 className="text-3xl font-bold text-center mb-10">
+ >
+ 
+
+  <div className="w-full bg-[#0b1220] py-10 px-4 sm:px-6 lg:px-8">
+  <div className="max-w-7xl mx-auto">
+    
+    <h2 className="text-3xl font-bold text-center mb-10">
     How to Add Pages & Images to PDF Online
   </h2>
 
-  <div className="grid gap-6 md:grid-cols-5">
-    <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-      <div className="text-4xl font-bold text-green-600 mb-2">1</div>
-      <h3 className="font-semibold text-lg">Upload PDF File</h3>
-      <p className="text-gray-600 text-sm mt-2">
-        Upload your PDF file using drag & drop or file picker. The PDF will be
-        processed instantly in your browser.
-      </p>
-    </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+      
+      {/* Step 1 */}
+      <div className="border border-gray-200 rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+        <div className="text-4xl font-bold text-green-600 mb-4">1</div>
+        <h3 className="font-semibold text-lg text-gray-900">
+          Upload Your PDF
+        </h3>
+        <p className="text-gray-600 text-sm mt-3">
+          Upload your PDF using drag and drop or the file picker. Your file is
+          processed securely in your browser.
+        </p>
+      </div>
 
-    <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-      <div className="text-4xl font-bold text-green-600 mb-2">2</div>
-      <h3 className="font-semibold text-lg">Choose Insert Option</h3>
-      <p className="text-gray-600 text-sm mt-2">
-        Select whether you want to insert blank pages or add images into your PDF.
-      </p>
-    </div>
+      {/* Step 2 */}
+      <div className="border border-gray-200 rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+        <div className="text-4xl font-bold text-green-600 mb-4">2</div>
+        <h3 className="font-semibold text-lg text-gray-900">
+          Add Pages or Images
+        </h3>
+        <p className="text-gray-600 text-sm mt-3">
+          Choose whether you want to add blank pages or insert images into
+          your PDF.
+        </p>
+      </div>
 
-    <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-      <div className="text-4xl font-bold text-green-600 mb-2">3</div>
-      <h3 className="font-semibold text-lg">Select Page Size</h3>
-      <p className="text-gray-600 text-sm mt-2">
-        Choose the page size like A4, A3, Letter, Legal, or custom size for inserted pages.
-      </p>
-    </div>
+      {/* Step 3 */}
+      <div className="border border-gray-200 rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+        <div className="text-4xl font-bold text-green-600 mb-4">3</div>
+        <h3 className="font-semibold text-lg text-gray-900">
+          Choose Page Size
+        </h3>
+        <p className="text-gray-600 text-sm mt-3">
+          Select A4, A3, Letter, Legal, or a custom size for your new PDF
+          pages.
+        </p>
+      </div>
 
-    <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-      <div className="text-4xl font-bold text-green-600 mb-2">4</div>
-      <h3 className="font-semibold text-lg">Set Insert Position</h3>
-      <p className="text-gray-600 text-sm mt-2">
-        Insert pages before or after any page number. You can also select how many pages to insert.
-      </p>
-    </div>
+      {/* Step 4 */}
+      <div className="border border-gray-200 rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+        <div className="text-4xl font-bold text-green-600 mb-4">4</div>
+        <h3 className="font-semibold text-lg text-gray-900">
+          Set Insert Position
+        </h3>
+        <p className="text-gray-600 text-sm mt-3">
+          Choose where to insert the new page by placing it before or after
+          any existing PDF page.
+        </p>
+      </div>
 
-    <div className="border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
-      <div className="text-4xl font-bold text-green-600 mb-2">5</div>
-      <h3 className="font-semibold text-lg">Download Updated PDF</h3>
-      <p className="text-gray-600 text-sm mt-2">
-        Download your modified PDF instantly with inserted blank pages or added images.
-      </p>
+      {/* Step 5 */}
+      <div className="border border-gray-200 rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition">
+        <div className="text-4xl font-bold text-green-600 mb-4">5</div>
+        <h3 className="font-semibold text-lg text-gray-900">
+          Download Your PDF
+        </h3>
+        <p className="text-gray-600 text-sm mt-3">
+          Download your updated PDF with the added blank pages or images
+          instantly.
+        </p>
+      </div>
+
     </div>
   </div>
-</section>
+</div>
+   </section>
 
             {/* Explore All Tools Section */}
             <div className="mb-6 md:mb-8">
@@ -2448,7 +2477,7 @@ export default function PdfPageAdderTool() {
                     Frequently Asked Questions
                   </h2>
                   <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                    Everything you need to know about converting WebP to JPG
+                    Everything you need to know about adding pages and images to PDF online.
                   </p>
                 </div>
 

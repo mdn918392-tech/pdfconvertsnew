@@ -2612,6 +2612,11 @@ export default function JpgToPdf() {
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Convert JPG to PDF Online - Free, Fast & No Watermark | PDFSwift
               </h1>
+              <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
+  Convert JPG images to PDF online for free with PDFSwift. Upload your JPG
+  images, arrange them in the order you want, and create a PDF quickly and
+  easily.
+</p>
             </div>
 
             {isMobile ? (
@@ -3678,45 +3683,56 @@ export default function JpgToPdf() {
               </div>
             )}
 
-            {files.length === 0 && !isMobile && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-                  <div className="inline-flex p-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl mb-4">
-                    <Target className="w-7 h-7 text-white" />
-                  </div>
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Unlimited Files
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Upload unlimited files with no size restrictions on desktop
-                  </p>
-                </div>
+           {files.length === 0 && !isMobile && (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+    
+    {/* Feature 1 */}
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+      <div className="inline-flex p-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl mb-4">
+        <Target className="w-7 h-7 text-white" />
+      </div>
 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-                  <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl mb-4">
-                    <Move className="w-7 h-7 text-white" />
-                  </div>
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Professional Reordering
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Drag & drop to arrange images in perfect order
-                  </p>
-                </div>
+      <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
+        Multiple JPG Images
+      </h4>
 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-                  <div className="inline-flex p-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl mb-4">
-                    <Zap className="w-7 h-7 text-white" />
-                  </div>
-                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-                    Maximum Quality
-                  </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Preserve original quality with no compression
-                  </p>
-                </div>
-              </div>
-            )}
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Upload multiple JPG images and combine them into a single PDF document.
+      </p>
+    </div>
+
+    {/* Feature 2 */}
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+      <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl mb-4">
+        <Move className="w-7 h-7 text-white" />
+      </div>
+
+      <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
+        Arrange Images
+      </h4>
+
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Drag and reorder your images to set the preferred page order before creating the PDF.
+      </p>
+    </div>
+
+    {/* Feature 3 */}
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+      <div className="inline-flex p-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl mb-4">
+        <Zap className="w-7 h-7 text-white" />
+      </div>
+
+      <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
+        Fast PDF Creation
+      </h4>
+
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Create a PDF from your JPG images quickly with a simple browser-based workflow.
+      </p>
+    </div>
+
+  </div>
+)}
           </motion.div>
 
           {/* Explore All Tools Section */}

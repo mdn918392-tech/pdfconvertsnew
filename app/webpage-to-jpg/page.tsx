@@ -1168,76 +1168,76 @@ export default function WebpToJpg() {
                 </motion.div>
 
                 <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent px-2">
-                  WebP to JPG Converter Free – Convert WebP Images Online | PDFSwift
+                  WebP to JPG Online Free – Convert WebP Images | PDFSwift
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Upload WebP images and convert them to JPG format instantly. 
-                  Fast, secure, and browser-based. Download individually, as ZIP, or as PDF.
-                  <span className="block text-purple-600 dark:text-purple-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
-                    No limits • Unlimited files • Any size
-                  </span>
-                </p>
+  Convert WebP images to JPG online for free with PDFSwift. Upload your WebP
+  images and convert them to high-quality JPG files quickly in your browser.
+  Download JPG images individually, as a ZIP file, or as a PDF.
+</p>
               </div>
             </div>
 
-            {/* --- Features Grid --- */}
-            <AnimatePresence>
-              {showFeatures && !hasFiles && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mb-6 sm:mb-8 md:mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
-                >
-                  {[
-                    {
-                      icon: Zap,
-                      title: "Unlimited Conversions",
-                      desc: "Convert unlimited WebP files to JPG format with no restrictions",
-                      gradient: "from-purple-500 to-pink-600",
-                      bg: "from-purple-50 to-pink-50",
-                      border: "border-purple-200",
-                    },
-                    {
-                      icon: FileText,
-                      title: "Export as PDF",
-                      desc: "Combine all converted JPG images into a single PDF document",
-                      gradient: "from-red-500 to-rose-600",
-                      bg: "from-red-50 to-rose-50",
-                      border: "border-red-200",
-                    },
-                    {
-                      icon: Shield,
-                      title: "Secure & Private",
-                      desc: "All processing happens in your browser. Your files stay private and secure.",
-                      gradient: "from-indigo-500 to-purple-600",
-                      bg: "from-indigo-50 to-purple-50",
-                      border: "border-indigo-200",
-                    },
-                  ].map((feature, index) => (
-                    <div
-                      key={index}
-                      className={`bg-gradient-to-br ${feature.bg} dark:from-gray-800 dark:to-gray-900 p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl md:rounded-2xl border-2 ${feature.border} dark:border-gray-700`}
-                    >
-                      <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
-                        <div
-                          className={`p-1.5 sm:p-2 bg-gradient-to-r ${feature.gradient} rounded-lg sm:rounded-xl`}
-                        >
-                          <feature.icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
-                        </div>
-                        <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white">
-                          {feature.title}
-                        </h3>
-                      </div>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        {feature.desc}
-                      </p>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+       {/* --- Features Grid --- */}
+<AnimatePresence>
+  {showFeatures && !hasFiles && (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      className="mb-6 sm:mb-8 md:mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
+    >
+      {[
+        {
+          icon: Zap,
+          title: "WebP to JPG Converter",
+          desc: "Convert WebP images to high-quality JPG files quickly and easily.",
+          gradient: "from-purple-500 to-pink-600",
+          bg: "from-purple-50 to-pink-50",
+          border: "border-purple-200",
+        },
+        {
+          icon: FileText,
+          title: "Export as PDF",
+          desc: "Combine your converted JPG images into a single PDF document.",
+          gradient: "from-red-500 to-rose-600",
+          bg: "from-red-50 to-rose-50",
+          border: "border-red-200",
+        },
+        {
+          icon: Shield,
+          title: "Secure & Browser-Based",
+          desc: "Process your WebP images directly in your browser for a more private conversion experience.",
+          gradient: "from-indigo-500 to-purple-600",
+          bg: "from-indigo-50 to-purple-50",
+          border: "border-indigo-200",
+        },
+      ].map((feature, index) => (
+        <div
+          key={index}
+          className={`bg-gradient-to-br ${feature.bg} dark:from-gray-800 dark:to-gray-900 p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl md:rounded-2xl border-2 ${feature.border} dark:border-gray-700`}
+        >
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
+            <div
+              className={`p-1.5 sm:p-2 bg-gradient-to-r ${feature.gradient} rounded-lg sm:rounded-xl`}
+            >
+              <feature.icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
+            </div>
+
+            <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white">
+              {feature.title}
+            </h3>
+          </div>
+
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+            {feature.desc}
+          </p>
+        </div>
+      ))}
+    </motion.div>
+  )}
+</AnimatePresence>
 
             {/* --- Main Converter Card --- */}
             <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">

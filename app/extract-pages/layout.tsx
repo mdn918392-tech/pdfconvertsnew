@@ -1,24 +1,26 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Extract PDF Pages Online - Free, Fast & No Watermark | PDFSwif",
-  description:
-    "Extract or separate specific pages from your PDF files online for free. Fast, secure, and download instantly without any watermark. Try PDFSwift now",
-  keywords: [
-    "extract pages from pdf free",
-    "extract one page from pdf",
-    "pdf page extractor online",
-    "remove pages from pdf free",
-    "extract pdf pages without watermark",
-    "extract pages from pdf online free",
-    "extract single page from pdf",
-    "pdf page extractor without watermark",
+  title: "Extract PDF Pages Online Free | PDF Page Extractor | PDFSwift",
 
-    "online pdf page extractor free"
-  ],
+  description:
+    "Extract pages from PDF online for free with PDFSwift. Select individual pages or page ranges and create a new PDF containing only the pages you need.",
+
+  alternates: {
+    canonical: "https://www.pdfswift.online/extract-pdf-pages",
+  },
+
+  openGraph: {
+    title: "Extract PDF Pages Online Free | PDF Page Extractor | PDFSwift",
+    description:
+      "Extract pages from PDF online for free. Select individual pages or page ranges and create a new PDF with PDFSwift.",
+    url: "https://www.pdfswift.online/extract-pdf-pages",
+    siteName: "PDFSwift",
+    type: "website",
+  },
 };
 
-// ✅ viewport must be exported separately
+// Viewport must be exported separately
 export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
@@ -30,9 +32,5 @@ export default function ExtractPDFLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <main>{children}</main>
-    </>
-  );
+  return <main>{children}</main>;
 }
