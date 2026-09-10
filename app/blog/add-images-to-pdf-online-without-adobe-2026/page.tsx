@@ -8,25 +8,41 @@ import {
   CheckCircle,
   ChevronRight,
   HelpCircle,
-  AlertTriangle,
   AlertCircle,
   Globe,
   X,
   Lightbulb,
   Image,
-  Shield ,
+  Shield,
   FileText,
-  Smartphone
+  Smartphone,
+  Layers,
+  FilePlus,
+  Maximize2,
+  Plus,
+  Minus,
+  Layout,
+  Zap,
+  Eye,
+  MousePointer,
+  ArrowRight,
+  Sparkles,
+  FileImage,
+  Upload,
+  Download,
+  Lock,
+  RefreshCw
 } from "lucide-react";
+
 export const metadata = {
-  title: "How to Add Images to PDF Online (Without Adobe) – Step-by-Step Guide | PDFSwift",
-  description: "Need to add a photo, logo, or signature to your PDF? Here's how to insert images without Adobe. Works on phone and computer. Free, no signup.",
-  keywords: "add image to pdf, insert photo in pdf, add picture to pdf, insert image into pdf, pdf image editor",
+  title: "How to Add Images & Pages to PDF Online Free (Without Adobe) – 2026 Guide | PDFSwift",
+  description: "Need to add a photo, logo, signature, or blank page to your PDF? Here's how to insert images and pages without Adobe. Works on phone and computer. Free, no signup, no uploads.",
+  keywords: "add pages to pdf, add pages to pdf online, add pages to pdf free, add image to pdf, insert image into pdf, add jpg to pdf, add png to pdf, add webp to pdf, insert pages into pdf online, add image as page to pdf",
   openGraph: {
     type: "article",
     url: "https://www.pdfswift.online/blog/add-images-to-pdf-online-without-adobe-2026",
-    title: "How to Add Images to PDF Online (Without Adobe) – Step-by-Step Guide",
-    description: "Need to add a photo, logo, or signature to your PDF? Here's how to insert images without Adobe. Works on phone and computer.",
+    title: "How to Add Images & Pages to PDF Online Free (Without Adobe) – 2026 Guide",
+    description: "Need to add a photo, logo, signature, or blank page to your PDF? Here's how to insert images and pages without Adobe. Works on phone and computer.",
     images: [
       {
         url: "https://www.pdfswift.online/images/add-image-pdf-guide.png",
@@ -36,14 +52,14 @@ export const metadata = {
     ],
     siteName: "PDFSwift",
     locale: "en_US",
-    publishedTime: "2026-02-17T08:00:00+00:00",
+    publishedTime: "2026-09-10T08:00:00+00:00",
     authors: ["PDFSwift Team"],
-    tags: ["add image to pdf", "insert photo in pdf", "pdf editing", "without adobe", "2026 guide"],
+    tags: ["add image to pdf", "insert photo in pdf", "add pages to pdf", "pdf editing", "without adobe", "2026 guide"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "How to Add Images to PDF Online (Without Adobe) – Step-by-Step Guide",
-    description: "Need to add a photo, logo, or signature to your PDF? Here's how to insert images without Adobe.",
+    title: "How to Add Images & Pages to PDF Online Free (Without Adobe) – 2026 Guide",
+    description: "Need to add a photo, logo, signature, or blank page to your PDF? Here's how to insert images and pages without Adobe.",
     images: ["https://www.pdfswift.online/images/add-image-pdf-guide.png"],
   },
   robots: {
@@ -65,10 +81,10 @@ export const metadata = {
   },
   category: "How-to Guide",
   other: {
-    "article:published_time": "2026-02-17T08:00:00+00:00",
-    "article:modified_time": "2026-02-17T08:00:00+00:00",
+    "article:published_time": "2026-09-10T08:00:00+00:00",
+    "article:modified_time": "2026-09-10T08:00:00+00:00",
     "article:section": "How-to Guide",
-    "article:tag": ["add image to pdf", "insert photo in pdf", "pdf editing", "how-to guide"],
+    "article:tag": ["add image to pdf", "insert photo in pdf", "add pages to pdf", "how-to guide"],
   },
 };
 
@@ -79,10 +95,10 @@ export default function AddImagesToPDF() {
       {
         "@type": "Article",
         "@id": "https://www.pdfswift.online/blog/add-images-to-pdf-online-without-adobe-2026#article",
-        headline: "How to Add Images to PDF Online (Without Adobe) – Step-by-Step Guide",
-        description: "Need to add a photo, logo, or signature to your PDF? Here's how to insert images without Adobe. Works on phone and computer. Free, no signup.",
-        datePublished: "2026-02-17T08:00:00+00:00",
-        dateModified: "2026-02-17T08:00:00+00:00",
+        headline: "How to Add Images & Pages to PDF Online Free (Without Adobe) – 2026 Guide",
+        description: "Need to add a photo, logo, signature, or blank page to your PDF? Here's how to insert images and pages without Adobe. Works on phone and computer. Free, no signup, no uploads.",
+        datePublished: "2026-09-10T08:00:00+00:00",
+        dateModified: "2026-09-10T08:00:00+00:00",
         author: {
           "@type": "Organization",
           "@id": "https://www.pdfswift.online#organization",
@@ -103,11 +119,11 @@ export default function AddImagesToPDF() {
           "@type": "WebPage",
           "@id": "https://www.pdfswift.online/blog/add-images-to-pdf-online-without-adobe-2026",
         },
-        wordCount: 1000,
-        timeRequired: "PT9M",
+        wordCount: 1800,
+        timeRequired: "PT12M",
         articleSection: "How-to Guide",
-        articleBody: `Complete guide to adding images to PDFs without Adobe. Covers online tools, privacy concerns, image formats, and step-by-step instructions for phone and computer.`,
-        keywords: "add image to pdf, insert photo in pdf, add picture to pdf, insert image into pdf, pdf image editor",
+        articleBody: `Complete guide to adding images and pages to PDFs without Adobe. Covers online tools, privacy concerns, image formats, and step-by-step instructions for phone and computer.`,
+        keywords: "add pages to pdf, add image to pdf, insert image into pdf, add jpg to pdf, add png to pdf, insert pages into pdf online",
         thumbnailUrl: "https://www.pdfswift.online/images/add-image-pdf-guide.png",
         image: {
           "@type": "ImageObject",
@@ -142,6 +158,22 @@ export default function AddImagesToPDF() {
             acceptedAnswer: {
               "@type": "Answer",
               text: "Some tools upload to servers. They delete after an hour, but still. For sensitive documents, use browser-based tools like PDFSwift or Safe2PDF that process locally. Your file never leaves your device.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Can I add blank pages to a PDF?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. You can add one or multiple blank pages to your PDF and place them before or after any existing page. You can also choose A4, A3, Letter, Legal, or a custom page size.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Can I insert an image as a new page in my PDF?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. You can add supported images such as JPG, PNG, and WebP to your PDF as new pages. You can choose where the image page should appear in the document.",
             },
           },
         ],
@@ -201,7 +233,7 @@ export default function AddImagesToPDF() {
               </li>
               <li aria-current="page">
                 <span className="text-gray-900 font-semibold">
-                  Add Images to PDF
+                  Add Images & Pages to PDF
                 </span>
               </li>
             </ol>
@@ -218,7 +250,7 @@ export default function AddImagesToPDF() {
                     PDF Editing
                   </span>
                   <span className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-700 text-sm font-medium">
-                    February 17, 2026
+                    September 10, 2026
                   </span>
                   <span className="inline-flex items-center px-4 py-2 rounded-full bg-purple-100 text-purple-700 text-sm font-medium">
                     No Adobe Needed
@@ -227,10 +259,10 @@ export default function AddImagesToPDF() {
 
                 {/* Main Title */}
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-5 leading-tight">
-                  How to Add Images to PDF Online (Without Adobe)
+                  How to Add Images & Pages to PDF Online Free (Without Adobe)
                   <br />
                   <span className="text-2xl md:text-3xl lg:text-4xl text-blue-600">
-                    – Step-by-Step Guide
+                    – Step-by-Step Guide for 2026
                   </span>
                 </h1>
 
@@ -238,11 +270,11 @@ export default function AddImagesToPDF() {
                 <div className="flex flex-wrap items-center text-gray-600 mb-8 gap-4">
                   <div className="flex items-center">
                     <CalendarDays className="w-5 h-5 mr-2 text-gray-500" />
-                    <time dateTime="2026-02-17">February 17, 2026</time>
+                    <time dateTime="2026-09-10">September 10, 2026</time>
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-5 h-5 mr-2 text-gray-500" />
-                    <span>9 minute read</span>
+                    <span>12 minute read</span>
                   </div>
                 </div>
 
@@ -255,7 +287,7 @@ export default function AddImagesToPDF() {
                         I needed to add my signature to a contract and didn't have Adobe
                       </p>
                       <p className="text-gray-700">
-                        Client sent a PDF contract. Needed my signature. Opened Adobe Reader. Couldn't edit. Searched "how to add image to PDF" and found 500 tools. Half wanted money. Half looked sketchy. The ones that worked added watermarks. I spent an hour on something that should take 30 seconds. Finally figured out the tools that actually work and don't cost anything. Here's exactly how to do it.
+                        Client sent a PDF contract. Needed my signature. Opened Adobe Reader. Couldn't edit. Searched "how to add image to PDF" and found 500 tools. Half wanted money. Half looked sketchy. The ones that worked added watermarks. I spent an hour on something that should take 30 seconds. Finally figured out the tools that actually work and don't cost anything. Whether you need to <strong>add image to PDF</strong>, <strong>insert a photo</strong>, or even <strong>add blank pages to a PDF</strong>, here's exactly how to do it.
                       </p>
                     </div>
                   </div>
@@ -290,10 +322,63 @@ export default function AddImagesToPDF() {
                   </div>
                 </section>
 
+                {/* What You Can Add */}
+                <section className="space-y-4">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                    What Can You Add to a PDF?
+                  </h2>
+                  
+                  <p className="text-gray-700">
+                    Before we dive into the how-to, let's talk about what you can actually add. Because it's more than just images.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border border-blue-200 rounded-xl p-5 bg-blue-50">
+                      <div className="flex items-start gap-3">
+                        <Image className="w-6 h-6 text-blue-600 mt-0.5" />
+                        <div>
+                          <h3 className="font-bold text-lg text-blue-700 mb-1">Images</h3>
+                          <p className="text-sm text-gray-700">JPG, PNG, WebP, GIF. Photos, logos, signatures, scanned documents. You can <strong>add image to PDF</strong> without any special software.</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="border border-green-200 rounded-xl p-5 bg-green-50">
+                      <div className="flex items-start gap-3">
+                        <FilePlus className="w-6 h-6 text-green-600 mt-0.5" />
+                        <div>
+                          <h3 className="font-bold text-lg text-green-700 mb-1">Blank Pages</h3>
+                          <p className="text-sm text-gray-700">Need more space? You can <strong>insert blank pages</strong> anywhere in your PDF. Choose from A4, A3, Letter, Legal, or custom sizes.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-purple-200 rounded-xl p-5 bg-purple-50">
+                      <div className="flex items-start gap-3">
+                        <Layers className="w-6 h-6 text-purple-600 mt-0.5" />
+                        <div>
+                          <h3 className="font-bold text-lg text-purple-700 mb-1">Image Pages</h3>
+                          <p className="text-sm text-gray-700">Turn any image into a full PDF page. Perfect for <strong>adding JPG to PDF</strong> or <strong>adding PNG to PDF</strong> as standalone pages.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-orange-200 rounded-xl p-5 bg-orange-50">
+                      <div className="flex items-start gap-3">
+                        <Layout className="w-6 h-6 text-orange-600 mt-0.5" />
+                        <div>
+                          <h3 className="font-bold text-lg text-orange-700 mb-1">Custom Sizes</h3>
+                          <p className="text-sm text-gray-700">Need a specific page size? Set custom dimensions in points. Perfect for specialized documents.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
                 {/* Three Ways to Add Images */}
                 <section className="space-y-4">
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    Three Ways to Add Images to PDF (Without Adobe)
+                    Three Ways to Add Images & Pages to PDF (Without Adobe)
                   </h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -325,7 +410,7 @@ export default function AddImagesToPDF() {
                   
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
                     <p className="text-gray-700 mb-4">
-                      This works on any device. Phone, computer, tablet. Same steps.
+                      This works on any device. Phone, computer, tablet. Same steps. Whether you need to <strong>add pages to PDF online free</strong> or <strong>insert images into PDF</strong>, this is the fastest way.
                     </p>
                     
                     <div className="space-y-5">
@@ -348,16 +433,16 @@ export default function AddImagesToPDF() {
                       <div className="flex items-start">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0 font-bold text-blue-600">3</div>
                         <div>
-                          <h3 className="font-bold text-gray-900">Click "Add Image"</h3>
-                          <p className="text-gray-700">Look for a picture icon or an "Image" button in the toolbar [citation:3][citation:7].</p>
+                          <h3 className="font-bold text-gray-900">Choose what to add</h3>
+                          <p className="text-gray-700">Click "Add Image" for pictures, or "Insert Blank Page" for empty pages. Most tools have both options.</p>
                         </div>
                       </div>
                       
                       <div className="flex items-start">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0 font-bold text-blue-600">4</div>
                         <div>
-                          <h3 className="font-bold text-gray-900">Select your image</h3>
-                          <p className="text-gray-700">Choose JPG, PNG, or whatever you have. Most tools support all common formats [citation:3][citation:7].</p>
+                          <h3 className="font-bold text-gray-900">Select your image (if adding)</h3>
+                          <p className="text-gray-700">Choose JPG, PNG, WebP, or whatever you have. Most tools support all common formats.</p>
                         </div>
                       </div>
                       
@@ -365,7 +450,7 @@ export default function AddImagesToPDF() {
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0 font-bold text-blue-600">5</div>
                         <div>
                           <h3 className="font-bold text-gray-900">Position it</h3>
-                          <p className="text-gray-700">Drag the image where you want it. Pull corners to resize [citation:3].</p>
+                          <p className="text-gray-700">Drag the image where you want it. Pull corners to resize. For blank pages, choose before or after any existing page.</p>
                         </div>
                       </div>
                       
@@ -373,7 +458,7 @@ export default function AddImagesToPDF() {
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0 font-bold text-blue-600">6</div>
                         <div>
                           <h3 className="font-bold text-gray-900">Download</h3>
-                          <p className="text-gray-700">Save your PDF with the image added. Done.</p>
+                          <p className="text-gray-700">Save your PDF with the image or page added. Done.</p>
                         </div>
                       </div>
                     </div>
@@ -394,7 +479,7 @@ export default function AddImagesToPDF() {
                   
                   <div className="border border-green-200 rounded-xl p-6">
                     <p className="text-gray-700 mb-4">
-                      If you have a Mac, you already have Preview. It can add images. It's a bit clunky but works [citation:7].
+                      If you have a Mac, you already have Preview. It can add images. It's a bit clunky but works.
                     </p>
                     
                     <div className="space-y-3">
@@ -413,7 +498,7 @@ export default function AddImagesToPDF() {
                       <div className="flex items-start">
                         <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold text-green-600">3</div>
                         <div>
-                          <span className="text-gray-700">Press <span className="font-mono bg-gray-100 px-1">Command+V</span> to paste the image [citation:7].</span>
+                          <span className="text-gray-700">Press <span className="font-mono bg-gray-100 px-1">Command+V</span> to paste the image.</span>
                         </div>
                       </div>
                       <div className="flex items-start">
@@ -450,7 +535,7 @@ export default function AddImagesToPDF() {
                       </div>
                       <div className="flex items-start">
                         <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5" />
-                        <span className="text-sm">Open PDF in editor. Paste (Ctrl+V) [citation:10].</span>
+                        <span className="text-sm">Open PDF in editor. Paste (Ctrl+V).</span>
                       </div>
                       <div className="flex items-start">
                         <AlertCircle className="w-4 h-4 text-yellow-500 mr-2 mt-0.5" />
@@ -467,7 +552,7 @@ export default function AddImagesToPDF() {
                 {/* When You'd Need This */}
                 <section className="space-y-4">
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    When Would You Need to Add Images to a PDF?
+                    When Would You Need to Add Images or Pages to a PDF?
                   </h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -485,15 +570,15 @@ export default function AddImagesToPDF() {
                     </div>
                     <div className="border border-gray-200 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-1">IDs & Scans</h3>
-                      <p className="text-sm text-gray-600">Insert scanned ID into application form [citation:7].</p>
+                      <p className="text-sm text-gray-600">Insert scanned ID into application form.</p>
                     </div>
                     <div className="border border-gray-200 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-1">Watermarks</h3>
                       <p className="text-sm text-gray-600">Add "DRAFT" or "CONFIDENTIAL" as image behind text.</p>
                     </div>
                     <div className="border border-gray-200 rounded-xl p-4">
-                      <h3 className="font-bold text-gray-900 mb-1">Corrections</h3>
-                      <p className="text-sm text-gray-600">Cover up mistake with white box, add corrected text as image.</p>
+                      <h3 className="font-bold text-gray-900 mb-1">Extra Space</h3>
+                      <p className="text-sm text-gray-600">Need more room for notes? <strong>Add blank pages to PDF</strong> anywhere in the document.</p>
                     </div>
                   </div>
                 </section>
@@ -511,27 +596,27 @@ export default function AddImagesToPDF() {
                           <span className="font-bold text-yellow-600">JPG</span>
                         </div>
                         <p className="text-sm font-medium">Photos</p>
-                        <p className="text-xs text-gray-500">Best for pictures, gradients [citation:7]</p>
+                        <p className="text-xs text-gray-500">Best for pictures, gradients. <strong>Add JPG to PDF</strong> for photos.</p>
                       </div>
                       <div className="text-center">
                         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
                           <span className="font-bold text-blue-600">PNG</span>
                         </div>
                         <p className="text-sm font-medium">Logos, Graphics</p>
-                        <p className="text-xs text-gray-500">Sharp text, transparency</p>
+                        <p className="text-xs text-gray-500">Sharp text, transparency. <strong>Add PNG to PDF</strong> for logos.</p>
                       </div>
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <span className="font-bold text-gray-600">GIF</span>
+                        <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <span className="font-bold text-purple-600">WebP</span>
                         </div>
-                        <p className="text-sm font-medium">Simple Graphics</p>
-                        <p className="text-xs text-gray-500">Low quality, avoid</p>
+                        <p className="text-sm font-medium">Modern Format</p>
+                        <p className="text-xs text-gray-500">Smaller file size. <strong>Add WebP to PDF</strong> works too.</p>
                       </div>
                     </div>
                     
                     <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                       <p className="text-sm">
-                        <span className="font-bold">Resolution tip:</span> 300 DPI is plenty. If your image is huge (5MB+), resize it first or your PDF will become massive [citation:7].
+                        <span className="font-bold">Resolution tip:</span> 300 DPI is plenty. If your image is huge (5MB+), resize it first or your PDF will become massive.
                       </p>
                     </div>
                   </div>
@@ -551,7 +636,7 @@ export default function AddImagesToPDF() {
                           Here's the thing. When you use most online PDF tools, your file gets uploaded to their server.
                         </p>
                         <p className="text-gray-700 mb-3">
-                          They say "deleted after 1 hour." Probably true. But still. Your contract, your ID, your personal stuff sat on someone else's computer [citation:5].
+                          They say "deleted after 1 hour." Probably true. But still. Your contract, your ID, your personal stuff sat on someone else's computer.
                         </p>
                         <div className="bg-white p-4 rounded-lg border border-red-200">
                           <p className="font-medium text-gray-900 mb-2">Two kinds of tools:</p>
@@ -562,12 +647,12 @@ export default function AddImagesToPDF() {
                             </li>
                             <li className="flex items-start">
                               <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5" />
-                              <span className="text-sm"><span className="font-bold">Browser-based:</span> File stays in your browser → Processed locally → Never uploaded [citation:5].</span>
+                              <span className="text-sm"><span className="font-bold">Browser-based:</span> File stays in your browser → Processed locally → Never uploaded.</span>
                             </li>
                           </ul>
                         </div>
                         <p className="text-sm text-gray-600 mt-3">
-                          <span className="font-bold">For sensitive docs:</span> Use browser-based tools. PDFSwift does this. Safe2PDF does this [citation:5]. Your files never leave your device.
+                          <span className="font-bold">For sensitive docs:</span> Use browser-based tools. PDFSwift does this. Safe2PDF does this. Your files never leave your device.
                         </p>
                       </div>
                     </div>
@@ -584,13 +669,13 @@ export default function AddImagesToPDF() {
                     <div className="border border-blue-200 rounded-xl p-5">
                       <h3 className="font-bold text-lg text-blue-600 mb-1">PDFSwift</h3>
                       <p className="text-xs text-gray-500 mb-2">Browser-based • No upload • Free</p>
-                      <p className="text-sm text-gray-700">Add images, resize, download. Files stay in browser. Works on phone.</p>
+                      <p className="text-sm text-gray-700">Add images, add pages, resize, download. Files stay in browser. Works on phone. <strong>Add pages to PDF online free</strong> without any upload.</p>
                     </div>
                     
                     <div className="border border-gray-200 rounded-xl p-5">
                       <h3 className="font-bold text-lg text-gray-600 mb-1">Lumin</h3>
                       <p className="text-xs text-gray-500 mb-2">Online • Free • No signup</p>
-                      <p className="text-sm text-gray-700">Easy to use. Uploads to servers but deletes after [citation:1][citation:7].</p>
+                      <p className="text-sm text-gray-700">Easy to use. Uploads to servers but deletes after.</p>
                     </div>
                     
                     <div className="border border-gray-200 rounded-xl p-5">
@@ -602,19 +687,19 @@ export default function AddImagesToPDF() {
                     <div className="border border-gray-200 rounded-xl p-5">
                       <h3 className="font-bold text-lg text-gray-600 mb-1">iLovePDF</h3>
                       <p className="text-xs text-gray-500 mb-2">Online • Free</p>
-                      <p className="text-sm text-gray-700">No daily limits. Uploads to servers [citation:2].</p>
+                      <p className="text-sm text-gray-700">No daily limits. Uploads to servers.</p>
                     </div>
                     
                     <div className="border border-green-200 rounded-xl p-5">
                       <h3 className="font-bold text-lg text-green-600 mb-1">Safe2PDF</h3>
                       <p className="text-xs text-gray-500 mb-2">Browser-based • No upload • Open source</p>
-                      <p className="text-sm text-gray-700">100% local processing. Built for privacy [citation:5].</p>
+                      <p className="text-sm text-gray-700">100% local processing. Built for privacy.</p>
                     </div>
                     
                     <div className="border border-purple-200 rounded-xl p-5">
                       <h3 className="font-bold text-lg text-purple-600 mb-1">Preview (Mac)</h3>
                       <p className="text-xs text-gray-500 mb-2">Built-in • Free • Offline</p>
-                      <p className="text-sm text-gray-700">Already on your Mac. Clunky but works [citation:7].</p>
+                      <p className="text-sm text-gray-700">Already on your Mac. Clunky but works.</p>
                     </div>
                   </div>
                 </section>
@@ -628,27 +713,27 @@ export default function AddImagesToPDF() {
                   <div className="space-y-3">
                     <div className="border border-gray-200 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-1">Image looks blurry</h3>
-                      <p className="text-sm text-gray-600">Your original image is low resolution. Use higher quality image or PNG for text. 300 DPI is enough [citation:7].</p>
+                      <p className="text-sm text-gray-600">Your original image is low resolution. Use higher quality image or PNG for text. 300 DPI is enough.</p>
                     </div>
                     
                     <div className="border border-gray-200 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-1">Image covers my text</h3>
-                      <p className="text-sm text-gray-600">Some tools have layering. Look for "send to back" or adjust transparency. Or move the image to empty space [citation:7].</p>
+                      <p className="text-sm text-gray-600">Some tools have layering. Look for "send to back" or adjust transparency. Or move the image to empty space.</p>
                     </div>
                     
                     <div className="border border-gray-200 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-1">Can't resize properly</h3>
-                      <p className="text-sm text-gray-600">Click and drag corners, not sides. Corners keep proportions. Sides stretch and distort [citation:3].</p>
+                      <p className="text-sm text-gray-600">Click and drag corners, not sides. Corners keep proportions. Sides stretch and distort.</p>
                     </div>
                     
                     <div className="border border-gray-200 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-1">PDF won't let me edit</h3>
-                      <p className="text-sm text-gray-600">File might be password protected or have restrictions. Some tools can bypass, but if it's secured, you need permission first [citation:7].</p>
+                      <p className="text-sm text-gray-600">File might be password protected or have restrictions. Some tools can bypass, but if it's secured, you need permission first.</p>
                     </div>
                     
                     <div className="border border-gray-200 rounded-xl p-4">
                       <h3 className="font-bold text-gray-900 mb-1">File too big after adding image</h3>
-                      <p className="text-sm text-gray-600">Compress the image first. Use TinyPNG or PDFSwift Compress tool. Then add to PDF [citation:7].</p>
+                      <p className="text-sm text-gray-600">Compress the image first. Use TinyPNG or PDFSwift Compress tool. Then add to PDF.</p>
                     </div>
                   </div>
                 </section>
@@ -675,7 +760,25 @@ export default function AddImagesToPDF() {
                         What image formats work best?
                       </h3>
                       <p className="text-gray-700">
-                        JPG for photos. PNG if you need transparency or have logos with sharp text. Most tools support both. GIF works too but quality isn't great. If your image is huge (like 10MB+), resize it first or your PDF file size will blow up. 300 DPI is plenty for most uses [citation:7].
+                        JPG for photos. PNG if you need transparency or have logos with sharp text. WebP works great for modern files. Most tools support all common formats. If your image is huge (like 10MB+), resize it first or your PDF file size will blow up. 300 DPI is plenty for most uses.
+                      </p>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-xl p-5">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">
+                        Can I add blank pages to a PDF?
+                      </h3>
+                      <p className="text-gray-700">
+                        Absolutely. You can <strong>add pages to PDF free</strong> with most online tools. Choose from A4, A3, Letter, Legal, or custom sizes. Insert before or after any existing page. This is perfect when you need extra space for notes or want to separate sections.
+                      </p>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-xl p-5">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">
+                        Can I insert an image as a new page in my PDF?
+                      </h3>
+                      <p className="text-gray-700">
+                        Yes. This is called <strong>adding image as page to PDF</strong>. You can turn any JPG, PNG, or WebP into a full PDF page. The image gets scaled to fit the page with margins. Perfect for adding scanned documents, photos, or graphics as standalone pages.
                       </p>
                     </div>
 
@@ -684,7 +787,7 @@ export default function AddImagesToPDF() {
                         Will the image cover up my text?
                       </h3>
                       <p className="text-gray-700">
-                        That depends on where you put it. Most editors let you drag images anywhere. If you place it over text, it'll cover it. You can usually adjust layering - some tools let you send image behind text or adjust transparency. For signatures, you want it on top. For watermarks, you might want it faded behind. Know what you need before you start [citation:7].
+                        That depends on where you put it. Most editors let you drag images anywhere. If you place it over text, it'll cover it. You can usually adjust layering - some tools let you send image behind text or adjust transparency. For signatures, you want it on top. For watermarks, you might want it faded behind. Know what you need before you start.
                       </p>
                     </div>
 
@@ -702,7 +805,7 @@ export default function AddImagesToPDF() {
                         Is it safe to upload my PDF to these tools?
                       </h3>
                       <p className="text-gray-700">
-                        This is the real question. Some tools upload your file to their servers. They usually delete after an hour, but still - it's on their computer. For personal stuff, fine. For bank statements, contracts, IDs - use tools that process in your browser. PDFSwift does this. Safe2PDF does this [citation:5]. Your file never leaves your device. Always check before uploading sensitive documents.
+                        This is the real question. Some tools upload your file to their servers. They usually delete after an hour, but still - it's on their computer. For personal stuff, fine. For bank statements, contracts, IDs - use tools that process in your browser. PDFSwift does this. Safe2PDF does this. Your file never leaves your device. Always check before uploading sensitive documents.
                       </p>
                     </div>
                   </div>
@@ -722,7 +825,11 @@ export default function AddImagesToPDF() {
                       </li>
                       <li className="flex items-start">
                         <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
-                        <span><span className="font-bold">JPG for photos, PNG for logos.</span> 300 DPI is enough.</span>
+                        <span><span className="font-bold">JPG for photos, PNG for logos, WebP for modern files.</span> 300 DPI is enough.</span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
+                        <span><span className="font-bold">You can add both images and blank pages</span> to any PDF online free.</span>
                       </li>
                       <li className="flex items-start">
                         <CheckCircle className="w-5 h-5 text-green-500 mr-2 mt-0.5" />
@@ -745,17 +852,17 @@ export default function AddImagesToPDF() {
               <div className="mt-12 pt-10 border-t border-gray-200">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-center text-white">
                   <h3 className="text-2xl md:text-3xl font-bold mb-4">
-                    Add Images to Your PDF Right Now
+                    Add Images & Pages to Your PDF Right Now
                   </h3>
                   <p className="text-lg text-blue-100 mb-6 max-w-2xl mx-auto">
-                    Upload your PDF. Add photos, logos, signatures. No Adobe, no signup, no uploads to servers. Works on phone and computer.
+                    Upload your PDF. Add photos, logos, signatures, or blank pages. No Adobe, no signup, no uploads to servers. Works on phone and computer.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Link
-                      href="/jpg-to-pdf"
+                      href="/add-pages-and-images-to-pdf"
                       className="inline-flex items-center justify-center px-7 py-4 bg-white text-blue-700 font-bold rounded-lg hover:bg-blue-50 transition-all duration-300"
                     >
-                      Add Images Now
+                      Add Images & Pages Now
                     </Link>
                     <Link
                       href="/blog"
