@@ -903,37 +903,62 @@ const DownloadNotification = ({
   );
 };
 
-// Draggable Item Component (Desktop only)
+// ============================================================
+// FIXED: Draggable Item Component - Drag & drop now works with reverse order
+// ============================================================
 const DraggableItem = ({
   children,
   index,
   onDragStart,
   onDragOver,
+  onDragLeave,
   onDrop,
   isDragging,
   isMobile,
+  draggedIndex,
+  dragOverIndex,
 }: {
   children: React.ReactNode;
   index: number;
   onDragStart: (e: React.DragEvent, index: number) => void;
   onDragOver: (e: React.DragEvent, index: number) => void;
+  onDragLeave?: () => void;
   onDrop: (e: React.DragEvent, fromIndex: number, toIndex: number) => void;
   isDragging: boolean;
   isMobile: boolean;
+  draggedIndex: number | null;
+  dragOverIndex: number | null;
 }) => {
   if (isMobile) {
     return <div className="relative">{children}</div>;
   }
+
+  const isDragTarget =
+    dragOverIndex === index && draggedIndex !== null && draggedIndex !== index;
 
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, index)}
       onDragOver={(e) => onDragOver(e, index)}
-      onDrop={(e) => onDrop(e, index, index)}
-      className={`relative ${isDragging ? "opacity-50" : ""}`}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Use draggedIndex (state) as the source, not the same index
+        if (draggedIndex !== null && draggedIndex !== index) {
+          onDrop(e, draggedIndex, index);
+        }
+      }}
+      className={`relative transition-all duration-200 ${
+        isDragging ? "opacity-40 scale-95" : ""
+      } ${
+        isDragTarget
+          ? "ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900 rounded-xl scale-[1.02] z-10"
+          : ""
+      }`}
     >
-      <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 cursor-move text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+      <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 cursor-move text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 z-20">
         <GripVertical className="w-4 h-4" />
       </div>
       {children}
@@ -1376,6 +1401,7 @@ export default function JpgToPdf() {
   const [compressing, setCompressing] = useState(false);
   const [showCompressionInfo, setShowCompressionInfo] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [compressionQuality, setCompressionQuality] = useState<CompressionQuality>("high");
   const [customQualityValue, setCustomQualityValue] = useState<number>(95);
   const [showChangesWarning, setShowChangesWarning] = useState(false);
@@ -1483,10 +1509,10 @@ export default function JpgToPdf() {
 
   // Scroll to top when PDF is generated
   useEffect(() => {
-  if (pdfBlob && isMobile) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-}, [pdfBlob, isMobile]);
+    if (pdfBlob && isMobile) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [pdfBlob, isMobile]);
 
   // Handle margin change
   const handleMarginChange = (margin: MarginSize) => {
@@ -1641,47 +1667,103 @@ export default function JpgToPdf() {
     [files, rotatedUrls, isMobile]
   );
 
-  // Drag and Drop Handlers (Desktop)
+  // ============================================================
+  // FIXED: Drag and Drop Handlers with reverse order support
+  // ============================================================
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", index.toString());
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
+    setDragOverIndex(index);
   }, []);
 
+  const handleDragLeave = useCallback(() => {
+    setDragOverIndex(null);
+  }, []);
+
+  // FIXED: Handle drop - converts display index to actual index (fixes reverse order bug)
   const handleDrop = useCallback(
-    (e: React.DragEvent, fromIndex: number, toIndex: number) => {
+    (e: React.DragEvent, fromDisplayIndex: number, toDisplayIndex: number) => {
       e.preventDefault();
-      if (draggedIndex === null || isMobile) return;
+      e.stopPropagation();
+
+      if (isMobile) return;
+      if (fromDisplayIndex === null || toDisplayIndex === null) return;
+      if (fromDisplayIndex === toDisplayIndex) {
+        setDraggedIndex(null);
+        setDragOverIndex(null);
+        return;
+      }
+
+      // When reverseOrder is ON, displayFiles is reversed
+      // Convert display index to actual index in the files array
+      const toActualIndex = (!isMobile && reverseOrder)
+        ? files.length - 1 - toDisplayIndex
+        : toDisplayIndex;
+
+      const fromActualIndex = (!isMobile && reverseOrder)
+        ? files.length - 1 - fromDisplayIndex
+        : fromDisplayIndex;
+
+      // Validate indices
+      if (
+        toActualIndex < 0 || toActualIndex >= files.length ||
+        fromActualIndex < 0 || fromActualIndex >= files.length
+      ) {
+        setDraggedIndex(null);
+        setDragOverIndex(null);
+        return;
+      }
+
+      if (fromActualIndex === toActualIndex) {
+        setDraggedIndex(null);
+        setDragOverIndex(null);
+        return;
+      }
 
       const newFiles = [...files];
-      const [draggedItem] = newFiles.splice(draggedIndex, 1);
-      newFiles.splice(toIndex, 0, draggedItem);
+      const [draggedItem] = newFiles.splice(fromActualIndex, 1);
+      newFiles.splice(toActualIndex, 0, draggedItem);
 
       setFiles(newFiles);
       setDraggedIndex(null);
+      setDragOverIndex(null);
       setPdfBlob(null);
       setOriginalStateHash("");
       setShowChangesWarning(false);
       setProcessingError(null);
       setProgress(0);
     },
-    [files, draggedIndex, isMobile]
+    [files, isMobile, reverseOrder]
   );
 
-  // Move up
+  // FIXED: Move up - handles reverse order correctly
   const handleMoveUp = useCallback(
-    (index: number) => {
-      if (index <= 0 || isMobile) return;
+    (displayIndex: number) => {
+      if (displayIndex <= 0 || isMobile) return;
+
+      // Convert display index to actual index
+      const actualIndex = (!isMobile && reverseOrder)
+        ? files.length - 1 - displayIndex
+        : displayIndex;
+
+      // Moving "up" in display = moving "down" in actual array when reversed
+      const targetActualIndex = (!isMobile && reverseOrder)
+        ? actualIndex + 1
+        : actualIndex - 1;
+
+      if (targetActualIndex < 0 || targetActualIndex >= files.length) return;
 
       const newFiles = [...files];
-      [newFiles[index], newFiles[index - 1]] = [
-        newFiles[index - 1],
-        newFiles[index],
+      [newFiles[actualIndex], newFiles[targetActualIndex]] = [
+        newFiles[targetActualIndex],
+        newFiles[actualIndex],
       ];
       setFiles(newFiles);
       setPdfBlob(null);
@@ -1690,18 +1772,28 @@ export default function JpgToPdf() {
       setProcessingError(null);
       setProgress(0);
     },
-    [files, isMobile]
+    [files, isMobile, reverseOrder]
   );
 
-  // Move down
+  // FIXED: Move down - handles reverse order correctly
   const handleMoveDown = useCallback(
-    (index: number) => {
-      if (index >= files.length - 1 || isMobile) return;
+    (displayIndex: number) => {
+      if (displayIndex >= files.length - 1 || isMobile) return;
+
+      const actualIndex = (!isMobile && reverseOrder)
+        ? files.length - 1 - displayIndex
+        : displayIndex;
+
+      const targetActualIndex = (!isMobile && reverseOrder)
+        ? actualIndex - 1
+        : actualIndex + 1;
+
+      if (targetActualIndex < 0 || targetActualIndex >= files.length) return;
 
       const newFiles = [...files];
-      [newFiles[index], newFiles[index + 1]] = [
-        newFiles[index + 1],
-        newFiles[index],
+      [newFiles[actualIndex], newFiles[targetActualIndex]] = [
+        newFiles[targetActualIndex],
+        newFiles[actualIndex],
       ];
       setFiles(newFiles);
       setPdfBlob(null);
@@ -1710,7 +1802,7 @@ export default function JpgToPdf() {
       setProcessingError(null);
       setProgress(0);
     },
-    [files, isMobile]
+    [files, isMobile, reverseOrder]
   );
 
   // Sorting functions (for mobile)
@@ -1886,29 +1978,63 @@ export default function JpgToPdf() {
   );
 
   // ============================================================
-  // COMPLETELY FIXED: Handle expand image with perfect quality
+  // FIXED: Handle expand image - Reliable method using FileReader
   // ============================================================
   const handleExpandImage = async (file: FileWithPreview) => {
     if (!file.previewUrl || file.previewError) return;
 
     try {
-      // Load image with high quality
-      const img = new Image();
-      
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = file.previewUrl!;
+      // Step 1: Read the file directly as data URL (most reliable method)
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            resolve(e.target.result as string);
+          } else {
+            reject(new Error("FileReader returned empty result"));
+          }
+        };
+        reader.onerror = () => reject(new Error("FileReader error"));
+        reader.readAsDataURL(file.file);
       });
 
-      // Get original dimensions
+      // Step 2: If no rotation needed, just show the data URL directly
+      if (file.rotation === 0) {
+        setExpandedImage({
+          url: dataUrl,
+          rotation: 0,
+          naturalWidth: 0,
+          naturalHeight: 0,
+          id: file.id,
+        });
+        return;
+      }
+
+      // Step 3: Load image from data URL
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error("Image load timeout"));
+        }, 10000);
+
+        img.onload = () => {
+          clearTimeout(timeoutId);
+          resolve();
+        };
+        img.onerror = () => {
+          clearTimeout(timeoutId);
+          reject(new Error("Image load failed"));
+        };
+        img.src = dataUrl;
+      });
+
       const naturalWidth = img.naturalWidth;
       const naturalHeight = img.naturalHeight;
-      
+
       if (naturalWidth === 0 || naturalHeight === 0) {
-        // Fallback: use preview URL directly
+        // Fallback: show data URL with CSS rotation only
         setExpandedImage({
-          url: file.previewUrl!,
+          url: dataUrl,
           rotation: file.rotation,
           naturalWidth: 0,
           naturalHeight: 0,
@@ -1917,73 +2043,32 @@ export default function JpgToPdf() {
         return;
       }
 
-      // Determine if we need to swap dimensions based on rotation
+      // Step 4: Calculate canvas dimensions with rotation
       const needsSwap = file.rotation === 90 || file.rotation === 270;
-      
-      // Get viewport dimensions
-      const viewportWidth = window.innerWidth * 0.85;
-      const viewportHeight = window.innerHeight * 0.8;
-      
-      // Calculate the display dimensions (accounting for rotation)
-      let displayWidth = needsSwap ? naturalHeight : naturalWidth;
-      let displayHeight = needsSwap ? naturalWidth : naturalHeight;
-      
-      // Calculate scale to fit in viewport while maintaining quality
-      let scaleX = viewportWidth / displayWidth;
-      let scaleY = viewportHeight / displayHeight;
-      let scale = Math.min(scaleX, scaleY);
-      
-      // If image is smaller than viewport, don't upscale too much
-      // But if it's larger, scale down to fit
-      if (scale > 1) {
-        // Image is smaller than viewport - show at original size (or slightly larger)
-        // But cap at 1.5x to avoid pixelation
-        scale = Math.min(scale, 1.5);
-      }
-      
-      // For high DPI displays, render at higher resolution
-      const dpr = window.devicePixelRatio || 1;
-      // Use DPR for sharper rendering on retina displays
-      const renderScale = Math.max(scale, 1);
-      const finalScale = renderScale * dpr;
-      
-      // Calculate final dimensions for canvas
-      let finalWidth = Math.round(displayWidth * finalScale);
-      let finalHeight = Math.round(displayHeight * finalScale);
-      
-      // Limit maximum canvas size to avoid memory issues
-      const MAX_CANVAS_SIZE = 4096;
-      if (finalWidth > MAX_CANVAS_SIZE) {
-        const ratio = MAX_CANVAS_SIZE / finalWidth;
-        finalWidth = MAX_CANVAS_SIZE;
-        finalHeight = Math.round(finalHeight * ratio);
-      }
-      if (finalHeight > MAX_CANVAS_SIZE) {
-        const ratio = MAX_CANVAS_SIZE / finalHeight;
-        finalHeight = MAX_CANVAS_SIZE;
-        finalWidth = Math.round(finalWidth * ratio);
+      const rotatedWidth = needsSwap ? naturalHeight : naturalWidth;
+      const rotatedHeight = needsSwap ? naturalWidth : naturalHeight;
+
+      // Limit canvas size to prevent memory issues
+      const MAX_DIMENSION = 2000;
+      let scale = 1;
+      const largerDim = Math.max(rotatedWidth, rotatedHeight);
+      if (largerDim > MAX_DIMENSION) {
+        scale = MAX_DIMENSION / largerDim;
       }
 
-      // Create canvas with high resolution
+      const canvasWidth = Math.round(rotatedWidth * scale);
+      const canvasHeight = Math.round(rotatedHeight * scale);
+
+      // Step 5: Create canvas and draw rotated image
       const canvas = document.createElement("canvas");
-      
-      // Set canvas size based on rotation
-      if (needsSwap) {
-        canvas.width = finalHeight;
-        canvas.height = finalWidth;
-      } else {
-        canvas.width = finalWidth;
-        canvas.height = finalHeight;
-      }
-      
-      const ctx = canvas.getContext("2d", {
-        alpha: false,
-        willReadFrequently: false,
-      });
-      
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+
+      const ctx = canvas.getContext("2d");
       if (!ctx) {
+        // Fallback: use data URL with CSS rotation
         setExpandedImage({
-          url: file.previewUrl!,
+          url: dataUrl,
           rotation: file.rotation,
           naturalWidth,
           naturalHeight,
@@ -1992,49 +2077,43 @@ export default function JpgToPdf() {
         return;
       }
 
-      // Enable high-quality image rendering
+      // White background
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // Enable high quality
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
 
-      // Clear with white background
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Calculate draw dimensions
-      const drawWidth = naturalWidth * finalScale;
-      const drawHeight = naturalHeight * finalScale;
-
-      // Draw image with rotation
+      // Draw with rotation
       ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.translate(canvasWidth / 2, canvasHeight / 2);
       ctx.rotate((file.rotation * Math.PI) / 180);
-      ctx.drawImage(
-        img,
-        -drawWidth / 2,
-        -drawHeight / 2,
-        drawWidth,
-        drawHeight
-      );
+      const drawWidth = naturalWidth * scale;
+      const drawHeight = naturalHeight * scale;
+      ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
       ctx.restore();
 
-      // Get high-quality data URL with 100% quality
-      const rotatedUrl = canvas.toDataURL("image/jpeg", 1.0);
-      
-      // Clean up canvas to free memory
+      // Step 6: Get the rotated data URL
+      const rotatedDataUrl = canvas.toDataURL("image/jpeg", 0.95);
+
+      // Cleanup
       canvas.width = 0;
       canvas.height = 0;
-      
+
+      // Step 7: Set the expanded image (rotation is 0 because it's baked into the image)
       setExpandedImage({
-        url: rotatedUrl,
-        rotation: file.rotation,
-        naturalWidth,
-        naturalHeight,
+        url: rotatedDataUrl,
+        rotation: 0, // Rotation is already applied to the image
+        naturalWidth: canvasWidth,
+        naturalHeight: canvasHeight,
         id: file.id,
       });
-      
     } catch (error) {
-      console.error("Failed to prepare expanded image:", error);
-      // Fallback: use the preview URL directly
+      console.warn("Expand image processing failed, using fallback:", error);
+      
+      // ULTIMATE FALLBACK: Just show the preview URL with CSS rotation
+      // This will always work even if everything else fails
       setExpandedImage({
         url: file.previewUrl!,
         rotation: file.rotation,
@@ -2310,6 +2389,8 @@ export default function JpgToPdf() {
     setCurrentProcessingImage(0);
     setTotalProcessingImages(0);
     setMobileLimitMessage(null);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   const displayFiles = !isMobile && reverseOrder ? [...files].reverse() : files;
@@ -2405,6 +2486,7 @@ export default function JpgToPdf() {
             >
               <div className="flex items-center justify-center w-full h-full bg-black/50 rounded-xl p-4">
                 <img
+                  key={expandedImage.id + expandedImage.rotation + expandedImage.url.slice(-20)}
                   src={expandedImage.url}
                   alt="Expanded preview"
                   className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
@@ -2415,11 +2497,12 @@ export default function JpgToPdf() {
                     imageRendering: 'auto',
                     width: 'auto',
                     height: 'auto',
+                    transition: 'transform 0.2s ease',
                   }}
                   onError={(e) => {
-                    // If the generated URL fails, try using the original preview
+                    // Ultimate fallback - use preview URL directly
                     const file = files.find(f => f.id === expandedImage.id);
-                    if (file?.previewUrl) {
+                    if (file?.previewUrl && e.currentTarget.src !== file.previewUrl) {
                       e.currentTarget.src = file.previewUrl;
                     }
                   }}
@@ -2612,11 +2695,6 @@ export default function JpgToPdf() {
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Convert JPG to PDF Online - Free, Fast & No Watermark | PDFSwift
               </h1>
-              <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-  Convert JPG images to PDF online for free with PDFSwift. Upload your JPG
-  images, arrange them in the order you want, and create a PDF quickly and
-  easily.
-</p>
             </div>
 
             {isMobile ? (
@@ -2844,6 +2922,9 @@ export default function JpgToPdf() {
                       {displayFiles.map((item, displayIndex) => {
                         const pageNumber = getPageNumber(displayIndex);
                         const imageUrl = getImageUrl(item);
+                        const actualIndex = (!isMobile && reverseOrder)
+                          ? files.length - 1 - displayIndex
+                          : displayIndex;
 
                         return (
                           <DraggableItem
@@ -2851,9 +2932,12 @@ export default function JpgToPdf() {
                             index={displayIndex}
                             onDragStart={handleDragStart}
                             onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
-                            isDragging={draggedIndex === displayIndex}
+                            isDragging={draggedIndex === actualIndex}
                             isMobile={isMobile}
+                            draggedIndex={draggedIndex}
+                            dragOverIndex={dragOverIndex}
                           >
                             <div
                               className={`group relative ${
@@ -3683,56 +3767,45 @@ export default function JpgToPdf() {
               </div>
             )}
 
-           {files.length === 0 && !isMobile && (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-    
-    {/* Feature 1 */}
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-      <div className="inline-flex p-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl mb-4">
-        <Target className="w-7 h-7 text-white" />
-      </div>
+            {files.length === 0 && !isMobile && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                  <div className="inline-flex p-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl mb-4">
+                    <Target className="w-7 h-7 text-white" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
+                    Unlimited Files
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Upload unlimited files with no size restrictions on desktop
+                  </p>
+                </div>
 
-      <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-        Multiple JPG Images
-      </h4>
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                  <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl mb-4">
+                    <Move className="w-7 h-7 text-white" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
+                    Professional Reordering
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Drag & drop to arrange images in perfect order
+                  </p>
+                </div>
 
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        Upload multiple JPG images and combine them into a single PDF document.
-      </p>
-    </div>
-
-    {/* Feature 2 */}
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-      <div className="inline-flex p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl mb-4">
-        <Move className="w-7 h-7 text-white" />
-      </div>
-
-      <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-        Arrange Images
-      </h4>
-
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        Drag and reorder your images to set the preferred page order before creating the PDF.
-      </p>
-    </div>
-
-    {/* Feature 3 */}
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-      <div className="inline-flex p-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl mb-4">
-        <Zap className="w-7 h-7 text-white" />
-      </div>
-
-      <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
-        Fast PDF Creation
-      </h4>
-
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        Create a PDF from your JPG images quickly with a simple browser-based workflow.
-      </p>
-    </div>
-
-  </div>
-)}
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+                  <div className="inline-flex p-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl mb-4">
+                    <Zap className="w-7 h-7 text-white" />
+                  </div>
+                  <h4 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
+                    Maximum Quality
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Preserve original quality with no compression
+                  </p>
+                </div>
+              </div>
+            )}
           </motion.div>
 
           {/* Explore All Tools Section */}
