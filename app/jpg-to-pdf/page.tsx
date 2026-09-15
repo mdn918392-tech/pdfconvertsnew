@@ -2695,6 +2695,11 @@ export default function JpgToPdf() {
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Convert JPG to PDF Online - Free, Fast & No Watermark | PDFSwift
               </h1>
+                  <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
+  Convert JPG images to PDF online for free with PDFSwift. Upload your JPG
+  images, arrange them in the order you want, and create a PDF quickly and
+  easily.
+</p>
             </div>
 
             {isMobile ? (
