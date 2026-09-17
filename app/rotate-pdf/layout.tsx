@@ -1,22 +1,57 @@
 import type { Metadata, Viewport } from "next";
+
 export const metadata: Metadata = {
   title: "Rotate PDF Pages Online Free – Fix PDF Orientation | PDFSwift",
+
   description:
-    "Rotate PDF pages online for free with PDFSwift. Easily fix upside-down or sideways pages by rotating PDFs 90, 180, or 270 degrees. Securely organize and adjust your PDF pages instantly without watermarks.",
+    "Rotate PDF pages online for free with PDFSwift. Easily fix upside-down or sideways pages by rotating PDFs 90, 180, or 270 degrees. Securely adjust your PDF pages instantly without watermarks.",
+
   keywords: [
     "rotate pdf pages online free",
     "rotate pdf online",
     "pdf rotator",
     "rotate pdf 90 degrees",
+    "rotate pdf 180 degrees",
+    "rotate pdf 270 degrees",
     "change pdf page orientation",
-    "organize pdf pages free",
-    "pdfswift rotate tool",
     "rotate pdf pages permanently",
     "free pdf rotation tool",
+    "rotate pdf online free",
   ],
+
+  alternates: {
+    canonical: "/rotate-pdf",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
+
+  openGraph: {
+    type: "website",
+    url: "https://www.pdfswift.online/rotate-pdf",
+    title: "Rotate PDF Pages Online Free | PDFSwift",
+    description:
+      "Rotate PDF pages online for free. Fix upside-down or sideways PDF pages by rotating them 90, 180, or 270 degrees with PDFSwift.",
+    siteName: "PDFSwift",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "Rotate PDF Pages Online Free | PDFSwift",
+    description:
+      "Rotate PDF pages online for free with PDFSwift. Fix PDF orientation quickly with no watermark.",
+  },
 };
 
-// ✅ viewport must be exported separately
 export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
@@ -28,9 +63,5 @@ export default function RotatePDFLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <main>{children}</main>
-    </>
-  );
+  return <>{children}</>;
 }

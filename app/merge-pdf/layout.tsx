@@ -1,12 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import HowToSchema from "./HowToSchema";
-
-import ArticleSchema from "./ArticleSchema";
 
 export const metadata: Metadata = {
   title: "Merge PDF Files Online - Free, Fast & No Watermark | PDFSwift",
+
   description:
-    "Merge and combine multiple PDF files into one single document online for free. Fast, secure, and instant download without any watermark or registration",
+    "Merge and combine multiple PDF files into one single document online for free. Fast, secure, and instant download without any watermark or registration.",
+
   keywords: [
     "merge pdf files online free",
     "merge pdf online",
@@ -15,12 +14,44 @@ export const metadata: Metadata = {
     "free pdf merge tool",
     "merge multiple pdf files",
     "online pdf merger",
-    "combine pdfs into one"
+    "combine pdfs into one",
   ],
+
+  // ⭐ IMPORTANT: Page-specific canonical
+  alternates: {
+    canonical: "/merge-pdf",
+  },
+
+  // ⭐ Make indexing explicit
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
+
+  openGraph: {
+    type: "website",
+    url: "https://www.pdfswift.online/merge-pdf",
+    title: "Merge PDF Files Online - Free, Fast & No Watermark | PDFSwift",
+    description:
+      "Merge and combine multiple PDF files into one PDF online for free. Fast, secure, and no watermark.",
+    siteName: "PDFSwift",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "Merge PDF Files Online - Free | PDFSwift",
+    description:
+      "Merge multiple PDF files into one document online for free with PDFSwift.",
+  },
 };
 
-
-// ✅ viewport must be exported separately
 export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
@@ -32,11 +63,5 @@ export default function MergePDFLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      
-      
-      <main>{children}</main>
-    </>
-  );
+  return <>{children}</>;
 }
