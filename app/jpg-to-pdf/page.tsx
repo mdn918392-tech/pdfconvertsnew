@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -967,20 +967,22 @@ const DraggableItem = ({
 };
 
 // ============================================================
-// FIXED: Image Container Component - with improved quality
+// FIXED: Image Container Component - memoized to prevent re-render flicker
 // ============================================================
-const ImageContainer = ({ 
+const ImageContainer = memo(({ 
   file, 
   imageUrl, 
   rotation, 
   previewError,
-  onClick 
+  onClick,
+  isListView = false,
 }: { 
   file: FileWithPreview; 
   imageUrl: string | undefined; 
   rotation: number; 
   previewError: boolean;
   onClick: () => void;
+  isListView?: boolean;
 }) => {
   const [imageLoadError, setImageLoadError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -991,21 +993,26 @@ const ImageContainer = ({
     setIsLoading(true);
   }, [imageUrl]);
 
-  const handleImageLoad = () => {
+  const handleImageLoad = useCallback(() => {
     setIsLoading(false);
     setImageLoadError(false);
-  };
+  }, []);
 
-  const handleImageError = () => {
+  const handleImageError = useCallback(() => {
     setIsLoading(false);
     setImageLoadError(true);
-  };
+  }, []);
 
   const showFallback = !imageUrl || previewError || imageLoadError;
 
+  // In list view, use fixed dimensions to prevent layout shift
+  const containerClass = isListView
+    ? "relative w-20 h-20 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800 cursor-pointer flex-shrink-0"
+    : "relative w-full h-48 md:h-56 lg:h-64 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer";
+
   return (
     <div
-      className="relative w-full h-48 md:h-56 lg:h-64 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer"
+      className={containerClass}
       onClick={onClick}
     >
       {!showFallback ? (
@@ -1014,11 +1021,13 @@ const ImageContainer = ({
             key={imageUrl}
             src={imageUrl}
             alt={file.file.name}
-            className="w-full h-full object-contain transition-transform duration-300"
+            className="w-full h-full object-contain"
             style={{
               transform: `rotate(${rotation}deg)`,
               objectFit: 'contain',
               imageRendering: 'auto',
+              // Prevent transition on fullscreen expand
+              transition: 'none',
             }}
             loading="eager"
             onLoad={handleImageLoad}
@@ -1027,21 +1036,21 @@ const ImageContainer = ({
           />
         </div>
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center p-3">
+        <div className="w-full h-full flex flex-col items-center justify-center p-2">
           {isLoading ? (
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
           ) : (
             <>
-              <div className="relative mb-2">
-                <ImageIcon className="w-8 h-8 text-gray-400" />
+              <div className="relative mb-1">
+                <ImageIcon className="w-6 h-6 text-gray-400" />
                 {(previewError || imageLoadError) && (
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
                     <X className="w-2 h-2 text-white" />
                   </div>
                 )}
               </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400 text-center truncate max-w-full px-2">
-                {previewError || imageLoadError ? 'Failed to load' : 'Loading...'}
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center truncate max-w-full px-1">
+                {previewError || imageLoadError ? 'Failed' : 'Loading...'}
               </span>
             </>
           )}
@@ -1049,7 +1058,9 @@ const ImageContainer = ({
       )}
     </div>
   );
-};
+});
+
+ImageContainer.displayName = "ImageContainer";
 
 // Replace Image Modal Component
 const ReplaceImageModal = ({
@@ -1980,7 +1991,7 @@ export default function JpgToPdf() {
   // ============================================================
   // FIXED: Handle expand image - Reliable method using FileReader
   // ============================================================
-  const handleExpandImage = async (file: FileWithPreview) => {
+  const handleExpandImage = useCallback(async (file: FileWithPreview) => {
     if (!file.previewUrl || file.previewError) return;
 
     try {
@@ -2122,10 +2133,10 @@ export default function JpgToPdf() {
         id: file.id,
       });
     }
-  };
+  }, []);
 
   // Handle rotate in fullscreen
-  const handleRotateInFullScreen = (degrees: number) => {
+  const handleRotateInFullScreen = useCallback((degrees: number) => {
     if (!expandedImage) return;
 
     const newRotation = (expandedImage.rotation + degrees) % 360;
@@ -2155,7 +2166,7 @@ export default function JpgToPdf() {
     setShowChangesWarning(false);
     setProcessingError(null);
     setProgress(0);
-  };
+  }, [expandedImage, rotatedUrls]);
 
   // ----- MAIN CONVERT FUNCTION (with robust error handling) -----
   const handleConvert = async () => {
@@ -2446,13 +2457,18 @@ export default function JpgToPdf() {
         </div>
       </div>
 
+      {/* ============================================================
+          FIXED: Fullscreen Modal - no flicker on open/close
+          ============================================================ */}
       <AnimatePresence>
         {expandedImage && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+            style={{ willChange: 'opacity' }}
           >
             <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
               <button
@@ -2477,16 +2493,13 @@ export default function JpgToPdf() {
               </button>
             </div>
 
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+            <div
               className="relative max-w-[95vw] max-h-[90vh] flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-center w-full h-full bg-black/50 rounded-xl p-4">
                 <img
-                  key={expandedImage.id + expandedImage.rotation + expandedImage.url.slice(-20)}
+                  key={`${expandedImage.id}-${expandedImage.url.slice(-20)}`}
                   src={expandedImage.url}
                   alt="Expanded preview"
                   className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
@@ -2497,7 +2510,7 @@ export default function JpgToPdf() {
                     imageRendering: 'auto',
                     width: 'auto',
                     height: 'auto',
-                    transition: 'transform 0.2s ease',
+                    willChange: 'transform',
                   }}
                   onError={(e) => {
                     // Ultimate fallback - use preview URL directly
@@ -2508,7 +2521,7 @@ export default function JpgToPdf() {
                   }}
                 />
               </div>
-            </motion.div>
+            </div>
 
             {/* Mobile close button */}
             <button
@@ -2977,6 +2990,7 @@ export default function JpgToPdf() {
                                   rotation={item.rotation}
                                   previewError={item.previewError || false}
                                   onClick={() => handleExpandImage(item)}
+                                  isListView={viewMode === "list"}
                                 />
                               </div>
 

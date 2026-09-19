@@ -1,11 +1,11 @@
+// app/pdf-to-image/page.tsx
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import Head from 'next/head';
 import { motion, AnimatePresence } from "framer-motion";
 import JSZip from "jszip";
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from "pdfjs-dist";
 import {
   Download,
   ArrowLeft,
@@ -13,8 +13,6 @@ import {
   CheckCircle,
   Image as ImageIcon,
   Sparkles,
-  Zap,
-  Shield,
   Palette,
   Upload,
   Layers,
@@ -24,14 +22,10 @@ import {
   ArrowRight,
   Grid,
   X,
-  Plus,
   Archive,
   FolderClosed,
   FileText,
   FileImage,
-  File,
-  Smartphone,
-  Monitor,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
@@ -40,14 +34,8 @@ import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
-import { faqData } from "./faqData";
 
-// --- Helper Functions ---
-const createObjectURL = (fileOrBlob: Blob | File) =>
-  URL.createObjectURL(fileOrBlob);
-const revokeObjectURL = (url: string) => URL.revokeObjectURL(url);
-
-// Define Tool type
+// --- Types ---
 type Tool = {
   id: string;
   name: string;
@@ -70,102 +58,18 @@ const tool = {
   path: "/tools/pdf-to-image",
 };
 
-// Explore All Tools Data
 const exploreTools: Tool[] = [
-  
-  {
-    id: "split-pdf",
-    name: "Split PDF",
-    description: "Split PDF into separate pages",
-    category: "pdf",
-    icon: "✂️",
-    color: "from-orange-500 to-red-500",
-    href: "/split-pdf",
-    path: "/tools/split-pdf",
-  },
-  {
-    id: "rotate-pdf",
-    name: "Rotate PDF",
-    description: "Rotate PDF pages",
-    category: "pdf",
-    icon: "🔄",
-    color: "from-teal-500 to-cyan-500",
-    href: "/rotate-pdf",
-    path: "/tools/rotate-pdf",
-  },
-  {
-    id: "jpg-to-pdf",
-    name: "JPG to PDF",
-    description: "Convert JPG images to PDF documents",
-    category: "pdf",
-    icon: "🖼️",
-    color: "from-green-500 to-emerald-500",
-    href: "/jpg-to-pdf",
-    path: "/tools/jpg-to-pdf",
-  },
-  {
-    id: "png-to-jpg",
-    name: "PNG to JPG",
-    description: "Convert PNG images to JPG format",
-    category: "image",
-    icon: "🔄",
-    color: "from-emerald-500 to-green-500",
-    href: "/png-to-jpg",
-    path: "/tools/png-to-jpg",
-  },
-  {
-    id: "pdf-to-jpg",
-    name: "PDF to JPG",
-    description: "Convert PDF pages to JPG images",
-    category: "pdf",
-    icon: "🖼️",
-    color: "from-purple-500 to-pink-500",
-    href: "/pdf-to-jpg",
-    path: "/tools/pdf-to-jpg",
-  },
-  {
-    id: "extract-pages",
-    name: "Extract Pages",
-    description: "Extract specific pages from PDF",
-    category: "pdf",
-    icon: "📑",
-    color: "from-indigo-500 to-blue-500",
-    href: "/extract-pages",
-    path: "/tools/extract-pages",
-  },
-  {
-    id: "compress-image",
-    name: "Compress Image",
-    description: "Reduce JPG/PNG file size",
-    category: "image",
-    icon: "📉",
-    color: "from-blue-500 to-cyan-500",
-    href: "/compress-image",
-    path: "/tools/compress-image",
-  },
-  {
-    id: "merge-pdf",
-    name: "Merge PDF",
-    description: "Combine multiple PDF files into one",
-    category: "pdf",
-    icon: "🔗",
-    color: "from-violet-500 to-purple-500",
-    href: "/merge-pdf",
-    path: "/tools/merge-pdf",
-  },
-  {
-    id: "remove-pages",
-    name: "Remove Pages",
-    description: "Delete specific pages from PDF",
-    category: "pdf",
-    icon: "🗑️",
-    color: "from-rose-500 to-pink-500",
-    href: "/remove-pages",
-    path: "/tools/remove-pages",
-  },
+  { id: "split-pdf", name: "Split PDF", description: "Split PDF into separate pages", category: "pdf", icon: "✂️", color: "from-orange-500 to-red-500", href: "/split-pdf", path: "/tools/split-pdf" },
+  { id: "rotate-pdf", name: "Rotate PDF", description: "Rotate PDF pages", category: "pdf", icon: "🔄", color: "from-teal-500 to-cyan-500", href: "/rotate-pdf", path: "/tools/rotate-pdf" },
+  { id: "jpg-to-pdf", name: "JPG to PDF", description: "Convert JPG images to PDF documents", category: "pdf", icon: "🖼️", color: "from-green-500 to-emerald-500", href: "/jpg-to-pdf", path: "/tools/jpg-to-pdf" },
+  { id: "png-to-jpg", name: "PNG to JPG", description: "Convert PNG images to JPG format", category: "image", icon: "🔄", color: "from-emerald-500 to-green-500", href: "/png-to-jpg", path: "/tools/png-to-jpg" },
+  { id: "pdf-to-jpg", name: "PDF to JPG", description: "Convert PDF pages to JPG images", category: "pdf", icon: "🖼️", color: "from-purple-500 to-pink-500", href: "/pdf-to-jpg", path: "/tools/pdf-to-jpg" },
+  { id: "extract-pages", name: "Extract Pages", description: "Extract specific pages from PDF", category: "pdf", icon: "📑", color: "from-indigo-500 to-blue-500", href: "/extract-pages", path: "/tools/extract-pages" },
+  { id: "compress-image", name: "Compress Image", description: "Reduce JPG/PNG file size", category: "image", icon: "📉", color: "from-blue-500 to-cyan-500", href: "/compress-image", path: "/tools/compress-image" },
+  { id: "merge-pdf", name: "Merge PDF", description: "Combine multiple PDF files into one", category: "pdf", icon: "🔗", color: "from-violet-500 to-purple-500", href: "/merge-pdf", path: "/tools/merge-pdf" },
+  { id: "remove-pages", name: "Remove Pages", description: "Delete specific pages from PDF", category: "pdf", icon: "🗑️", color: "from-rose-500 to-pink-500", href: "/remove-pages", path: "/tools/remove-pages" },
 ];
 
-// --- Component Interface ---
 interface ConvertedFile {
   blob: Blob;
   name: string;
@@ -179,10 +83,23 @@ interface DownloadNotification {
   fileName: string;
   fileCount: number;
   timestamp: Date;
-  type: 'single' | 'zip' | 'multi';
+  type: "single" | "zip" | "multi";
 }
 
-// --- Image Preview Component (Mobile-Optimized) ---
+// ✅ Magic-byte verification
+async function isRealJpeg(blob: Blob): Promise<boolean> {
+  if (!blob || blob.size < 3) return false;
+  const h = new Uint8Array(await blob.slice(0, 3).arrayBuffer());
+  return h[0] === 0xff && h[1] === 0xd8 && h[2] === 0xff;
+}
+
+async function isRealPng(blob: Blob): Promise<boolean> {
+  if (!blob || blob.size < 4) return false;
+  const h = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  return h[0] === 0x89 && h[1] === 0x50 && h[2] === 0x4e && h[3] === 0x47;
+}
+
+// --- Image Preview ---
 const ImagePreview = ({
   file,
   onRemove,
@@ -209,144 +126,139 @@ const ImagePreview = ({
   const [isMobile, setIsMobile] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const objectUrlRef = useRef<string | null>(null);
 
-  // Detect mobile
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      ) || window.innerWidth < 768;
+      const mobile =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) || window.innerWidth < 768;
       setIsMobile(mobile);
     };
-    
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Create object URL
+  // ✅ Single useEffect with proper cleanup
   useEffect(() => {
-    if (!file) {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+
+    if (!file || file.size === 0) {
       setError(true);
       setLoading(false);
       return;
     }
 
-    let url: string | null = null;
-    let img: HTMLImageElement | null = null;
+    const url = URL.createObjectURL(file);
+    objectUrlRef.current = url;
+    setPreviewUrl(url);
+    setLoading(true);
+    setError(false);
 
-    try {
-      url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+    const img = new Image();
+    let cancelled = false;
 
-      img = new Image();
-      img.onload = () => {
-        setLoading(false);
-        setError(false);
-      };
-      img.onerror = () => {
+    const isMobileUA =
+      typeof navigator !== "undefined" &&
+      (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      ) ||
+        window.innerWidth < 768);
+
+    // ✅ Longer timeout for mobile
+    const timeoutMs = isMobileUA ? 10000 : 6000;
+
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) {
         setError(true);
         setLoading(false);
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to load image preview:', filename);
-        }
-      };
-      
-      const timeoutId = setTimeout(() => {
-        if (loading) {
-          setError(true);
-          setLoading(false);
-          if (img) {
-            img.onload = null;
-            img.onerror = null;
-          }
-        }
-      }, 5000);
+      }
+    }, timeoutMs);
 
-      img.src = url;
-
-      return () => {
-        clearTimeout(timeoutId);
-        if (url) {
-          URL.revokeObjectURL(url);
-        }
-        if (img) {
-          img.onload = null;
-          img.onerror = null;
-        }
-      };
-    } catch (err) {
+    img.onload = () => {
+      if (cancelled) return;
+      clearTimeout(timeoutId);
+      setLoading(false);
+      setError(false);
+    };
+    img.onerror = () => {
+      if (cancelled) return;
+      clearTimeout(timeoutId);
       setError(true);
       setLoading(false);
-      if (url) {
-        URL.revokeObjectURL(url);
+    };
+    img.src = url;
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      img.onload = null;
+      img.onerror = null;
+      img.src = "";
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
       }
-    }
-  }, [file, filename, loading]);
+    };
+  }, [file]);
 
   const statusColor =
     status && status.includes("Converted")
       ? "text-green-600 dark:text-green-400"
       : "text-blue-600 dark:text-blue-400";
 
-  // Improved download handler with mobile support
   const handleIndividualDownload = async () => {
     if (isDownloading) return;
-    
     setIsDownloading(true);
     setDownloadSuccess(false);
-    
+
     try {
       if (onSingleDownload) {
         onSingleDownload();
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 3000);
       } else if (file) {
-        // For mobile devices, use a different approach if needed
         if (isMobile) {
-          // Create a temporary anchor element for mobile
-          const link = document.createElement('a');
+          const link = document.createElement("a");
           const url = URL.createObjectURL(file);
           link.href = url;
           link.download = filename;
           document.body.appendChild(link);
-          
-          // Trigger download
           link.click();
-          
-          // Clean up
           setTimeout(() => {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
           }, 100);
         } else {
-          // Desktop download
           downloadFile(file as Blob, filename);
         }
-        
         setDownloadSuccess(true);
         setTimeout(() => setDownloadSuccess(false), 3000);
       }
     } catch (error) {
-      console.error('Download error:', error);
-      alert('Failed to download file. Please try again.');
+      console.error("Download error:", error);
+      alert("Failed to download file. Please try again.");
     } finally {
       setIsDownloading(false);
     }
   };
 
   const formatFileSize = (size: number) => {
+    if (size === 0) return "0 B";
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const handleImageError = () => {
-    setError(true);
-  };
-
   return (
     <>
       <AnimatePresence>
-        {previewOpen && previewUrl && (
+        {previewOpen && previewUrl && !error && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -367,31 +279,20 @@ const ImagePreview = ({
               >
                 <XCircle className="w-6 h-6" />
               </button>
-
               <div className="max-w-4xl max-h-[90vh]">
-                {error ? (
-                  <div className="bg-gray-800 rounded-xl p-8 flex flex-col items-center justify-center">
-                    <ImageIcon className="w-16 h-16 text-gray-400 mb-4" />
-                    <p className="text-white text-lg">Preview not available</p>
-                    <p className="text-gray-400 text-sm mt-2">
-                      This image cannot be displayed
-                    </p>
-                  </div>
-                ) : (
-                  <img
-                    src={previewUrl}
-                    alt={filename}
-                    className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-                    onError={handleImageError}
-                  />
-                )}
+                <img
+                  key={previewUrl}
+                  src={previewUrl}
+                  alt={filename}
+                  className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+                  draggable={false}
+                />
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Preview Card - Mobile Optimized */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -399,56 +300,78 @@ const ImagePreview = ({
         whileHover={!isMobile ? { y: -5, scale: 1.02 } : {}}
         className="relative group"
       >
-        <div className={`bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 
-          ${isMobile ? 'rounded-xl p-3' : 'rounded-2xl p-4'} 
+        <div
+          className={`bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 
+          ${isMobile ? "rounded-xl p-3" : "rounded-2xl p-4"} 
           border-2 border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden`}
         >
-          {/* Page Number Badge */}
           <div className="absolute top-2 left-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full z-10">
             Page {pageNumber || index + 1}
           </div>
 
-          {/* Image Container */}
           <div
-            className={`relative w-full ${isMobile ? 'h-28' : 'h-36'} mb-3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image`}
+            className={`relative w-full ${
+              isMobile ? "h-28" : "h-36"
+            } mb-3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image`}
             onClick={() => previewUrl && !error && setPreviewOpen(true)}
           >
             {loading ? (
               <div className="w-full h-full flex items-center justify-center">
-                <div className={`animate-spin rounded-full border-b-2 border-purple-500 ${isMobile ? 'h-6 w-6' : 'h-8 w-8'}`}></div>
+                <div
+                  className={`animate-spin rounded-full border-b-2 border-purple-500 ${
+                    isMobile ? "h-6 w-6" : "h-8 w-8"
+                  }`}
+                ></div>
               </div>
             ) : error || !previewUrl ? (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800">
-                <FileImage className={`${isMobile ? 'w-6 h-6' : 'w-10 h-10'} text-gray-400 mb-1`} />
-                <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500 dark:text-gray-400`}>
+                <FileImage
+                  className={`${
+                    isMobile ? "w-6 h-6" : "w-10 h-10"
+                  } text-gray-400 mb-1`}
+                />
+                <span
+                  className={`${
+                    isMobile ? "text-[10px]" : "text-xs"
+                  } text-gray-500 dark:text-gray-400`}
+                >
                   Preview not available
                 </span>
-                <span className={`${isMobile ? 'text-[8px]' : 'text-xs'} text-gray-400 dark:text-gray-500 mt-0.5`}>
+                <span
+                  className={`${
+                    isMobile ? "text-[8px]" : "text-xs"
+                  } text-gray-400 dark:text-gray-500 mt-0.5`}
+                >
                   {formatFileSize(file.size || 0)}
                 </span>
               </div>
             ) : (
               <>
                 <img
+                  key={previewUrl}
                   src={previewUrl}
                   alt={filename}
                   className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
-                  onError={handleImageError}
+                  loading="lazy"
+                  draggable={false}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                  <Eye className={`${isMobile ? 'w-5 h-5' : 'w-8 h-8'} text-white`} />
+                  <Eye
+                    className={`${
+                      isMobile ? "w-5 h-5" : "w-8 h-8"
+                    } text-white`}
+                  />
                 </div>
-
-                {/* Shine Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000" />
               </>
             )}
           </div>
 
-          {/* File Info */}
           <div className="space-y-1.5">
             <p
-              className={`${isMobile ? 'text-[10px]' : 'text-sm'} font-semibold truncate text-gray-900 dark:text-white`}
+              className={`${
+                isMobile ? "text-[10px]" : "text-sm"
+              } font-semibold truncate text-gray-900 dark:text-white`}
               title={filename}
             >
               {filename}
@@ -456,65 +379,73 @@ const ImagePreview = ({
 
             <div className="flex items-center justify-between">
               <span
-                className={`${isMobile ? 'text-[8px] px-2 py-0.5' : 'text-xs px-3 py-1'} rounded-full font-medium ${statusColor} bg-opacity-10 ${
+                className={`${
+                  isMobile ? "text-[8px] px-2 py-0.5" : "text-xs px-3 py-1"
+                } rounded-full font-medium ${statusColor} bg-opacity-10 ${
                   status.includes("Converted") ? "bg-green-500" : "bg-purple-500"
                 }`}
               >
                 {status}
               </span>
 
-              {/* File Size */}
-              {file.size && (
-                <span className={`${isMobile ? 'text-[8px]' : 'text-xs'} text-gray-500 dark:text-gray-400`}>
+              {file.size !== undefined && (
+                <span
+                  className={`${
+                    isMobile ? "text-[8px]" : "text-xs"
+                  } text-gray-500 dark:text-gray-400`}
+                >
                   {formatFileSize(file.size)}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Action Buttons - Mobile Optimized */}
-          <div className={`absolute top-2 right-2 flex gap-1.5 
-            ${!isMobile ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'} 
+          <div
+            className={`absolute top-2 right-2 flex gap-1.5 
+            ${!isMobile ? "opacity-0 group-hover:opacity-100" : "opacity-100"} 
             transition-opacity duration-300`}
           >
-            {/* Remove Button (For Input Files) */}
             {onRemove && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onRemove}
-                className={`${isMobile ? 'p-2' : 'p-1.5'} bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors`}
+                className={`${
+                  isMobile ? "p-2" : "p-1.5"
+                } bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors`}
                 aria-label={`Remove ${filename}`}
               >
-                <XCircle className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                <XCircle className={`${isMobile ? "w-5 h-5" : "w-4 h-4"}`} />
               </motion.button>
             )}
 
-            {/* Download Button (For Output Files) - Larger on Mobile */}
             {isDownloadable && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleIndividualDownload}
                 disabled={isDownloading || !file}
-                className={`relative ${isMobile ? 'p-2.5' : 'p-1.5'} 
-                  ${downloadSuccess ? 'bg-green-500' : 'bg-green-500'} 
+                className={`relative ${isMobile ? "p-2.5" : "p-1.5"} 
+                  ${downloadSuccess ? "bg-green-500" : "bg-green-500"} 
                   text-white rounded-full shadow-lg hover:bg-green-600 transition-colors
-                  ${isDownloading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                  ${isDownloading ? "opacity-75 cursor-not-allowed" : ""}`}
                 title={`Download ${filename}`}
               >
                 {isDownloading ? (
-                  <div className={`animate-spin rounded-full border-2 border-white border-t-transparent ${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                  <div
+                    className={`animate-spin rounded-full border-2 border-white border-t-transparent ${
+                      isMobile ? "w-5 h-5" : "w-4 h-4"
+                    }`}
+                  />
                 ) : downloadSuccess ? (
-                  <Check className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                  <Check className={`${isMobile ? "w-5 h-5" : "w-4 h-4"}`} />
                 ) : (
-                  <Download className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                  <Download className={`${isMobile ? "w-5 h-5" : "w-4 h-4"}`} />
                 )}
               </motion.button>
             )}
           </div>
 
-          {/* Mobile Download Success Toast */}
           {isMobile && downloadSuccess && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -531,9 +462,8 @@ const ImagePreview = ({
   );
 };
 
-// --- Download Notification Component ---
-const DownloadNotification = ({
-  id,
+// --- Download Notification ---
+const DownloadNotificationCard = ({
   fileName,
   fileCount,
   timestamp,
@@ -542,12 +472,12 @@ const DownloadNotification = ({
 }: DownloadNotification & { onClose: () => void }) => {
   const getMessage = () => {
     switch (type) {
-      case 'zip':
+      case "zip":
         return `ZIP archive downloaded with ${fileCount} files`;
-      case 'multi':
+      case "multi":
         return `${fileCount} files downloaded individually`;
       default:
-        return 'File downloaded successfully! 🎉';
+        return "File downloaded successfully! 🎉";
     }
   };
 
@@ -557,29 +487,30 @@ const DownloadNotification = ({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
       className={`bg-gradient-to-r ${
-        type === 'zip' 
-          ? 'from-purple-500 to-indigo-600' 
-          : 'from-green-500 to-emerald-600'
+        type === "zip"
+          ? "from-purple-500 to-indigo-600"
+          : "from-green-500 to-emerald-600"
       } text-white p-4 rounded-xl shadow-lg mb-2`}
     >
       <div className="flex items-start gap-3">
-        {type === 'zip' ? (
+        {type === "zip" ? (
           <Archive className="w-5 h-5 mt-0.5 flex-shrink-0" />
         ) : (
           <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
         )}
         <div className="flex-1 min-w-0">
           <h4 className="font-bold text-sm mb-1">
-            {type === 'zip' ? 'ZIP Archive Downloaded! 📦' : getMessage()}
+            {type === "zip" ? "ZIP Archive Downloaded! 📦" : getMessage()}
           </h4>
-          {type === 'single' && (
+          {type === "single" && (
             <p className="text-xs opacity-90 truncate mb-1">{fileName}</p>
           )}
           <p className="text-xs opacity-80 mb-2">
-            {type === 'zip' 
+            {type === "zip"
               ? `All ${fileCount} files are now in a single ZIP archive`
-              : `${fileCount} PDF ${fileCount === 1 ? 'page' : 'pages'} converted to images`
-            }
+              : `${fileCount} PDF ${
+                  fileCount === 1 ? "page" : "pages"
+                } converted to images`}
           </p>
           <div className="flex items-center gap-1 text-xs opacity-80">
             <Clock className="w-3 h-3" />
@@ -612,48 +543,52 @@ export default function PdfToImage() {
   >([]);
   const [zipDownloading, setZipDownloading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [outputFormat, setOutputFormat] = useState<'jpg' | 'png'>('jpg');
+  const [outputFormat, setOutputFormat] = useState<"jpg" | "png">("jpg");
   const [imageQuality, setImageQuality] = useState<number>(90);
-  const [pageRange, setPageRange] = useState<{start: number, end: number}>({start: 1, end: 0});
+  const [pageRange, setPageRange] = useState<{ start: number; end: number }>({
+    start: 1,
+    end: 0,
+  });
   const [showPageRange, setShowPageRange] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
   const [pdfWorkerLoaded, setPdfWorkerLoaded] = useState(false);
+  const [processingFile, setProcessingFile] = useState<string | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Initialize pdf.js worker - SIMPLIFIED APPROACH
+  // Initialize pdf.js worker
   useEffect(() => {
-    const version = '3.11.174';
+    const version = "3.11.174";
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
     setPdfWorkerLoaded(true);
-    console.log('PDF worker initialized with CDN');
   }, []);
 
-  // Detect device type
+  // Detect mobile
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      ) || window.innerWidth < 768;
+      const mobile =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) || window.innerWidth < 768;
       setIsMobile(mobile);
     };
-    
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Generate unique filename
-  const generateUniqueFileName = (baseName: string, pageNumber: number) => {
+  const generateUniqueFileName = (
+    baseName: string,
+    pageNumber: number,
+    mimeType: string = "image/jpeg"
+  ) => {
     const timestamp = new Date().getTime();
     const randomId = Math.random().toString(36).substring(2, 9);
-    const cleanBaseName = baseName
-      .replace(/\.pdf$/i, "")
-      .replace(/\.[^/.]+$/, "");
+    const cleanBaseName = baseName.replace(/\.[^/.]+$/, "");
     const page = pageNumber.toString().padStart(3, "0");
-    return `${cleanBaseName}_page_${page}_${timestamp}_${randomId}.${outputFormat}`;
+    const ext = mimeType === "image/png" ? "png" : "jpg";
+    return `${cleanBaseName}_page_${page}_${timestamp}_${randomId}.${ext}`;
   };
 
-  // Auto-scroll notifications
   useEffect(() => {
     if (notificationsRef.current && downloadNotifications.length > 0) {
       notificationsRef.current.scrollTop =
@@ -661,7 +596,6 @@ export default function PdfToImage() {
     }
   }, [downloadNotifications]);
 
-  // Get total pages from PDF
   const getPdfPageCount = async (file: File): Promise<number> => {
     try {
       const pdfUrl = URL.createObjectURL(file);
@@ -671,20 +605,24 @@ export default function PdfToImage() {
       URL.revokeObjectURL(pdfUrl);
       return count;
     } catch (error) {
-      console.error('Error getting page count:', error);
+      console.error("Error getting page count:", error);
       return 0;
     }
   };
 
-  // ─── 🔥 UPDATED: handleFilesSelected – NO SIZE OR COUNT LIMITS ───
   const handleFilesSelected = async (newFiles: File[]) => {
-    // Simply accept all files – no size or count checks
     if (newFiles.length === 0) return;
 
-    // Just filter out non-PDF files (to avoid errors later)
-    const validPdfFiles = newFiles.filter(file => {
-      if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
+    const validPdfFiles = newFiles.filter((file) => {
+      if (
+        !file.type.includes("pdf") &&
+        !file.name.toLowerCase().endsWith(".pdf")
+      ) {
         alert(`File "${file.name}" is not a PDF document.`);
+        return false;
+      }
+      if (file.size === 0) {
+        alert(`File "${file.name}" appears to be empty.`);
         return false;
       }
       return true;
@@ -696,81 +634,108 @@ export default function PdfToImage() {
     setImageBlobs([]);
     setShowFeatures(false);
 
-    // Get total pages for the first file (for page range feature)
     if (validPdfFiles.length > 0) {
       const pages = await getPdfPageCount(validPdfFiles[0]);
       setTotalPages(pages);
-      setPageRange({start: 1, end: pages});
+      setPageRange({ start: 1, end: pages });
     }
   };
 
+  // ✅ FIXED: convertPdfToImages with magic-byte verification and no-undefined quality
   const convertPdfToImages = async (pdfFile: File): Promise<ConvertedFile[]> => {
     const convertedFiles: ConvertedFile[] = [];
-    
+
     try {
       const pdfUrl = URL.createObjectURL(pdfFile);
       const loadingTask = pdfjsLib.getDocument(pdfUrl);
       const pdf = await loadingTask.promise;
       const pageCount = pdf.numPages;
-      
+
       if (pageCount === 0) {
-        throw new Error('PDF has no pages');
+        throw new Error("PDF has no pages");
       }
-      
-      // Determine which pages to convert
+
       let startPage = 1;
       let endPage = pageCount;
-      
+
       if (showPageRange) {
         startPage = Math.max(1, pageRange.start);
         endPage = Math.min(pageCount, pageRange.end || pageCount);
       }
-      
-      // Update progress based on total pages
+
       const totalPagesToConvert = endPage - startPage + 1;
-      
+
       for (let i = startPage; i <= endPage; i++) {
         try {
           const page = await pdf.getPage(i);
-          const scale = 2.0; // 2x for high quality
+          const scale = 2.0;
           const viewport = page.getViewport({ scale });
-          
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          
+
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+
           if (!context) {
-            throw new Error('Could not get canvas context');
+            throw new Error("Could not get canvas context");
           }
-          
+
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          
+
+          // ✅ White background for JPG (JPEG has no alpha)
+          if (outputFormat === "jpg") {
+            context.fillStyle = "#FFFFFF";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+          }
+
           const renderContext = {
             canvasContext: context,
             viewport: viewport,
           };
-          
+
           await page.render(renderContext).promise;
-          
-          const mimeType = outputFormat === 'jpg' ? 'image/jpeg' : 'image/png';
-          const quality = outputFormat === 'jpg' ? imageQuality / 100 : undefined;
-          
+
+          // ✅ Format-specific toBlob (no undefined quality for PNG)
           const blob = await new Promise<Blob>((resolve, reject) => {
-            canvas.toBlob(
-              (blob) => {
-                if (blob) {
-                  resolve(blob);
-                } else {
-                  reject(new Error('Failed to create blob from canvas'));
-                }
-              },
-              mimeType,
-              quality
-            );
+            if (outputFormat === "jpg") {
+              canvas.toBlob(
+                (blob) => {
+                  if (blob && blob.size > 0) resolve(blob);
+                  else reject(new Error("JPG encoding failed"));
+                },
+                "image/jpeg",
+                imageQuality / 100
+              );
+            } else {
+              canvas.toBlob(
+                (blob) => {
+                  if (blob && blob.size > 0) resolve(blob);
+                  else reject(new Error("PNG encoding failed"));
+                },
+                "image/png"
+                // ✅ No quality argument for PNG
+              );
+            }
           });
-          
-          const filename = generateUniqueFileName(pdfFile.name, i);
-          
+
+          // ✅ Magic-byte verification
+          if (outputFormat === "jpg") {
+            const valid = await isRealJpeg(blob);
+            if (blob.type !== "image/jpeg" || !valid) {
+              throw new Error(`Page ${i}: output is not a valid JPEG`);
+            }
+          } else {
+            const valid = await isRealPng(blob);
+            if (blob.type !== "image/png" || !valid) {
+              throw new Error(`Page ${i}: output is not a valid PNG`);
+            }
+          }
+
+          const filename = generateUniqueFileName(
+            pdfFile.name,
+            i,
+            blob.type
+          );
+
           convertedFiles.push({
             blob,
             name: filename,
@@ -778,30 +743,33 @@ export default function PdfToImage() {
             timestamp: Date.now(),
             pageNumber: i,
           });
-          
-          // Update progress
-          const progressValue = ((i - startPage + 1) / totalPagesToConvert) * 100;
+
+          const progressValue =
+            ((i - startPage + 1) / totalPagesToConvert) * 100;
           setProgress(progressValue);
-          
+
+          // Free canvas memory
           canvas.width = 0;
           canvas.height = 0;
-          
         } catch (pageError) {
           console.error(`Error rendering page ${i}:`, pageError);
         }
       }
-      
+
       URL.revokeObjectURL(pdfUrl);
-      
+
       if (convertedFiles.length === 0) {
-        throw new Error('Failed to convert any pages from the PDF');
+        throw new Error("Failed to convert any pages from the PDF");
       }
-      
+
       return convertedFiles;
-      
     } catch (error) {
-      console.error('PDF conversion error:', error);
-      throw new Error(`Failed to convert PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("PDF conversion error:", error);
+      throw new Error(
+        `Failed to convert PDF: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   };
 
@@ -809,7 +777,7 @@ export default function PdfToImage() {
     if (files.length === 0) return;
 
     if (!pdfWorkerLoaded) {
-      alert('PDF worker is still loading. Please wait a moment and try again.');
+      alert("PDF worker is still loading. Please wait a moment and try again.");
       return;
     }
 
@@ -820,12 +788,12 @@ export default function PdfToImage() {
 
     try {
       let allConverted: ConvertedFile[] = [];
-      let failedFiles: string[] = [];
-      
+      const failedFiles: string[] = [];
+
       for (let i = 0; i < files.length; i++) {
+        setProcessingFile(files[i].name);
         try {
           const file = files[i];
-          // No size check – convert all
           const converted = await convertPdfToImages(file);
           allConverted = [...allConverted, ...converted];
         } catch (error: any) {
@@ -833,23 +801,34 @@ export default function PdfToImage() {
           failedFiles.push(files[i].name);
         }
       }
-      
+
+      setProcessingFile(null);
       setImageBlobs(allConverted);
-      
+
       if (failedFiles.length > 0) {
-        const message = `Successfully converted ${allConverted.length > 0 ? 'some' : 'none'} of ${files.length} PDF files.\n\nFailed files (${failedFiles.length}):\n${failedFiles.slice(0, 3).join('\n')}${failedFiles.length > 3 ? `\n...and ${failedFiles.length - 3} more` : ''}`;
+        const message = `Successfully converted ${
+          allConverted.length > 0 ? "some" : "none"
+        } of ${files.length} PDF files.\n\nFailed files (${
+          failedFiles.length
+        }):\n${failedFiles.slice(0, 3).join("\n")}${
+          failedFiles.length > 3
+            ? `\n...and ${failedFiles.length - 3} more`
+            : ""
+        }`;
         alert(message);
       }
-      
+
       if (allConverted.length === 0 && failedFiles.length > 0) {
-        throw new Error('All PDF files failed to convert. Please check the files and try again.');
+        throw new Error(
+          "All PDF files failed to convert. Please check the files and try again."
+        );
       }
-      
     } catch (error: any) {
       console.error("Conversion error:", error);
       alert(error.message || "Failed to convert PDF to images. Please try again.");
     } finally {
       setConverting(false);
+      setProcessingFile(null);
     }
   };
 
@@ -859,7 +838,6 @@ export default function PdfToImage() {
     setZipDownloading(true);
     try {
       const zip = new JSZip();
-      
       imageBlobs.forEach((item) => {
         if (item.blob && item.blob.size > 0) {
           zip.file(item.name, item.blob);
@@ -867,8 +845,7 @@ export default function PdfToImage() {
       });
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      
-      const zipName = `pdf_images_${new Date().getTime()}.zip`;
+      const zipName = `pdf_images_${Date.now()}.zip`;
       downloadFile(zipBlob, zipName);
 
       const notification: DownloadNotification = {
@@ -876,15 +853,17 @@ export default function PdfToImage() {
         fileName: zipName,
         fileCount: imageBlobs.length,
         timestamp: new Date(),
-        type: 'zip',
+        type: "zip",
       };
       setDownloadNotifications((prev) => [...prev, notification]);
 
-      setTimeout(() => {
-        setDownloadNotifications((prev) =>
-          prev.filter((n) => n.id !== notification.id)
-        );
-      }, 5000);
+      setTimeout(
+        () =>
+          setDownloadNotifications((prev) =>
+            prev.filter((n) => n.id !== notification.id)
+          ),
+        5000
+      );
     } catch (error) {
       console.error("ZIP creation error:", error);
       alert("Failed to create ZIP archive. Please try again.");
@@ -894,29 +873,33 @@ export default function PdfToImage() {
   };
 
   const handleDownloadAllSeparate = () => {
-    imageBlobs.forEach((item) => {
+    if (imageBlobs.length === 0) return;
+
+    imageBlobs.forEach((item, index) => {
       if (item.blob && item.blob.size > 0) {
-        downloadFile(item.blob, item.name);
+        setTimeout(() => downloadFile(item.blob, item.name), index * 200);
       }
     });
 
     const notification: DownloadNotification = {
       id: Math.random().toString(36).substring(7),
-      fileName: imageBlobs.length === 1 ? imageBlobs[0].name : "Multiple files",
+      fileName:
+        imageBlobs.length === 1 ? imageBlobs[0].name : "Multiple files",
       fileCount: imageBlobs.length,
       timestamp: new Date(),
-      type: imageBlobs.length === 1 ? 'single' : 'multi',
+      type: imageBlobs.length === 1 ? "single" : "multi",
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
-    setTimeout(() => {
-      setDownloadNotifications((prev) =>
-        prev.filter((n) => n.id !== notification.id)
-      );
-    }, 5000);
+    setTimeout(
+      () =>
+        setDownloadNotifications((prev) =>
+          prev.filter((n) => n.id !== notification.id)
+        ),
+      5000
+    );
   };
 
-  // Improved single download handler with mobile support
   const handleSingleDownload = (index: number) => {
     const item = imageBlobs[index];
     if (!item || !item.blob || item.blob.size === 0) {
@@ -924,29 +907,25 @@ export default function PdfToImage() {
       return;
     }
 
-    // For mobile devices, use a more compatible approach
     if (isMobile) {
       try {
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         const url = URL.createObjectURL(item.blob);
         link.href = url;
         link.download = item.name;
         document.body.appendChild(link);
         link.click();
-        
         setTimeout(() => {
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
         }, 100);
       } catch (error) {
-        console.error('Mobile download error:', error);
-        // Fallback: Try opening in new tab
+        console.error("Mobile download error:", error);
         const url = URL.createObjectURL(item.blob);
-        window.open(url, '_blank');
+        window.open(url, "_blank");
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
     } else {
-      // Desktop download
       downloadFile(item.blob, item.name);
     }
 
@@ -955,15 +934,17 @@ export default function PdfToImage() {
       fileName: item.name,
       fileCount: 1,
       timestamp: new Date(),
-      type: 'single',
+      type: "single",
     };
     setDownloadNotifications((prev) => [...prev, notification]);
 
-    setTimeout(() => {
-      setDownloadNotifications((prev) =>
-        prev.filter((n) => n.id !== notification.id)
-      );
-    }, 5000);
+    setTimeout(
+      () =>
+        setDownloadNotifications((prev) =>
+          prev.filter((n) => n.id !== notification.id)
+        ),
+      5000
+    );
   };
 
   const handleRemoveFile = (indexToRemove: number) => {
@@ -978,31 +959,35 @@ export default function PdfToImage() {
     setImageBlobs([]);
     setProgress(0);
     setShowFeatures(true);
-    setPageRange({start: 1, end: totalPages});
+    setPageRange({ start: 1, end: totalPages });
+    setProcessingFile(null);
   };
 
   const hasFiles = files.length > 0;
   const hasResults = imageBlobs.length > 0;
-  const isReadyToConvert = hasFiles && !hasResults && !converting && pdfWorkerLoaded;
+  const isReadyToConvert =
+    hasFiles && !hasResults && !converting && pdfWorkerLoaded;
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 
   return (
     <>
-      {/* SEO Schema */}
       <FAQSchema />
       <BreadcrumbSchema />
       <HowToSchema />
       <ArticleSchema />
-      
-      {/* Download Success Notifications */}
-      <div className={`fixed ${isMobile ? 'bottom-4' : 'top-4'} right-4 z-50 w-full max-w-xs sm:max-w-sm`}>
+
+      <div
+        className={`fixed ${
+          isMobile ? "bottom-4" : "top-4"
+        } right-4 z-50 w-full max-w-xs sm:max-w-sm`}
+      >
         <div
           ref={notificationsRef}
           className="space-y-2 max-h-64 overflow-y-auto pr-2"
         >
           <AnimatePresence>
             {downloadNotifications.map((notification) => (
-              <DownloadNotification
+              <DownloadNotificationCard
                 key={notification.id}
                 {...notification}
                 onClose={() =>
@@ -1023,7 +1008,7 @@ export default function PdfToImage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* --- Header Section --- */}
+            {/* Header */}
             <div className="mb-6 sm:mb-8 md:mb-12">
               <a
                 href="/"
@@ -1037,7 +1022,7 @@ export default function PdfToImage() {
                 <motion.div
                   initial={{ scale: 0.5 }}
                   animate={{ scale: 1 }}
-                  className="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl md:rounded-3xl mb-3 md:mb-4 shadow-xl"
+                  className="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl md:rounded-3xl mb-3 md:mb-4 shadow-xl"
                 >
                   <span className="text-2xl md:text-3xl text-white select-none">
                     {tool.icon}
@@ -1058,7 +1043,7 @@ export default function PdfToImage() {
               </div>
             </div>
 
-            {/* --- Features Grid --- */}
+            {/* Features */}
             <AnimatePresence>
               {showFeatures && !hasFiles && (
                 <motion.div
@@ -1116,9 +1101,8 @@ export default function PdfToImage() {
               )}
             </AnimatePresence>
 
-            {/* --- Main Converter Card --- */}
+            {/* Main Converter Card */}
             <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
-              {/* Upload Section */}
               <div className="mb-4 sm:mb-6 md:mb-8">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
                   <div className="p-1.5 sm:p-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg sm:rounded-xl">
@@ -1137,57 +1121,61 @@ export default function PdfToImage() {
                   </div>
                 </div>
 
-                {/* FileUploader - now completely unlimited */}
                 <div className="mb-6">
                   <FileUploader
                     accept="application/pdf"
                     multiple={true}
                     onFilesSelected={handleFilesSelected}
-                    // No maxSize, no maxFiles, no unlimited prop – truly unlimited
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                    All files are processed directly in your browser • No size limits
+                    All files are processed directly in your browser • No size
+                    limits
                   </p>
                 </div>
 
-                {/* Format & Quality Selection */}
                 {hasFiles && (
                   <div className="flex flex-wrap items-center gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Output Format:</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Output Format:
+                      </span>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => setOutputFormat('jpg')}
+                          onClick={() => setOutputFormat("jpg")}
                           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            outputFormat === 'jpg'
-                              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
-                              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                            outputFormat === "jpg"
+                              ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
+                              : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                           }`}
                         >
                           JPG
                         </button>
                         <button
-                          onClick={() => setOutputFormat('png')}
+                          onClick={() => setOutputFormat("png")}
                           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            outputFormat === 'png'
-                              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
-                              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                            outputFormat === "png"
+                              ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
+                              : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                           }`}
                         >
                           PNG
                         </button>
                       </div>
                     </div>
-                    
-                    {outputFormat === 'jpg' && (
+
+                    {outputFormat === "jpg" && (
                       <div className="flex items-center gap-3 ml-auto">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Quality:</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Quality:
+                        </span>
                         <input
                           type="range"
                           min="10"
                           max="100"
                           value={imageQuality}
-                          onChange={(e) => setImageQuality(parseInt(e.target.value))}
+                          onChange={(e) =>
+                            setImageQuality(parseInt(e.target.value))
+                          }
                           className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-purple-600"
                         />
                         <span className="text-sm font-semibold text-purple-600 dark:text-purple-400 min-w-[2.5rem]">
@@ -1196,7 +1184,6 @@ export default function PdfToImage() {
                       </div>
                     )}
 
-                    {/* Page Range Toggle */}
                     <div className="flex items-center gap-3 ml-auto">
                       <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
                         <input
@@ -1211,28 +1198,41 @@ export default function PdfToImage() {
                   </div>
                 )}
 
-                {/* Page Range Inputs */}
                 {hasFiles && showPageRange && (
                   <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl mb-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">From:</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        From:
+                      </span>
                       <input
                         type="number"
                         min="1"
                         max={totalPages || 1}
                         value={pageRange.start}
-                        onChange={(e) => setPageRange({...pageRange, start: parseInt(e.target.value) || 1})}
+                        onChange={(e) =>
+                          setPageRange({
+                            ...pageRange,
+                            start: parseInt(e.target.value) || 1,
+                          })
+                        }
                         className="w-20 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm"
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">To:</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        To:
+                      </span>
                       <input
                         type="number"
                         min="1"
                         max={totalPages || 1}
                         value={pageRange.end}
-                        onChange={(e) => setPageRange({...pageRange, end: parseInt(e.target.value) || 1})}
+                        onChange={(e) =>
+                          setPageRange({
+                            ...pageRange,
+                            end: parseInt(e.target.value) || 1,
+                          })
+                        }
                         className="w-20 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm"
                       />
                     </div>
@@ -1242,7 +1242,6 @@ export default function PdfToImage() {
                   </div>
                 )}
 
-                {/* PDF Worker Loading Status */}
                 {!pdfWorkerLoaded && (
                   <div className="text-center p-2 text-amber-600 dark:text-amber-400 text-sm">
                     ⏳ Loading PDF renderer... Please wait.
@@ -1255,7 +1254,8 @@ export default function PdfToImage() {
                       <div className="flex items-center gap-1 sm:gap-2">
                         <Layers className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
                         <span className="font-medium text-purple-700 dark:text-purple-300">
-                          {files.length} PDF {files.length === 1 ? 'file' : 'files'} selected
+                          {files.length} PDF{" "}
+                          {files.length === 1 ? "file" : "files"} selected
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
@@ -1268,10 +1268,8 @@ export default function PdfToImage() {
                 )}
               </div>
 
-              {/* --- File Previews and Conversion Area --- */}
               {hasFiles && (
                 <div className="space-y-4 sm:space-y-6 md:space-y-8">
-                  {/* --- Input PDF Previews --- */}
                   <div className="space-y-3 sm:space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1286,27 +1284,57 @@ export default function PdfToImage() {
                       </button>
                     </div>
 
-                    <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'} gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-purple-50 dark:from-gray-800 dark:to-purple-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700`}>
+                    <div
+                      className={`grid ${
+                        isMobile
+                          ? "grid-cols-2"
+                          : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                      } gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-purple-50 dark:from-gray-800 dark:to-purple-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-200 dark:border-gray-700`}
+                    >
                       {files.map((file, index) => (
                         <div
                           key={index}
-                          className={`relative bg-white dark:bg-gray-800 rounded-xl ${isMobile ? 'p-2' : 'p-4'} border-2 border-gray-200 dark:border-gray-700 shadow-md`}
+                          className={`relative bg-white dark:bg-gray-800 rounded-xl ${
+                            isMobile ? "p-2" : "p-4"
+                          } border-2 border-gray-200 dark:border-gray-700 shadow-md`}
                         >
                           <div className="flex flex-col items-center text-center">
-                            <div className={`${isMobile ? 'w-12 h-16' : 'w-16 h-20'} mb-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-lg`}>
-                              <FileText className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-white`} />
+                            <div
+                              className={`${
+                                isMobile ? "w-12 h-16" : "w-16 h-20"
+                              } mb-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-lg`}
+                            >
+                              <FileText
+                                className={`${
+                                  isMobile ? "w-6 h-6" : "w-8 h-8"
+                                } text-white`}
+                              />
                             </div>
-                            <p className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium truncate w-full text-gray-900 dark:text-white`}>
+                            <p
+                              className={`${
+                                isMobile ? "text-[10px]" : "text-xs"
+                              } font-medium truncate w-full text-gray-900 dark:text-white`}
+                            >
                               {file.name}
                             </p>
-                            <p className={`${isMobile ? 'text-[8px]' : 'text-xs'} text-gray-500 dark:text-gray-400 mt-0.5`}>
+                            <p
+                              className={`${
+                                isMobile ? "text-[8px]" : "text-xs"
+                              } text-gray-500 dark:text-gray-400 mt-0.5`}
+                            >
                               {(file.size / 1024 / 1024).toFixed(2)} MB
                             </p>
                             <button
                               onClick={() => handleRemoveFile(index)}
-                              className={`mt-1.5 ${isMobile ? 'p-1.5' : 'p-1.5'} bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors`}
+                              className={`mt-1.5 ${
+                                isMobile ? "p-1.5" : "p-1.5"
+                              } bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors`}
                             >
-                              <XCircle className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
+                              <XCircle
+                                className={`${
+                                  isMobile ? "w-3.5 h-3.5" : "w-4 h-4"
+                                }`}
+                              />
                             </button>
                           </div>
                         </div>
@@ -1314,18 +1342,21 @@ export default function PdfToImage() {
                     </div>
                   </div>
 
-                  {/* --- Progress and Action Buttons --- */}
                   <div className="space-y-4 sm:space-y-6">
                     {converting && (
                       <div className="space-y-3 sm:space-y-4">
                         <ProgressBar
                           progress={progress}
-                          label={`Converting ${files.length} PDF ${files.length === 1 ? 'file' : 'files'}...`}
+                          label={`Converting ${files.length} PDF ${
+                            files.length === 1 ? "file" : "files"
+                          }...`}
                         />
                         <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-purple-600 dark:text-purple-400">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing your PDFs...
+                            {processingFile
+                              ? `Processing: ${processingFile}`
+                              : "Processing your PDFs..."}
                           </span>
                         </div>
                       </div>
@@ -1338,36 +1369,60 @@ export default function PdfToImage() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleConvert}
-                        className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${isMobile ? 'text-base' : ''}`}
+                        className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
+                          isMobile ? "text-base" : ""
+                        }`}
                       >
-                        <FileImage className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6'}`} />
-                        Convert {files.length} PDF to {outputFormat.toUpperCase()}
-                        <Sparkles className={`${isMobile ? 'w-4 h-4' : 'w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5'}`} />
+                        <FileImage
+                          className={`${
+                            isMobile
+                              ? "w-5 h-5"
+                              : "w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
+                          }`}
+                        />
+                        Convert {files.length} PDF to{" "}
+                        {outputFormat.toUpperCase()}
+                        <Sparkles
+                          className={`${
+                            isMobile
+                              ? "w-4 h-4"
+                              : "w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5"
+                          }`}
+                        />
                       </motion.button>
                     )}
 
-                    {hasFiles && !isReadyToConvert && !converting && !pdfWorkerLoaded && (
-                      <div className="text-center text-amber-600 dark:text-amber-400 text-sm p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
-                        ⏳ PDF renderer is initializing. Please wait a moment...
-                      </div>
-                    )}
+                    {hasFiles &&
+                      !isReadyToConvert &&
+                      !converting &&
+                      !pdfWorkerLoaded && (
+                        <div className="text-center text-amber-600 dark:text-amber-400 text-sm p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                          ⏳ PDF renderer is initializing. Please wait a
+                          moment...
+                        </div>
+                      )}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* --- Results and Download Area --- */}
+            {/* Results */}
             {hasResults && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-purple-200 dark:border-purple-800/50 p-3 sm:p-4 md:p-6 lg:p-8 shadow-lg sm:shadow-xl md:shadow-2xl mb-6 md:mb-8"
               >
-                {/* Success Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
                   <div className="flex items-center justify-center sm:justify-start">
-                    <div className={`p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg sm:rounded-xl shadow-lg`}>
-                      <CheckCircle className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8'} text-white`} />
+                    <div className="p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg sm:rounded-xl shadow-lg">
+                      <CheckCircle
+                        className={`${
+                          isMobile
+                            ? "w-5 h-5"
+                            : "w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8"
+                        } text-white`}
+                      />
                     </div>
                   </div>
                   <div className="flex-1 text-center sm:text-left">
@@ -1375,23 +1430,31 @@ export default function PdfToImage() {
                       Conversion Complete! 🎉
                     </h2>
                     <p className="text-purple-700 dark:text-purple-300 font-medium text-sm sm:text-base">
-                      Successfully converted {imageBlobs.length} PDF pages to {outputFormat.toUpperCase()} images
+                      Successfully converted {imageBlobs.length} PDF pages to{" "}
+                      {outputFormat.toUpperCase()} images
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
                       Choose your download option below
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
-                    <div className={`px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base ${isMobile ? 'text-base px-4 py-2' : ''}`}>
+                    <div
+                      className={`px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-lg sm:rounded-xl text-xs sm:text-sm md:text-base ${
+                        isMobile ? "text-base px-4 py-2" : ""
+                      }`}
+                    >
                       {imageBlobs.length} Pages
                     </div>
                   </div>
                 </div>
 
-                {/* --- Output Image Previews --- */}
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                   <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Download className={`${isMobile ? 'w-4 h-4' : 'w-4 h-4 sm:w-5 sm:h-5'} text-purple-500`} />
+                    <Download
+                      className={`${
+                        isMobile ? "w-4 h-4" : "w-4 h-4 sm:w-5 sm:h-5"
+                      } text-purple-500`}
+                    />
                     Converted {outputFormat.toUpperCase()} Images
                     {isMobile && (
                       <span className="text-xs text-blue-600 dark:text-blue-400 ml-2">
@@ -1400,7 +1463,13 @@ export default function PdfToImage() {
                     )}
                   </h3>
 
-                  <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'} gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-purple-100 dark:border-purple-800/30`}>
+                  <div
+                    className={`grid ${
+                      isMobile
+                        ? "grid-cols-2"
+                        : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                    } gap-3 sm:gap-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-white/50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-purple-100 dark:border-purple-800/30`}
+                  >
                     {imageBlobs.map((item, index) => (
                       <ImagePreview
                         key={index}
@@ -1416,18 +1485,16 @@ export default function PdfToImage() {
                   </div>
                 </div>
 
-                {/* --- Download Options Section --- */}
                 <div className="space-y-4 sm:space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                    {/* Download as ZIP Button */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleDownloadAllAsZip}
                       disabled={zipDownloading}
                       className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
-                        zipDownloading ? 'opacity-75 cursor-not-allowed' : ''
-                      } ${isMobile ? 'text-base py-3.5' : ''}`}
+                        zipDownloading ? "opacity-75 cursor-not-allowed" : ""
+                      } ${isMobile ? "text-base py-3.5" : ""}`}
                     >
                       {zipDownloading ? (
                         <>
@@ -1436,32 +1503,65 @@ export default function PdfToImage() {
                         </>
                       ) : (
                         <>
-                          <Archive className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6'}`} />
+                          <Archive
+                            className={`${
+                              isMobile
+                                ? "w-5 h-5"
+                                : "w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
+                            }`}
+                          />
                           Download as ZIP Archive ({imageBlobs.length} images)
-                          <FolderClosed className={`${isMobile ? 'w-4 h-4' : 'w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5'}`} />
+                          <FolderClosed
+                            className={`${
+                              isMobile
+                                ? "w-4 h-4"
+                                : "w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5"
+                            }`}
+                          />
                         </>
                       )}
                     </motion.button>
 
-                    {/* Download All Separately Button */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleDownloadAllSeparate}
-                      className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${isMobile ? 'text-base py-3.5' : ''}`}
+                      className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold sm:font-extrabold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl hover:shadow-2xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
+                        isMobile ? "text-base py-3.5" : ""
+                      }`}
                     >
-                      <Download className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6'}`} />
+                      <Download
+                        className={`${
+                          isMobile
+                            ? "w-5 h-5"
+                            : "w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
+                        }`}
+                      />
                       Download All {imageBlobs.length} Images Separately
-                      <Sparkles className={`${isMobile ? 'w-4 h-4' : 'w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5'}`} />
+                      <Sparkles
+                        className={`${
+                          isMobile
+                            ? "w-4 h-4"
+                            : "w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5"
+                        }`}
+                      />
                     </motion.button>
                   </div>
 
                   <div className="text-center">
                     <button
                       onClick={handleReset}
-                      className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base ${isMobile ? 'text-sm py-2.5' : ''}`}
+                      className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-3 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded-lg sm:rounded-xl transition-colors text-xs sm:text-sm md:text-base ${
+                        isMobile ? "text-sm py-2.5" : ""
+                      }`}
                     >
-                      <FileText className={`${isMobile ? 'w-3.5 h-3.5' : 'w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4'}`} />
+                      <FileText
+                        className={`${
+                          isMobile
+                            ? "w-3.5 h-3.5"
+                            : "w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
+                        }`}
+                      />
                       Convert More PDFs
                     </button>
                   </div>
@@ -1469,11 +1569,15 @@ export default function PdfToImage() {
               </motion.div>
             )}
 
-            {/* --- Stats Footer --- */}
+            {/* Stats */}
             {(hasFiles || hasResults) && (
               <div className="mt-6 sm:mt-10 md:mt-14">
                 <div className="max-w-6xl mx-auto px-4">
-                  <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'} gap-4 sm:gap-6`}>
+                  <div
+                    className={`grid ${
+                      isMobile ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"
+                    } gap-4 sm:gap-6`}
+                  >
                     {[
                       {
                         value: files.length,
@@ -1505,18 +1609,24 @@ export default function PdfToImage() {
                         className={`flex flex-col items-center justify-center
                         rounded-2xl border border-gray-200 dark:border-gray-800
                         ${stat.bg}
-                        ${isMobile ? 'p-3' : 'p-4 sm:p-6'}
+                        ${isMobile ? "p-3" : "p-4 sm:p-6"}
                         shadow-sm hover:shadow-lg
                         transition-all duration-300`}
                       >
                         <div
-                          className={`${isMobile ? 'text-lg' : 'text-xl sm:text-2xl md:text-3xl xl:text-4xl'} font-extrabold
-                          ${stat.color} dark:${stat.color.replace("600", "400")}`}
+                          className={`${
+                            isMobile
+                              ? "text-lg"
+                              : "text-xl sm:text-2xl md:text-3xl xl:text-4xl"
+                          } font-extrabold ${stat.color}`}
                         >
                           {stat.value}
                         </div>
-
-                        <div className={`mt-1 ${isMobile ? 'text-[10px]' : 'text-xs sm:text-sm'} text-gray-600 dark:text-gray-400 font-medium`}>
+                        <div
+                          className={`mt-1 ${
+                            isMobile ? "text-[10px]" : "text-xs sm:text-sm"
+                          } text-gray-600 dark:text-gray-400 font-medium`}
+                        >
                           {stat.label}
                         </div>
                       </div>
@@ -1526,57 +1636,79 @@ export default function PdfToImage() {
               </div>
             )}
 
-            {/* How To Section */}
-            <section
-              id="how-to-pdf-to-image"
-              className="mt-20 scroll-mt-24"
-            >
-              <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-center mb-10`}>
+            {/* How To */}
+            <section id="how-to-pdf-to-image" className="mt-20 scroll-mt-24">
+              <h2
+                className={`${
+                  isMobile ? "text-2xl" : "text-3xl"
+                } font-bold text-center mb-10`}
+              >
                 How to Convert PDF to {outputFormat.toUpperCase()} Online
               </h2>
 
-              <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'md:grid-cols-5'}`}>
+              <div
+                className={`grid gap-6 ${
+                  isMobile ? "grid-cols-1" : "md:grid-cols-5"
+                }`}
+              >
                 {[
                   {
                     step: "1",
                     title: "Upload PDF Files",
-                    desc: "Upload any number of PDF files (no size limit) using drag & drop or file picker."
+                    desc: "Upload any number of PDF files (no size limit) using drag & drop or file picker.",
                   },
                   {
                     step: "2",
                     title: "Choose Format & Quality",
-                    desc: "Select JPG or PNG output format and adjust quality for JPG."
+                    desc: "Select JPG or PNG output format and adjust quality for JPG.",
                   },
                   {
                     step: "3",
                     title: "Convert PDF to Images",
-                    desc: "Click the convert button to transform PDF pages into images."
+                    desc: "Click the convert button to transform PDF pages into images.",
                   },
                   {
                     step: "4",
                     title: "Preview Results",
-                    desc: "Preview converted images with page numbers."
+                    desc: "Preview converted images with page numbers.",
                   },
                   {
                     step: "5",
                     title: "Download Images",
-                    desc: isMobile ? "Tap the download icon on each image or use the bulk download options below." : "Download images individually or as a single ZIP archive."
-                  }
+                    desc: isMobile
+                      ? "Tap the download icon on each image or use the bulk download options below."
+                      : "Download images individually or as a single ZIP archive.",
+                  },
                 ].map((item, idx) => (
-                  <div key={idx} className={`border rounded-xl p-6 text-center shadow-sm bg-white hover:shadow-md transition ${isMobile ? 'p-4' : ''}`}>
-                    <div className="text-4xl font-bold text-purple-600 mb-2">{item.step}</div>
-                    <h3 className="font-semibold text-lg">{item.title}</h3>
-                    <p className="text-gray-600 text-sm mt-2">{item.desc}</p>
+                  <div
+                    key={idx}
+                    className={`border rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition ${
+                      isMobile ? "p-4" : ""
+                    }`}
+                  >
+                    <div className="text-4xl font-bold text-purple-600 mb-2">
+                      {item.step}
+                    </div>
+                    <h3 className="font-semibold text-lg dark:text-white">
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                      {item.desc}
+                    </p>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* Explore All Tools Section */}
+            {/* Explore Tools */}
             <div className="mb-6 md:mb-8 mt-12">
               <div className="flex items-center justify-between mb-6 md:mb-8">
                 <div>
-                  <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 dark:text-white`}>
+                  <h2
+                    className={`${
+                      isMobile ? "text-xl" : "text-2xl"
+                    } font-bold text-gray-900 dark:text-white`}
+                  >
                     Explore All Tools
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
@@ -1585,11 +1717,17 @@ export default function PdfToImage() {
                 </div>
               </div>
 
-              <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'} gap-4 md:gap-6`}>
-                {exploreTools.slice(0, 8).map((tool, index) => (
+              <div
+                className={`grid ${
+                  isMobile
+                    ? "grid-cols-1"
+                    : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                } gap-4 md:gap-6`}
+              >
+                {exploreTools.slice(0, 8).map((toolItem, index) => (
                   <motion.a
-                    key={tool.id}
-                    href={tool.href}
+                    key={toolItem.id}
+                    href={toolItem.href}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
@@ -1598,16 +1736,24 @@ export default function PdfToImage() {
                   >
                     <div className="flex items-start gap-3 md:gap-4">
                       <div
-                        className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-lg md:rounded-xl shadow-lg`}
+                        className={`p-2 md:p-3 bg-gradient-to-br ${toolItem.color} rounded-lg md:rounded-xl shadow-lg`}
                       >
-                        <span className={`${isMobile ? 'text-xl' : 'text-2xl'}`}>{tool.icon}</span>
+                        <span
+                          className={`${isMobile ? "text-xl" : "text-2xl"}`}
+                        >
+                          {toolItem.icon}
+                        </span>
                       </div>
                       <div className="flex-1">
-                        <h3 className={`font-bold text-gray-900 dark:text-white ${isMobile ? 'text-base' : 'text-lg'} mb-1 md:mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors`}>
-                          {tool.name}
+                        <h3
+                          className={`font-bold text-gray-900 dark:text-white ${
+                            isMobile ? "text-base" : "text-lg"
+                          } mb-1 md:mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors`}
+                        >
+                          {toolItem.name}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-3 md:mb-4">
-                          {tool.description}
+                          {toolItem.description}
                         </p>
                         <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-medium text-xs md:text-sm">
                           <span>Use Tool</span>
@@ -1629,86 +1775,110 @@ export default function PdfToImage() {
               </div>
             </div>
 
-            {/* FAQ Section */}
+            {/* FAQ */}
             <section className="max-w-3xl mx-auto my-16 px-4">
               <div className="text-center mb-8">
-                <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 dark:text-white mb-3`}>
+                <h2
+                  className={`${
+                    isMobile ? "text-2xl" : "text-3xl"
+                  } font-bold text-gray-900 dark:text-white mb-3`}
+                >
                   Frequently Asked Questions
                 </h2>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                  Everything you need to know about converting PDF files to images
+                  Everything you need to know about converting PDF files to
+                  images
                 </p>
               </div>
 
               <div className="space-y-4">
                 {[
                   {
-                    question: "Is there any limit on file size or number of files?",
-                    answer: "No! There are no limits on file size or the number of files you can convert. You can upload as many PDFs as you like, regardless of their size."
+                    question:
+                      "Is there any limit on file size or number of files?",
+                    answer:
+                      "No! There are no limits on file size or the number of files you can convert. You can upload as many PDFs as you like, regardless of their size.",
                   },
                   {
                     question: "What image formats are available for output?",
-                    answer: "You can choose between JPG (with adjustable quality from 10% to 100%) and PNG (lossless format). JPG files are smaller in size, while PNG files preserve transparency and have better quality."
+                    answer:
+                      "You can choose between JPG (with adjustable quality from 10% to 100%) and PNG (lossless format). JPG files are smaller in size, while PNG files preserve transparency and have better quality.",
                   },
                   {
                     question: "Can I convert password-protected PDF files?",
-                    answer: "Currently, we do not support password-protected PDF files. Please remove the password protection before converting to images."
+                    answer:
+                      "Currently, we do not support password-protected PDF files. Please remove the password protection before converting to images.",
                   },
                   {
                     question: "How do I download converted images?",
-                    answer: isMobile 
+                    answer: isMobile
                       ? "On mobile: Tap the download icon (↓) on each image to download individually. You can also use the 'Download as ZIP Archive' button for bulk download."
-                      : "You can download images individually by clicking the download button on each image, or download all images at once as a ZIP archive using the 'Download as ZIP Archive' button."
+                      : "You can download images individually by clicking the download button on each image, or download all images at once as a ZIP archive using the 'Download as ZIP Archive' button.",
                   },
                   {
-                    question: "Is the conversion secure? Are my files uploaded to your servers?",
-                    answer: "All conversion happens directly in your browser (client-side). Your PDF files are never uploaded to any server, ensuring complete privacy and security."
+                    question:
+                      "Is the conversion secure? Are my files uploaded to your servers?",
+                    answer:
+                      "All conversion happens directly in your browser (client-side). Your PDF files are never uploaded to any server, ensuring complete privacy and security.",
                   },
                   {
                     question: "What quality settings are available?",
-                    answer: "For JPG output, you can adjust quality from 10% (smallest file size, lower quality) to 100% (largest file size, best quality). PNG output uses lossless compression with no quality loss."
+                    answer:
+                      "For JPG output, you can adjust quality from 10% (smallest file size, lower quality) to 100% (largest file size, best quality). PNG output uses lossless compression with no quality loss.",
                   },
                   {
-                    question: "Is the PDF to JPG converter on pdfswift free to use?",
-                    answer: "Yes, the PDF to JPG converter on pdfswift is completely free to use. You can convert PDF files to JPG images online without any signup, subscription, or hidden charges.",
+                    question:
+                      "Is the PDF to JPG converter on pdfswift free to use?",
+                    answer:
+                      "Yes, the PDF to JPG converter on pdfswift is completely free to use. You can convert PDF files to JPG images online without any signup, subscription, or hidden charges.",
                   },
                   {
-                    question: "Is it safe to convert PDF files to JPG on pdfswift?",
-                    answer: "Yes, it is 100% safe and secure. All PDF to JPG conversions on pdfswift happen directly in your browser. Your PDF files are never uploaded, stored, or shared on any server, ensuring complete privacy and data security.",
+                    question:
+                      "Is it safe to convert PDF files to JPG on pdfswift?",
+                    answer:
+                      "Yes, it is 100% safe and secure. All PDF to JPG conversions on pdfswift happen directly in your browser. Your PDF files are never uploaded, stored, or shared on any server, ensuring complete privacy and data security.",
                   },
                   {
-                    question: "Will converting PDF to JPG reduce image quality?",
-                    answer: "No, pdfswift preserves the original quality of your PDF pages while converting them to JPG images. Text clarity, colors, and resolution remain sharp and accurate in the output images.",
+                    question:
+                      "Will converting PDF to JPG reduce image quality?",
+                    answer:
+                      "No, pdfswift preserves the original quality of your PDF pages while converting them to JPG images. Text clarity, colors, and resolution remain sharp and accurate in the output images.",
                   },
                   {
                     question: "Can I convert all pages of a PDF into JPG images?",
-                    answer: "Yes, you can convert all pages of a PDF into individual JPG images or select specific pages only. Each page is converted into a high-quality JPG file for easy viewing and sharing.",
+                    answer:
+                      "Yes, you can convert all pages of a PDF into individual JPG images or select specific pages only. Each page is converted into a high-quality JPG file for easy viewing and sharing.",
                   },
                   {
                     question: "Can I download PDF pages as separate JPG files?",
-                    answer: "Yes, each PDF page is converted into a separate JPG image. You can download them individually or as a ZIP file for convenience.",
+                    answer:
+                      "Yes, each PDF page is converted into a separate JPG image. You can download them individually or as a ZIP file for convenience.",
                   },
                   {
                     question: "Are the converted JPG images watermarked?",
-                    answer: "No, pdfswift does not add any watermarks, logos, or branding to the converted JPG images. All output files are clean and fully owned by you.",
+                    answer:
+                      "No, pdfswift does not add any watermarks, logos, or branding to the converted JPG images. All output files are clean and fully owned by you.",
                   },
                   {
                     question: "How fast is the PDF to JPG conversion process?",
-                    answer: "The PDF to JPG conversion is very fast because it runs directly in your browser. Most PDFs are converted within seconds, depending on file size and the number of pages.",
+                    answer:
+                      "The PDF to JPG conversion is very fast because it runs directly in your browser. Most PDFs are converted within seconds, depending on file size and the number of pages.",
                   },
                   {
-                    question: "Do I need to install software or create an account to use pdfswift?",
-                    answer: "No installation or account creation is required. pdfswift works entirely online in your browser and is fully compatible with mobile, tablet, and desktop devices.",
+                    question:
+                      "Do I need to install software or create an account to use pdfswift?",
+                    answer:
+                      "No installation or account creation is required. pdfswift works entirely online in your browser and is fully compatible with mobile, tablet, and desktop devices.",
                   },
                   {
                     question: "What happens to text and fonts in the PDF?",
-                    answer: "All text, fonts, and images from the PDF are rendered as images. The text will no longer be selectable or searchable after conversion, which is why this is called PDF to Image conversion."
-                  }
+                    answer:
+                      "All text, fonts, and images from the PDF are rendered as images. The text will no longer be selectable or searchable after conversion, which is why this is called PDF to Image conversion.",
+                  },
                 ].map((faq, index) => (
                   <details
                     key={index}
-                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 
-                    bg-white dark:bg-gray-800"
+                    className="group border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800"
                   >
                     <summary className="cursor-pointer font-semibold text-base md:text-lg text-gray-900 dark:text-white">
                       {faq.question}

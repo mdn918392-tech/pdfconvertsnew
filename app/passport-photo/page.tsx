@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,20 +10,14 @@ import {
   CheckCircle,
   Image as ImageIcon,
   Sparkles,
-  Zap,
-  Shield,
-  Palette,
   Upload,
-  Layers,
   Eye,
   Clock,
   Check,
   ArrowRight,
   Grid,
   X,
-  Plus,
   Archive,
-  FolderClosed,
   User,
   Camera,
   Ruler,
@@ -31,7 +25,6 @@ import {
   Grid3x3,
   Columns,
   Rows,
-  Hash,
   Printer,
   File,
   Calculator,
@@ -44,19 +37,13 @@ import {
   downloadFile,
   downloadMultipleFiles,
 } from "../../utils/imageUtils";
-import { PDFDocument } from "pdf-lib";
 import BreadcrumbSchema from "./BreadcrumbSchema";
 import ArticleSchema from "./ArticleSchema";
 import HowToSchema from "./HowToSchema";
 import FAQSchema from "./FAQSchema";
 import { faqData } from "./faqData";
 
-// --- Helper Functions ---
-const createObjectURL = (fileOrBlob: Blob | File) =>
-  URL.createObjectURL(fileOrBlob);
-const revokeObjectURL = (url: string) => URL.revokeObjectURL(url);
-
-// Define Tool type
+// --- Types ---
 type Tool = {
   id: string;
   name: string;
@@ -79,165 +66,27 @@ const tool = {
   path: "/tools/passport-photo",
 };
 
-// Explore All Tools Data
 const exploreTools: Tool[] = [
-  {
-    id: "split-pdf",
-    name: "Split PDF",
-    description: "Split PDF into separate pages",
-    category: "pdf",
-    icon: "✂️",
-    color: "from-orange-500 to-red-500",
-    href: "/split-pdf",
-    path: "/tools/split-pdf",
-  },
-  {
-    id: "rotate-pdf",
-    name: "Rotate PDF",
-    description: "Rotate PDF pages",
-    category: "pdf",
-    icon: "🔄",
-    color: "from-teal-500 to-cyan-500",
-    href: "/rotate-pdf",
-    path: "/tools/rotate-pdf",
-  },
-  {
-    id: "jpg-to-pdf",
-    name: "JPG to PDF",
-    description: "Convert JPG images to PDF documents",
-    category: "pdf",
-    icon: "🖼️",
-    color: "from-green-500 to-emerald-500",
-    href: "/jpg-to-pdf",
-    path: "/tools/jpg-to-pdf",
-  },
-  {
-    id: "png-to-jpg",
-    name: "PNG to JPG",
-    description: "Convert PNG images to JPG format",
-    category: "image",
-    icon: "🔄",
-    color: "from-emerald-500 to-green-500",
-    href: "/png-to-jpg",
-    path: "/tools/png-to-jpg",
-  },
-  {
-    id: "pdf-to-jpg",
-    name: "PDF to JPG",
-    description: "Convert PDF pages to JPG images",
-    category: "pdf",
-    icon: "🖼️",
-    color: "from-purple-500 to-pink-500",
-    href: "/pdf-to-jpg",
-    path: "/tools/pdf-to-jpg",
-  },
-  {
-    id: "extract-pages",
-    name: "Extract Pages",
-    description: "Extract specific pages from PDF",
-    category: "pdf",
-    icon: "📑",
-    color: "from-indigo-500 to-blue-500",
-    href: "/extract-pages",
-    path: "/tools/extract-pages",
-  },
-  {
-    id: "compress-image",
-    name: "Compress Image",
-    description: "Reduce JPG/PNG file size",
-    category: "image",
-    icon: "📉",
-    color: "from-blue-500 to-cyan-500",
-    href: "/compress-image",
-    path: "/tools/compress-image",
-  },
-  {
-    id: "merge-pdf",
-    name: "Merge PDF",
-    description: "Combine multiple PDF files into one",
-    category: "pdf",
-    icon: "🔗",
-    color: "from-violet-500 to-purple-500",
-    href: "/merge-pdf",
-    path: "/tools/merge-pdf",
-  },
-  {
-    id: "remove-pages",
-    name: "Remove Pages",
-    description: "Delete specific pages from PDF",
-    category: "pdf",
-    icon: "🗑️",
-    color: "from-rose-500 to-pink-500",
-    href: "/remove-pages",
-    path: "/tools/remove-pages",
-  },
+  { id: "split-pdf", name: "Split PDF", description: "Split PDF into separate pages", category: "pdf", icon: "✂️", color: "from-orange-500 to-red-500", href: "/split-pdf", path: "/tools/split-pdf" },
+  { id: "rotate-pdf", name: "Rotate PDF", description: "Rotate PDF pages", category: "pdf", icon: "🔄", color: "from-teal-500 to-cyan-500", href: "/rotate-pdf", path: "/tools/rotate-pdf" },
+  { id: "jpg-to-pdf", name: "JPG to PDF", description: "Convert JPG images to PDF documents", category: "pdf", icon: "🖼️", color: "from-green-500 to-emerald-500", href: "/jpg-to-pdf", path: "/tools/jpg-to-pdf" },
+  { id: "png-to-jpg", name: "PNG to JPG", description: "Convert PNG images to JPG format", category: "image", icon: "🔄", color: "from-emerald-500 to-green-500", href: "/png-to-jpg", path: "/tools/png-to-jpg" },
+  { id: "pdf-to-jpg", name: "PDF to JPG", description: "Convert PDF pages to JPG images", category: "pdf", icon: "🖼️", color: "from-purple-500 to-pink-500", href: "/pdf-to-jpg", path: "/tools/pdf-to-jpg" },
+  { id: "extract-pages", name: "Extract Pages", description: "Extract specific pages from PDF", category: "pdf", icon: "📑", color: "from-indigo-500 to-blue-500", href: "/extract-pages", path: "/tools/extract-pages" },
+  { id: "compress-image", name: "Compress Image", description: "Reduce JPG/PNG file size", category: "image", icon: "📉", color: "from-blue-500 to-cyan-500", href: "/compress-image", path: "/tools/compress-image" },
+  { id: "merge-pdf", name: "Merge PDF", description: "Combine multiple PDF files into one", category: "pdf", icon: "🔗", color: "from-violet-500 to-purple-500", href: "/merge-pdf", path: "/tools/merge-pdf" },
+  { id: "remove-pages", name: "Remove Pages", description: "Delete specific pages from PDF", category: "pdf", icon: "🗑️", color: "from-rose-500 to-pink-500", href: "/remove-pages", path: "/tools/remove-pages" },
 ];
 
-// Passport Photo Sizes
 const passportSizes = [
-  {
-    name: "USA Passport",
-    width: 600,
-    height: 600,
-    description: "2×2 inches",
-    aspectRatio: "1:1",
-    country: "🇺🇸",
-    dpi: 300,
-    printSize: "2×2 inches",
-  },
-  {
-    name: "UK Passport",
-    width: 413,
-    height: 531,
-    description: "35×45 mm",
-    aspectRatio: "1:1.29",
-    country: "🇬🇧",
-    dpi: 300,
-    printSize: "35×45 mm",
-  },
-  {
-    name: "India Passport",
-    width: 350,
-    height: 350,
-    description: "35×35 mm",
-    aspectRatio: "1:1",
-    country: "🇮🇳",
-    dpi: 300,
-    printSize: "35×35 mm",
-  },
-  {
-    name: "Canada Passport",
-    width: 420,
-    height: 540,
-    description: "50×70 mm",
-    aspectRatio: "1:1.29",
-    country: "🇨🇦",
-    dpi: 300,
-    printSize: "50×70 mm",
-  },
-  {
-    name: "Australia Passport",
-    width: 420,
-    height: 530,
-    description: "35×45 mm",
-    aspectRatio: "1:1.26",
-    country: "🇦🇺",
-    dpi: 300,
-    printSize: "35×45 mm",
-  },
-  {
-    name: "Visa Photo",
-    width: 600,
-    height: 600,
-    description: "2×2 inches",
-    aspectRatio: "1:1",
-    country: "🌍",
-    dpi: 300,
-    printSize: "2×2 inches",
-  },
+  { name: "USA Passport", width: 600, height: 600, description: "2×2 inches", aspectRatio: "1:1", country: "🇺🇸", dpi: 300, printSize: "2×2 inches" },
+  { name: "UK Passport", width: 413, height: 531, description: "35×45 mm", aspectRatio: "1:1.29", country: "🇬🇧", dpi: 300, printSize: "35×45 mm" },
+  { name: "India Passport", width: 350, height: 350, description: "35×35 mm", aspectRatio: "1:1", country: "🇮🇳", dpi: 300, printSize: "35×35 mm" },
+  { name: "Canada Passport", width: 420, height: 540, description: "50×70 mm", aspectRatio: "1:1.29", country: "🇨🇦", dpi: 300, printSize: "50×70 mm" },
+  { name: "Australia Passport", width: 420, height: 530, description: "35×45 mm", aspectRatio: "1:1.26", country: "🇦🇺", dpi: 300, printSize: "35×45 mm" },
+  { name: "Visa Photo", width: 600, height: 600, description: "2×2 inches", aspectRatio: "1:1", country: "🌍", dpi: 300, printSize: "2×2 inches" },
 ];
 
-// Photo Layout Options
 const layoutOptions = [
   { id: "single", name: "Single Photo", grid: "1×1", value: 1, icon: Square },
   { id: "2x2", name: "2×2 Grid", grid: "2×2", value: 4, icon: Grid3x3 },
@@ -247,7 +96,6 @@ const layoutOptions = [
   { id: "6x4", name: "6×4 Sheet", grid: "6×4", value: 24, icon: Columns },
 ];
 
-// PAPER SIZES - Only A4 and Custom
 const paperSizes = [
   {
     id: "a4",
@@ -258,7 +106,7 @@ const paperSizes = [
     category: "standard",
     printWidth: 210,
     printHeight: 297,
-    unit: "mm"
+    unit: "mm",
   },
   {
     id: "custom",
@@ -269,11 +117,10 @@ const paperSizes = [
     category: "custom",
     printWidth: 0,
     printHeight: 0,
-    unit: "pixels"
+    unit: "pixels",
   },
 ];
 
-// --- Component Interface ---
 interface ProcessedPhoto {
   blob: Blob;
   name: string;
@@ -300,7 +147,7 @@ interface DownloadNotification {
   timestamp: Date;
 }
 
-// --- Image Preview Component ---
+// --- Image Preview (FIXED: proper object URL cleanup) ---
 const ImagePreview = ({
   file,
   onRemove,
@@ -322,12 +169,21 @@ const ImagePreview = ({
   dimensions?: { width: number; height: number };
   photosPerPage?: number;
 }) => {
-  const url = useMemo(() => createObjectURL(file), [file]);
+  const [url, setUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  useMemo(() => {
-    return () => revokeObjectURL(url);
-  }, [url]);
+  // ✅ FIXED: proper object URL lifecycle using useEffect
+  useEffect(() => {
+    if (!file) {
+      setUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
 
   const statusColor = status.includes("Processed")
     ? "text-green-600 dark:text-green-400"
@@ -341,9 +197,8 @@ const ImagePreview = ({
 
   return (
     <>
-      {/* Image Preview Modal */}
       <AnimatePresence>
-        {previewOpen && (
+        {previewOpen && url && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -376,7 +231,6 @@ const ImagePreview = ({
         )}
       </AnimatePresence>
 
-      {/* Preview Card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -398,13 +252,19 @@ const ImagePreview = ({
 
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
-            onClick={() => setPreviewOpen(true)}
+            onClick={() => url && setPreviewOpen(true)}
           >
-            <img
-              src={url}
-              alt={filename}
-              className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
-            />
+            {url ? (
+              <img
+                src={url}
+                alt={filename}
+                className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <Eye className="w-8 h-8 text-white" />
             </div>
@@ -477,7 +337,7 @@ const ImagePreview = ({
   );
 };
 
-// --- Sheet Preview Component ---
+// --- Sheet Preview (FIXED: proper object URL cleanup) ---
 const SheetPreview = ({
   sheet,
   index,
@@ -487,46 +347,57 @@ const SheetPreview = ({
   index: number;
   onDownload: (sheet: ProcessedSheet) => void;
 }) => {
-  const url = useMemo(() => createObjectURL(sheet.blob), [sheet.blob]);
+  const [url, setUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  useMemo(() => {
-    return () => revokeObjectURL(url);
-  }, [url]);
+  // ✅ FIXED: proper object URL lifecycle
+  useEffect(() => {
+    if (!sheet.blob) {
+      setUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(sheet.blob);
+    setUrl(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [sheet.blob]);
 
   return (
     <>
-      {previewOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setPreviewOpen(false)}
-        >
+      <AnimatePresence>
+        {previewOpen && url && (
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.9 }}
-            className="relative"
-            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setPreviewOpen(false)}
           >
-            <button
-              onClick={() => setPreviewOpen(false)}
-              className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative"
+              onClick={(e) => e.stopPropagation()}
             >
-              <XCircle className="w-6 h-6" />
-            </button>
-            <div className="max-w-4xl max-h-[90vh]">
-              <img
-                src={url}
-                alt={sheet.name}
-                className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
-              />
-            </div>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="absolute -top-12 right-0 z-50 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+              <div className="max-w-4xl max-h-[90vh]">
+                <img
+                  src={url}
+                  alt={sheet.name}
+                  className="rounded-xl shadow-2xl max-w-full max-h-[80vh] object-contain"
+                />
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -545,13 +416,19 @@ const SheetPreview = ({
 
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl overflow-hidden cursor-pointer group/image"
-            onClick={() => setPreviewOpen(true)}
+            onClick={() => url && setPreviewOpen(true)}
           >
-            <img
-              src={url}
-              alt={sheet.name}
-              className="w-full h-full object-contain group-hover/image:scale-105 transition-transform duration-500"
-            />
+            {url ? (
+              <img
+                src={url}
+                alt={sheet.name}
+                className="w-full h-full object-contain group-hover/image:scale-105 transition-transform duration-500"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <Eye className="w-8 h-8 text-white" />
             </div>
@@ -579,7 +456,7 @@ const SheetPreview = ({
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setPreviewOpen(true)}
+              onClick={() => url && setPreviewOpen(true)}
               className="flex-1 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-700 dark:text-blue-300 text-xs font-semibold rounded-lg hover:from-blue-200 hover:to-indigo-200 transition-all"
             >
               Preview
@@ -600,9 +477,8 @@ const SheetPreview = ({
   );
 };
 
-// --- Download Notification Component ---
-const DownloadNotification = ({
-  id,
+// --- Download Notification ---
+const DownloadNotificationCard = ({
   fileName,
   timestamp,
   onClose,
@@ -646,9 +522,6 @@ export default function PassportPhotoMaker() {
   const [file, setFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [processedPhoto, setProcessedPhoto] = useState<ProcessedPhoto | null>(
-    null
-  );
   const [processedSheets, setProcessedSheets] = useState<ProcessedSheet[]>([]);
   const [showFeatures, setShowFeatures] = useState(true);
   const [downloadNotifications, setDownloadNotifications] = useState<
@@ -656,7 +529,6 @@ export default function PassportPhotoMaker() {
   >([]);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Default India Passport
   const [selectedSize, setSelectedSize] = useState(() => {
     const indiaSize = passportSizes.find(
       (size) => size.name === "India Passport"
@@ -666,7 +538,6 @@ export default function PassportPhotoMaker() {
 
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [photoQuality, setPhotoQuality] = useState(100);
-  const [selectedLayout, setSelectedLayout] = useState(layoutOptions[0]);
   const [selectedPaperSize, setSelectedPaperSize] = useState(() => {
     const a4Size = paperSizes.find((paper) => paper.id === "a4");
     return a4Size || paperSizes[0];
@@ -678,7 +549,6 @@ export default function PassportPhotoMaker() {
   const [isHighQuality, setIsHighQuality] = useState(true);
   const [dpi, setDpi] = useState(300);
 
-  // States for dynamic photo count and sheet management
   const [photoCount, setPhotoCount] = useState<number>(1);
   const [maxPhotosPerSheet, setMaxPhotosPerSheet] = useState<number>(1);
   const [totalSheetsNeeded, setTotalSheetsNeeded] = useState<number>(1);
@@ -689,21 +559,19 @@ export default function PassportPhotoMaker() {
   }>({ cols: 1, rows: 1, photosPerSheet: 1 });
   const [pdfDownloading, setPdfDownloading] = useState(false);
 
-  // Calculate effective paper dimensions
   const getEffectivePaperDimensions = () => {
     if (selectedPaperSize.id === "custom") {
       return {
         width: customWidth || 2480,
-        height: customHeight || 3508
+        height: customHeight || 3508,
       };
     }
     return {
       width: selectedPaperSize.width,
-      height: selectedPaperSize.height
+      height: selectedPaperSize.height,
     };
   };
 
-  // Generate unique filename
   const generateUniqueFileName = (
     baseName: string,
     photoType: string,
@@ -722,11 +590,12 @@ export default function PassportPhotoMaker() {
     const sheetText = sheetNumber
       ? `_sheet${sheetNumber}_of_${totalSheets}`
       : "";
-    const paperText = `_${selectedPaperSize.name.replace(/\s+/g, "_").toLowerCase()}`;
+    const paperText = `_${selectedPaperSize.name
+      .replace(/\s+/g, "_")
+      .toLowerCase()}`;
     return `${cleanBaseName}_${countryCode}_${dimensions}${layoutText}${qualityText}${paperText}${sheetText}_${timestamp}_${randomId}.jpg`;
   };
 
-  // Calculate maximum photos that fit on sheet
   const calculateMaxPhotosOnSheet = () => {
     const paperDims = getEffectivePaperDimensions();
     const paperWidth = paperDims.width;
@@ -738,8 +607,14 @@ export default function PassportPhotoMaker() {
       return { cols: 1, rows: 1, photosPerSheet: 1 };
     }
 
-    const maxCols = Math.max(1, Math.floor((paperWidth - margin * 2) / photoWidth));
-    const maxRows = Math.max(1, Math.floor((paperHeight - margin * 2) / photoHeight));
+    const maxCols = Math.max(
+      1,
+      Math.floor((paperWidth - margin * 2) / photoWidth)
+    );
+    const maxRows = Math.max(
+      1,
+      Math.floor((paperHeight - margin * 2) / photoHeight)
+    );
 
     return {
       cols: maxCols,
@@ -748,7 +623,6 @@ export default function PassportPhotoMaker() {
     };
   };
 
-  // Update layout calculation when parameters change
   useEffect(() => {
     if (file && selectedSize && selectedPaperSize) {
       const calculation = calculateMaxPhotosOnSheet();
@@ -762,16 +636,25 @@ export default function PassportPhotoMaker() {
       const sheetsNeeded = Math.ceil(photoCount / calculation.photosPerSheet);
       setTotalSheetsNeeded(sheetsNeeded);
     }
-  }, [file, selectedSize, selectedPaperSize, spacing, margin, photoCount, customWidth, customHeight]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    file,
+    selectedSize,
+    selectedPaperSize,
+    spacing,
+    margin,
+    photoCount,
+    customWidth,
+    customHeight,
+  ]);
 
-  // Create grid layout for a sheet
+  // ✅ FIXED: revoke object URL after image loads
   const createGridLayoutForSheet = async (
     singlePhotoBlob: Blob,
     cols: number,
     rows: number,
-    photosToCreate: number,
-    sheetNumber: number
-  ) => {
+    photosToCreate: number
+  ): Promise<Blob> => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
@@ -791,12 +674,20 @@ export default function PassportPhotoMaker() {
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, totalWidth, totalHeight);
 
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = reject;
-      image.src = URL.createObjectURL(singlePhotoBlob);
-    });
+    const imageUrl = URL.createObjectURL(singlePhotoBlob);
+    let img: HTMLImageElement;
+    try {
+      img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("Failed to load photo"));
+        image.src = imageUrl;
+      });
+    } catch (err) {
+      URL.revokeObjectURL(imageUrl);
+      throw err;
+    }
+    URL.revokeObjectURL(imageUrl);
 
     let photosCreated = 0;
     for (let row = 0; row < rows && photosCreated < photosToCreate; row++) {
@@ -813,7 +704,7 @@ export default function PassportPhotoMaker() {
     return new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (blob) => {
-          if (blob) resolve(blob);
+          if (blob && blob.size > 0) resolve(blob);
           else reject(new Error("Failed to create grid photo"));
         },
         "image/jpeg",
@@ -822,27 +713,77 @@ export default function PassportPhotoMaker() {
     });
   };
 
-  // Create passport photos
+  // ✅ FIXED: pass photoQuality as-is, revoke object URL
+  const createSinglePassportPhoto = (
+    resizedBlob: Blob
+  ): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        reject(new Error("Canvas context not available"));
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(resizedBlob);
+
+      img.onload = () => {
+        try {
+          canvas.width = selectedSize.width;
+          canvas.height = selectedSize.height;
+
+          if (canvas.width <= 0 || canvas.height <= 0) {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error("Invalid photo dimensions"));
+            return;
+          }
+
+          ctx.fillStyle = backgroundColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          canvas.toBlob(
+            (blob) => {
+              URL.revokeObjectURL(objectUrl);
+              if (blob && blob.size > 0) resolve(blob);
+              else reject(new Error("Failed to create passport photo"));
+            },
+            "image/jpeg",
+            Math.min(1, Math.max(0.8, photoQuality / 100))
+          );
+        } catch (err) {
+          URL.revokeObjectURL(objectUrl);
+          reject(err);
+        }
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Failed to load image"));
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
+  // ✅ FIXED: remove dpi/96 double-scaling, pass photoQuality as-is
   const createPassportPhotos = async () => {
     if (!file || !selectedSize) return;
 
     setProcessing(true);
     setProgress(0);
-    setProcessedPhoto(null);
     setProcessedSheets([]);
     setShowFeatures(false);
 
     try {
-      const scaleFactor = isHighQuality ? dpi / 96 : 1;
-      const scaledWidth = Math.floor(selectedSize.width * scaleFactor);
-      const scaledHeight = Math.floor(selectedSize.height * scaleFactor);
-
       setProgress(10);
       const resizedBlob = await resizeImage(
         file,
-        scaledWidth,
-        scaledHeight,
-        photoQuality / 100,
+        selectedSize.width,
+        selectedSize.height,
+        photoQuality,
         "jpg"
       );
 
@@ -864,8 +805,7 @@ export default function PassportPhotoMaker() {
           singlePhotoBlob,
           cols,
           rows,
-          photosInThisSheet,
-          currentSheet
+          photosInThisSheet
         );
 
         const isGrid = photosInThisSheet > 1;
@@ -896,50 +836,12 @@ export default function PassportPhotoMaker() {
       await new Promise((resolve) => setTimeout(resolve, 200));
     } catch (error) {
       console.error("Passport photo creation error:", error);
-      alert("Failed to create passport photos. Please check paper size and try again.");
+      alert(
+        "Failed to create passport photos. Please check paper size and try again."
+      );
     } finally {
       setProcessing(false);
     }
-  };
-
-  const createSinglePassportPhoto = (resizedBlob: Blob): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx) {
-        reject(new Error("Canvas context not available"));
-        return;
-      }
-
-      img.onload = () => {
-        const scaleFactor = isHighQuality ? dpi / 96 : 1;
-        canvas.width = Math.floor(selectedSize.width * scaleFactor);
-        canvas.height = Math.floor(selectedSize.height * scaleFactor);
-
-        if (canvas.width <= 0 || canvas.height <= 0) {
-          reject(new Error("Invalid photo dimensions"));
-          return;
-        }
-
-        ctx.fillStyle = backgroundColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error("Failed to create passport photo"));
-          },
-          "image/jpeg",
-          Math.min(1, Math.max(0.8, photoQuality / 100))
-        );
-      };
-
-      img.onerror = () => reject(new Error("Failed to load image"));
-      img.src = URL.createObjectURL(resizedBlob);
-    });
   };
 
   const handleDownloadSheet = (sheet: ProcessedSheet) => {
@@ -976,7 +878,7 @@ export default function PassportPhotoMaker() {
     }, 5000);
   };
 
-  // Download as PDF with proper sheet layout
+  // ✅ FIXED: pdfBytes type-safe
   const handleDownloadAsPDF = async () => {
     if (processedSheets.length === 0) return;
 
@@ -984,7 +886,7 @@ export default function PassportPhotoMaker() {
     try {
       const { PDFDocument } = await import("pdf-lib");
       const pdfDoc = await PDFDocument.create();
-      
+
       for (const sheet of processedSheets) {
         const arrayBuffer = await sheet.blob.arrayBuffer();
         const image = await pdfDoc.embedJpg(arrayBuffer);
@@ -998,12 +900,14 @@ export default function PassportPhotoMaker() {
       }
 
       const pdfBytes = await pdfDoc.save();
-      
-      const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
-      const pdfName = `passport_photos_${new Date().getTime()}.pdf`;
-      
+
+      const pdfBlob = new Blob([pdfBytes as BlobPart], {
+        type: "application/pdf",
+      });
+      const pdfName = `passport_photos_${Date.now()}.pdf`;
+
       downloadFile(pdfBlob, pdfName);
-      
+
       const notification: DownloadNotification = {
         id: Math.random().toString(36).substring(7),
         fileName: pdfName,
@@ -1025,7 +929,6 @@ export default function PassportPhotoMaker() {
 
   const handleRemoveFile = () => {
     setFile(null);
-    setProcessedPhoto(null);
     setProcessedSheets([]);
     setShowFeatures(true);
   };
@@ -1033,7 +936,6 @@ export default function PassportPhotoMaker() {
   const handleFileSelected = (newFiles: File[]) => {
     if (newFiles.length > 0) {
       setFile(newFiles[0]);
-      setProcessedPhoto(null);
       setProcessedSheets([]);
       setShowFeatures(false);
     }
@@ -1041,7 +943,6 @@ export default function PassportPhotoMaker() {
 
   const handleReset = () => {
     setFile(null);
-    setProcessedPhoto(null);
     setProcessedSheets([]);
     setProgress(0);
     setShowFeatures(true);
@@ -1087,7 +988,7 @@ export default function PassportPhotoMaker() {
         >
           <AnimatePresence>
             {downloadNotifications.map((notification) => (
-              <DownloadNotification
+              <DownloadNotificationCard
                 key={notification.id}
                 {...notification}
                 onClose={() =>
@@ -1108,7 +1009,7 @@ export default function PassportPhotoMaker() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* --- Header Section --- */}
+            {/* Header */}
             <div className="mb-6 sm:mb-8 md:mb-12">
               <a
                 href="/"
@@ -1133,14 +1034,7 @@ export default function PassportPhotoMaker() {
                   </span>
                 </motion.div>
 
-                <h1
-                  className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black
-                             text-gray-900 dark:text-white
-                             mb-2 sm:mb-4
-                             bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600
-                             bg-clip-text text-transparent
-                             px-2 leading-tight text-center"
-                >
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white mb-2 sm:mb-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent px-2 leading-tight text-center">
                   Passport Size Photo Maker Online Free
                   <br className="hidden sm:block" />
                   <span className="font-extrabold">
@@ -1152,8 +1046,10 @@ export default function PassportPhotoMaker() {
                 </h1>
 
                 <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed px-2">
-                  Create passport size photos online instantly with PDFSwift. Choose official sizes for USA, India, UK, Canada & more. Select background color, DPI, and layouts to print multiple photos per page. Free, secure, and no signup required.
-                  options
+                  Create passport size photos online instantly with PDFSwift.
+                  Choose official sizes for USA, India, UK, Canada & more.
+                  Select background color, DPI, and layouts to print multiple
+                  photos per page. Free, secure, and no signup required.
                   <span className="block text-blue-600 dark:text-blue-400 font-medium mt-1 text-xs sm:text-sm md:text-base">
                     Official sizes • Multiple photos per page • High quality •
                     Print-ready
@@ -1162,9 +1058,9 @@ export default function PassportPhotoMaker() {
               </div>
             </div>
 
-            {/* --- Main Passport Photo Maker Card --- */}
+            {/* Main Card */}
             <div className="bg-white dark:bg-gray-900 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-gray-200 dark:border-gray-800 shadow-lg sm:shadow-xl md:shadow-2xl p-3 sm:p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
-              {/* Upload Section */}
+              {/* Upload */}
               <div className="mb-4 sm:mb-6 md:mb-8">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 md:mb-6">
                   <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg sm:rounded-xl">
@@ -1215,7 +1111,7 @@ export default function PassportPhotoMaker() {
                 )}
               </div>
 
-              {/* --- Passport Size Options --- */}
+              {/* Size selection */}
               {hasFile && (
                 <div className="mb-6 sm:mb-8 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 sm:p-6 border-2 border-blue-200 dark:border-blue-700">
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -1260,25 +1156,11 @@ export default function PassportPhotoMaker() {
                       </div>
                       <div>
                         <p className="font-medium text-blue-700 dark:text-blue-300 text-sm">
-                          {selectedSize ? (
-                            <>
-                              Selected: {selectedSize.name} (
-                              {selectedSize.country})
-                            </>
-                          ) : (
-                            <>India Passport (🇮🇳) - Default</>
-                          )}
+                          Selected: {selectedSize.name} ({selectedSize.country})
                         </p>
                         <p className="text-xs text-blue-600 dark:text-blue-400">
-                          {selectedSize ? (
-                            <>
-                              Dimensions: {selectedSize.width} ×{" "}
-                              {selectedSize.height}px •{" "}
-                              {selectedSize.description}
-                            </>
-                          ) : (
-                            <>35×35 mm • 300 DPI • Print size: 35×35 mm</>
-                          )}
+                          Dimensions: {selectedSize.width} ×{" "}
+                          {selectedSize.height}px • {selectedSize.description}
                         </p>
                       </div>
                     </div>
@@ -1286,7 +1168,7 @@ export default function PassportPhotoMaker() {
                 </div>
               )}
 
-              {/* --- Dynamic Photo Count and Sheet Management --- */}
+              {/* Photo Count + Paper Size */}
               {hasFile && selectedSize && (
                 <div className="mb-6 sm:mb-8 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 sm:p-6 border-2 border-purple-200 dark:border-purple-700">
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -1295,7 +1177,6 @@ export default function PassportPhotoMaker() {
                   </h3>
 
                   <div className="space-y-6">
-                    {/* Photo Count Selection */}
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-medium text-gray-700 dark:text-gray-300">
@@ -1337,7 +1218,6 @@ export default function PassportPhotoMaker() {
                       </div>
                     </div>
 
-                    {/* Paper Size Selection - Only A4 and Custom */}
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-medium text-gray-700 dark:text-gray-300">
@@ -1372,7 +1252,8 @@ export default function PassportPhotoMaker() {
                             )}
                             {paperSize.id !== "custom" && (
                               <div className="text-xs text-gray-500 dark:text-gray-500">
-                                {paperSize.printWidth} × {paperSize.printHeight} {paperSize.unit}
+                                {paperSize.printWidth} × {paperSize.printHeight}{" "}
+                                {paperSize.unit}
                               </div>
                             )}
                           </button>
@@ -1394,7 +1275,11 @@ export default function PassportPhotoMaker() {
                                 min="100"
                                 max="10000"
                                 value={customWidth}
-                                onChange={(e) => setCustomWidth(parseInt(e.target.value) || 2480)}
+                                onChange={(e) =>
+                                  setCustomWidth(
+                                    parseInt(e.target.value) || 2480
+                                  )
+                                }
                                 className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
                                 placeholder="Width in pixels"
                               />
@@ -1408,7 +1293,11 @@ export default function PassportPhotoMaker() {
                                 min="100"
                                 max="10000"
                                 value={customHeight}
-                                onChange={(e) => setCustomHeight(parseInt(e.target.value) || 3508)}
+                                onChange={(e) =>
+                                  setCustomHeight(
+                                    parseInt(e.target.value) || 3508
+                                  )
+                                }
                                 className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
                                 placeholder="Height in pixels"
                               />
@@ -1421,7 +1310,7 @@ export default function PassportPhotoMaker() {
                       )}
                     </div>
 
-                    {/* Layout Calculation Display */}
+                    {/* Layout Calculation */}
                     <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -1460,12 +1349,14 @@ export default function PassportPhotoMaker() {
                       </div>
                       {selectedPaperSize.id !== "custom" && (
                         <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
-                          Paper dimensions: {getEffectivePaperDimensions().width} × {getEffectivePaperDimensions().height}px
+                          Paper dimensions:{" "}
+                          {getEffectivePaperDimensions().width} ×{" "}
+                          {getEffectivePaperDimensions().height}px
                         </div>
                       )}
                     </div>
 
-                    {/* Grid Spacing Control */}
+                    {/* Spacing + Margin */}
                     <div className="space-y-4">
                       <div>
                         <div className="flex items-center justify-between mb-1">
@@ -1509,7 +1400,7 @@ export default function PassportPhotoMaker() {
                 </div>
               )}
 
-              {/* --- Quality & Customization Options --- */}
+              {/* Quality */}
               {hasFile && selectedSize && (
                 <div className="mb-6 sm:mb-8 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 sm:p-6 border-2 border-green-200 dark:border-green-700">
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -1518,7 +1409,6 @@ export default function PassportPhotoMaker() {
                   </h3>
 
                   <div className="space-y-6">
-                    {/* High Quality Toggle */}
                     <div className="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 rounded-lg">
                       <div>
                         <h4 className="font-medium text-gray-700 dark:text-gray-300">
@@ -1533,7 +1423,9 @@ export default function PassportPhotoMaker() {
                       <button
                         onClick={() => setIsHighQuality(!isHighQuality)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                          isHighQuality ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                          isHighQuality
+                            ? "bg-green-500"
+                            : "bg-gray-300 dark:bg-gray-600"
                         }`}
                       >
                         <span
@@ -1544,7 +1436,6 @@ export default function PassportPhotoMaker() {
                       </button>
                     </div>
 
-                    {/* DPI Selection (Only shown when High Quality is enabled) */}
                     {isHighQuality && (
                       <div>
                         <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
@@ -1573,7 +1464,6 @@ export default function PassportPhotoMaker() {
                       </div>
                     )}
 
-                    {/* Photo Quality */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="font-medium text-gray-700 dark:text-gray-300">
@@ -1599,7 +1489,6 @@ export default function PassportPhotoMaker() {
                       </div>
                     </div>
 
-                    {/* Background Color */}
                     <div>
                       <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3">
                         Background Color
@@ -1630,10 +1519,9 @@ export default function PassportPhotoMaker() {
                 </div>
               )}
 
-              {/* --- Photo Preview and Processing Area --- */}
+              {/* Uploaded preview + Process */}
               {hasFile && (
                 <div className="space-y-4 sm:space-y-6 md:space-y-8">
-                  {/* --- Input Photo Preview --- */}
                   <div className="space-y-3 sm:space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1642,18 +1530,7 @@ export default function PassportPhotoMaker() {
                       </h3>
                     </div>
 
-                    <div
-                      className="
-                        w-full
-                        flex justify-center
-                        overflow-x-hidden
-                        p-2 sm:p-3 md:p-4
-                        bg-gradient-to-br from-gray-50 to-blue-50
-                        dark:from-gray-800 dark:to-blue-950/20
-                        rounded-lg sm:rounded-xl md:rounded-2xl
-                        border border-gray-200 dark:border-gray-700
-                      "
-                    >
+                    <div className="w-full flex justify-center overflow-x-hidden p-2 sm:p-3 md:p-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-950/20 rounded-lg sm:rounded-xl md:rounded-2xl border border-gray-200 dark:border-gray-700">
                       <div className="w-full max-w-[480px]">
                         <ImagePreview
                           file={file}
@@ -1666,7 +1543,6 @@ export default function PassportPhotoMaker() {
                     </div>
                   </div>
 
-                  {/* --- Progress and Action Buttons --- */}
                   <div className="space-y-4 sm:space-y-6">
                     {processing && (
                       <div className="space-y-3 sm:space-y-4">
@@ -1679,7 +1555,8 @@ export default function PassportPhotoMaker() {
                         <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
                           <Sparkles className="w-4 h-4 animate-pulse" />
                           <span className="text-xs sm:text-sm font-medium">
-                            Processing {selectedSize?.name || "passport"} photos...
+                            Processing {selectedSize?.name || "passport"}{" "}
+                            photos...
                           </span>
                         </div>
                       </div>
@@ -1693,27 +1570,12 @@ export default function PassportPhotoMaker() {
                         whileTap={{ scale: 0.98 }}
                         onClick={createPassportPhotos}
                         disabled={!selectedSize}
-                        className={`
-                          w-full
-                          py-2.5 sm:py-3 md:py-4
-                          px-3 sm:px-4 md:px-6
-                          bg-gradient-to-r from-blue-500 to-indigo-600
-                          hover:from-blue-600 hover:to-indigo-700
-                          text-white font-bold
-                          rounded-lg sm:rounded-xl md:rounded-2xl
-                          shadow-md sm:shadow-lg md:shadow-xl
-                          transition-all
-                          text-sm sm:text-base md:text-lg
-                          flex items-center justify-center gap-2 sm:gap-3
-                          ${!selectedSize ? "opacity-50 cursor-not-allowed" : ""}
-                        `}
+                        className={`w-full py-2.5 sm:py-3 md:py-4 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold rounded-lg sm:rounded-xl md:rounded-2xl shadow-md sm:shadow-lg md:shadow-xl transition-all text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 ${
+                          !selectedSize ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                       >
                         <Camera className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                        {selectedSize ? (
-                          <>Create {photoCount} {selectedSize.name} Photos</>
-                        ) : (
-                          <>Select Passport Size First</>
-                        )}
+                        Create {photoCount} {selectedSize.name} Photos
                         <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
                       </motion.button>
                     )}
@@ -1722,14 +1584,13 @@ export default function PassportPhotoMaker() {
               )}
             </div>
 
-            {/* --- Results and Download Area --- */}
+            {/* Results */}
             {hasResult && processedSheets.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl border-2 border-green-200 dark:border-green-800/50 p-3 sm:p-4 md:p-6 lg:p-8 shadow-lg sm:shadow-xl md:shadow-2xl mb-6 md:mb-8"
               >
-                {/* Success Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
                   <div className="flex items-center justify-center sm:justify-start">
                     <div className="p-2 sm:p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg sm:rounded-xl shadow-lg">
@@ -1742,13 +1603,14 @@ export default function PassportPhotoMaker() {
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base">
                       {photoCount} photos created across {totalSheetsNeeded}{" "}
-                      sheet{totalSheetsNeeded > 1 ? "s" : ""} ({selectedPaperSize.name})
+                      sheet{totalSheetsNeeded > 1 ? "s" : ""} (
+                      {selectedPaperSize.name})
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">
                       Layout: {layoutCalculation.cols} ×{" "}
                       {layoutCalculation.rows} per sheet •{" "}
-                      {isHighQuality ? `${dpi} DPI High Quality` : "Standard"} quality • Ready to
-                      print
+                      {isHighQuality ? `${dpi} DPI High Quality` : "Standard"}{" "}
+                      quality • Ready to print
                     </p>
                   </div>
                   <div className="flex items-center justify-center mt-2 sm:mt-0">
@@ -1758,11 +1620,11 @@ export default function PassportPhotoMaker() {
                   </div>
                 </div>
 
-                {/* --- Sheets Preview Grid --- */}
                 <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6 md:mb-8">
                   <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <File className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                    Generated {selectedPaperSize.name} Sheets ({totalSheetsNeeded} sheets)
+                    Generated {selectedPaperSize.name} Sheets (
+                    {totalSheetsNeeded} sheets)
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1777,9 +1639,7 @@ export default function PassportPhotoMaker() {
                   </div>
                 </div>
 
-                {/* --- Download Buttons --- */}
                 <div className="space-y-4 sm:space-y-6">
-                  {/* Download All as JPG */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -1791,7 +1651,6 @@ export default function PassportPhotoMaker() {
                     <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
                   </motion.button>
 
-                  {/* Download as PDF */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -1813,7 +1672,6 @@ export default function PassportPhotoMaker() {
                     )}
                   </motion.button>
 
-                  {/* Create Another Button */}
                   <div className="text-center">
                     <button
                       onClick={handleReset}
@@ -1827,7 +1685,7 @@ export default function PassportPhotoMaker() {
               </motion.div>
             )}
 
-            {/* --- Features Grid --- */}
+            {/* Features */}
             <AnimatePresence>
               {showFeatures && (
                 <motion.div
@@ -1885,7 +1743,7 @@ export default function PassportPhotoMaker() {
               )}
             </AnimatePresence>
 
-            {/* --- Stats Footer --- */}
+            {/* Stats */}
             <div className="mt-10 sm:mt-14">
               <div className="max-w-6xl mx-auto px-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
@@ -1917,16 +1775,10 @@ export default function PassportPhotoMaker() {
                   ].map((stat, index) => (
                     <div
                       key={index}
-                      className={`flex flex-col justify-center items-center
-                        rounded-2xl border border-gray-200 dark:border-gray-800
-                        ${stat.bg}
-                        p-4 sm:p-6
-                        shadow-sm hover:shadow-lg
-                        transition-all duration-300`}
+                      className={`flex flex-col justify-center items-center rounded-2xl border border-gray-200 dark:border-gray-800 ${stat.bg} p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300`}
                     >
                       <div
-                        className={`text-xl sm:text-2xl md:text-3xl font-extrabold 
-                          ${stat.color} dark:${stat.color.replace("600", "400")}`}
+                        className={`text-xl sm:text-2xl md:text-3xl font-extrabold ${stat.color}`}
                       >
                         {stat.value}
                       </div>
@@ -1939,50 +1791,36 @@ export default function PassportPhotoMaker() {
               </div>
             </div>
 
+            {/* How To */}
             <section className="mt-20">
               <h2 className="text-3xl font-bold text-center mb-10">
                 How to Create Passport Size Photo Online
               </h2>
               <div className="grid gap-6 md:grid-cols-5">
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-blue-600 mb-2">1</div>
-                  <h3 className="font-semibold text-lg">Upload Photo</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Upload a clear portrait photo from your device.
-                  </p>
-                </div>
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-blue-600 mb-2">2</div>
-                  <h3 className="font-semibold text-lg">Choose Country</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Select passport size for India, USA, UK or other countries.
-                  </p>
-                </div>
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-blue-600 mb-2">3</div>
-                  <h3 className="font-semibold text-lg">Customize Settings</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Set DPI, background color, photo quantity and paper size.
-                  </p>
-                </div>
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-blue-600 mb-2">4</div>
-                  <h3 className="font-semibold text-lg">Generate Photos</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Create high quality, print-ready passport photo sheets instantly.
-                  </p>
-                </div>
-                <div className="border rounded-xl p-6 text-center shadow-sm bg-white">
-                  <div className="text-4xl font-bold text-blue-600 mb-2">5</div>
-                  <h3 className="font-semibold text-lg">Download & Print</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    Download and print your passport photos without signup.
-                  </p>
-                </div>
+                {[
+                  { step: 1, title: "Upload Photo", desc: "Upload a clear portrait photo from your device." },
+                  { step: 2, title: "Choose Country", desc: "Select passport size for India, USA, UK or other countries." },
+                  { step: 3, title: "Customize Settings", desc: "Set DPI, background color, photo quantity and paper size." },
+                  { step: 4, title: "Generate Photos", desc: "Create high quality, print-ready passport photo sheets instantly." },
+                  { step: 5, title: "Download & Print", desc: "Download and print your passport photos without signup." },
+                ].map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="border rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 dark:text-white"
+                  >
+                    <div className="text-4xl font-bold text-blue-600 mb-2">
+                      {item.step}
+                    </div>
+                    <h3 className="font-semibold text-lg">{item.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                      {item.desc}
+                    </p>
+                  </div>
+                ))}
               </div>
             </section>
 
-            {/* Explore All Tools Section */}
+            {/* Explore Tools */}
             <div className="mb-6 md:mb-8">
               <div className="flex items-center justify-between mb-6 m-4 md:mb-8">
                 <div>
@@ -1995,10 +1833,10 @@ export default function PassportPhotoMaker() {
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                {exploreTools.slice(0, 8).map((tool, index) => (
+                {exploreTools.slice(0, 8).map((toolItem, index) => (
                   <motion.a
-                    key={tool.id}
-                    href={tool.href}
+                    key={toolItem.id}
+                    href={toolItem.href}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
@@ -2007,16 +1845,18 @@ export default function PassportPhotoMaker() {
                   >
                     <div className="flex items-start gap-3 md:gap-4">
                       <div
-                        className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-lg md:rounded-xl shadow-lg`}
+                        className={`p-2 md:p-3 bg-gradient-to-br ${toolItem.color} rounded-lg md:rounded-xl shadow-lg`}
                       >
-                        <span className="text-xl md:text-2xl">{tool.icon}</span>
+                        <span className="text-xl md:text-2xl">
+                          {toolItem.icon}
+                        </span>
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 md:mb-2 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
-                          {tool.name}
+                          {toolItem.name}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mb-3 md:mb-4">
-                          {tool.description}
+                          {toolItem.description}
                         </p>
                         <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 font-medium text-xs md:text-sm">
                           <span>Use Tool</span>
@@ -2036,15 +1876,16 @@ export default function PassportPhotoMaker() {
                   <span>View All</span>
                 </Link>
               </div>
-              
-              {/* --- FAQ Section --- */}
+
+              {/* FAQ */}
               <section className="max-w-4xl mx-auto my-10 sm:my-14 md:my-20 px-3 sm:px-4">
                 <div className="text-center mb-6 sm:mb-8 md:mb-12">
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
                     Frequently Asked Questions
                   </h2>
                   <p className="mt-2 text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                    Everything you need to know about creating passport photos online
+                    Everything you need to know about creating passport photos
+                    online
                   </p>
                 </div>
 
@@ -2052,32 +1893,11 @@ export default function PassportPhotoMaker() {
                   {faqData.map((faq, index) => (
                     <details
                       key={index}
-                      className="
-                        group rounded-xl border border-gray-200 dark:border-gray-700
-                        bg-white dark:bg-gray-900
-                        transition-all duration-300
-                        hover:border-blue-400/60 dark:hover:border-blue-500/60
-                        open:shadow-lg open:border-blue-500
-                      "
+                      className="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-300 hover:border-blue-400/60 dark:hover:border-blue-500/60 open:shadow-lg open:border-blue-500"
                     >
-                      <summary
-                        className="
-                          flex cursor-pointer list-none items-center justify-between
-                          px-4 sm:px-5 py-3 sm:py-4
-                          text-sm sm:text-base md:text-lg
-                          font-semibold text-gray-900 dark:text-white
-                        "
-                      >
+                      <summary className="flex cursor-pointer list-none items-center justify-between px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white">
                         <span>{faq.question}</span>
-                        <span
-                          className="
-                            ml-3 flex h-6 w-6 items-center justify-center
-                            rounded-full bg-gray-100 dark:bg-gray-800
-                            text-gray-500 dark:text-gray-400
-                            transition-transform duration-300
-                            group-open:rotate-180
-                          "
-                        >
+                        <span className="ml-3 flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 transition-transform duration-300 group-open:rotate-180">
                           ▼
                         </span>
                       </summary>

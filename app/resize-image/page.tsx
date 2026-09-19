@@ -14,10 +14,7 @@ import {
   Image as ImageIcon,
   Sparkles,
   Zap,
-  Shield,
-  Palette,
   Upload,
-  Layers,
   Eye,
   Clock,
   Grid,
@@ -25,23 +22,13 @@ import {
   Check,
   X,
   Plus,
-  FolderArchive,
-  FileQuestion,
-  Cpu,
-  Globe,
-  Lock,
-  HelpCircle,
-  Maximize2,
-  Square,
-  Ruler,
-  RefreshCw,
   EyeOff,
   Monitor,
   Smartphone,
-  Tablet,
-  Tv,
-  Camera,
-  Film,
+  Maximize2,
+  Square,
+  RefreshCw,
+  Shield,
 } from "lucide-react";
 import FileUploader from "../components/FileUploader";
 import ProgressBar from "../components/ProgressBar";
@@ -61,7 +48,7 @@ const tool = {
   path: "/tools/resize-image",
 };
 
-// Define Tool type
+// Tool type
 type Tool = {
   id: string;
   name: string;
@@ -75,122 +62,36 @@ type Tool = {
 
 // Explore All Tools Data
 const exploreTools: Tool[] = [
-  {
-    id: "split-pdf",
-    name: "Split PDF",
-    description: "Split PDF into separate pages",
-    category: "pdf",
-    icon: "✂️",
-    color: "from-orange-500 to-red-500",
-    href: "/split-pdf",
-    path: "/tools/split-pdf",
-  },
-  {
-    id: "rotate-pdf",
-    name: "Rotate PDF",
-    description: "Rotate PDF pages",
-    category: "pdf",
-    icon: "🔄",
-    color: "from-teal-500 to-cyan-500",
-    href: "/rotate-pdf",
-    path: "/tools/rotate-pdf",
-  },
-  {
-    id: "jpg-to-pdf",
-    name: "JPG to PDF",
-    description: "Convert JPG images to PDF documents",
-    category: "pdf",
-    icon: "🖼️",
-    color: "from-green-500 to-emerald-500",
-    href: "/jpg-to-pdf",
-    path: "/tools/jpg-to-pdf",
-  },
-  {
-    id: "png-to-jpg",
-    name: "PNG to JPG",
-    description: "Convert PNG images to JPG format",
-    category: "image",
-    icon: "🔄",
-    color: "from-emerald-500 to-green-500",
-    href: "/png-to-jpg",
-    path: "/tools/png-to-jpg",
-  },
-  {
-    id: "pdf-to-jpg",
-    name: "PDF to JPG",
-    description: "Convert PDF pages to JPG images",
-    category: "pdf",
-    icon: "🖼️",
-    color: "from-purple-500 to-pink-500",
-    href: "/pdf-to-jpg",
-    path: "/tools/pdf-to-jpg",
-  },
-  {
-    id: "extract-pages",
-    name: "Extract Pages",
-    description: "Extract specific pages from PDF",
-    category: "pdf",
-    icon: "📑",
-    color: "from-indigo-500 to-blue-500",
-    href: "/extract-pages",
-    path: "/tools/extract-pages",
-  },
-  {
-    id: "compress-image",
-    name: "Compress Image",
-    description: "Reduce JPG/PNG file size",
-    category: "image",
-    icon: "📉",
-    color: "from-blue-500 to-cyan-500",
-    href: "/compress-image",
-    path: "/tools/compress-image",
-  },
-  {
-    id: "merge-pdf",
-    name: "Merge PDF",
-    description: "Combine multiple PDF files into one",
-    category: "pdf",
-    icon: "🔗",
-    color: "from-violet-500 to-purple-500",
-    href: "/merge-pdf",
-    path: "/tools/merge-pdf",
-  },
-  {
-    id: "remove-pages",
-    name: "Remove Pages",
-    description: "Delete specific pages from PDF",
-    category: "pdf",
-    icon: "🗑️",
-    color: "from-rose-500 to-pink-500",
-    href: "/remove-pages",
-    path: "/tools/remove-pages",
-  },
+  { id: "split-pdf", name: "Split PDF", description: "Split PDF into separate pages", category: "pdf", icon: "✂️", color: "from-orange-500 to-red-500", href: "/split-pdf", path: "/tools/split-pdf" },
+  { id: "rotate-pdf", name: "Rotate PDF", description: "Rotate PDF pages", category: "pdf", icon: "🔄", color: "from-teal-500 to-cyan-500", href: "/rotate-pdf", path: "/tools/rotate-pdf" },
+  { id: "jpg-to-pdf", name: "JPG to PDF", description: "Convert JPG images to PDF documents", category: "pdf", icon: "🖼️", color: "from-green-500 to-emerald-500", href: "/jpg-to-pdf", path: "/tools/jpg-to-pdf" },
+  { id: "png-to-jpg", name: "PNG to JPG", description: "Convert PNG images to JPG format", category: "image", icon: "🔄", color: "from-emerald-500 to-green-500", href: "/png-to-jpg", path: "/tools/png-to-jpg" },
+  { id: "pdf-to-jpg", name: "PDF to JPG", description: "Convert PDF pages to JPG images", category: "pdf", icon: "🖼️", color: "from-purple-500 to-pink-500", href: "/pdf-to-jpg", path: "/tools/pdf-to-jpg" },
+  { id: "extract-pages", name: "Extract Pages", description: "Extract specific pages from PDF", category: "pdf", icon: "📑", color: "from-indigo-500 to-blue-500", href: "/extract-pages", path: "/tools/extract-pages" },
+  { id: "compress-image", name: "Compress Image", description: "Reduce JPG/PNG file size", category: "image", icon: "📉", color: "from-blue-500 to-cyan-500", href: "/compress-image", path: "/tools/compress-image" },
+  { id: "merge-pdf", name: "Merge PDF", description: "Combine multiple PDF files into one", category: "pdf", icon: "🔗", color: "from-violet-500 to-purple-500", href: "/merge-pdf", path: "/tools/merge-pdf" },
+  { id: "remove-pages", name: "Remove Pages", description: "Delete specific pages from PDF", category: "pdf", icon: "🗑️", color: "from-rose-500 to-pink-500", href: "/remove-pages", path: "/tools/remove-pages" },
 ];
 
-// --- Helper Functions ---
-const createObjectURL = (fileOrBlob: Blob | File) =>
-  URL.createObjectURL(fileOrBlob);
-const revokeObjectURL = (url: string) => URL.revokeObjectURL(url);
-
-// Get image dimensions function
+// ✅ FIXED: proper URL cleanup
 const getImageDimensions = (
   file: File
 ): Promise<{ width: number; height: number }> => {
   return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
     const img = new window.Image();
     img.onload = () => {
       resolve({ width: img.width, height: img.height });
-      URL.revokeObjectURL(img.src);
+      URL.revokeObjectURL(url);
     };
     img.onerror = () => {
       resolve({ width: 0, height: 0 });
-      if (img.src) URL.revokeObjectURL(img.src);
+      URL.revokeObjectURL(url);
     };
-    img.src = URL.createObjectURL(file);
+    img.src = url;
   });
 };
 
-// --- Component Interface ---
 interface ResizedFile {
   blob: Blob;
   name: string;
@@ -206,7 +107,6 @@ interface DownloadNotification {
   timestamp: Date;
 }
 
-// Resize Options Interface
 interface ResizeOptions {
   width: number;
   height: number;
@@ -215,7 +115,7 @@ interface ResizeOptions {
   format: "jpg" | "png" | "webp";
 }
 
-// --- Real-time Preview Component ---
+// --- Real-Time Preview (FIXED: proper object URL lifecycle) ---
 const RealTimePreview = ({
   file,
   width,
@@ -231,7 +131,8 @@ const RealTimePreview = ({
   format: "jpg" | "png" | "webp";
   quality: number;
 }) => {
-  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [originalUrl, setOriginalUrl] = useState<string | null>(null);
   const [previewDimensions, setPreviewDimensions] = useState<{
     width: number;
     height: number;
@@ -243,42 +144,58 @@ const RealTimePreview = ({
     height: number;
   } | null>(null);
 
-  // Get original dimensions on mount
+  // ✅ Original URL lifecycle
   useEffect(() => {
-    getImageDimensions(file).then((dimensions) => {
-      setOriginalDimensions(dimensions);
-    });
+    if (!file) {
+      setOriginalUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setOriginalUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
   }, [file]);
 
-  // Calculate dimensions based on aspect ratio
-  const calculateDimensions = useMemo(() => {
-    return (): { width: number; height: number } => {
-      if (!originalDimensions) return { width, height };
-
-      let targetWidth = width;
-      let targetHeight = height;
-
-      if (
-        maintainAspectRatio &&
-        originalDimensions.width > 0 &&
-        originalDimensions.height > 0
-      ) {
-        const aspectRatio =
-          originalDimensions.width / originalDimensions.height;
-        if (targetWidth / targetHeight > aspectRatio) {
-          targetWidth = Math.round(targetHeight * aspectRatio);
-        } else {
-          targetHeight = Math.round(targetWidth / aspectRatio);
-        }
-      }
-
-      return { width: targetWidth, height: targetHeight };
+  // ✅ Get original dimensions
+  useEffect(() => {
+    let cancelled = false;
+    getImageDimensions(file).then((dimensions) => {
+      if (!cancelled) setOriginalDimensions(dimensions);
+    });
+    return () => {
+      cancelled = true;
     };
+  }, [file]);
+
+  // ✅ Calculate target dimensions
+  const calculateDimensions = useMemo(() => {
+    if (!originalDimensions) return { width, height };
+
+    let targetWidth = width;
+    let targetHeight = height;
+
+    if (
+      maintainAspectRatio &&
+      originalDimensions.width > 0 &&
+      originalDimensions.height > 0
+    ) {
+      const aspectRatio =
+        originalDimensions.width / originalDimensions.height;
+      if (targetWidth / targetHeight > aspectRatio) {
+        targetWidth = Math.round(targetHeight * aspectRatio);
+      } else {
+        targetHeight = Math.round(targetWidth / aspectRatio);
+      }
+    }
+
+    return { width: targetWidth, height: targetHeight };
   }, [originalDimensions, width, height, maintainAspectRatio]);
 
-  // Create real-time preview
+  // ✅ Preview lifecycle with proper revoke
   useEffect(() => {
     let isMounted = true;
+    let createdUrl: string | null = null;
 
     const createPreview = async () => {
       if (!file || !originalDimensions) return;
@@ -287,86 +204,93 @@ const RealTimePreview = ({
       setError(null);
 
       try {
-        // Calculate actual dimensions
-        const dimensions = calculateDimensions();
+        const dimensions = calculateDimensions;
         setPreviewDimensions(dimensions);
 
-        // Create canvas for resizing
         const img = new window.Image();
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
-        if (!ctx) {
-          throw new Error("Canvas context not available");
-        }
+        if (!ctx) throw new Error("Canvas context not available");
 
-        // Load image
+        const fileUrl = URL.createObjectURL(file);
+
         img.onload = () => {
-          if (!isMounted) return;
+          if (!isMounted) {
+            URL.revokeObjectURL(fileUrl);
+            return;
+          }
 
-          // Set canvas dimensions
-          canvas.width = dimensions.width;
-          canvas.height = dimensions.height;
+          try {
+            canvas.width = dimensions.width;
+            canvas.height = dimensions.height;
 
-          // Draw with high quality
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
-          ctx.drawImage(img, 0, 0, dimensions.width, dimensions.height);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, 0, 0, dimensions.width, dimensions.height);
 
-          // Convert to blob
-          canvas.toBlob(
-            (blob) => {
-              if (!isMounted || !blob) return;
+            canvas.toBlob(
+              (blob) => {
+                URL.revokeObjectURL(fileUrl);
+                if (!isMounted || !blob || blob.size === 0) {
+                  if (isMounted) setLoading(false);
+                  return;
+                }
 
-              const url = URL.createObjectURL(blob);
-              if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-              }
-              setPreviewUrl(url);
+                const url = URL.createObjectURL(blob);
+                createdUrl = url;
+
+                setPreviewUrl((prev) => {
+                  if (prev) URL.revokeObjectURL(prev);
+                  return url;
+                });
+                setLoading(false);
+              },
+              `image/${format}`,
+              quality / 100
+            );
+          } catch (err) {
+            URL.revokeObjectURL(fileUrl);
+            if (isMounted) {
+              setError("Failed to create preview");
               setLoading(false);
-            },
-            `image/${format}`,
-            quality / 100
-          );
+            }
+          }
         };
 
         img.onerror = () => {
-          if (!isMounted) return;
-          setError("Failed to load image");
-          setLoading(false);
+          URL.revokeObjectURL(fileUrl);
+          if (isMounted) {
+            setError("Failed to load image");
+            setLoading(false);
+          }
         };
 
-        img.src = URL.createObjectURL(file);
+        img.src = fileUrl;
       } catch (err) {
         if (!isMounted) return;
         setError("Failed to create preview");
         setLoading(false);
-        console.error("Preview error:", err);
       }
     };
 
-    // Debounce the preview generation
     const timeoutId = setTimeout(createPreview, 300);
 
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
     };
-  }, [
-    file,
-    width,
-    height,
-    maintainAspectRatio,
-    format,
-    quality,
-    calculateDimensions,
-    originalDimensions,
-  ]);
+  }, [file, calculateDimensions, format, quality, originalDimensions]);
 
-  const originalUrl = useMemo(() => createObjectURL(file), [file]);
+  // ✅ Final cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    };
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -396,12 +320,13 @@ const RealTimePreview = ({
             )}
           </div>
           <div className="relative aspect-square md:aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-            <img
-              src={originalUrl}
-              alt="Original"
-              className="w-full h-full object-contain"
-            />
-            {!originalDimensions && (
+            {originalUrl ? (
+              <img
+                src={originalUrl}
+                alt="Original"
+                className="w-full h-full object-contain"
+              />
+            ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
               </div>
@@ -492,7 +417,7 @@ const RealTimePreview = ({
   );
 };
 
-// --- Image Preview Component ---
+// --- Image Preview (FIXED: proper URL cleanup) ---
 const ImagePreview = ({
   file,
   onRemove,
@@ -512,12 +437,21 @@ const ImagePreview = ({
   originalDimensions?: { width: number; height: number };
   newDimensions?: { width: number; height: number };
 }) => {
-  const url = useMemo(() => createObjectURL(file), [file]);
+  const [url, setUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  useMemo(() => {
-    return () => revokeObjectURL(url);
-  }, [url]);
+  // ✅ Proper object URL lifecycle
+  useEffect(() => {
+    if (!file) {
+      setUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
 
   const statusColor = status.includes("Resized")
     ? "text-green-600 dark:text-green-400"
@@ -531,9 +465,8 @@ const ImagePreview = ({
 
   return (
     <>
-      {/* Image Preview Modal */}
       <AnimatePresence>
-        {previewOpen && (
+        {previewOpen && url && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -566,7 +499,6 @@ const ImagePreview = ({
         )}
       </AnimatePresence>
 
-      {/* Preview Card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -575,28 +507,31 @@ const ImagePreview = ({
         className="relative group"
       >
         <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
-          {/* Image Number Badge */}
           <div className="absolute top-3 left-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
             #{index + 1}
           </div>
 
-          {/* Image Container */}
           <div
             className="relative w-full h-36 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden cursor-pointer group/image"
-            onClick={() => setPreviewOpen(true)}
+            onClick={() => url && setPreviewOpen(true)}
           >
-            <img
-              src={url}
-              alt={filename}
-              className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
-            />
+            {url ? (
+              <img
+                src={url}
+                alt={filename}
+                className="w-full h-full object-cover group-hover/image:scale-110 transition-transform duration-500"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-center justify-center">
               <Eye className="w-8 h-8 text-white" />
             </div>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/image:translate-x-full transition-transform duration-1000" />
           </div>
 
-          {/* File Info */}
           <div className="space-y-2">
             <p
               className="text-sm font-semibold truncate text-gray-900 dark:text-white"
@@ -605,7 +540,6 @@ const ImagePreview = ({
               {filename}
             </p>
 
-            {/* Dimensions Display */}
             {(originalDimensions || newDimensions) && (
               <div className="space-y-1">
                 {originalDimensions && (
@@ -644,8 +578,7 @@ const ImagePreview = ({
                 {status}
               </span>
 
-              {/* File Size */}
-              {file.size && (
+              {file.size !== undefined && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {(file.size / 1024).toFixed(1)} KB
                 </span>
@@ -653,9 +586,7 @@ const ImagePreview = ({
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            {/* Remove Button */}
             {onRemove && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -668,7 +599,6 @@ const ImagePreview = ({
               </motion.button>
             )}
 
-            {/* Download Button */}
             {isDownloadable && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -687,9 +617,8 @@ const ImagePreview = ({
   );
 };
 
-// --- Download Notification Component ---
-const DownloadNotification = ({
-  id,
+// --- Download Notification ---
+const DownloadNotificationCard = ({
   fileName,
   timestamp,
   onClose,
@@ -707,9 +636,7 @@ const DownloadNotification = ({
           <h4 className="font-bold text-sm mb-1">
             Image Resized Successfully! 🎉
           </h4>
-          <p className="text-xs opacity-90 truncate mb-1">
-            {fileName}
-          </p>
+          <p className="text-xs opacity-90 truncate mb-1">{fileName}</p>
           <p className="text-xs opacity-80 mb-2">
             Image successfully resized and ready for download
           </p>
@@ -744,7 +671,6 @@ export default function ResizeImage() {
   >([]);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  // Resize options state
   const [resizeOptions, setResizeOptions] = useState<ResizeOptions>({
     width: 1920,
     height: 1080,
@@ -753,7 +679,6 @@ export default function ResizeImage() {
     format: "jpg" as const,
   });
 
-  // Generate unique filename
   const generateUniqueFileName = (baseName: string, format: string) => {
     const timestamp = new Date().getTime();
     const randomId = Math.random().toString(36).substring(2, 9);
@@ -762,7 +687,6 @@ export default function ResizeImage() {
     return `${cleanBaseName}_${dimensions}_${timestamp}_${randomId}.${format}`;
   };
 
-  // Auto-scroll notifications
   useEffect(() => {
     if (notificationsRef.current && downloadNotifications.length > 0) {
       notificationsRef.current.scrollTop =
@@ -871,13 +795,11 @@ export default function ResizeImage() {
 
   return (
     <>
-      {/* SEO Schema */}
       <FAQSchema />
       <BreadcrumbSchema />
       <HowToSchema />
       <ArticleSchema />
 
-      {/* Download Success Notifications */}
       <div className="fixed top-4 right-4 z-50 w-[calc(100%-2rem)] max-w-xs sm:max-w-sm">
         <div
           ref={notificationsRef}
@@ -885,7 +807,7 @@ export default function ResizeImage() {
         >
           <AnimatePresence>
             {downloadNotifications.map((notification) => (
-              <DownloadNotification
+              <DownloadNotificationCard
                 key={notification.id}
                 {...notification}
                 onClose={() =>
@@ -906,7 +828,7 @@ export default function ResizeImage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* --- Header Section --- */}
+            {/* Header */}
             <div className="mb-8 md:mb-12">
               <a
                 href="/"
@@ -942,7 +864,7 @@ export default function ResizeImage() {
               </div>
             </div>
 
-            {/* --- Features Grid --- */}
+            {/* Features */}
             <AnimatePresence>
               {showFeatures && (
                 <motion.div
@@ -1008,9 +930,9 @@ export default function ResizeImage() {
               )}
             </AnimatePresence>
 
-            {/* --- Main Resizer Card --- */}
+            {/* Main Resizer Card */}
             <div className="bg-white dark:bg-gray-900 rounded-xl md:rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl md:shadow-2xl p-4 md:p-6 mb-8">
-              {/* Upload Section */}
+              {/* Upload */}
               <div className="mb-6 md:mb-8">
                 <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
                   <div className="p-2 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl">
@@ -1026,14 +948,12 @@ export default function ResizeImage() {
                   </div>
                 </div>
 
-                {/* ─── 🔥 UPDATED: FileUploader – no limits ─── */}
                 <FileUploader
                   accept="image/*"
                   multiple={false}
                   onFilesSelected={handleFileSelected}
                 />
 
-                {/* Selected File Summary */}
                 {hasFile && (
                   <div className="mt-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl">
@@ -1063,10 +983,10 @@ export default function ResizeImage() {
                 )}
               </div>
 
-              {/* --- Two Column Layout: Resize Options (Left) + Live Preview (Right) --- */}
+              {/* Two Column Layout */}
               {hasFile && file && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 md:mb-8">
-                  {/* Left Column - Resize Options */}
+                  {/* Left: Resize Options */}
                   <div className="bg-gradient-to-br from-gray-50 to-green-50 dark:from-gray-800 dark:to-green-950/20 rounded-xl p-4 md:p-6 border border-gray-200 dark:border-gray-700 order-2 lg:order-1">
                     <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                       <Maximize2 className="w-5 h-5 text-green-500" />
@@ -1074,7 +994,6 @@ export default function ResizeImage() {
                     </h3>
 
                     <div className="space-y-6">
-                      {/* Custom Dimensions */}
                       <div>
                         <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3 text-base">
                           Custom Dimensions
@@ -1117,7 +1036,6 @@ export default function ResizeImage() {
                         </div>
                       </div>
 
-                      {/* Aspect Ratio Toggle */}
                       <div className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-green-50 dark:from-gray-800 dark:to-green-900/20 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
                           <h4 className="font-medium text-gray-700 dark:text-gray-300 text-base">
@@ -1150,7 +1068,6 @@ export default function ResizeImage() {
                         </button>
                       </div>
 
-                      {/* Output Format */}
                       <div>
                         <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-3 text-base">
                           Output Format
@@ -1177,7 +1094,6 @@ export default function ResizeImage() {
                         </div>
                       </div>
 
-                      {/* Quality Slider */}
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <h4 className="font-medium text-gray-700 dark:text-gray-300 text-base">
@@ -1208,7 +1124,7 @@ export default function ResizeImage() {
                     </div>
                   </div>
 
-                  {/* Right Column - Live Preview */}
+                  {/* Right: Live Preview */}
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-4 md:p-6 border border-blue-200 dark:border-blue-700 order-1 lg:order-2">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1236,10 +1152,9 @@ export default function ResizeImage() {
                 </div>
               )}
 
-              {/* --- File Preview and Resize Area --- */}
+              {/* Preview + Action */}
               {hasFile && (
                 <div className="space-y-6 md:space-y-8">
-                  {/* --- Input Image Preview --- */}
                   <div className="space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                       <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -1247,12 +1162,11 @@ export default function ResizeImage() {
                         Uploaded Image Preview
                       </h3>
 
+                      {/* ✅ FIXED: change image resets state */}
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() =>
-                          document.getElementById("file-upload")?.click()
-                        }
+                        onClick={handleReset}
                         className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg flex items-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
@@ -1260,7 +1174,6 @@ export default function ResizeImage() {
                       </motion.button>
                     </div>
 
-                    {/* Image Preview Container */}
                     <div className="w-full flex justify-center p-4 bg-gradient-to-br from-gray-50 to-green-50 dark:from-gray-800 dark:to-green-950/20 rounded-xl border border-gray-200 dark:border-gray-700">
                       <div className="w-full max-w-md">
                         <ImagePreview
@@ -1274,7 +1187,6 @@ export default function ResizeImage() {
                     </div>
                   </div>
 
-                  {/* --- Progress and Action Buttons --- */}
                   <div className="space-y-6">
                     {resizing && (
                       <div className="space-y-4">
@@ -1301,10 +1213,13 @@ export default function ResizeImage() {
                         className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all text-lg flex items-center justify-center gap-3"
                       >
                         <Maximize2 className="w-5 h-5" />
-                        {resizeOptions.width >= 3840 ? "Resize to 3840×2160" :
-                         resizeOptions.width >= 2560 ? "Resize to 2560×1440" :
-                         resizeOptions.width >= 1920 ? "Resize to 1920×1080" :
-                         `Resize to ${resizeOptions.width}×${resizeOptions.height}`}
+                        {resizeOptions.width >= 3840
+                          ? "Resize to 3840×2160"
+                          : resizeOptions.width >= 2560
+                          ? "Resize to 2560×1440"
+                          : resizeOptions.width >= 1920
+                          ? "Resize to 1920×1080"
+                          : `Resize to ${resizeOptions.width}×${resizeOptions.height}`}
                         <Zap className="w-5 h-5" />
                       </motion.button>
                     )}
@@ -1313,14 +1228,13 @@ export default function ResizeImage() {
               )}
             </div>
 
-            {/* --- Results and Download Area --- */}
+            {/* Results */}
             {hasResult && resizedFile && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl md:rounded-2xl border border-green-200 dark:border-green-800/50 p-4 md:p-8 shadow-xl mb-8"
               >
-                {/* Success Header */}
                 <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6 md:mb-8">
                   <div className="flex items-center justify-center md:justify-start">
                     <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg">
@@ -1332,10 +1246,8 @@ export default function ResizeImage() {
                       Resizing Complete! 🎉
                     </h2>
                     <p className="text-green-700 dark:text-green-300 font-medium text-base md:text-lg">
-                      {resizeOptions.width >= 3840 ? "Successfully resized to 3840×2160" :
-                       resizeOptions.width >= 2560 ? "Successfully resized to 2560×1440" :
-                       resizeOptions.width >= 1920 ? "Successfully resized to 1920×1080" :
-                       `Successfully resized to ${resizeOptions.width}×${resizeOptions.height}`}
+                      Successfully resized to {resizedFile.newSize.width}×
+                      {resizedFile.newSize.height}
                     </p>
                     <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                       Format: {resizeOptions.format.toUpperCase()} • Quality:{" "}
@@ -1349,14 +1261,12 @@ export default function ResizeImage() {
                   </div>
                 </div>
 
-                {/* --- Output Resized Preview --- */}
                 <div className="space-y-4 mb-6 md:mb-8">
                   <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Download className="w-5 h-5 text-green-500" />
                     Resized Image
                   </h3>
 
-                  {/* Image Preview Container */}
                   <div className="w-full flex justify-center p-4 bg-white/60 dark:bg-gray-900/60 rounded-xl border border-green-100 dark:border-green-800/30">
                     <div className="w-full max-w-md">
                       <ImagePreview
@@ -1372,9 +1282,7 @@ export default function ResizeImage() {
                   </div>
                 </div>
 
-                {/* --- Download Button --- */}
                 <div className="space-y-6">
-                  {/* Download Button */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -1386,7 +1294,6 @@ export default function ResizeImage() {
                     <Sparkles className="w-5 h-5" />
                   </motion.button>
 
-                  {/* Resize More Button */}
                   <div className="text-center">
                     <button
                       onClick={handleReset}
@@ -1400,7 +1307,7 @@ export default function ResizeImage() {
               </motion.div>
             )}
 
-            {/* --- Stats Footer --- */}
+            {/* Stats Footer */}
             <div className="mt-10 md:mt-14">
               <div className="max-w-6xl mx-auto">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
@@ -1426,13 +1333,14 @@ export default function ResizeImage() {
                       bg: "bg-emerald-50 dark:bg-emerald-900/10",
                     },
                     {
-                      value: resizedFile
-                        ? `${(
-                            ((file!.size - resizedFile.blob.size) /
-                              file!.size) *
-                            100
-                          ).toFixed(1)}%`
-                        : "0%",
+                      value:
+                        resizedFile && file
+                          ? `${(
+                              ((file.size - resizedFile.blob.size) /
+                                file.size) *
+                              100
+                            ).toFixed(1)}%`
+                          : "0%",
                       label: "Size Change",
                       color: "text-purple-600",
                       bg: "bg-purple-50 dark:bg-purple-900/10",
@@ -1443,7 +1351,7 @@ export default function ResizeImage() {
                       className={`flex flex-col justify-center items-center rounded-xl border border-gray-200 dark:border-gray-800 ${stat.bg} p-4 md:p-6 shadow-sm hover:shadow-lg transition-all duration-300`}
                     >
                       <div
-                        className={`text-xl md:text-2xl font-extrabold ${stat.color} dark:${stat.color.replace("600", "400")}`}
+                        className={`text-xl md:text-2xl font-extrabold ${stat.color}`}
                       >
                         {stat.value}
                       </div>
@@ -1456,7 +1364,7 @@ export default function ResizeImage() {
               </div>
             </div>
 
-            {/* How-to Steps Section */}
+            {/* How-to */}
             <section className="mt-12 md:mt-20">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-10">
                 How to Resize Images Online
@@ -1487,12 +1395,14 @@ export default function ResizeImage() {
                 ].map((step, index) => (
                   <div
                     key={index}
-                    className="border rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800"
+                    className="border rounded-xl p-6 text-center shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700"
                   >
                     <div className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400 mb-2">
                       {step.number}
                     </div>
-                    <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
+                    <h3 className="font-semibold text-lg mb-2 dark:text-white">
+                      {step.title}
+                    </h3>
                     <p className="text-gray-600 dark:text-gray-400 text-sm">
                       {step.desc}
                     </p>
@@ -1501,7 +1411,7 @@ export default function ResizeImage() {
               </div>
             </section>
 
-            {/* Explore All Tools Section */}
+            {/* Explore Tools */}
             <div className="mb-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
@@ -1515,10 +1425,10 @@ export default function ResizeImage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                {exploreTools.slice(0, 8).map((tool, index) => (
+                {exploreTools.slice(0, 8).map((toolItem, index) => (
                   <motion.a
-                    key={tool.id}
-                    href={tool.href}
+                    key={toolItem.id}
+                    href={toolItem.href}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
@@ -1527,18 +1437,18 @@ export default function ResizeImage() {
                   >
                     <div className="flex items-start gap-3 md:gap-4">
                       <div
-                        className={`p-2 md:p-3 bg-gradient-to-br ${tool.color} rounded-xl shadow-lg`}
+                        className={`p-2 md:p-3 bg-gradient-to-br ${toolItem.color} rounded-xl shadow-lg`}
                       >
                         <span className="text-lg md:text-xl">
-                          {tool.icon}
+                          {toolItem.icon}
                         </span>
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-gray-900 dark:text-white text-base md:text-lg mb-1 md:mb-2 group-hover:text-blue-600 dark:group-hover:text-cyan-400 transition-colors">
-                          {tool.name}
+                          {toolItem.name}
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base mb-3 md:mb-4">
-                          {tool.description}
+                          {toolItem.description}
                         </p>
                         <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 font-medium text-sm">
                           <span>Use Tool</span>
@@ -1559,7 +1469,7 @@ export default function ResizeImage() {
                 </Link>
               </div>
 
-              {/* Visible FAQ Section */}
+              {/* FAQ */}
               <section className="max-w-3xl mx-auto my-12 md:my-16">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">

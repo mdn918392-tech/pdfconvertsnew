@@ -3,13 +3,18 @@
 import imageCompression from 'browser-image-compression';
 import { PDFDocument, rgb } from 'pdf-lib';
 
-// Interface for PDF settings - CORRECTED TYPES
+// ============================================================
+// TYPES
+// ============================================================
+
 export interface PdfSettings {
-  paperSize: 'AA' | 'A3' | 'Letter' | 'Legal';
+  paperSize: 'A4' | 'A3' | 'Letter' | 'Legal';
   orientation: 'portrait' | 'landscape';
   reverseOrder: boolean;
   imagesPerPage: 1 | 2 | 4;
 }
+
+type TimeoutHandle = ReturnType<typeof setTimeout>;
 
 // ============================================================
 // 1. DEVICE DETECTION HELPERS
@@ -17,31 +22,348 @@ export interface PdfSettings {
 
 const isMobileDevice = (): boolean => {
   if (typeof window === 'undefined') return false;
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  ) || window.innerWidth < 768;
+  return (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    ) || window.innerWidth < 768
+  );
 };
 
 const getDeviceLimits = () => {
   const isMobile = isMobileDevice();
   return {
     isMobile,
-    MAX_FILE_SIZE: isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024, // 30MB mobile, 200MB desktop
-    MAX_DIMENSION: isMobile ? 4000 : 8000,
-    MAX_PIXELS: isMobile ? 4000 * 4000 : 8000 * 8000,
+    MAX_FILE_SIZE: isMobile ? 30 * 1024 * 1024 : 200 * 1024 * 1024,
+    MAX_DIMENSION: isMobile ? 4096 : 8192,
+    MAX_PIXELS: isMobile ? 2048 * 2048 : 4096 * 4096,
     MAX_IMAGE_SIZE_MB: isMobile ? 30 : 200,
-    TIMEOUT_MS: isMobile ? 15000 : 8000,
+    TIMEOUT_MS: isMobile ? 30000 : 15000,
     DEFAULT_QUALITY: isMobile ? 0.75 : 0.85,
   };
 };
 
 // ============================================================
-// 2. IMAGE COMPRESSION - MAIN FUNCTION
+// 2. PNG → JPG CONVERSION (real canvas re-encode)
 // ============================================================
 
-/**
- * Compress an image file with retry logic for mobile devices
- */
+export async function convertPngToJpg(
+  file: File | Blob,
+  quality = 0.9
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      reject(new Error('This function can only run in the browser'));
+      return;
+    }
+
+    const limits = getDeviceLimits();
+
+    if (!file || file.size === 0) {
+      reject(new Error('File is empty or corrupted'));
+      return;
+    }
+
+    if (file.size > limits.MAX_FILE_SIZE) {
+      reject(
+        new Error(
+          `File size too large (${(file.size / 1024 / 1024).toFixed(1)}MB). ` +
+            `Maximum supported is ${limits.MAX_IMAGE_SIZE_MB}MB for ${
+              limits.isMobile ? 'mobile' : 'desktop'
+            }.`
+        )
+      );
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    let loadTimeout: TimeoutHandle | null = null;
+    let settled = false;
+
+    const cleanup = () => {
+      if (loadTimeout) {
+        clearTimeout(loadTimeout);
+        loadTimeout = null;
+      }
+      img.onload = null;
+      img.onerror = null;
+      img.src = '';
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    const succeed = (blob: Blob) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(blob);
+    };
+
+    img.onload = () => {
+      if (loadTimeout) {
+        clearTimeout(loadTimeout);
+        loadTimeout = null;
+      }
+
+      try {
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+
+        if (!width || !height) {
+          return fail(new Error('Image has zero dimensions'));
+        }
+
+        const currentPixels = width * height;
+        if (currentPixels > limits.MAX_PIXELS) {
+          const scale = Math.sqrt(limits.MAX_PIXELS / currentPixels);
+          width = Math.floor(width * scale);
+          height = Math.floor(height * scale);
+        }
+
+        if (width > limits.MAX_DIMENSION || height > limits.MAX_DIMENSION) {
+          const ratio = Math.min(
+            limits.MAX_DIMENSION / width,
+            limits.MAX_DIMENSION / height
+          );
+          width = Math.floor(width * ratio);
+          height = Math.floor(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d', { alpha: false });
+        if (!ctx) return fail(new Error('Canvas context not available'));
+
+        // White bg for transparency (JPEG has no alpha)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const finalQuality = limits.isMobile
+          ? Math.min(quality, 0.85)
+          : quality;
+
+        if (typeof canvas.toBlob === 'function') {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob || blob.size === 0) {
+                return fail(new Error('Conversion produced empty JPEG'));
+              }
+              if (blob.type !== 'image/jpeg') {
+                return fail(
+                  new Error(`Expected image/jpeg, got ${blob.type}`)
+                );
+              }
+              succeed(blob);
+            },
+            'image/jpeg',
+            finalQuality
+          );
+        } else {
+          // Safari fallback
+          try {
+            const dataUrl = canvas.toDataURL('image/jpeg', finalQuality);
+            const base64 = dataUrl.split(',')[1];
+            const bin = atob(base64);
+            const buf = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+            succeed(new Blob([buf], { type: 'image/jpeg' }));
+          } catch (e: any) {
+            fail(new Error(`toDataURL fallback failed: ${e.message}`));
+          }
+        }
+      } catch (error: any) {
+        fail(new Error(`Image processing error: ${error.message}`));
+      }
+    };
+
+    img.onerror = () =>
+      fail(
+        new Error('Failed to load image. The file may be corrupted or too large.')
+      );
+
+    loadTimeout = setTimeout(() => {
+      fail(new Error(`Image loading timeout (${limits.TIMEOUT_MS}ms)`));
+    }, limits.TIMEOUT_MS);
+
+    img.src = objectUrl;
+  });
+}
+
+// ============================================================
+// 3. WEBP → JPG CONVERSION (real canvas re-encode)
+// ============================================================
+
+export const convertWebpToJpg = (
+  file: File | Blob,
+  quality = 0.92
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      reject(new Error('This function can only run in the browser'));
+      return;
+    }
+
+    const limits = getDeviceLimits();
+
+    if (!file || file.size === 0) {
+      reject(new Error('File is empty or corrupted'));
+      return;
+    }
+
+    if (file.size > limits.MAX_FILE_SIZE) {
+      reject(
+        new Error(
+          `File size too large (${(file.size / 1024 / 1024).toFixed(1)}MB). ` +
+            `Maximum supported is ${limits.MAX_IMAGE_SIZE_MB}MB for ${
+              limits.isMobile ? 'mobile' : 'desktop'
+            }.`
+        )
+      );
+      return;
+    }
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    let timeout: TimeoutHandle | null = null;
+    let settled = false;
+
+    const cleanup = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      img.onload = null;
+      img.onerror = null;
+      img.src = '';
+      URL.revokeObjectURL(url);
+    };
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    const succeed = (out: Blob) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(out);
+    };
+
+    timeout = setTimeout(() => {
+      fail(new Error(`WebP conversion timeout (${limits.TIMEOUT_MS}ms)`));
+    }, limits.TIMEOUT_MS);
+
+    img.onload = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+
+      try {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+
+        if (!w || !h) {
+          return fail(new Error('WebP image has zero dimensions'));
+        }
+
+        let width = w;
+        let height = h;
+
+        // Scale down huge images
+        const currentPixels = width * height;
+        if (currentPixels > limits.MAX_PIXELS) {
+          const scale = Math.sqrt(limits.MAX_PIXELS / currentPixels);
+          width = Math.floor(width * scale);
+          height = Math.floor(height * scale);
+        }
+
+        if (width > limits.MAX_DIMENSION || height > limits.MAX_DIMENSION) {
+          const ratio = Math.min(
+            limits.MAX_DIMENSION / width,
+            limits.MAX_DIMENSION / height
+          );
+          width = Math.floor(width * ratio);
+          height = Math.floor(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d', { alpha: false });
+        if (!ctx) return fail(new Error('Canvas context not available'));
+
+        // White background (JPEG has no alpha)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        if (typeof canvas.toBlob === 'function') {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob || blob.size === 0) {
+                return fail(new Error('WebP→JPG produced empty blob'));
+              }
+              if (blob.type !== 'image/jpeg') {
+                return fail(
+                  new Error(`Expected image/jpeg, got ${blob.type}`)
+                );
+              }
+              succeed(blob);
+            },
+            'image/jpeg',
+            quality
+          );
+        } else {
+          // Safari fallback
+          try {
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            const base64 = dataUrl.split(',')[1];
+            const bin = atob(base64);
+            const buf = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+            succeed(new Blob([buf], { type: 'image/jpeg' }));
+          } catch (e: any) {
+            fail(new Error(`toDataURL fallback failed: ${e.message}`));
+          }
+        }
+      } catch (error: any) {
+        fail(new Error(`WebP processing error: ${error.message}`));
+      }
+    };
+
+    img.onerror = () =>
+      fail(
+        new Error('Failed to decode WebP. File may be corrupted or unsupported.')
+      );
+
+    img.src = url;
+  });
+};
+
+// ============================================================
+// 4. IMAGE COMPRESSION
+// ============================================================
+
 export async function compressImage(
   file: File | Blob,
   quality = 0.8,
@@ -49,47 +371,22 @@ export async function compressImage(
 ): Promise<Blob> {
   const limits = getDeviceLimits();
   const maxRetries = 2;
-  
+
   try {
-    // Validate file
     if (!file || file.size === 0) {
       throw new Error('File is empty or corrupted');
     }
 
-    // Check file size limit
     if (file.size > limits.MAX_FILE_SIZE) {
       throw new Error(
         `File size too large (${(file.size / 1024 / 1024).toFixed(1)}MB). ` +
-        `Maximum supported file size is ${limits.MAX_IMAGE_SIZE_MB}MB for ${limits.isMobile ? 'mobile' : 'desktop'} devices.`
+          `Maximum supported file size is ${limits.MAX_IMAGE_SIZE_MB}MB for ${
+            limits.isMobile ? 'mobile' : 'desktop'
+          } devices.`
       );
     }
 
-    // For PNG files, convert to JPG first
-    if (file instanceof File && file.type === 'image/png') {
-      const jpgBlob = await convertPngToJpg(file);
-      
-      // Then compress the JPG
-      const options = {
-        maxSizeMB: limits.isMobile ? 1 : 5,
-        maxWidthOrHeight: limits.isMobile ? 1920 : 4096,
-        useWebWorker: true,
-        initialQuality: quality,
-        onProgress: undefined,
-      };
-      
-      const jpgFile = new File([jpgBlob], 'converted.jpg', { type: 'image/jpeg' });
-      const compressedFile = await imageCompression(jpgFile, options);
-      
-      // Validate compression result
-      if (!compressedFile || compressedFile.size === 0) {
-        throw new Error('Compression resulted in empty file');
-      }
-      
-      return compressedFile;
-    }
-    
-    // For JPG files, compress directly
-    const options = {
+    const options: any = {
       maxSizeMB: limits.isMobile ? 1 : 5,
       maxWidthOrHeight: limits.isMobile ? 1920 : 4096,
       useWebWorker: true,
@@ -97,210 +394,149 @@ export async function compressImage(
       onProgress: undefined,
     };
 
+    if (file instanceof File && file.type === 'image/png') {
+      const jpgBlob = await convertPngToJpg(file);
+      const jpgFile = new File([jpgBlob], 'converted.jpg', {
+        type: 'image/jpeg',
+      });
+      const compressedFile = await imageCompression(jpgFile, options);
+
+      if (!compressedFile || compressedFile.size === 0) {
+        throw new Error('Compression resulted in empty file');
+      }
+      return compressedFile;
+    }
+
     let fileToCompress: File;
-    
     if (file instanceof Blob && !(file instanceof File)) {
-      fileToCompress = new File([file], 'image.jpg', { type: 'image/jpeg' });
+      fileToCompress = new File([file], 'image.jpg', {
+        type: file.type || 'image/jpeg',
+      });
     } else {
       fileToCompress = file as File;
     }
-    
+
     const compressedFile = await imageCompression(fileToCompress, options);
-    
-    // Validate compression result
+
     if (!compressedFile || compressedFile.size === 0) {
       throw new Error('Compression resulted in empty file');
     }
-    
-    // If compressed file is larger than original and quality is not too low, retry with lower quality
-    if (compressedFile.size > fileToCompress.size && quality > 0.4 && retryCount < maxRetries) {
+
+    if (
+      compressedFile.size > fileToCompress.size &&
+      quality > 0.4 &&
+      retryCount < maxRetries
+    ) {
       const newQuality = Math.max(quality - 0.2, 0.3);
-      console.log(`Retry ${retryCount + 1}: Compressing with quality ${newQuality}`);
       return await compressImage(file, newQuality, retryCount + 1);
     }
-    
+
     return compressedFile;
-    
   } catch (error: any) {
     console.error('Compression error:', error);
-    
-    // Retry with lower quality if possible
+
     if (retryCount < maxRetries && quality > 0.3) {
       const newQuality = Math.max(quality - 0.2, 0.3);
-      console.log(`Retry ${retryCount + 1} with quality ${newQuality}`);
       return await compressImage(file, newQuality, retryCount + 1);
     }
-    
-    // Final fallback: return original file
+
     if (file instanceof Blob && file.size > 0) {
       console.warn('Using original file as fallback');
       return file.slice(0, file.size, file.type);
     }
-    
+
     throw new Error(`Failed to compress image: ${error.message}`);
   }
 }
 
-// ============================================================
-// 3. PNG TO JPG CONVERSION
-// ============================================================
-
 /**
- * Convert PNG to JPG with white background - Optimized for mobile
+ * Compress image and (by default) force output as real JPEG.
+ * - PNG (or any format) with forceJpeg=true → real JPEG re-encode via canvas
+ * - Verifies output MIME type
  */
-export async function convertPngToJpg(file: File | Blob, quality = 0.9): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    // Check if running in browser
-    if (typeof window === 'undefined') {
-      reject(new Error('This function can only run in the browser'));
-      return;
-    }
-
-    const limits = getDeviceLimits();
-    
-    // File size check
-    if (file.size > limits.MAX_FILE_SIZE) {
-      reject(new Error(
-        `File size too large (${(file.size/1024/1024).toFixed(1)}MB). ` +
-        `Maximum supported file size is ${limits.MAX_IMAGE_SIZE_MB}MB for ${limits.isMobile ? 'mobile' : 'desktop'} devices.`
-      ));
-      return;
-    }
-
-    const img = new Image();
-    const reader = new FileReader();
-    let loadTimeout: NodeJS.Timeout;
-
-    const cleanup = () => {
-      if (loadTimeout) clearTimeout(loadTimeout);
-      URL.revokeObjectURL(img.src);
-      img.onload = null;
-      img.onerror = null;
-    };
-
-    reader.onload = () => {
-      img.src = reader.result as string;
-    };
-
-    img.onload = () => {
-      try {
-        let width = img.width;
-        let height = img.height;
-        
-        // Calculate current pixels
-        const currentPixels = width * height;
-        
-        // Scale down if too large
-        if (currentPixels > limits.MAX_PIXELS) {
-          const scale = Math.sqrt(limits.MAX_PIXELS / currentPixels);
-          width = Math.floor(width * scale);
-          height = Math.floor(height * scale);
-        }
-        
-        // Dimension limit check
-        if (width > limits.MAX_DIMENSION || height > limits.MAX_DIMENSION) {
-          const ratio = Math.min(limits.MAX_DIMENSION / width, limits.MAX_DIMENSION / height);
-          width = Math.floor(width * ratio);
-          height = Math.floor(height * ratio);
-        }
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          cleanup();
-          reject(new Error('Canvas context not available'));
-          return;
-        }
-
-        // White background for PNG transparency
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // High-quality rendering
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Quality adjustment based on device
-        const finalQuality = limits.isMobile ? Math.min(quality, 0.85) : quality;
-        
-        canvas.toBlob(
-          (blob) => {
-            cleanup();
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to convert PNG to JPG'));
-            }
-          },
-          'image/jpeg',
-          finalQuality
-        );
-      } catch (error: any) {
-        cleanup();
-        reject(new Error(`Image processing error: ${error.message}`));
-      }
-    };
-
-    img.onerror = () => {
-      cleanup();
-      reject(new Error('Failed to load image. The file may be corrupted or too large.'));
-    };
-    
-    reader.onerror = () => {
-      cleanup();
-      reject(new Error('Failed to read file'));
-    };
-
-    // Set timeout for image loading
-    loadTimeout = setTimeout(() => {
-      cleanup();
-      reject(new Error(`Image loading timeout (${limits.TIMEOUT_MS}ms)`));
-    }, limits.TIMEOUT_MS);
-    
-    reader.readAsDataURL(file);
-  });
-}
-
 export async function compressImageAll(
   file: File | Blob,
-  quality = 0.8
+  quality = 0.8,
+  forceJpeg = true
 ): Promise<Blob> {
   try {
-    const options = {
+    if (!file || file.size === 0) {
+      throw new Error('File is empty or corrupted');
+    }
+
+    const isPng =
+      file.type === 'image/png' ||
+      (file instanceof File && file.name.toLowerCase().endsWith('.png'));
+
+    // PNG with forceJpeg → convert via canvas first
+    if (forceJpeg && isPng) {
+      const jpgBlob = await convertPngToJpg(file, quality);
+      const jpgFile = new File([jpgBlob], 'temp.jpg', { type: 'image/jpeg' });
+
+      const options: any = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        initialQuality: quality,
+        fileType: 'image/jpeg',
+      };
+
+      const compressed = await imageCompression(jpgFile, options);
+
+      if (!compressed || compressed.size === 0) {
+        throw new Error('Compression produced empty file');
+      }
+      if (forceJpeg && compressed.type !== 'image/jpeg') {
+        throw new Error(`Expected image/jpeg, got ${compressed.type}`);
+      }
+      return compressed;
+    }
+
+    let fileToCompress: File;
+    if (file instanceof Blob && !(file instanceof File)) {
+      fileToCompress = new File([file], 'image.jpg', {
+        type: file.type || 'image/jpeg',
+      });
+    } else {
+      fileToCompress = file as File;
+    }
+
+    const options: any = {
       maxSizeMB: 1,
       maxWidthOrHeight: 1920,
       useWebWorker: true,
       initialQuality: quality,
     };
 
-    let fileToCompress: File;
-    
-    if (file instanceof Blob && !(file instanceof File)) {
-      // Convert Blob to File
-      fileToCompress = new File([file], 'image.jpg', { type: file.type || 'image/jpeg' });
-    } else {
-      fileToCompress = file as File;
+    if (forceJpeg) {
+      options.fileType = 'image/jpeg';
     }
-    
-    const compressedFile = await imageCompression(fileToCompress, options);
-    return compressedFile;
-    
+
+    const compressed = await imageCompression(fileToCompress, options);
+
+    if (!compressed || compressed.size === 0) {
+      throw new Error('Compression produced empty file');
+    }
+
+    if (forceJpeg && compressed.type !== 'image/jpeg') {
+      console.warn(
+        `compressImageAll: got ${compressed.type}, forcing JPEG via canvas`
+      );
+      const forcedJpeg = await convertPngToJpg(compressed, quality);
+      return forcedJpeg;
+    }
+
+    return compressed;
   } catch (error) {
     console.error('Compression error:', error);
     throw new Error('Failed to compress image');
   }
 }
+
 // ============================================================
-// 4. IMAGE PROCESSING HELPERS
+// 5. IMAGE PROCESSING FOR PDF
 // ============================================================
 
-/**
- * Process image for PDF with transformations
- */
 export const processImageForPdf = async (
   blob: Blob,
   options: { flipHorizontal?: boolean; flipVertical?: boolean } = {}
@@ -309,40 +545,64 @@ export const processImageForPdf = async (
     const limits = getDeviceLimits();
     const img = new Image();
     const url = URL.createObjectURL(blob);
-    let timeout: NodeJS.Timeout;
+    let timeout: TimeoutHandle | null = null;
+    let settled = false;
 
     const cleanup = () => {
-      if (timeout) clearTimeout(timeout);
-      URL.revokeObjectURL(url);
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
       img.onload = null;
       img.onerror = null;
+      img.src = '';
+      URL.revokeObjectURL(url);
+    };
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    const succeed = (out: Blob) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(out);
     };
 
     timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error(`Image loading timeout for PDF processing`));
+      fail(new Error('Image loading timeout for PDF processing'));
     }, limits.TIMEOUT_MS);
 
     img.onload = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+
       try {
         const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
 
         const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          cleanup();
-          reject(new Error('Canvas context not available'));
-          return;
-        }
+        if (!ctx) return fail(new Error('Canvas context not available'));
 
-        // Apply transformations
         if (options.flipHorizontal || options.flipVertical) {
           ctx.save();
           ctx.translate(canvas.width / 2, canvas.height / 2);
           if (options.flipHorizontal) ctx.scale(-1, 1);
           if (options.flipVertical) ctx.scale(1, -1);
-          ctx.drawImage(img, -img.width / 2, -img.height / 2);
+          ctx.drawImage(
+            img,
+            -canvas.width / 2,
+            -canvas.height / 2,
+            canvas.width,
+            canvas.height
+          );
           ctx.restore();
         } else {
           ctx.drawImage(img, 0, 0);
@@ -350,33 +610,26 @@ export const processImageForPdf = async (
 
         canvas.toBlob(
           (newBlob) => {
-            cleanup();
-            if (newBlob) {
-              resolve(newBlob);
-            } else {
-              reject(new Error('Failed to create blob'));
+            if (!newBlob || newBlob.size === 0) {
+              return fail(new Error('Failed to create blob'));
             }
+            succeed(newBlob);
           },
           'image/jpeg',
           0.95
         );
-      } catch (error) {
-        cleanup();
-        reject(error);
+      } catch (error: any) {
+        fail(error);
       }
     };
 
-    img.onerror = () => {
-      cleanup();
-      reject(new Error('Failed to load image'));
-    };
-
+    img.onerror = () => fail(new Error('Failed to load image'));
     img.src = url;
   });
 };
 
 // ============================================================
-// 5. IMAGE RESIZE
+// 6. IMAGE RESIZE
 // ============================================================
 
 export const resizeImage = async (
@@ -391,26 +644,51 @@ export const resizeImage = async (
     const img = new Image();
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    let timeout: NodeJS.Timeout;
+    const url = URL.createObjectURL(file);
+    let timeout: TimeoutHandle | null = null;
+    let settled = false;
 
     if (!ctx) {
+      URL.revokeObjectURL(url);
       reject(new Error('Canvas context not available'));
       return;
     }
 
     const cleanup = () => {
-      if (timeout) clearTimeout(timeout);
-      URL.revokeObjectURL(img.src);
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
       img.onload = null;
       img.onerror = null;
+      img.src = '';
+      URL.revokeObjectURL(url);
+    };
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    const succeed = (out: Blob) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(out);
     };
 
     timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error(`Image resize timeout (${limits.TIMEOUT_MS}ms)`));
+      fail(new Error(`Image resize timeout (${limits.TIMEOUT_MS}ms)`));
     }, limits.TIMEOUT_MS);
 
     img.onload = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+
       try {
         canvas.width = width;
         canvas.height = height;
@@ -421,93 +699,21 @@ export const resizeImage = async (
 
         canvas.toBlob(
           (blob) => {
-            cleanup();
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to create blob'));
+            if (!blob || blob.size === 0) {
+              return fail(new Error('Failed to create blob'));
             }
+            succeed(blob);
           },
           `image/${format}`,
           quality / 100
         );
-      } catch (error) {
-        cleanup();
-        reject(error);
+      } catch (error: any) {
+        fail(error);
       }
     };
 
-    img.onerror = () => {
-      cleanup();
-      reject(new Error('Failed to load image'));
-    };
-
-    img.src = URL.createObjectURL(file);
-  });
-};
-
-// ============================================================
-// 6. WEBP TO JPG CONVERSION
-// ============================================================
-
-export const convertWebpToJpg = (file: File): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const limits = getDeviceLimits();
-    const img = new Image();
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    let timeout: NodeJS.Timeout;
-
-    if (!ctx) {
-      reject(new Error("Canvas context not available"));
-      return;
-    }
-
-    const cleanup = () => {
-      if (timeout) clearTimeout(timeout);
-      URL.revokeObjectURL(img.src);
-      img.onload = null;
-      img.onerror = null;
-    };
-
-    timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error(`WebP conversion timeout (${limits.TIMEOUT_MS}ms)`));
-    }, limits.TIMEOUT_MS);
-
-    img.onload = () => {
-      try {
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0);
-
-        canvas.toBlob(
-          (blob) => {
-            cleanup();
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error("Failed to convert WebP to JPG"));
-            }
-          },
-          "image/jpeg",
-          0.92
-        );
-      } catch (error) {
-        cleanup();
-        reject(error);
-      }
-    };
-
-    img.onerror = () => {
-      cleanup();
-      reject(new Error("Failed to load WebP image"));
-    };
-
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => fail(new Error('Failed to load image'));
+    img.src = url;
   });
 };
 
@@ -515,73 +721,105 @@ export const convertWebpToJpg = (file: File): Promise<Blob> => {
 // 7. IMAGE ROTATION
 // ============================================================
 
-export const rotateImage = (file: File, degrees: number): Promise<Blob> => {
+export const rotateImage = (
+  file: File,
+  degrees: number,
+  outputMime: string = 'image/jpeg'
+): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const limits = getDeviceLimits();
     const img = new Image();
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    let timeout: NodeJS.Timeout;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const url = URL.createObjectURL(file);
+    let timeout: TimeoutHandle | null = null;
+    let settled = false;
 
     if (!ctx) {
-      reject(new Error("Canvas context not available"));
+      URL.revokeObjectURL(url);
+      reject(new Error('Canvas context not available'));
       return;
     }
 
     const cleanup = () => {
-      if (timeout) clearTimeout(timeout);
-      URL.revokeObjectURL(img.src);
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
       img.onload = null;
       img.onerror = null;
+      img.src = '';
+      URL.revokeObjectURL(url);
+    };
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    const succeed = (out: Blob) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(out);
     };
 
     timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error(`Image rotation timeout (${limits.TIMEOUT_MS}ms)`));
+      fail(new Error(`Image rotation timeout (${limits.TIMEOUT_MS}ms)`));
     }, limits.TIMEOUT_MS);
 
     img.onload = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+
       try {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+
         if (degrees === 90 || degrees === 270) {
-          canvas.width = img.height;
-          canvas.height = img.width;
+          canvas.width = h;
+          canvas.height = w;
         } else {
-          canvas.width = img.width;
-          canvas.height = img.height;
+          canvas.width = w;
+          canvas.height = h;
         }
 
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((degrees * Math.PI) / 180);
-        ctx.translate(-img.width / 2, -img.height / 2);
-        ctx.drawImage(img, 0, 0);
+        const ctx2 = canvas.getContext('2d');
+        if (!ctx2) return fail(new Error('Canvas context lost'));
 
-        const mimeType = file.type || "image/jpeg";
+        if (outputMime === 'image/jpeg') {
+          ctx2.fillStyle = '#FFFFFF';
+          ctx2.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        ctx2.imageSmoothingEnabled = true;
+        ctx2.imageSmoothingQuality = 'high';
+        ctx2.translate(canvas.width / 2, canvas.height / 2);
+        ctx2.rotate((degrees * Math.PI) / 180);
+        ctx2.translate(-w / 2, -h / 2);
+        ctx2.drawImage(img, 0, 0);
+
         canvas.toBlob(
           (blob) => {
-            cleanup();
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error("Failed to rotate image"));
+            if (!blob || blob.size === 0) {
+              return fail(new Error('Failed to rotate image'));
             }
+            succeed(blob);
           },
-          mimeType,
+          outputMime,
           0.92
         );
-      } catch (error) {
-        cleanup();
-        reject(error);
+      } catch (error: any) {
+        fail(error);
       }
     };
 
-    img.onerror = () => {
-      cleanup();
-      reject(new Error("Failed to load image"));
-    };
-
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => fail(new Error('Failed to load image'));
+    img.src = url;
   });
 };
 
@@ -608,8 +846,7 @@ export function downloadFile(blob: Blob, filename: string) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    
-    // Clean up after download
+
     setTimeout(() => {
       URL.revokeObjectURL(url);
     }, 1000);
@@ -622,13 +859,15 @@ export function downloadImageFile(blob: Blob, filename: string) {
   downloadFile(blob, filename);
 }
 
-export const downloadMultipleFiles = (files: { blob: Blob; filename: string }[]) => {
+export const downloadMultipleFiles = (
+  files: { blob: Blob; filename: string }[]
+) => {
   files.forEach((file, index) => {
     if (!file.blob || file.blob.size === 0) return;
-    
+    const delay = Math.min(index * 300, 5000);
     setTimeout(() => {
       downloadFile(file.blob, file.filename);
-    }, index * 300); // Delay between downloads
+    }, delay);
   });
 };
 
@@ -638,42 +877,40 @@ export const downloadMultipleFiles = (files: { blob: Blob; filename: string }[])
 
 export const downloadAsZip = async (
   files: Array<{ name: string; blob: Blob }>,
-  zipFileName: string = "converted_images.zip"
+  zipFileName: string = 'converted_images.zip'
 ): Promise<void> => {
   try {
-    // Filter out invalid files
-    const validFiles = files.filter(f => f.blob && f.blob.size > 0);
-    
+    const validFiles = files.filter((f) => f.blob && f.blob.size > 0);
     if (validFiles.length === 0) {
-      throw new Error("No valid files to zip");
+      throw new Error('No valid files to zip');
     }
 
-    // Dynamic import for smaller bundle
-    const JSZip = (await import("jszip")).default;
+    const JSZip = (await import('jszip')).default;
     const zip = new JSZip();
 
-    // Add all files to ZIP
     validFiles.forEach((file) => {
       zip.file(file.name, file.blob);
     });
 
-    // Generate ZIP file
     const zipBlob = await zip.generateAsync({
-      type: "blob",
-      compression: "DEFLATE",
-      compressionOptions: { level: 6 }
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
     });
 
-    // Download
     downloadFile(zipBlob, zipFileName);
   } catch (error) {
-    console.error("Error creating ZIP file:", error);
-    throw new Error(`Failed to create ZIP file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Error creating ZIP file:', error);
+    throw new Error(
+      `Failed to create ZIP file: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
+    );
   }
 };
 
 // ============================================================
-// 10. PDF FUNCTIONS
+// 10. PDF → SEPARATE PDF PAGES
 // ============================================================
 
 export async function pdfToImages(file: File): Promise<Blob[]> {
@@ -688,26 +925,27 @@ export async function pdfToImages(file: File): Promise<Blob[]> {
     newPdf.addPage(page);
 
     const bytes = await newPdf.save();
-
     const arrayBuffer = new ArrayBuffer(bytes.length);
     const view = new Uint8Array(arrayBuffer);
     view.set(bytes);
 
-    output.push(
-      new Blob([arrayBuffer], { type: 'application/pdf' })
-    );
+    output.push(new Blob([arrayBuffer], { type: 'application/pdf' }));
   }
 
   return output;
 }
 
+// ============================================================
+// 11. BUILD PDF FROM IMAGES
+// ============================================================
+
 export async function downloadAsPdf(
   images: Array<{ blob: Blob; name: string }>,
   settings: PdfSettings = {
-    paperSize: 'AA',
+    paperSize: 'A4',
     orientation: 'portrait',
     reverseOrder: false,
-    imagesPerPage: 1
+    imagesPerPage: 1,
   }
 ): Promise<Blob> {
   const pdfDoc = await PDFDocument.create();
@@ -717,35 +955,42 @@ export async function downloadAsPdf(
   pdfDoc.setCreationDate(new Date());
   pdfDoc.setModificationDate(new Date());
 
-  const paperSizes = {
-    'AA': { width: 595, height: 842 },
-    'Letter': { width: 612, height: 792 },
-    'Legal': { width: 612, height: 1008 },
-    'A3': { width: 842, height: 1191 },
+  const paperSizes: Record<string, { width: number; height: number }> = {
+    A4: { width: 595, height: 842 },
+    Letter: { width: 612, height: 792 },
+    Legal: { width: 612, height: 1008 },
+    A3: { width: 842, height: 1191 },
   };
 
-  const { width: baseWidth, height: baseHeight } = paperSizes[settings.paperSize];
-  const pageWidth = settings.orientation === 'landscape' ? baseHeight : baseWidth;
-  const pageHeight = settings.orientation === 'landscape' ? baseWidth : baseHeight;
+  const chosen = paperSizes[settings.paperSize] ?? paperSizes.A4;
+  const pageWidth =
+    settings.orientation === 'landscape' ? chosen.height : chosen.width;
+  const pageHeight =
+    settings.orientation === 'landscape' ? chosen.width : chosen.height;
 
   let processedImages = [...images];
-  if (settings.reverseOrder) {
-    processedImages.reverse();
-  }
+  if (settings.reverseOrder) processedImages.reverse();
 
-  const gridCols = settings.imagesPerPage === 1 ? 1 : settings.imagesPerPage === 2 ? 2 : 2;
-  const gridRows = settings.imagesPerPage === 1 ? 1 : settings.imagesPerPage === 2 ? 1 : 2;
+  const gridCols =
+    settings.imagesPerPage === 1 ? 1 : settings.imagesPerPage === 2 ? 2 : 2;
+  const gridRows =
+    settings.imagesPerPage === 1 ? 1 : settings.imagesPerPage === 2 ? 1 : 2;
 
-  for (let pageIndex = 0; pageIndex < Math.ceil(processedImages.length / settings.imagesPerPage); pageIndex++) {
+  const totalPages = Math.ceil(processedImages.length / settings.imagesPerPage);
+
+  for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
     const page = pdfDoc.addPage([pageWidth, pageHeight]);
 
     const startIndex = pageIndex * settings.imagesPerPage;
-    const endIndex = Math.min(startIndex + settings.imagesPerPage, processedImages.length);
+    const endIndex = Math.min(
+      startIndex + settings.imagesPerPage,
+      processedImages.length
+    );
     const pageImages = processedImages.slice(startIndex, endIndex);
 
     const margin = 30;
-    const availableWidth = pageWidth - (2 * margin);
-    const availableHeight = pageHeight - (2 * margin);
+    const availableWidth = pageWidth - 2 * margin;
+    const availableHeight = pageHeight - 2 * margin;
     const cellWidth = availableWidth / gridCols;
     const cellHeight = availableHeight / gridRows;
 
@@ -756,8 +1001,8 @@ export async function downloadAsPdf(
         const row = Math.floor(i / gridCols);
         const col = i % gridCols;
 
-        const x = margin + (col * cellWidth);
-        const y = pageHeight - margin - ((row + 1) * cellHeight);
+        const x = margin + col * cellWidth;
+        const y = pageHeight - margin - (row + 1) * cellHeight;
 
         const base64 = await blobToBase64(blob);
         const data = base64.split(',')[1];
@@ -766,7 +1011,10 @@ export async function downloadAsPdf(
         try {
           if (blob.type.includes('png')) {
             embedded = await pdfDoc.embedPng(data);
-          } else if (blob.type.includes('jpeg') || blob.type.includes('jpg')) {
+          } else if (
+            blob.type.includes('jpeg') ||
+            blob.type.includes('jpg')
+          ) {
             embedded = await pdfDoc.embedJpg(data);
           } else {
             try {
@@ -781,12 +1029,11 @@ export async function downloadAsPdf(
         }
 
         const padding = 10;
-        const maxWidth = cellWidth - (2 * padding);
-        const maxHeight = cellHeight - (2 * padding);
+        const maxWidth = cellWidth - 2 * padding;
+        const maxHeight = cellHeight - 2 * padding;
 
         let imgWidth = embedded.width;
         let imgHeight = embedded.height;
-
         const scale = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
         imgWidth *= scale;
         imgHeight *= scale;
@@ -801,19 +1048,21 @@ export async function downloadAsPdf(
           height: imgHeight,
         });
 
-        page.drawText(`Image ${startIndex + i + 1}: ${name.substring(0, 30)}`, {
-          x: x + padding,
-          y: y + padding,
-          size: 8,
-          color: rgb(0.3, 0.3, 0.3),
-        });
-
+        page.drawText(
+          `Image ${startIndex + i + 1}: ${name.substring(0, 30)}`,
+          {
+            x: x + padding,
+            y: y + padding,
+            size: 8,
+            color: rgb(0.3, 0.3, 0.3),
+          }
+        );
       } catch (error) {
         console.error(`Error processing image ${startIndex + i + 1}:`, error);
       }
     }
 
-    page.drawText(`Page ${pageIndex + 1} of ${Math.ceil(processedImages.length / settings.imagesPerPage)}`, {
+    page.drawText(`Page ${pageIndex + 1} of ${totalPages}`, {
       x: pageWidth - 80,
       y: 20,
       size: 9,
@@ -833,18 +1082,14 @@ export async function downloadAsPdf(
 
   if (pdfDoc.getPageCount() === 0) {
     const page = pdfDoc.addPage([pageWidth, pageHeight]);
-    const centerX = pageWidth / 2;
-    const centerY = pageHeight / 2;
-
     page.drawText('No images could be added to PDF', {
-      x: centerX - 100,
-      y: centerY,
+      x: pageWidth / 2 - 100,
+      y: pageHeight / 2,
       size: 16,
     });
   }
 
   const pdfBytes = await pdfDoc.save();
-
   const arrayBuffer = new ArrayBuffer(pdfBytes.length);
   const view = new Uint8Array(arrayBuffer);
   view.set(pdfBytes);
@@ -853,7 +1098,7 @@ export async function downloadAsPdf(
 }
 
 // ============================================================
-// 11. UTILITY FUNCTIONS
+// 12. UTILITY
 // ============================================================
 
 function blobToBase64(blob: Blob): Promise<string> {
@@ -866,16 +1111,16 @@ function blobToBase64(blob: Blob): Promise<string> {
 }
 
 // ============================================================
-// 12. EXPORT ALL FUNCTIONS
+// 13. DEFAULT EXPORT
 // ============================================================
 
-// Export everything for backward compatibility
 export default {
   compressImage,
+  compressImageAll,
   convertPngToJpg,
+  convertWebpToJpg,
   processImageForPdf,
   resizeImage,
-  convertWebpToJpg,
   rotateImage,
   downloadFile,
   downloadImageFile,
